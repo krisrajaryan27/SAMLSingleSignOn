@@ -1,0 +1,302 @@
+<?xml version="1.0"?>
+<dbmap> 
+	<dbqueries>
+		<dbquery name="qRequisitionManager_GetAllSteps">
+			SELECT 
+			tbl.requisition_approval_step_id, tbl.requisition_approval_step_name, tbl.requisition_approval_step_rank,
+			tbl.requisition_approval_step_type, GROUP_CONCAT(tbl.user_id) AS userIds, GROUP_CONCAT(tbl.name ORDER BY tbl.name SEPARATOR ', ') AS userNames
+			FROM (
+			SELECT 
+			tras.requisition_approval_step_id, tras.requisition_approval_step_name, tras.requisition_approval_step_rank,
+			tras.requisition_approval_step_type, tu.user_id, CONCAT(tu.user_fname, ' ' , tu.user_lname) as name
+			FROM 
+			tp_requisition_approval_steps tras 
+			LEFT JOIN tp_requisition_approval_steps_users trasu ON (tras.requisition_approval_step_id = trasu.requisition_approval_step_id)
+			LEFT JOIN tp_users tu ON (trasu.user_id=tu.user_id)
+			WHERE 
+			tras.requisition_approval_step_status=? and tras.requisition_approval_template_id=?
+			ORDER BY 
+			tras.requisition_approval_step_rank
+			) AS tbl
+			GROUP BY tbl.requisition_approval_step_rank
+		</dbquery>
+		<dbquery name="qRequisitionManager_GetRequisitionStepData">
+			SELECT 
+			tras.requisition_approval_step_id, tras.requisition_approval_step_name, tras.requisition_approval_step_rank,
+			tras.requisition_approval_step_type, tu.user_id, CONCAT(tu.user_fname, ' ' , tu.user_lname) as name,
+			tras.requisition_approval_template_id
+			FROM 
+			tp_requisition_approval_steps tras 
+			LEFT JOIN tp_requisition_approval_steps_users trasu ON (tras.requisition_approval_step_id = trasu.requisition_approval_step_id)
+			LEFT JOIN tp_users tu ON (trasu.user_id=tu.user_id)
+			WHERE 
+			tras.requisition_approval_step_id=? @@
+			ORDER BY name
+		</dbquery>
+		<dbquery name="qRequisitionManager_AddNewStep">
+			INSERT INTO tp_requisition_approval_steps (requisition_approval_template_id,
+			requisition_approval_step_name,requisition_approval_step_rank,
+			requisition_approval_step_type,requisition_approval_step_status,requisition_approval_step_date_created)
+			VALUES(?,?,?,?,?,now())
+		</dbquery>
+		<dbquery name="qRequisitionManager_UpdateNewStep">
+			UPDATE tp_requisition_approval_steps SET requisition_approval_step_name=?, requisition_approval_step_rank = ?
+			WHERE requisition_approval_step_id=?
+		</dbquery>
+		<dbquery name="qRequisitionManager_DeleteStepUsers">
+			DELETE FROM tp_requisition_approval_steps_users WHERE requisition_approval_step_id=?
+		</dbquery>
+		<dbquery name="qRequisitionManager_AddStepUsers">
+			INSERT INTO tp_requisition_approval_steps_users(requisition_approval_step_id,user_id)
+			VALUES(?,?)
+		</dbquery>
+		<dbquery name="qRequisitionManager_GetStepIdForRank">
+			SELECT requisition_approval_step_id FROM tp_requisition_approval_steps
+			WHERE requisition_approval_step_rank=? AND requisition_approval_step_status=?
+		</dbquery>
+		<dbquery name="qRequisitionManager_GetStepCountForUser">
+			SELECT count(tras.requisition_approval_step_id) 
+			FROM tp_requisition_approval_steps tras, tp_requisition_approval_steps_users trasu
+			WHERE tras.requisition_approval_step_id=trasu.requisition_approval_step_id
+			AND trasu.user_id=?
+			AND tras.requisition_approval_step_status=?
+		</dbquery>
+		<dbquery name="qRequisitionManager_GetStepCountRequisitionForUser">
+			SELECT count(tras.requisition_approval_step_id) 
+			FROM tp_requisition_approval_steps tras, tp_requisition_approval_steps_users trasu
+			WHERE tras.requisition_approval_step_id=trasu.requisition_approval_step_id
+			AND trasu.user_id=?
+			AND tras.requisition_approval_step_rank=?
+		</dbquery>
+		<dbquery name="qRequisitionManager_GetFirstRequisitionStepData">
+			SELECT 
+			tras.requisition_approval_step_id, tras.requisition_approval_step_name, tras.requisition_approval_step_rank,
+			tras.requisition_approval_step_type, tu.user_id, CONCAT(tu.user_fname, ' ' , tu.user_lname) as name
+			FROM 
+			tp_requisition_approval_steps tras , tp_requisition_approval_steps_users trasu, tp_users tu
+			WHERE 
+			tras.requisition_approval_step_id = trasu.requisition_approval_step_id
+			AND trasu.user_id=tu.user_id
+			AND tras.requisition_approval_step_status=?
+			AND tras.requisition_approval_template_id=?
+			AND tras.requisition_approval_step_rank = (
+				SELECT MIN(itras.requisition_approval_step_rank)
+				FROM tp_requisition_approval_steps itras, tp_requisition_approval_steps_users itrasu
+				WHERE itras.requisition_approval_step_id = itrasu.requisition_approval_step_id
+				AND itras.requisition_approval_step_status=?
+				AND itras.requisition_approval_template_id=?
+				AND itrasu.user_id=?
+				)
+			ORDER BY name
+		</dbquery>
+		<dbquery name="qRequisitionManager_GetNextActiveRequisitionStepData">
+			SELECT 
+			tras.requisition_approval_step_id, tras.requisition_approval_step_name, tras.requisition_approval_step_rank,
+			tras.requisition_approval_step_type, tu.user_id, 
+			CONCAT(tu.user_fname, ' ' , tu.user_lname) as name,
+			tu.user_fname, tu.user_lname, tr.role_title, ts.employee_code, tl.location_name, 
+			tdep.dept_name, tdeps.dept_name AS sub_dept, tdepss.dept_name AS sub_sub_dept
+			FROM 
+			tp_requisition_approval_steps tras , tp_requisition_approval_steps_users trasu, 
+			tp_users tu
+			LEFT JOIN tp_sources ts ON (ts.source_id=tu.USER_SOURCE_ID)
+			LEFT JOIN tp_location_ap tl ON (tl.location_id=tu.location_id)
+			LEFT JOIN tp_departments tdep ON (tu.dept_id=tdep.dept_id)
+			LEFT JOIN tp_departments tdeps ON (tu.sub_dept_id=tdeps.dept_id)
+			LEFT JOIN tp_departments tdepss ON (tu.sub_sub_dept_id=tdepss.dept_id)
+			, tp_user_roles tur, tp_roles tr 
+			WHERE 
+			tras.requisition_approval_step_id = trasu.requisition_approval_step_id
+			AND tr.role_id=tur.role_id
+			AND tu.user_id=tur.user_id 
+			AND trasu.user_id=tu.user_id
+			AND tras.requisition_approval_step_id = (SELECT requisition_approval_step_id FROM tp_requisition_approval_steps
+			WHERE requisition_approval_step_id!=? AND requisition_approval_step_rank &gt;=? AND requisition_approval_step_status=? 
+			AND requisition_approval_template_id=?
+			ORDER BY requisition_approval_step_rank
+			LIMIT 0,1 )
+			ORDER BY name
+		</dbquery>
+		
+		<dbquery name="qRequisitionManager_GetRequesitionsInProcessForStep">
+			SELECT distinct tp.position_title from 
+			(
+				SELECT * FROM 
+				(
+				SELECT * FROM tp_requisition_approval_feedback ORDER BY feedback_id desc
+				) as x GROUP BY position_id 
+			) AS y, tp_positions tp
+			WHERE (y.to_step_id=? OR (y.from_step_id=? AND y.to_step_id IS null))
+			AND y.position_id=tp.position_id
+			AND tp.position_status=?
+		</dbquery>
+		<dbquery name="qRequisitionManager_GetActiveUsersForStep">
+			SELECT z.user_id, CONCAT(tu.user_fname, ' ' , tu.user_lname) as name
+			FROM
+			(
+				SELECT  
+				CASE WHEN y.to_user_id IS null THEN y.by_user_id ELSE y.to_user_id END AS user_id
+				FROM 
+				(
+					SELECT * FROM 
+					(
+					SELECT * FROM tp_requisition_approval_feedback ORDER BY feedback_id desc
+					) as x GROUP BY position_id 
+				) AS y, tp_positions tp
+				WHERE (y.to_step_id=? OR (y.from_step_id=? AND y.to_step_id IS null))
+				AND y.position_id=tp.position_id
+				AND tp.position_status=?
+			) AS z , tp_users tu
+			WHERE tu.user_id=z.user_id
+			GROUP BY z.user_id, name
+		</dbquery>
+		<dbquery name="qRequisitionManager_InsertRequisitionApprovalTemplate">
+			INSERT INTO tp_requisition_approval_templates
+			(requisition_approval_template_name, date_created)
+			VALUES
+			(?,NOW())
+		</dbquery>
+		<dbquery name="qRequisitionManager_GetRequisitionApprovalTemplates">
+       		select requisition_approval_template_id, requisition_approval_template_name, 
+			requisition_approval_template_type
+			from tp_requisition_approval_templates
+			where requisition_approval_template_status=?
+			order by requisition_approval_template_status, requisition_approval_template_name
+       </dbquery> 
+       <dbquery name="qRequisitionManager_GetUserRequisitionApprovalTemplates">
+       		select tbl.requisition_approval_template_id, tbl.requisition_approval_template_name
+			from (
+			select trat.requisition_approval_template_id, trat.requisition_approval_template_name
+			from tp_requisition_approval_templates trat, tp_requisition_approval_steps tras 
+			where requisition_approval_template_status=?
+			and trat.requisition_approval_template_id = tras.requisition_approval_template_id 
+			and tras.requisition_approval_step_status = ?
+			and tras.requisition_approval_step_id in (select trasu.requisition_approval_step_id
+								from tp_requisition_approval_steps_users trasu
+								where user_id = ?)
+			order by trat.requisition_approval_template_name, 
+			requisition_approval_template_status, requisition_approval_template_name
+			) tbl
+			group by tbl.requisition_approval_template_id
+       </dbquery> 
+       <dbquery name="qRequisitionManager_GetRequisitionApprovalTemplateName">
+       		SELECT requisition_approval_template_name
+			FROM tp_requisition_approval_templates
+			WHERE requisition_approval_template_id=?
+       </dbquery> 
+       <dbquery name="qRequisitionManager_UpdateRequisitionApprovalTemplate">
+			UPDATE tp_requisition_approval_templates
+			SET requisition_approval_template_name = ?
+			WHERE requisition_approval_template_id=?
+		</dbquery>
+		<dbquery name="qRequisitionManager_DeleteRequisitionApprovalSteps">
+			UPDATE tp_requisition_approval_steps 
+			SET requisition_approval_step_status=? 
+			WHERE requisition_approval_step_id NOT IN (@@) AND requisition_approval_template_id=?
+		</dbquery>
+		<dbquery name="qRequisitionManager_DeleteRequisitionApprovalTemplate">
+			UPDATE tp_requisition_approval_templates
+			SET requisition_approval_template_status=?
+			WHERE requisition_approval_template_id=?
+		</dbquery>
+		<dbquery name="qRequisitionManager_GetRequesitionsInProcessForTemplate">
+			SELECT distinct tp.position_title from 
+			(
+				SELECT * FROM 
+				(
+				SELECT * FROM tp_requisition_approval_feedback ORDER BY feedback_id desc
+				) as x GROUP BY position_id 
+			) AS y, tp_positions tp
+			WHERE (y.to_step_id in (select requisition_approval_step_id 
+								from tp_requisition_approval_steps 
+								where requisition_approval_template_id = ?) 
+					OR (y.from_step_id in (select requisition_approval_step_id 
+											from tp_requisition_approval_steps 
+											where requisition_approval_template_id = ?) 
+					AND y.to_step_id IS null))
+			AND y.position_id=tp.position_id
+			AND tp.position_status=?
+		</dbquery>
+		<dbquery name="qRequisitionManager_GetRequisitionApprovalTemplateId">
+       		SELECT requisition_approval_template_id
+			FROM tp_requisition_approval_templates
+			WHERE requisition_approval_template_name=?
+       </dbquery> 
+	</dbqueries>
+	<dataqueries>
+	    <dataquery name="dRequisitionManager_GetAllSteps" dbquery="qRequisitionManager_GetAllSteps" object="com.talentPool.requisition.dataobject.RequisitionApprovalStepData">
+		    <attribute name= "requisitionApprovalStepId" column="requisition_approval_step_id" type ="INT" />
+		    <attribute name= "requisitionApprovalStepName" column="requisition_approval_step_name" type ="STRING" />
+		    <attribute name= "requisitionApprovalStepRank" column="requisition_approval_step_rank" type ="INT" />
+		    <attribute name= "requisitionApprovalStepType" column="requisition_approval_step_type" type ="INT" />
+		    <attribute name= "userIds" column="userIds" type ="STRING" />
+		    <attribute name= "userNames" column="userNames" type ="STRING" />
+    	</dataquery>
+	    <dataquery name="dRequisitionManager_GetRequisitionStepData" dbquery="qRequisitionManager_GetRequisitionStepData" object="com.talentPool.requisition.dataobject.RequisitionApprovalStepData">
+		    <attribute name= "requisitionApprovalStepId" column="requisition_approval_step_id" type ="INT" />
+		    <attribute name= "requisitionApprovalStepName" column="requisition_approval_step_name" type ="STRING" />
+		    <attribute name= "requisitionApprovalStepRank" column="requisition_approval_step_rank" type ="INT" />
+		    <attribute name= "requisitionApprovalStepType" column="requisition_approval_step_type" type ="INT" />
+		    <attribute name= "userId" column="user_id" type ="STRING" />
+		    <attribute name= "name" column="name" type ="STRING" />
+		    <attribute name= "requisitionApprovalTemplateId" column="requisition_approval_template_id" type ="STRING" />		    
+    	</dataquery>
+	    <dataquery name="dRequisitionManager_AddNewStep" dbquery="qRequisitionManager_AddNewStep" />
+	    <dataquery name="dRequisitionManager_UpdateNewStep" dbquery="qRequisitionManager_UpdateNewStep" />
+	    <dataquery name="dRequisitionManager_DeleteStepUsers" dbquery="qRequisitionManager_DeleteStepUsers" />
+	    <dataquery name="dRequisitionManager_AddStepUsers" dbquery="qRequisitionManager_AddStepUsers" />
+    	<dataquery name="dRequisitionManager_GetStepIdForRank" dbquery="qRequisitionManager_GetStepIdForRank" />
+    	
+    	<dataquery name="dRequisitionManager_GetStepCountRequisitionForUser" dbquery="qRequisitionManager_GetStepCountRequisitionForUser" />
+    	<dataquery name="dRequisitionManager_GetStepCountForUser" dbquery="qRequisitionManager_GetStepCountForUser" />
+    	<dataquery name="dRequisitionManager_GetFirstRequisitionStepData" dbquery="qRequisitionManager_GetFirstRequisitionStepData" object="com.talentPool.requisition.dataobject.RequisitionApprovalStepData">
+		    <attribute name= "requisitionApprovalStepId" column="requisition_approval_step_id" type ="INT" />
+		    <attribute name= "requisitionApprovalStepName" column="requisition_approval_step_name" type ="STRING" />
+		    <attribute name= "requisitionApprovalStepRank" column="requisition_approval_step_rank" type ="INT" />
+		    <attribute name= "requisitionApprovalStepType" column="requisition_approval_step_type" type ="INT" />
+		    <attribute name= "userId" column="user_id" type ="STRING" />
+		    <attribute name= "name" column="name" type ="STRING" />
+    	</dataquery>
+	    <dataquery name="dRequisitionManager_GetNextActiveRequisitionStepData" dbquery="qRequisitionManager_GetNextActiveRequisitionStepData" object="com.talentPool.requisition.dataobject.RequisitionApprovalStepData">
+		    <attribute name= "requisitionApprovalStepId" column="requisition_approval_step_id" type ="INT" />
+		    <attribute name= "requisitionApprovalStepName" column="requisition_approval_step_name" type ="STRING" />
+		    <attribute name= "requisitionApprovalStepRank" column="requisition_approval_step_rank" type ="INT" />
+		    <attribute name= "requisitionApprovalStepType" column="requisition_approval_step_type" type ="INT" />
+		    <attribute name= "userId" column="user_id" type ="STRING" />
+		    <attribute name= "name" column="name" type ="STRING" />
+		    <attribute name="firstName" column="user_fname" type="STRING"/>
+	        <attribute name="lastName" column="user_lname" type="STRING"/>
+	        <attribute name="roleTitle" column="role_title" type="STRING"/>
+	        <attribute name="employeeId" column="employee_code" type="STRING"/>
+	        <attribute name="location" column="location_name" type="STRING"/>
+	        <attribute name="department" column="dept_name" type="STRING"/>
+	        <attribute name="subDepartment" column="sub_dept" type="STRING"/>
+	        <attribute name="subSubDepartment" column="sub_sub_dept" type="STRING"/>
+    	</dataquery>    	    	
+    	<dataquery name="dRequisitionManager_GetRequesitionsInProcessForStep" dbquery="qRequisitionManager_GetRequesitionsInProcessForStep" object="com.talentPool.common.db.SimpleDataObject">
+    		<attribute name= "positionTitle" column="position_title" type ="STRING" />
+    	</dataquery>
+    	<dataquery name="dRequisitionManager_GetActiveUsersForStep" dbquery="qRequisitionManager_GetActiveUsersForStep" object="com.talentPool.common.db.SimpleDataObject">
+    		<attribute name= "userId" column="user_id" type ="STRING" />
+    		<attribute name= "name" column="name" type ="STRING" />
+    	</dataquery>
+    	<dataquery name="dRequisitionManager_InsertRequisitionApprovalTemplate" dbquery="qRequisitionManager_InsertRequisitionApprovalTemplate" />    	
+    	<dataquery name="dRequisitionManager_GetRequisitionApprovalTemplates" dbquery="qRequisitionManager_GetRequisitionApprovalTemplates" object="com.talentPool.common.db.SimpleDataObject">
+       		<attribute name="templateId"  column="requisition_approval_template_id" type="STRING" />
+       		<attribute name="templateName"  column="requisition_approval_template_name" type="STRING" />
+       		<attribute name="templateType"  column="requisition_approval_template_type" type="STRING" />
+       	</dataquery>
+       	<dataquery name="dRequisitionManager_GetUserRequisitionApprovalTemplates" dbquery="qRequisitionManager_GetUserRequisitionApprovalTemplates" object="com.talentPool.common.db.SimpleDataObject">
+       		<attribute name="templateId"  column="requisition_approval_template_id" type="STRING" />
+       		<attribute name="templateName"  column="requisition_approval_template_name" type="STRING" />
+       	</dataquery>
+      	<dataquery name="dRequisitionManager_GetRequisitionApprovalTemplateName" dbquery="qRequisitionManager_GetRequisitionApprovalTemplateName" />
+      	<dataquery name="dRequisitionManager_UpdateRequisitionApprovalTemplate" dbquery="qRequisitionManager_UpdateRequisitionApprovalTemplate" />      	
+      	<dataquery name="dRequisitionManager_DeleteRequisitionApprovalSteps" dbquery="qRequisitionManager_DeleteRequisitionApprovalSteps" />      	      	
+      	<dataquery name="dRequisitionManager_DeleteRequisitionApprovalTemplate" dbquery="qRequisitionManager_DeleteRequisitionApprovalTemplate" />      	      	      	
+      	<dataquery name="dRequisitionManager_GetRequesitionsInProcessForTemplate" dbquery="qRequisitionManager_GetRequesitionsInProcessForTemplate" object="com.talentPool.common.db.SimpleDataObject">
+    		<attribute name= "positionTitle" column="position_title" type ="STRING" />
+    	</dataquery>
+    	<dataquery name="dRequisitionManager_GetRequisitionApprovalTemplateId" dbquery="qRequisitionManager_GetRequisitionApprovalTemplateId" />
+	</dataqueries>   
+</dbmap>

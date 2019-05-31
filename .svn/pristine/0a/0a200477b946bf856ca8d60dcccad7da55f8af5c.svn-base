@@ -1,0 +1,13 @@
+<p> <strong>New event notification</strong></p>
+<p>Dear $USER_FNAME,</p>
+<p>Following event has been scheduled</p>
+<p>Candidate: <a href="$LINK_TO_ORIGINAL_RESUME">$CANDIDATE_NAME</a></p>
+<p>Date: $APPOINTMENT_DATE</p>
+<p>Time: $APPOINTMENT_TIME_FROM</p>
+<p>Position: $APPOINTMENT_POSITION_NAME</p>
+<p>Step: $POSITION_STEP_NAME</p>
+<p>Interview Mode:$APPOINTMENT_INTERVIEW_MODE</p>
+<p>Interview Details: $APPOINTMENT_INTERVIEW_MODE_DETAILS</p>
+<p>Thanks,</p>
+<p>HR Team</p>
+<p><br /><br /><br /></p>

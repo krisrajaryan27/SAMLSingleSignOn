@@ -1,0 +1,74 @@
+/*
+*  experiance_date_range.jape
+*
+*/
+
+Phase: experience_date_range
+Input: Lookup Token CustomSpaceToken
+Options: control = appelt
+
+Macro: CompanyTokenStart
+(
+	{Token.category == PRP}|
+	{Token.category == NN}|
+	{Token.category == NNP}|
+	{Token.category == NNPS}|
+	{Token.category == NNS}|
+	{Token.category == RP}|
+	{Token.category == CD}	
+)
+Macro: CompanyToken
+(
+	{Token.category == CD}|
+	{Token.category == JJ}|
+	{Token.category == JJR}|
+	{Token.category == JJS}|
+	{Token.category == RP}|
+	{Token.category == RB}|
+	{Token.category == RBR}|
+	{Token.category == RBS}|
+	{Token.category == PART}|
+	{Token.category == NN}|
+	{Token.category == NNS}|
+	{Token.category == NNP}|
+	{Token.category == NNPS}|
+	{Token.category == POS}|
+	({Token.category == ","}{Token.category == JJ})|
+	{Token.category == "\""}|
+	{Token.string == "&"}|
+	{Token.string == "."}
+)
+
+Rule: experience_job_title_lookup
+(
+ (CompanyTokenStart)(CompanyToken)[0,1]{Lookup.majorType == experience, Lookup.minorType == job_title}
+):jobTitle
+-->
+:jobTitle.TempExperienceToken = {kind = "job_title", rule = "experience_job_title_lookup"},
+{
+	gate.AnnotationSet jobTitleSet = (gate.AnnotationSet)bindings.get("jobTitle");
+	for(Annotation ann : jobTitleSet)
+	{
+		gate.FeatureMap features = Factory.newFeatureMap();
+		features.put("kind", "job_title");
+		features.put("rule", "job_title_nearby");
+		outputAS.add(ann.getStartNode(), ann.getEndNode(), "ExpJobTitleToken", features);		
+	}
+}
+
+Rule: experience_job_title_lookup_start
+(
+ {Lookup.majorType == experience, Lookup.minorType == job_title}(CompanyToken)[1,2]
+):jobTitle
+-->
+:jobTitle.TempExperienceToken = {kind = "job_title", rule = "experience_job_title_lookup_start"},
+{
+	gate.AnnotationSet jobTitleSet = (gate.AnnotationSet)bindings.get("jobTitle");
+	for(Annotation ann : jobTitleSet)
+	{
+		gate.FeatureMap features = Factory.newFeatureMap();
+		features.put("kind", "job_title");
+		features.put("rule", "job_title_nearby");
+		outputAS.add(ann.getStartNode(), ann.getEndNode(), "ExpJobTitleToken", features);		
+	}
+}

@@ -1,0 +1,70 @@
+// Created by Microsoft (R) C/C++ Compiler Version 13.10.3077 (5ccdd854).
+//
+// c:\tempo\tohtml1\debug\converter.tlh
+//
+// C++ source equivalent of Win32 type library C:\\tempo\\ToHtml1\\Converter.dll
+// compiler-generated file created 01/09/07 at 13:56:33 - DO NOT EDIT!
+
+#pragma once
+#pragma pack(push, 8)
+
+#include <comdef.h>
+
+namespace Converter {
+
+//
+// Forward references and typedefs
+//
+
+struct __declspec(uuid("30f4fe84-736b-4bda-b181-0a30d6a390b7"))
+/* LIBID */ __Converter;
+struct __declspec(uuid("52958425-4abb-48a0-b955-233bf7f323de"))
+/* dual interface */ _clsConverter;
+struct /* coclass */ clsConverter;
+
+//
+// Smart pointer typedef declarations
+//
+
+_COM_SMARTPTR_TYPEDEF(_clsConverter, __uuidof(_clsConverter));
+
+//
+// Type library items
+//
+
+struct __declspec(uuid("52958425-4abb-48a0-b955-233bf7f323de"))
+_clsConverter : IDispatch
+{
+    //
+    // Wrapper methods for error-handling
+    //
+
+    _bstr_t convertWordToHtml (
+        _bstr_t infile,
+        _bstr_t outfile );
+    HRESULT Class_Initialize ( );
+
+    //
+    // Raw methods provided by interface
+    //
+
+      virtual HRESULT __stdcall raw_convertWordToHtml (
+        /*[in]*/ BSTR infile,
+        /*[in]*/ BSTR outfile,
+        /*[out,retval]*/ BSTR * _arg3 ) = 0;
+      virtual HRESULT __stdcall raw_Class_Initialize ( ) = 0;
+};
+
+struct __declspec(uuid("b79cca0a-963e-457d-bfb2-c9cb4a8c8a88"))
+clsConverter;
+    // [ default ] interface _clsConverter
+
+//
+// Wrapper method implementations
+//
+
+#include "c:\tempo\tohtml1\debug\converter.tli"
+
+} // namespace Converter
+
+#pragma pack(pop)

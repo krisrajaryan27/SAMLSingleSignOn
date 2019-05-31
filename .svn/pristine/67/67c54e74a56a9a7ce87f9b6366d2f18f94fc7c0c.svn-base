@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>
+		<dbquery name="qPositionTemplateManager_GetAllTemplates">
+			SELECT * FROM( 
+			SELECT tp.position_id, tp.position_code, tp.position_title,  			
+			td.dept_name, tp.position_date_created, tu.user_id, concat(tu.user_fname,' ',tu.user_lname) as created_by
+			@@
+			FROM
+			tp_positions tp
+			LEFT JOIN tp_custom_field_values_position tvp ON (tp.position_id=tvp.entity_id)
+			LEFT JOIN tp_departments td ON (tp.dept_id=td.dept_id )
+			LEFT JOIN tp_position_locations tpl ON(tp.position_id=tpl.position_id) 
+			@@
+			, tp_users tu
+			WHERE 
+			tu.user_id = tp.position_created_by
+			AND tp.position_status = ?
+			@@
+			GROUP BY tp.position_id
+			ORDER BY td.dept_name, tp.position_title
+			) AS pos 
+			@@
+		</dbquery>	
+	</dbqueries>
+	<dataqueries>
+		<dataquery name="dPositionTemplateManager_GetAllTemplates" dbquery="qPositionTemplateManager_GetAllTemplates" object="com.talentPool.common.db.SimpleDataObject">
+	        <attribute name="positionId" 	column="position_id" 	type="STRING"/>
+	        <attribute name="positionCode" 	column="position_code" 	type="STRING"/>
+	        <attribute name="positionTitle" column="position_title" type="STRING"/>
+	        <attribute name="creationDate" column="position_date_created" type="STRING"/>
+	        <attribute name="createdBy" column="created_by" type="STRING"/>
+	        <attribute name="departmentName" column="dept_name" type="STRING"/>
+	        <attribute name="createdById" column="user_id" type="STRING"/>
+	    </dataquery>		
+	</dataqueries>   
+</dbmap>

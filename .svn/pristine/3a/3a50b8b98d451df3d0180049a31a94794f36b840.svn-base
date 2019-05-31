@@ -1,0 +1,53 @@
+/*
+*  basicinfo_phone.jape
+*
+*/
+
+
+Phase:	phone
+Input:  Token Lookup CustomSpaceToken
+Options: control = appelt
+
+Rule: phone3
+(
+	(({Token.string == "("})?({Token.string == "+"})?({Token.kind == number}({Token.string == "-"}|{Token.string == "."}|{Token.string == "("}|{Token.string == ")"})?)+):phone
+)
+-->
+{
+try{
+	gate.AnnotationSet phoneAnn = (gate.AnnotationSet)bindings.get("phone");
+	if(phoneAnn != null && phoneAnn.size() > 0)
+	{
+		long start = phoneAnn.firstNode().getOffset();
+		long end = phoneAnn.lastNode().getOffset();
+		String annotation = doc.getContent().getContent(start, end).toString();
+		String aTemp = "";
+		for (int j = 0; j < annotation.length(); j++) {
+			Character c = annotation.charAt(j);
+			if (Character.isDigit(c)) {
+				aTemp = aTemp + c.toString();
+			}
+		}
+		if(aTemp.length() >= 10 && aTemp.length() < 20)
+		{
+			gate.FeatureMap features = Factory.newFeatureMap();
+			features.put("majorType", "phone");
+			features.put("rule", "phone");		
+			String lastTen = aTemp.substring(aTemp.length()-10, aTemp.length());
+			if(!lastTen.startsWith("9") && !lastTen.startsWith("8")){
+				features.put("minorType", "land");
+			}
+			else{
+				features.put("minorType", "mobile");
+			}
+			outputAS.add(phoneAnn.firstNode(), phoneAnn.lastNode(), "TempPhoneToken",features);
+		}
+	}
+	else{
+		System.out.println("set is empty");
+	}
+}
+catch (Exception e) {
+			e.printStackTrace();
+		}
+}

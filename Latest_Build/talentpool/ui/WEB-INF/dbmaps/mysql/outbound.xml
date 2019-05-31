@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<dbmap>
+	<dbqueries>
+		<dbquery name="qOutBoundManager_Insert">
+			insert into tp_outbound(sent_status, send_to, send_from, outbound_type, outbound_mode,
+			send_date, entity_id, entity_type, user_id)
+			values(?,?,?,?,?,now(),?,?,?)
+		</dbquery>
+		<dbquery name="qOutBoundManager_GetNotifications">
+			SELECT outbound_id, sent_status, send_to, send_from, outbound_type, outbound_mode,
+			send_date, sent_date, sent_message_id, entity_id, entity_type, user_id
+			FROM  tp_outbound WHERE outbound_mode=? AND sent_status=? LIMIT 0,?
+		</dbquery>
+		<dbquery name="qOutBoundManager_UpdateOutbound">
+			UPDATE tp_outbound SET sent_status=?, sent_message_id=?, sent_date=now() WHERE outbound_id=?
+		</dbquery>
+		<dbquery name="qOutBoundManager_UpdateMessageData">
+			UPDATE tp_outbound SET data_object=? WHERE outbound_id=?
+		</dbquery>
+		<dbquery name="qOutBoundManager_GetMessageData">
+			SELECT data_object FROM tp_outbound WHERE outbound_id=?
+		</dbquery>
+	</dbqueries>
+	<dataqueries>
+		<dataquery name="dOutBoundManager_Insert" dbquery="qOutBoundManager_Insert" />
+	    <dataquery name="dOutBoundManager_GetNotifications" dbquery="qOutBoundManager_GetNotifications" object="com.talentPool.notifier.dataobject.OutBoundData">
+		    <attribute name= "outboundId" column="outbound_id" type ="INT" />
+		    <attribute name= "sentStatus" column="sent_status" type ="String" />
+		    <attribute name= "sendTo" column="send_to" type ="String" />
+		    <attribute name= "sendFrom" column="send_from" type ="String" />
+		    <attribute name= "outboundType" column="outbound_type" type ="String" />
+		    <attribute name= "outboundMode" column="outbound_mode" type ="String" />
+		    <attribute name= "sendDate" column="send_date" type ="String" />
+		    <attribute name= "sentDate" column="sent_date" type ="String" />
+		    <attribute name= "sentMessageId" column="sent_message_id" type ="String" />
+		    <attribute name= "entityId" column="entity_id" type ="String" />
+		    <attribute name= "entityType" column="entity_type" type ="String" />
+		    <attribute name= "userId" column="user_id" type ="String" />
+    	</dataquery>
+		<dataquery name="dOutBoundManager_UpdateOutbound" dbquery="qOutBoundManager_UpdateOutbound" />
+		<dataquery name="dOutBoundManager_UpdateMessageData" dbquery="qOutBoundManager_UpdateMessageData" />
+	    <dataquery name="dOutBoundManager_GetMessageData" dbquery="qOutBoundManager_GetMessageData" object="com.talentPool.common.db.SimpleDataObject">
+		    <attribute name= "dataObject" column="data_object" type ="String" />
+    	</dataquery>
+	</dataqueries>
+</dbmap>

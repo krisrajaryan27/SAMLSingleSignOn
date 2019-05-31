@@ -1,0 +1,492 @@
+<?xml version="1.0"?>
+<project name="TalentPool" default="compile" basedir=".">
+	<property file="build_talentpool.properties"/>
+	<property name="deploy.jsp"      	value="${deploy.home}/ui"/>
+	<property name="deploy.webinf" 		value="${deploy.jsp}/WEB-INF"/>
+	<property name="deploy.tmpjavacc"  value="${deploy.home}/tmpjavacc"/>
+	<property name="installation.key.generator" value="com.talentPool.license.utils.GenerateInstallationKey"/>
+	<property name="properties.merger" value="com.talentPool.common.utils.MergeProperties"/>
+	<property name="decryptproperties" value="com.talentPool.common.utils.DecryptProperties"/>
+	<property name="license.creator.main" value="com.talentPool.license.manager.LicenseCreator"/>
+<!-- ==================== File and Directory Names ======================== -->
+<!--
+
+  These properties generally define file and directory names (or paths) that
+  affect where the build process stores its outputs.
+
+  app.name             Base name of this application, used to
+                       construct filenames and directories.
+
+  app.version          Version identifier for this application.
+
+  app.home             Parent directory where cvs project checked out to.
+
+  build.home           The directory into which the "prepare" and
+                       "compile" targets will generate their output.
+                       Defaults to "build".
+
+  catalina.home        The directory in which you have installed
+                       a binary distribution of Tomcat 4.  This will
+                       be used by the "deploy" target.
+
+  deploy.home          The name of the directory into which the
+                       deployment hierarchy will be created, and into
+                       which the build directory will be copied.
+                       This is equivalent to parent directory for the
+                       Tomcat context defined in server.xml.
+
+                      
+
+  dist.home            Location for zip files to go to; same as deploy.home.
+
+  jdk.home             Location for java development kit.
+
+  source.dir           Location for Java class files and other source code.
+-->
+
+<!--  ==================== Compilation Control Options ==================== -->
+<!--
+
+  These properties control option settings on the Javac compiler when it
+  is invoked using the <javac> task.
+
+  compile.debug        Should compilation include the debug option?
+
+  compile.deprecation  Should compilation include the deprecation option?
+
+  compile.optimize     Should compilation include the optimize option?
+
+  <property name="compile.debug"       value="true"/>
+  <property name="compile.deprecation" value="true"/>
+  <property name="compile.optimize"    value="on"/>
+
+-->
+<!-- ==================== External Dependencies =========================== -->
+<!--
+  Use property values to define the locations of external JAR files on which
+  your application will depend.  In general, these values will be used for
+  two purposes:
+  * Inclusion on the classpath that is passed to the Javac compiler
+  * Being copied into the "/WEB-INF/lib" directory during execution
+    of the "deploy" target.
+
+  Because we will automatically include all of the Java classes that Tomcat 5
+  exposes to web applications, we will not need to explicitly list any of those
+  dependencies.  You only need to worry about external dependencies for JAR
+  files that you are going to include inside your "/WEB-INF/lib" directory.
+
+-->
+	<path id="common.classpath">
+		<!-- Include all JAR files that will be included in /WEB-INF/lib -->
+		<pathelement location="${app.home}/WEB-INF/lib"/>
+		<fileset dir="${app.home}/ui/WEB-INF/lib">
+		  <include name="*.jar"/>
+		</fileset>
+
+		<!-- Include all elements that Tomcat exposes to applications -->
+		<pathelement location="${catalina.home}/lib"/>
+		<fileset dir="${catalina.home}/lib">
+		  <include name="*.jar"/>
+		</fileset>
+
+    <pathelement location="${jdk.home}/jre/lib"/>
+    <fileset dir="${jdk.home}/jre/lib">
+      <include name="javaws.jar"/>
+    </fileset>
+    
+    <!-- path for java cc -->
+    <pathelement location="${javacc.home}"/>
+    <fileset dir="${javacc.home}">
+      <include name="javacc.jar"/>
+    </fileset>
+	
+    <pathelement location="${app.home}/${build.home}/" />
+	</path>
+
+   
+   <path id="all.classpath">
+       <path refid="common.classpath"/>
+       <pathelement location="${app.home}/${build.home}/classes/" />
+   </path>
+
+<!-- ==================== Targets ======================================
+
+  The "all" target is a shortcut for running the "clean" target followed
+  by the "compile" target, to force a complete recompile.
+
+  The "qa" target is a shortcut for running the "clean" target followed
+  by the "compile" target, to force a complete recompile.
+
+  The "developer" target is a shortcut for running the "clean" target followed
+  by the "compile" target, to force a complete recompile.
+
+-->
+	<target name="all" depends="clean,compile,jar" description="Clean compile and jar"/>
+
+<!-- ==================== Clean Target ==================================== -->
+<!--
+	The "clean" target deletes any previous "build" and "dist" directory,
+	so that you can be assured that the application can be built from scratch.
+-->
+
+	<target name="clean" description="Delete old build and dist directories">
+		<echo message="deleting ${app.home}/${build.home}/classes" />
+		<delete quiet="TRUE">
+			<fileset dir="${app.home}/${build.home}/classes" includes="**/*.*"/>
+		</delete>
+		<delete quiet="TRUE">
+			<fileset dir="${deploy.home}/ui/WEB-INF/lib" includes="*.*"/>
+		</delete>
+		<delete quiet="TRUE">
+			<fileset dir="${deploy.home}/ui/WEB-INF/classes" includes="**/*.*"/>
+		</delete>
+		
+		<echo message="deleting ${app.home}/${build.home}/classes" />
+		<delete dir="${app.home}/${build.home}/classes" />
+		<echo message="deleting ${deploy.home}" />
+		<delete dir="${deploy.home}" />
+	</target>
+
+<!-- ==================== Prepare Target ================================== -->
+<!--
+  The "prepare" target is used to create the "build" and "install" destination
+  directories.
+  And, to  copy the static contents of your web application to it. If you need
+  to copy static files from external dependencies, you can customize the
+  contents of this task.
+
+  Normally, this task is executed indirectly when needed for developer builds.
+-->
+
+	<target name="prepare">
+		<echo message="web-inf directory is ${deploy.webinf}"/>
+		<echo message="....................................."/>
+		<!-- Create build directory and copy static content -->
+		<echo message="create directory ${app.home}/build/classes"/>
+		<delete quiet="TRUE">
+			<fileset dir="${app.home}/${build.home}/classes" includes="**/*.*"/>
+		</delete>
+		<mkdir dir="${app.home}/${build.home}/classes"/>
+		<echo message="create directory ${deploy.home}"/>
+		<mkdir dir="${deploy.home}"/>
+		<echo message="create directory ${deploy.jsp}"/>
+		<mkdir dir="${deploy.jsp}"/>		
+		
+		<!-- create java cc classes -->
+		<echo message="create directory ${deploy.tmpjavacc}"/>
+		<mkdir dir="${deploy.tmpjavacc}"/>
+		<!-- <javacc target="${app.home}/${source.dir}/com/talentPool/repository/analysis/TPStandardTokenizer.jj" outputDirectory="${deploy.tmpjavacc}" javacchome="${javacc.home}"/>
+        <copy todir="${app.home}/${source.dir}/com/talentPool/repository/analysis">
+	        <fileset dir="${deploy.tmpjavacc}">
+	        	<include name="*.java"/>
+	        	<exclude name="ParseException.java"/>
+	      	</fileset>
+    	</copy> -->
+    
+		<echo message="copy jsps's ${app.home}/ui to ${deploy.jsp}"/>
+		<copy todir="${deploy.jsp}"	preservelastmodified="TRUE">
+			<fileset dir="${app.home}/ui" >
+			<exclude name="**/.svn"/>
+			<exclude name="**/*.class"/>
+			<exclude name="**/talentpool.properties"/>
+			<exclude name="**/BuildVersion.properties"/>
+			<exclude name="**/quartz.properties"/>
+			<exclude name="**/log4j.properties"/>
+			<exclude name="**/OtherApplication.properties"/>
+			<exclude name="WEB-INF/classes/com/"/>
+			</fileset>
+		</copy>
+		<copy file="${deploy.jsp}/WEB-INF/classes/talentpoollabels.properties" tofile="${deploy.jsp}/WEB-INF/classes/talentpoollabels.txt"/>
+		<copy todir="${deploy.home}" preservelastmodified="TRUE">
+			<fileset file="${app.home}/ui/WEB-INF/classes/talentpool.properties" />
+			<fileset file="${app.home}/ui/WEB-INF/classes/OtherApplication.properties" />
+			<fileset file="${app.home}/ui/WEB-INF/classes/quartz.properties" />
+			<fileset file="${app.home}/ui/WEB-INF/classes/log4j.properties" />
+			<fileset file="${app.home}/ui/WEB-INF/classes/BuildVersion.properties" />	
+			<fileset file="${app.home}/ui/WEB-INF/classes/talentpoollabels.properties" />
+			<fileset file="${app.home}/ui/WEB-INF/classes/customTalentpoollabels.properties" />
+			<fileset file="${app.home}/ui/images/setup.ico" />
+			<fileset file="${app.home}/ui/images/uninstall.ico" />			
+			<fileset file="${app.home}/ui/images/talentpool.ico" />
+			<fileset file="${app.home}/ui/images/desktop_icon.ico" />
+			<fileset file="${app.home}/ui/images/win-green.bmp" />
+		</copy>
+		<mkdir dir="${deploy.home}/dbscripts"/>
+		<copy todir="${deploy.home}/dbscripts" preservelastmodified="TRUE">
+			<fileset dir="${app.home}/dbscripts" />
+		</copy>
+		<mkdir dir="${deploy.home}/reports"/>
+		<copy todir="${deploy.home}/reports" preservelastmodified="TRUE">
+			<fileset file="${app.home}/reports/**" />
+		</copy>
+		<mkdir dir="${deploy.home}/customReports"/>
+		<copy todir="${deploy.home}/customReports" preservelastmodified="TRUE">
+			<fileset file="${app.home}/customReports/**" />
+		</copy>
+		<mkdir dir="${deploy.home}/jni"/>
+		<copy todir="${deploy.home}/jni" preservelastmodified="TRUE">
+			<fileset file="${app.home}/jni/**" />
+		</copy>
+		<mkdir dir="${deploy.home}/NLPParser"/>
+		<copy todir="${deploy.home}/NLPParser" preservelastmodified="TRUE">
+			<fileset dir="${app.home}/NLPParser" />
+		</copy>
+		<mkdir dir="${deploy.home}/templates"/>
+		<copy todir="${deploy.home}/templates" preservelastmodified="TRUE">
+			<fileset file="${app.home}/templates/**" />
+		</copy>
+		<mkdir dir="${deploy.home}/icons"/>
+		<copy todir="${deploy.home}/icons" preservelastmodified="TRUE">
+			<fileset file="${app.home}/icons/**" />
+		</copy>
+		<mkdir dir="${deploy.home}/others"/>
+			<copy todir="${deploy.home}/others" preservelastmodified="TRUE">
+			<fileset file="${app.home}/others/**" />
+		</copy>
+		<mkdir dir="${deploy.home}/backup"/>
+		<copy todir="${deploy.home}/backup" preservelastmodified="TRUE">
+			<fileset file="${app.home}/backup/**" />
+		</copy>
+		<mkdir dir="${deploy.home}/help"/>
+		<copy todir="${deploy.home}/help" preservelastmodified="TRUE">
+			<fileset file="${app.home}/help/**" />
+		</copy>
+		<mkdir dir="${deploy.home}/documents"/>
+		<copy todir="${deploy.home}/documents" preservelastmodified="TRUE">
+			<fileset file="${app.home}/documents/**" />
+		</copy>
+		<mkdir dir="${deploy.home}/plugins"/>
+		<copy todir="${deploy.home}/plugins" preservelastmodified="TRUE">
+			<fileset file="${app.home}/plugins/**" />
+		</copy>
+		<!--
+			This directory is where the deployment descriptor file will come 
+			and be picked up while making the jar.
+		-->
+		<mkdir dir="${app.home}/build/classes/${meta-inf.dir}"/>
+	</target>
+
+<!-- ==================== Compile and Jar Target ============================= -->
+<!--
+  The "compile" target transforms source files (from your "src" directory)
+  into object files in the appropriate location in the build directory.
+  This example assumes that you will be including your classes in an
+  unpacked directory hierarchy under "/WEB-INF/classes".
+-->
+	
+	
+	<target name="compile" depends="clean,prepare" description="Compile Java sources">
+		<!-- Compile Java classes as necessary -->
+		<javac srcdir="${app.home}/${source.dir}"
+			destdir="${app.home}/${build.home}/classes"
+			memoryInitialSize="300m" debug="true" debuglevel="lines,vars,source">
+		<exclude name="**/*.properties"/>
+		<exclude name="**/*Test.java"/>
+		<exclude name="**/.svn/**/*.*"/>
+		<classpath refid="all.classpath"/>
+		</javac>
+	</target>
+
+  <!-- Jarring -->
+	<target name="jar"	description="to jar only." depends="clean,compile">
+		<tstamp/>
+		<property environment="env" />
+		<echo message="Preparing the TalentPool Jar file..." />
+		<jar jarfile="${deploy.home}/mergeProperties.jar"
+			basedir="${app.home}/${build.home}/classes/"
+			update="FALSE">
+			<include name="**/common/utils/MergeProperties.class"/>
+			<include name="**/common/utils/DBUtils.class"/>
+			<manifest>
+	      <attribute name="Built-By" value="${user.name}"/>
+	      <attribute name="Main-Class" value="${properties.merger}"/>
+	    </manifest>			
+		</jar>
+		<jar jarfile="${deploy.home}/decryptProperties.jar"
+			basedir="${app.home}/${build.home}/classes/"
+			update="FALSE">
+			<include name="**/common/utils/DecryptProperties.class"/>
+			<include name="**/common/utils/DBUtils.class"/>
+			<manifest>
+	      <attribute name="Built-By" value="${user.name}"/>
+	      <attribute name="Main-Class" value="${decryptproperties}"/>
+	    </manifest>			
+		</jar>
+		<jar jarfile="${deploy.home}/installationKeyGenerator.jar"
+			basedir="${app.home}/${build.home}/classes/"
+			update="FALSE">
+			<include name="**/license/utils/StringToHex.class"/>
+			<include name="**/license/utils/GenerateInstallationKey.class"/>
+			<include name="**/license/manager/NetworkInfo.class"/>
+			<manifest>
+		      <attribute name="Built-By" value="${user.name}"/>
+		      <attribute name="Main-Class" value="${installation.key.generator}"/>
+		    </manifest>			
+		</jar>
+		<jar jarfile="${deploy.home}/TalentPool.jar"
+			basedir="${app.home}/${build.home}/classes/"
+			update="false">
+			<exclude name="**/server/**/*.class"/>
+			<exclude name="**/license/manager/LicenseCreator.class"/>			
+			<exclude name="**/license/utils/Decrypt.class"/>
+			<exclude name="**/license/utils/Encrypt.class"/>
+			<exclude name="**/license/utils/GenerateInstallationKey.class"/>
+			<exclude name="**/license/utils/StringToHex.class"/>
+			<exclude name="**/*.java"/>
+			<exclude name="**/*.wsdd"/>		
+		</jar>
+		<jar jarfile="${deploy.home}/ui/WEB-INF/lib/TalentPool.jar"
+					basedir="${app.home}/${build.home}/classes/"
+					update="false">
+					<exclude name="**/server/**/*.class"/>
+					<exclude name="**/license/manager/LicenseCreator.class"/>			
+					<exclude name="**/license/utils/Decrypt.class"/>
+					<exclude name="**/license/utils/Encrypt.class"/>
+					<exclude name="**/license/utils/GenerateInstallationKey.class"/>
+					<exclude name="**/license/utils/StringToHex.class"/>
+					<exclude name="**/*.java"/>
+					<exclude name="**/*.wsdd"/>		
+		</jar>
+		<jar jarfile="${deploy.home}/TalentPool.war"
+			basedir="${deploy.jsp}"
+			update="FALSE">
+			<manifest>
+		      <attribute name="Built-By" value="${user.name}"/>
+		      <attribute name="Revision" value="${env.SVN_REVISION}"/>
+			  <attribute name="Build-Number" value="${env.BUILD_NUMBER}"/>
+			  <attribute name="Build-Id" value="${env.BUILD_ID}"/>
+		    </manifest>	
+			<!--exclude name="**/META-INF/*.xml"/-->
+		</jar>		
+		<delete dir="${deploy.jsp}"/>
+	</target>
+	<!-- ================================= 
+          target: createLicense              
+         ================================= -->
+    <target name="createLicense" description="--> Extract the modules and files required to run the License Creation utility.">
+    	<echo message="deleting ${app.home}/${build.home}/classes" />
+		<delete quiet="TRUE">
+			<fileset dir="${app.home}/${build.home}/classes" includes="**/*.*"/>
+		</delete>
+    	<delete dir="${app.home}/${build.home}/classes" />
+		<mkdir dir="${app.home}/${build.home}/classes"/>
+        <javac srcdir="${app.home}/${source.dir}"
+			destdir="${app.home}/${build.home}/classes" debug="true" classpathref="all.classpath">
+        	<include name="**/common/logger/**/*.java"/>
+        	<include name="**/license/**/LicenseCreator.java"/>
+        </javac> 
+    	<mkdir dir="${license.utility.home}"/>
+    	<jar destfile="${license.utility.home}/CreateLicense.jar" basedir="${app.home}/${build.home}/classes" update="false">
+			<include name="**/*.class" />
+    		<manifest>
+		      	<attribute name="Built-By" value="${user.name}"/>
+		      	<attribute name="Main-Class" value="${license.creator.main}"/>    		  	
+		    </manifest>
+    	</jar>
+    	<copy todir="${license.utility.home}" preservelastmodified="TRUE">
+			<fileset file="${app.home}/build/LicenseBAS.xml" />
+    		<fileset file="${app.home}/build/LicenseENT.xml" />
+    		<fileset file="${app.home}/build/LicensePRO.xml" />
+		</copy>    	
+    	<delete quiet="TRUE">
+			<fileset dir="${app.home}/${build.home}/classes" includes="**/*.*"/>
+		</delete>
+    	<delete dir="${app.home}/${build.home}/classes" />
+		<mkdir dir="${app.home}/${build.home}/classes"/>
+        <javac srcdir="${app.home}/${source.dir}"
+			destdir="${app.home}/${build.home}/classes" debug="true" classpathref="all.classpath">
+        	<include name="**/license/utils/StringToHex.java"/>
+			<include name="**/license/utils/GenerateInstallationKey.java"/>
+			<include name="**/license/manager/NetworkInfo.java"/>
+        </javac> 
+    	<jar jarfile="${license.utility.home}/installationKeyGenerator.jar"
+			basedir="${app.home}/${build.home}/classes/"
+			update="FALSE">
+			<include name="**/license/utils/StringToHex.class"/>
+			<include name="**/license/utils/GenerateInstallationKey.class"/>
+			<include name="**/license/manager/NetworkInfo.class"/>
+			<manifest>
+		      <attribute name="Built-By" value="${user.name}"/>
+		      <attribute name="Main-Class" value="${installation.key.generator}"/>
+		    </manifest>			
+		</jar>
+    </target>
+    <target name="createVendorServiceJar" description="--> Compile required classes and creates a jar used for vendor service application">
+    	<echo message="deleting ${app.home}/${build.home}/classes" />
+		<property environment="env" />
+		<delete quiet="TRUE">
+			<fileset dir="${app.home}/${build.home}/classes" includes="**/*.*"/>
+		</delete>
+    	<delete dir="${app.home}/${build.home}/classes" />
+		<mkdir dir="${app.home}/${build.home}/classes"/>
+        <javac srcdir="${app.home}/${source.dir}"
+			destdir="${app.home}/${build.home}/classes" debug="true" classpathref="all.classpath">
+        	<include name="**/services/VendorService.java"/>
+        	<include name="**/services/VendorServiceService.java"/>
+        	<include name="**/services/VendorServiceServiceLocator.java"/>
+        	<include name="**/services/VendorServiceSoapBindingStub.java"/>
+        </javac> 
+    	<mkdir dir="${service.jar.home}"/>
+    	<jar destfile="${service.jar.home}/talentPoolVendor.jar" basedir="${app.home}/${build.home}/classes" update="false">
+			<include name="**/*.class" />
+			<manifest>
+		      <attribute name="Built-By" value="${user.name}"/>
+		      <attribute name="Revision" value="${env.SVN_REVISION}"/>
+			  <attribute name="Build-Number" value="${env.BUILD_NUMBER}"/>
+			  <attribute name="Build-Id" value="${env.BUILD_ID}"/>
+		    </manifest>
+    	</jar>
+    </target>
+	<target name="createWebsiteServiceJar" description="--> Compile required classes and creates a jar used for website service application">
+    	<echo message="deleting ${app.home}/${build.home}/classes" />
+		<property environment="env" />
+		<delete quiet="TRUE">
+			<fileset dir="${app.home}/${build.home}/classes" includes="**/*.*"/>
+		</delete>
+    	<delete dir="${app.home}/${build.home}/classes" />
+		<mkdir dir="${app.home}/${build.home}/classes"/>
+        <javac srcdir="${app.home}/${source.dir}"
+			destdir="${app.home}/${build.home}/classes" debug="true" classpathref="all.classpath">
+        	<include name="**/services/WebsiteService.java"/>
+        	<include name="**/services/WebsiteServiceService.java"/>
+        	<include name="**/services/WebsiteServiceServiceLocator.java"/>
+        	<include name="**/services/WebsiteServiceSoapBindingStub.java"/>
+        </javac> 
+    	<mkdir dir="${service.jar.home}"/>
+    	<jar destfile="${service.jar.home}/talentPoolWebsite.jar" basedir="${app.home}/${build.home}/classes" update="false">
+			<include name="**/*.class" />
+			<manifest>
+		      <attribute name="Built-By" value="${user.name}"/>
+		      <attribute name="Revision" value="${env.SVN_REVISION}"/>
+			  <attribute name="Build-Number" value="${env.BUILD_NUMBER}"/>
+			  <attribute name="Build-Id" value="${env.BUILD_ID}"/>
+		    </manifest>	
+    	</jar>
+    </target>
+    <target name="createEmployeeServiceJar" description="--> Compile required classes and creates a jar used for employee service application">
+    	<echo message="deleting ${app.home}/${build.home}/classes" />
+		<property environment="env" />
+		<delete quiet="TRUE">
+			<fileset dir="${app.home}/${build.home}/classes" includes="**/*.*"/>
+		</delete>
+    	<delete dir="${app.home}/${build.home}/classes" />
+		<mkdir dir="${app.home}/${build.home}/classes"/>
+        <javac srcdir="${app.home}/${source.dir}"
+			destdir="${app.home}/${build.home}/classes" debug="true" classpathref="all.classpath">
+        	<include name="**/services/EmployeeService.java"/>
+        	<include name="**/services/EmployeeServiceService.java"/>
+        	<include name="**/services/EmployeeServiceServiceLocator.java"/>
+        	<include name="**/services/EmployeeServiceSoapBindingStub.java"/>
+        </javac> 
+    	<mkdir dir="${service.jar.home}"/>
+    	<jar destfile="${service.jar.home}/talentPoolEmployee.jar" basedir="${app.home}/${build.home}/classes" update="false">
+			<include name="**/*.class" />
+			<manifest>
+		      <attribute name="Built-By" value="${user.name}"/>
+		      <attribute name="Revision" value="${env.SVN_REVISION}"/>
+			  <attribute name="Build-Number" value="${env.BUILD_NUMBER}"/>
+			  <attribute name="Build-Id" value="${env.BUILD_ID}"/>
+		    </manifest>
+    	</jar>
+    </target>
+</project>

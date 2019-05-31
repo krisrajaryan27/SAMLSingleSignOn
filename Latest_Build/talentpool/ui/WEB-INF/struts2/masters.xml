@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE struts PUBLIC
+    "-//Apache Software Foundation//DTD Struts Configuration 2.0//EN"
+    "http://struts.apache.org/dtds/struts-2.0.dtd">
+
+<struts>
+	<package name="pool-masters" namespace="/" extends="pool-default">
+	
+	 	<!-- Resume Type Master -->
+	 	
+	 	<interceptors>
+	 		<interceptor name="resumeType" class="com.talentPool.masters.inerceptors.ResumeTypeInterceptor" />
+	 		<interceptor name="salaryCompCategory" class="com.talentPool.masters.inerceptors.SalaryComponentCategoryMasterInterceptor" />
+            <interceptor-stack name="resumeTypeStack">
+            	<interceptor-ref name="mastersStack" />
+            	<interceptor-ref name="resumeType" />
+            </interceptor-stack>
+            <interceptor-stack name="salaryCompCategoryStack">
+            	<interceptor-ref name="mastersStack" />
+            	<interceptor-ref name="salaryCompCategory" />
+            </interceptor-stack>
+        </interceptors>
+        
+        <default-interceptor-ref name="mastersStack" />
+
+		<action name="ResumeTypeMaster"  class="com.talentPool.masters.action.ResumeTypeMasterAction" method="manageResumeTypes">
+            <interceptor-ref name="resumeTypeStack"/>
+            <result type="tiles">manageResumeTypeMaster</result>
+        </action>
+        
+        <action name="addResumeType"  class="com.talentPool.masters.action.ResumeTypeMasterAction" method="addResumeType">
+            <result type="tiles">addResumeType</result>
+        </action>
+        
+         <action name="editResumeType"  class="com.talentPool.masters.action.ResumeTypeMasterAction" method="editResumeType">
+        	<result type="tiles">addResumeType</result>
+        </action>
+        
+        <action name="saveResumeType"  class="com.talentPool.masters.action.ResumeTypeMasterAction" method="saveResumeType">
+            <result type="tiles">addResumeType</result>
+        </action>
+        
+        <action name="getResumeTypeXML"  class="com.talentPool.masters.action.ResumeTypeMasterAction" method="getResumeTypeXML">
+            <result>/common/xmlFile.jsp</result>
+        </action>
+        
+        <action name="deleteResumeType"  class="com.talentPool.masters.action.ResumeTypeMasterAction" method="deleteResumeType">
+            <result>/common/xmlFile.jsp</result>
+        </action>
+      
+      <!-- Security Question Master -->
+	 	
+	 	<action name="SecurityQuestionMaster"  class="com.talentPool.masters.action.SecurityQuestionMasterAction" method="manageSecurityQuestions">
+            <result type="tiles">manageSecurityQuestionMaster</result>
+        </action>
+        
+        <action name="addSecurityQuestion"  class="com.talentPool.masters.action.SecurityQuestionMasterAction" method="addSecurityQuestion">
+            <result type="tiles">addSecurityQuestion</result>
+        </action>
+        
+         <action name="editSecurityQuestion"  class="com.talentPool.masters.action.SecurityQuestionMasterAction" method="editSecurityQuestion">
+        	<result type="tiles">addSecurityQuestion</result>
+        </action>
+        
+        <action name="saveSecurityQuestion"  class="com.talentPool.masters.action.SecurityQuestionMasterAction" method="saveSecurityQuestion">
+            <result type="tiles">addSecurityQuestion</result>
+        </action>
+        
+        <action name="getSecurityQuestionXML"  class="com.talentPool.masters.action.SecurityQuestionMasterAction" method="getSecurityQuestionXML">
+            <result>/common/xmlFile.jsp</result>
+        </action>
+        
+        <action name="deleteSecurityQuestion"  class="com.talentPool.masters.action.SecurityQuestionMasterAction" method="deleteSecurityQuestion">
+            <result>/common/xmlFile.jsp</result>
+        </action>
+        
+        <!-- Salary Component Category Master -->
+        
+       <action name="salaryComponentCategoryMaster"  class="salCompCategoryMaster" >
+            <interceptor-ref name="salaryCompCategoryStack"/>
+            <result type="tiles">manageSalCompCategory</result>
+        </action>
+        
+        <action name="addSalCompCategory"  class="salCompCategoryMaster" method="addSalCompCategory">
+            <result type="tiles">addEditSalCompCategory</result>
+        </action>
+        
+         <action name="editSalCompCategory"  class="salCompCategoryMaster" method="editSalCompCategory">
+        	<result type="tiles">addEditSalCompCategory</result>
+        </action>
+        
+        <action name="saveSalCompCategory"  class="salCompCategoryMaster" method="saveSalCompCategory">
+            <result type="tiles">hidePopUp</result>
+        </action>
+        
+        <action name="getSalCompCategoryXML"  class="salCompCategoryMaster" method="getSalCompCategoryXML">
+            <result>/common/xmlFile.jsp</result>
+        </action>
+        
+        <action name="deleteSalCompCategory"  class="salCompCategoryMaster" method="deleteSalCompCategory">
+            <result>/common/xmlFile.jsp</result>
+            <result name="error" >/common/xmlFile.jsp</result>
+        </action>
+        
+        
+        <action name="EmployerMaster"  class="com.talentPool.masters.action.EmployerMasterAction" method="manageEmployers">
+            <result type="tiles">manageEmployerMaster</result>
+        </action>
+        <action name="addEmployer"  class="com.talentPool.masters.action.EmployerMasterAction" method="addEmployer">
+            <result type="tiles">addEmployer</result>
+        </action>        
+        <action name="editEmployer"  class="com.talentPool.masters.action.EmployerMasterAction" method="editEmployer">
+            <result type="tiles">addEmployer</result>
+        </action>
+        <action name="saveEmployer"  class="com.talentPool.masters.action.EmployerMasterAction" method="saveEmployer">
+            <result type="tiles">addEmployer</result>
+        </action>
+        <action name="getEmployerXML"  class="com.talentPool.masters.action.EmployerMasterAction" method="getEmployerXML">
+            <result>/common/xmlFile.jsp</result>
+        </action>        
+        <action name="deleteEmployer"  class="com.talentPool.masters.action.EmployerMasterAction" method="deleteEmployer">
+            <result>/common/xmlFile.jsp</result>
+        </action>
+        
+        <action name="DesignationMaster"  class="com.talentPool.masters.action.DesignationMasterAction" method="manageDesignations">
+            <result type="tiles">manageDesignationMaster</result>
+        </action>
+        <action name="addDesignation"  class="com.talentPool.masters.action.DesignationMasterAction" method="addDesignation">
+            <result type="tiles">addDesignation</result>
+        </action>        
+        <action name="editDesignation"  class="com.talentPool.masters.action.DesignationMasterAction" method="editDesignation">
+            <result type="tiles">addDesignation</result>
+        </action>
+        <action name="saveDesignation"  class="com.talentPool.masters.action.DesignationMasterAction" method="saveDesignation">
+            <result type="tiles">addDesignation</result>
+        </action>
+        <action name="getDesignationXML"  class="com.talentPool.masters.action.DesignationMasterAction" method="getDesignationXML">
+            <result>/common/xmlFile.jsp</result>
+        </action>        
+        <action name="deleteDesignation"  class="com.talentPool.masters.action.DesignationMasterAction" method="deleteDesignation">
+            <result>/common/xmlFile.jsp</result>
+        </action>
+
+    </package>
+</struts>

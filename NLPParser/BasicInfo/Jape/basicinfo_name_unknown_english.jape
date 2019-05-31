@@ -1,0 +1,86 @@
+/*
+*  basicinfo_city.jape
+*
+*/
+
+
+Phase:	smart_name
+Input:  UnknownWord FirstPerson CustomSpaceToken NameTitle Token
+Options: control = all
+
+Rule: smart_name_newline_known_at_start
+(
+{CustomSpaceToken}
+({Token.string == "("})?
+({NameTitle})?
+({FirstPerson}({Token.string == "."})?(({UnknownWord}|{FirstPerson})({Token.string == "."})?)[0,8]):name
+({Token.string == ")"})?
+({CustomSpaceToken}|{Token.string == "-"}|{Token.string == "("}|{Token.string == "{"}|{Token.string == "["}|{Token.string == ","})
+)
+-->
+:name.TempNameToken = {majorType = "name", minorType="smart_name_newline_known", rule = "smart_name_newline_known_at_start"}
+
+
+
+Rule: smart_name_newline_known_at_middle
+(
+{CustomSpaceToken}
+({Token.string == "("})?
+({NameTitle})?
+(({UnknownWord}({Token.string == "."})?)[1,4]{FirstPerson}({Token.string == "."})?(({UnknownWord}|{FirstPerson})({Token.string == "."})?)[0,4]):name
+({Token.string == ")"})?
+({CustomSpaceToken}|{Token.string == "-"}|{Token.string == "("}|{Token.string == "{"}|{Token.string == "["}|{Token.string == ","})
+)
+-->
+:name.TempNameToken = {majorType = "name", minorType="smart_name_newline_known", rule = "smart_name_newline_known_at_middle"}
+
+
+Rule: smart_name_newline_unknown
+(
+{CustomSpaceToken}
+({Token.string == "("})?
+({NameTitle})?
+((({UnknownWord})({Token.string == "."})?)[1,8]):name
+({Token.string == ")"})?
+({CustomSpaceToken}|{Token.string == "-"}|{Token.string == "("}|{Token.string == "{"}|{Token.string == "["}|{Token.string == ","})
+)
+-->
+:name.TempNameToken = {majorType = "name", minorType="smart_name_newline_unknown", rule = "smart_name_newline_unknown"}
+
+Rule: name_newline_known_at_start
+(
+{CustomSpaceToken}
+({Token.string == "("})?
+({NameTitle})?
+({FirstPerson}({Token.string == "."})?(({Token.kind == word}|{FirstPerson})({Token.string == "."})?)[1,8]):name
+({Token.string == ")"})?
+({CustomSpaceToken}|{Token.string == "-"}|{Token.string == "("}|{Token.string == "{"}|{Token.string == "["}|{Token.string == ","})
+)
+-->
+:name.TempNameToken = {majorType = "name", minorType="name_newline_known", rule = "name_newline_known_at_start"}
+
+
+
+Rule: name_newline_known_at_middle
+(
+{CustomSpaceToken}
+({Token.string == "("})?
+({NameTitle})?
+(({Token.kind == word}({Token.string == "."})?)[1,4]{FirstPerson}({Token.string == "."})?(({Token.kind == word}|{FirstPerson})({Token.string == "."})?)[0,4]):name
+({Token.string == ")"})?
+({CustomSpaceToken}|{Token.string == "-"}|{Token.string == "("}|{Token.string == "{"}|{Token.string == "["}|{Token.string == ","})
+)
+-->
+:name.TempNameToken = {majorType = "name", minorType="name_newline_known", rule = "name_newline_known_at_middle"}
+
+Rule: name_newline_token
+(
+{CustomSpaceToken}
+({Token.string == "("})?
+({NameTitle})?
+(({Token.kind == word}({Token.string == "."})?)[2,8]):name
+({Token.string == ")"})?
+({CustomSpaceToken}|{Token.string == "-"}|{Token.string == "("}|{Token.string == "{"}|{Token.string == "["}|{Token.string == ","})
+)
+-->
+:name.TempNameToken = {majorType = "name", minorType="name_newline_token", rule = "name_newline_token"}

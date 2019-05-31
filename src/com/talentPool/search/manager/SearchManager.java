@@ -1,0 +1,225 @@
+/**
+ * 
+ */
+package com.talentPool.search.manager;
+
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.Iterator;
+
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.TopDocs;
+import org.xml.sax.SAXException;
+import org.xml.sax.helpers.AttributesImpl;
+
+import com.talentPool.applicant.ApplicantConstants;
+import com.talentPool.common.Pagination;
+import com.talentPool.common.Logger.TPLogger;
+import com.talentPool.common.db.DBPreparedQuery;
+import com.talentPool.common.db.SimpleDataObject;
+import com.talentPool.common.properties.GlobalConstants;
+import com.talentPool.common.utils.CommonUtils;
+import com.talentPool.common.utils.Utils;
+import com.talentPool.common.xmlutils.XMLWriter;
+import com.talentPool.positions.dataobject.PositionData;
+import com.talentPool.repository.TPDocument;
+import com.talentPool.repository.TpDocRepositorySearcher;
+import com.talentPool.search.dataobjects.SearchCriteriaData;
+import com.talentPool.search.dataobjects.SearchResultData;
+import com.talentPool.user.manager.PermissionSet;
+
+/**
+ * @author shivprasad
+ * 
+ */
+public class SearchManager {
+
+	public SearchResultData search(SearchCriteriaData cData, PermissionSet permissionSet) {
+		SearchResultData searchResultData = new SearchResultData();
+		try {
+			ScoreDoc[] hits = null;
+			TpDocRepositorySearcher tpDocRepositorySearcher = new TpDocRepositorySearcher();
+			
+			// prepare list of degrees and branches
+			ArrayList<String> aDegrees = getAllDegrees(cData.getDegreeId());
+			ArrayList<String> aBranches = getAllBranches(cData.getBranchId());
+			// prepare string[] of flagIds
+			String[] aFlagIds = cData.getFlagId().split(",");
+			String[] aRejectReasons = cData.getRejectReason().split(",");
+
+			Pagination pager = cData.getPager();
+			int noOfTopDocs = (pager.getPageSize() * (pager.getPageNo() - 1)) + pager.getPageSize();
+
+			TopDocs topDocs = tpDocRepositorySearcher.search(noOfTopDocs, cData.getSearchText(), cData.getMatchCondition(), cData.getMinExperience(), cData.getMaxExperience(), cData.getCurrentLocation(), cData.getCurrentEmployer(), cData.getPreviousEmployer(),cData.getDesignation(),
+					cData.getPassport(), cData.getSourceTypeId(), cData.getResumeTypeId(), cData.getSource(), cData.getImportDaysFilter(), cData.getImportDaysFROM(), cData.getImportDaysTO(), cData.getBirthDayFilter(), cData.getBirthDaysFROM(), cData.getBirthDaysTO(),  
+					cData.getLastInteractionFilter(), cData.getLastInteractionFROM(), cData.getLastInteractionTO(),
+					cData.getExcludeInprocess(), cData.getExcludeRejectedInPast(), aDegrees, cData.getDegreeCriteria(),
+					aBranches, cData.getInstitute(), aFlagIds, aRejectReasons, cData.getSortBy(), cData.getCustomFields(), permissionSet.isSHOW_CONFIDENTIAL_PROFILE(),cData.getPhone1(),cData.getPhone2(),cData.getMobile(),
+					cData.getTenthMarksFilter(), cData.getTenthMarksFrom(), cData.getTenthMarksTo(),
+					cData.getTwelvethMarksFilter(), cData.getTwelvethMarksFrom() , cData.getTwelvethMarksTo(),cData.getGradeMarksFilter(), cData.getGradeMarksFrom() , cData.getGradeMarksTo(),
+					cData.getPostGradeMarksFilter(), cData.getPostGradeMarksFrom() , cData.getPostGradeMarksTo(),cData.getMinAge(),cData.getMaxAge(),cData.getMinimumExperience(),cData.getMaximumExperience(),cData.getAgeFilter(),cData.getYearOfExperienceFilter()
+					,cData.getPositionId());
+			hits = topDocs.scoreDocs;
+			searchResultData.setRecordCount(topDocs.totalHits);
+
+			ArrayList<TPDocument> results = new ArrayList<TPDocument>();
+
+			int start = 0;
+			int end = (int) searchResultData.getRecordCount();
+			if (pager.getPageSize() > 0) {
+				start = pager.getPageSize() * (pager.getPageNo() - 1);
+				end = start + pager.getPageSize();
+				if (end >= searchResultData.getRecordCount()) {
+					end = (int) searchResultData.getRecordCount();
+				}
+			}
+			for (int i = start; i < end; i++) {
+
+				TPDocument tpDocument = new TPDocument(tpDocRepositorySearcher.getSearcher().doc(hits[i].doc));
+				// tpDocument.setScore((int) (hits.score(i) * 100));
+				tpDocument.setQuery(tpDocRepositorySearcher.getKeywordQuery());
+				results.add(tpDocument);
+				// Explanation explanation =
+				// tPDocRepository.getExplaination(hits.id(i));
+				// Document doc = hits.doc(i);
+
+			}
+			// setDBStatusForSearchResults(results);
+			searchResultData.setRecords(results);
+			pager.setRecordCount(searchResultData.getRecordCount());
+			searchResultData.setPager(pager);
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while searching for results", e);
+			searchResultData.setPager(cData.getPager());
+		}
+		return searchResultData;
+	}
+
+	private ArrayList<String> getAllDegrees(String degreeId) {
+		ArrayList<String> results = new ArrayList<String>();
+		if (!Utils.isBlankOrNull(degreeId)) {
+			String[] degreeIds = degreeId.split(",");
+			if (!Utils.isBlankOrNull(degreeIds[0])) {
+				for (int i = 0; i < degreeIds.length; i++) {
+					results.add(CommonUtils.getDegreeName(degreeIds[i].trim()));
+				}
+			}
+		}
+		return results;
+	}
+
+	private ArrayList<String> getAllBranches(String branchId) {
+		ArrayList<String> results = new ArrayList<String>();
+		if (!Utils.isBlankOrNull(branchId)) {
+			String[] branchIds = branchId.split(",");
+			if (!Utils.isBlankOrNull(branchIds[0])) {
+				for (int i = 0; i < branchIds.length; i++) {
+					results.add(CommonUtils.getBranchName(branchIds[i].trim()));
+				}
+			}
+		}
+		return results;
+	}
+
+	public ArrayList<SimpleDataObject> getLastFeedbackDetails(String applicantId) {
+		DBPreparedQuery dq = null;
+		ArrayList<SimpleDataObject> sDo = null;
+		try {
+			dq = new DBPreparedQuery("dSearchManager_GetLastFeedbackDetails");
+			dq.setString(1, applicantId);
+			sDo = dq.getResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return sDo;
+	}
+	
+	public String getPositionXml(ArrayList<PositionData> positions) {
+		StringWriter sWr = new StringWriter();
+		XMLWriter wr = new XMLWriter(sWr);
+		try {
+			wr.startDocument();
+			wr.startElement("positions");
+			if (positions != null && positions.size() > 0) {
+				Iterator itr = positions.iterator();
+				while (itr.hasNext()) {
+					PositionData data = (PositionData) itr.next();
+					AttributesImpl atr = new AttributesImpl();
+					atr.addAttribute("", "id", "", "", String.valueOf(data.getPositionId()));
+					wr.startElement("", "position", "", atr);
+					wr.characters(data.getPositionTitle());
+					wr.endElement("position");
+				}
+			}
+			wr.endElement("positions");
+		} catch (SAXException e) {
+			TPLogger.getLogger().error("Error while generating the xml file for applicants in process", e);
+		}
+		return sWr.toString();
+	}
+
+	private String[] getSplitedString(String content) {
+		String[] result = null;
+		if (!Utils.isBlankOrNull(content)) {
+			result = content.replaceAll(";", ",").split(",");
+		}
+		return result;
+	}
+	
+	public ArrayList<SimpleDataObject> getApplicantNames(String applicantName) {
+		DBPreparedQuery dq = null;
+		ArrayList<SimpleDataObject> sDo = null;
+		try {
+			dq = new DBPreparedQuery("dSearchManager_GetApplicantNames");
+			dq.setString(1, applicantName + "%");
+			
+			dq.setString(2, ApplicantConstants.APPLICANT_REFER_EMPLOYEE_PORTA);
+			sDo = dq.getResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return sDo;
+	}
+	
+	public ArrayList<SimpleDataObject> getApplicantNumbers(String mobile) {
+		DBPreparedQuery dq = null;
+		ArrayList<SimpleDataObject> sDo = null;
+		try {
+			dq = new DBPreparedQuery("dSearchManager_GetApplicantNumbers");
+			dq.setString(1, "%" + mobile + "%");
+			sDo = dq.getResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return sDo;
+	}
+	
+	public ArrayList<SimpleDataObject> getPositionTitle(String positiontext) {
+		DBPreparedQuery dq = null;
+		ArrayList<SimpleDataObject> sDo = null;
+		try {
+			dq = new DBPreparedQuery("dSearchManager_GetPositionNames");
+			dq.setString(1, "%" + positiontext + "%");
+			sDo = dq.getResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return sDo;
+	}
+}

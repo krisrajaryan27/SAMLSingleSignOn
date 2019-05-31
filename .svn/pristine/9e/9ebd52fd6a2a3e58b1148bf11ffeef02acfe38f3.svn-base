@@ -1,0 +1,2913 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>
+		<!--Non report queries or filter related queries ********************-->
+		<dbquery name="qReportManager_GetPositions">
+			SELECT tpos.position_id, @@ as position_title from tp_positions tpos where tpos.position_status!=? 
+			AND (tpos.position_status=? OR tpos.position_status=? ) @@ @@
+			ORDER BY @@
+		</dbquery>
+		<!--End Non report queries or filter related queries *****************-->
+
+		<!--Report Queries ***************************************************-->
+		<dbquery name="qReportManager_GetHiringStatusSummary">
+			select tp.position_id, tp.position_code, concat(td.dept_name, '-', @@) as departmentPosition, 
+			tp.position_no_of_openings,
+			(select count(*) from tp_applicants ta ,tp_position_steps tps where ta.applicant_position_id=tp.position_id and 
+			ta.applicant_step_id=tps.position_step_id and (tps.position_step_level=? OR tps.position_step_level=?) ) as candidates,
+			(select count(*) from tp_applicants ta ,tp_position_steps tps where ta.applicant_position_id=tp.position_id and 
+			ta.applicant_step_id=tps.position_step_id and tps.position_step_level=?) as offered,
+			(select count(*) from tp_applicant_joining_history ta where ta.position_id=tp.position_id ) as joined,
+			 (SELECT COUNT(*) FROM tp_applicant_applied_position_resume_mapping tprpm WHERE tprpm.position_id=tp.position_id
+			AND tprpm.applied_status='1') AS applied		
+			from
+			tp_positions tp, tp_departments td
+			where 
+			tp.dept_id=td.dept_id
+			AND tp.position_status not in (?,?)
+			@@
+			order by td.dept_name, tp.position_title
+		</dbquery>
+		<dbquery name="qReportManager_GetMonthlyJoiningSummaryReport">
+			SELECT td.dept_name, ? as applicant_joined, 
+			DATE_FORMAT(ta.joining_date,'%Y-%m-01') as joined_date,
+			count(*) as joined
+			from tp_applicant_joining_history ta, tp_positions tp, tp_departments td
+			where ta.joining_date &gt;=? and ta.joining_date &lt;=?
+			and ta.position_id = tp.position_id
+			and tp.dept_id = td.dept_id
+			@@
+			group by joined_date, td.dept_name
+			order by joined_date, td.dept_name
+		</dbquery>
+	    <dbquery name="qReportManager_GetMonthlyJoiningDetailsReport">
+	          select ta.applicant_name,tajh.joining_date,
+	          DATE_FORMAT(tajh.joining_date,'%Y-%m-01') as applicant_month_joined,
+	          tajh.joining_date , @@ as position_title,td.dept_name
+              from tp_applicant_joining_history tajh left join tp_applicants ta on (ta.applicant_id = tajh.applicant_id),
+              tp_positions tp,tp_departments td
+              where tajh.position_id=tp.position_id
+              AND tp.dept_id=td.dept_id 
+              AND tajh.joining_date &gt;=? AND tajh.joining_date &lt;=? 
+              @@
+              order by tajh.joining_date
+	    </dbquery>
+	    <dbquery name="qReportManager_GetMonthlyJoiningCSVReport">
+	    	select applicant_id, applicant_name,  
+			applicant_city, applicant_email1, applicant_email2, 
+			applicant_home_phone, applicant_cell_phone, applicant_work_phone, 
+			concat(YEAR(FROM_DAYS(DATEDIFF(CURDATE() ,applicant_working_since))),' ',?,' ', MONTH(FROM_DAYS(DATEDIFF(CURDATE(),applicant_working_since))),' ',?) as applicant_working_since,
+			applicant_date_created, 
+			applicant_date_joined, applicant_current_employer,
+			CASE WHEN ? THEN
+				current_ctc 
+			ELSE
+				?
+			END AS current_ctc,
+			CASE WHEN ? THEN
+				expected_ctc 
+			ELSE
+				?
+			END AS expected_ctc,
+			applicant_notice_period,
+			CASE WHEN ? THEN 
+				applicant_level_offered
+			ELSE
+				?
+			END AS applicant_level_offered,
+			CASE WHEN ? THEN
+				applicant_designation_offered 
+			ELSE
+				?
+			END AS applicant_designation_offered, 
+			CASE WHEN ? THEN 
+				offered_ctc
+			ELSE
+				?
+			END AS offered_ctc, 
+			tbl.employee_code,
+			@@ as position_title,
+			CASE WHEN ? THEN 
+				ts.source_title
+			ELSE
+				?
+			END AS source_title 
+			from
+			(
+			(
+			select ta.applicant_id, ta.applicant_name,  
+			ta.applicant_city, ta.applicant_email1, ta.applicant_email2, 
+			ta.applicant_home_phone, ta.applicant_cell_phone, ta.applicant_work_phone, 
+			ta.applicant_working_since,  ta.applicant_date_created, 
+			ta.applicant_date_joined, ta.applicant_current_employer, ta.current_ctc, 
+			ta.expected_ctc, ta.applicant_notice_period, ta.applicant_level_offered, 
+			ta.applicant_designation_offered, ta.offered_ctc, ta.employee_code, 
+			ta.applicant_position_id as position_id, ta.source_id from tp_applicants ta 
+			where ta.applicant_joined=0
+			and ta.applicant_date_joined is not null
+			)
+			UNION
+			(
+			select tajh.applicant_id, ta.applicant_name, ta.applicant_city,
+			ta.applicant_email1, ta.applicant_email2, ta.applicant_home_phone, ta.applicant_cell_phone,
+			ta.applicant_work_phone, ta.applicant_working_since,
+			ta.applicant_date_created, tajh.joining_date as applicant_date_joined, ta.applicant_current_employer,
+			ta.current_ctc, ta.expected_ctc, ta.applicant_notice_period, tajh.level_offered as applicant_level_offered,
+			tajh.designation_offered as applicant_designation_offered, tajh.offered_ctc, ta.employee_code,
+			tajh.position_id, ta.source_id
+			from tp_applicant_joining_history tajh
+			left join tp_applicants ta on (tajh.applicant_id=ta.applicant_id) 			
+			)
+			) as tbl	
+			left join tp_positions tp on (tbl.position_id=tp.position_id)
+			left join tp_sources ts on (tbl.source_id=ts.source_id)
+			where tbl.applicant_date_joined &gt;=? AND tbl.applicant_date_joined &lt;=?
+			@@
+			order by tbl.applicant_date_joined
+	    </dbquery>
+		<dbquery name="qReportManager_callListReport">	
+		    SELECT ta.applicant_id,ta.applicant_name,ta.applicant_position_id,ta.applicant_email1, 
+            ta.applicant_email2, ta.applicant_home_phone, ta.applicant_cell_phone, ta.applicant_work_phone,
+            tpos.position_title, td.dept_id,td.dept_name,
+            tpu.user_id,ROUND( DATEDIFF( CURDATE( ) , ta.applicant_working_since ) /365, 1 )AS yearsOfExp,
+            te.applicant_id, tdeg.degree_title, tin.institute_name,
+            DATE_FORMAT(te.educational_info_year_of_passing,'%Y') AS YearOfPassing,
+            (
+            SELECT status_message FROM tp_applicant_status_messages tsm WHERE tsm.applicant_id = ta.applicant_id
+            ORDER BY date_created DESC LIMIT 0 , 1
+            ) AS current_ststus,
+            (SELECT position_step_title from tp_position_steps tps WHERE tps.position_step_id = ta.applicant_step_id)as step
+            FROM tp_applicants ta LEFT JOIN tp_applicant_educational_info te ON(te.applicant_id=ta.applicant_id)
+            LEFT JOIN tp_degrees tdeg ON ( te.degree_id = tdeg.degree_id ) 
+            LEFT JOIN tp_institutes tin ON (te.institute_id=tin.institute_id)
+            ,tp_positions tpos, tp_departments td , tp_position_steps tps, tp_position_step_users tpu
+            WHERE
+            ta.applicant_position_id=tpos.position_id
+            AND tpos.position_id=tps.position_id
+            AND ta.applicant_step_id = tps.position_step_id
+            AND tpos.dept_id = td.dept_id
+            AND tpu.position_id= tpos.position_id
+            AND tpu.user_id=? 
+            @@
+            order by  tpos.position_title  	
+		</dbquery>
+		<dbquery name="qReportManager_GetPositionSkillsInfo">	
+		    SELECT p.position_id,s.skill 
+			FROM tp_position_skills p
+			LEFT JOIN tp_skills s ON(p.skill_id=s.skill_id)
+			WHERE p.position_id=?
+		</dbquery>	
+		<dbquery name="qReportManager_GetHiringStatusDetail">
+		   	select tp.position_id, ta.applicant_name,
+			concat(td.dept_name, '-', @@) as departmentPosition,
+			case when ta.applicant_step_id is null then 'Joined' 
+			else (select tps.position_step_title from tp_position_steps tps where tps.position_step_id=ta.applicant_step_id)
+			end as step_title,
+			case when ta.applicant_step_id is null then 100 
+			else (select tps.position_step_rank from tp_position_steps tps where tps.position_step_id=ta.applicant_step_id)
+			end as stepRank,
+			ifnull((select concat(ifnull(tpd.degree_title, ''), case when tbr.branch_name is null then '' else concat('(', tbr.branch_name, ')') end, '\n', case when applicant_working_since is null then 'Fresh' else concat(ROUND(DATEDIFF(CURDATE(),applicant_working_since)/365,1), ' yrs') end )
+							from tp_degrees tpd, tp_applicant_educational_info taei, tp_branches tbr
+							where tpd.degree_id = taei.degree_id 
+							and taei.applicant_id= ta.applicant_id 
+							and taei.branch_id = tbr.branch_id
+							order by taei.educational_info_year_of_passing desc limit 0,1), '-') as educationExperience
+			from (
+			(select applicant_id, applicant_name, applicant_position_id, applicant_step_id, applicant_working_since from tp_applicants)
+			union
+			(select tajh.applicant_id, tapp.applicant_name, tajh.position_id as applicant_position_id, null as applicant_step_id, tapp.applicant_working_since
+			from tp_applicant_joining_history tajh 
+			left join tp_applicants tapp 
+			on (tapp.applicant_id = tajh.applicant_id)
+			)
+			) as ta, tp_positions tp, tp_departments td
+			where ta.applicant_position_id is not null
+			and ta.applicant_position_id=tp.position_id
+			and tp.dept_id=td.dept_id
+			@@
+			order by td.dept_name, tp.position_title, stepRank, ta.applicant_name
+		</dbquery>
+		<dbquery name="qGetSourceTitles">
+		     SELECT source_id, source_title FROM tp_sources WHERE source_status ='1' ORDER BY source_title
+	    </dbquery>
+	    <dbquery name="qReportManager_GetImportReport">
+		     SELECT ta.applicant_id, ta.applicant_name,ta.applicant_date_created AS DateCreated,
+             CONCAT(tu.user_fname,' ',tu.user_lname) as user_name, @@
+             FROM tp_sources ts,tp_applicants ta,tp_users tu
+             WHERE ts.source_id = ta.source_id
+             AND ta.user_id=tu.user_id @@ order by @@
+	    </dbquery>
+	    <dbquery name="qReportManager_GetHiringEfficiencySummaryReport">
+			SELECT @@ as position_title, tp.position_id,
+			tp.position_date_created, tp.position_date_expiry, tp.position_no_of_openings, td.dept_name,
+			count(*) as noOfJoined,
+			DATEDIFF(min(ta.joining_date),tp.position_date_created) as minimumDays,
+			DATEDIFF(max(ta.joining_date),tp.position_date_created) as maximumDays,
+			AVG(DATEDIFF(ta.joining_date,tp.position_date_created)) as averageDays,
+			AVG(DATEDIFF(ta.joining_date,tp.position_date_expiry)) as averageDeviation
+			FROM tp_positions tp, tp_departments td, tp_applicant_joining_history ta
+			WHERE ta.position_id = tp.position_id
+			and tp.dept_id = td.dept_id
+			AND (tp.position_status=? OR tp.position_status=?)
+			@@
+			GROUP BY 
+			tp.position_title, tp.position_date_created, tp.position_date_expiry, 
+			tp.position_no_of_openings, td.dept_name
+			order by td.dept_name, tp.position_title
+	    </dbquery>
+	    <dbquery name="qReportManager_GetHiringEfficiencyDetailsReport">
+			SELECT @@ as position_title, tp.position_id,
+			tp.position_date_created, tp.position_date_expiry, tp.position_no_of_openings, td.dept_name, td.dept_id,
+			ta.applicant_name, tajh.joining_date,
+			DATEDIFF(tajh.joining_date,tp.position_date_created) as averageDays,
+			DATEDIFF(tajh.joining_date,tp.position_date_expiry) as averageDeviation
+			FROM tp_positions tp, tp_departments td, 
+			tp_applicant_joining_history tajh left join tp_applicants ta on (tajh.applicant_id = ta.applicant_id)
+			WHERE tajh.position_id = tp.position_id
+			and tp.dept_id = td.dept_id
+			AND (tp.position_status=? OR tp.position_status=?)
+			@@
+			ORDER BY td.dept_name, td.dept_id, tp.position_title
+	    </dbquery>
+	    <dbquery name="qReportManager_GetSourceWiseHiring">
+         	SELECT  tst.source_type, ts.source_title, count(*) AS noOfJoined 
+			FROM tp_source_types tst, tp_sources ts, tp_positions tp,
+			tp_applicant_joining_history tajh 
+			LEFT JOIN tp_applicants ta  ON (ta.applicant_id = tajh.applicant_id)
+			WHERE 
+			ta.source_id=ts.source_id 
+			AND ts.source_type_id=tst.source_type_id
+			AND tajh.position_id = tp.position_id
+			@@
+			GROUP by tst.source_type, ts.source_title
+			ORDER by tst.source_type, ts.source_title
+	    </dbquery>
+	    <!-- Start: Hiring Funnel Summary Report -->
+	    <dbquery name="qReportManager_GetHiringFunnelSummaryReport">
+			SELECT dept_id, dept_name, position_id, position_title, position_step_title,
+			(rejected+inProcess+advanced) as processed,
+			rejected, inProcess, advanced, joined
+			FROM
+			(
+				SELECT td.dept_id, td.dept_name, tp.position_id, @@ as position_title, tps.position_step_title,
+				(SELECT count(*) 
+				from tp_applicant_selection_process t1
+				where t1.position_id=tp.position_id
+				and t1.position_step_id_to=?
+				and t1.process_moved_date &lt;= ? ) as joined,
+				
+				(SELECT count(*) FROM tp_applicant_selection_process t1 WHERE
+				t1.position_step_id_from=tps.position_step_id 
+				AND t1.position_step_id_to in (?,?,?,?)
+				and t1.process_moved_date &lt;= ?
+				)as rejected,
+				
+				(
+					SELECT count(*) from
+					(
+						SELECT * from 
+						(
+						SELECT * from tp_applicant_selection_process 
+						WHERE position_step_id_to not in (?,?,?)
+						order by applicant_id, process_moved_date desc
+						) t1
+						group by t1.applicant_id
+					) t2
+					where t2.position_step_id_to not in (?,?,?,?,?)
+					
+					and t2.position_step_id_to=tps.position_step_id 
+					and t2.process_moved_date &lt;= ?
+				) as inProcess,
+				
+				(
+					SELECT count(*) from tp_applicant_selection_process t2
+					where t2.position_step_id_to not in (?,?,?,?,?)
+					and t2.position_step_id_from=tps.position_step_id 
+					and t2.process_moved_date &lt;= ?
+				) as advanced
+				
+				FROM tp_positions tp left join tp_departments td on (tp.dept_id=td.dept_id), tp_position_steps tps
+				
+				WHERE tp.position_id=tps.position_id
+				@@
+				ORDER BY dept_name, position_title, position_id, tps.position_step_rank, tps.position_step_id
+			) as talias
+			WHERE (rejected+inProcess+advanced)&gt;0
+	    	
+	    </dbquery>
+	    <!-- End: Hiring Funnel Summary Report -->
+		
+		<!-- Start: Hiring Funnel Detail Report -->
+	    <dbquery name="qReportManager_GetHiringFunnelDetails">
+	    	select tt.process_id, tt.applicant_status, tt.applicant_id, tt.applicant_name,
+	    	tt.employee_code,tt.applicant_hrms_code,tt.position_id,tt.position_title,
+	    	tt.position_date_expiry, tt.position_step_rank,
+	    	tt.grade_name,tt.band_name,
+			tt.dept_name,tt.sub_dept_name, tt.sub_sub_dept_name,
+			tt.sub3_dept_name,tt.sub4_dept_name,			
+			
+			tt.departmentPosition, tt.position_step_id_from, tt.position_step_title, 
+			tt.user_id, tt.user_fname, tt.process_moved_date, tt.action_time,			
+			GROUP_CONCAT(DISTINCT tbu.bu_name SEPARATOR ', ') AS bu_name,
+			GROUP_CONCAT(DISTINCT tcc.cost_center_name SEPARATOR ', ') AS cost_center_name,			
+			(select count(*) 
+			from tp_applicant_selection_process
+			where position_id=tt.position_id
+			and position_step_id_from=tt.position_step_id_from
+			) as cnt
+			from
+			(
+			select t.process_id, t.applicant_status, t.applicant_id, ta.applicant_name,
+			ta.employee_code,ta.applicant_hrms_code,t.position_id,tp.position_title, 
+			tp.position_date_expiry, td.dept_name, tds.dept_name AS sub_dept_name,
+			tdss.dept_name AS sub_sub_dept_name, tds3.dept_name AS sub3_dept_name,
+			tds4.dept_name AS sub4_dept_name, tg.grade_name, tb.band_name,			
+			case when t.position_step_id_from = ? then -1 
+			     when t.position_step_id_from=? then 100
+			     else tps.position_step_rank
+			end as position_step_rank,
+			concat(td.dept_name, '-', @@) as departmentPosition, 
+			t.position_step_id_from, 
+			case when t.position_step_id_from = ? then 'Shortlist' 
+			     when t.position_step_id_from=? then 'Joined'
+			     else tps.position_step_title 
+			end as position_step_title, 
+			t.user_id, tu.user_fname, t.process_moved_date, 
+			date_format(t.process_moved_date, '%b-%y') as action_time
+			from
+			(
+			(
+			select tasp.process_id, '' as applicant_status, tasp.applicant_id, tasp.position_id,
+			tasp.position_step_id_to as position_step_id_from, tasp.process_moved_date, tasp.user_id
+			from tp_applicant_selection_process tasp
+			where tasp.position_step_id_to=?
+			)
+			union
+			(
+			select tasp.process_id, 'Rejected' as applicant_status, tasp.applicant_id, tasp.position_id,
+			tasp.position_step_id_from, tasp.process_moved_date, tasp.user_id
+			from tp_applicant_selection_process tasp
+			where tasp.position_step_id_to in (?, ?, ?, ?)
+			)
+			union
+			(
+			select t2.process_id, 'In Process' as applicant_status, t2.applicant_id, t2.position_id,
+			t2.position_step_id_to, t2.process_moved_date, t2.user_id
+			from
+			(
+			select *
+			from 
+			(
+			select *
+			from tp_applicant_selection_process tasp WHERE position_step_id_to not in (?,?,?)
+			order by applicant_id, process_moved_date desc
+			) t1
+			group by t1.applicant_id
+			) t2
+			where t2.position_step_id_to not in (?, ?, ?, ?, ?)
+			)
+			union
+			(
+			select tasp.process_id, 'Advanced' as applicant_status, tasp.applicant_id, tasp.position_id,
+			tasp.position_step_id_from, tasp.process_moved_date, tasp.user_id
+			from tp_applicant_selection_process tasp
+			where tasp.process_id not in 
+			(
+			select tasp.process_id
+			from tp_applicant_selection_process tasp
+			where tasp.position_step_id_to in (?, ?, ?, ?)
+			)
+			and tasp.process_id not in 
+			(
+			select t2.process_id
+			from
+			(
+			select *
+			from 
+			(
+			select *
+			from tp_applicant_selection_process tasp
+			order by applicant_id, process_moved_date desc
+			) t1
+			group by t1.applicant_id
+			) t2
+			where t2.position_step_id_to not in (?, ?, ?, ?, ?)
+			)AND position_step_id_from!=?
+			)
+			) t LEFT JOIN tp_applicants ta on (t.applicant_id=ta.applicant_id)
+			LEFT JOIN tp_positions tp on (t.position_id=tp.position_id)
+			LEFT JOIN tp_position_steps tps on (t.position_step_id_from=tps.position_step_id)
+			LEFT JOIN tp_departments td on (tp.dept_id=td.dept_id)		
+			LEFT JOIN tp_departments tds ON (tp.sub_dept_id=tds.dept_id)			
+			LEFT JOIN tp_departments tdss ON (tp.sub_sub_dept_id=tdss.dept_id)
+			LEFT JOIN tp_departments tds3 ON (tp.sub3_dept_id=tds3.dept_id)
+			LEFT JOIN tp_departments tds4 ON (tp.sub4_dept_id=tds4.dept_id)			
+			LEFT JOIN tp_budget_grades tg ON (tg.grade_id=tp.grade_id)
+			LEFT JOIN tp_budget_bands tb ON (tb.band_id=tp.band_id)
+				
+						
+			LEFT JOIN tp_users tu on (t.user_id=tu.user_id)
+			where @@
+			) tt			
+			LEFT JOIN tp_position_business_unit tpbu ON (tt.position_id=tpbu.position_id)
+			LEFT JOIN tp_business_unit tbu ON (tpbu.bu_id = tbu.bu_id)
+			LEFT JOIN tp_position_cost_center tpcc ON (tt.position_id = tpcc.position_id)
+			LEFT JOIN tp_cost_center tcc ON (tpcc.cost_center_id = tcc.cost_center_id)
+						
+			GROUP BY tt.process_id
+			ORDER BY tt.dept_name, tt.position_title, tt.position_id, tt.position_step_rank,
+			 tt.position_step_id_from, tt.applicant_status, tt.applicant_name			  
+	    </dbquery>
+	    <!-- End: Hiring Funnel Detail Report -->
+	    	    
+		<!--End Report Queries ***********************************************-->
+		<!-- Start: Interview List -->
+			<dbquery name="qReportManager_InterviewList">
+				select tapp.appointment_id, date_format(tapp.appointment_from_date, '%W, %d-%b-%y') as col0, 
+				date_format(tapp.appointment_from_date, '%h:%i %p') as col1,
+				concat(tdept.dept_name, '/', @@, '\n', (select position_step_title from tp_position_steps where position_step_id=tapp.position_step_id)) as col2,
+				(select concat(ta.applicant_name, '\n', ifnull(ta.applicant_city, ''))
+				from tp_applicants ta
+				where ta.applicant_id = tapp.applicant_id) as col3,
+				ifnull((select concat(ifnull(ta.applicant_email1, ifnull(ta.applicant_email2, '')), 
+				'\n', ifnull(case when ta.applicant_cell_phone_is_invalid=? then null else ta.applicant_cell_phone end, ifnull(case when ta.applicant_home_phone_is_invalid=? then null else ta.applicant_home_phone end, ifnull(case when ta.applicant_work_phone_is_invalid=? then null else ta.applicant_work_phone end, ''))))
+				from tp_applicants ta
+				where ta.applicant_id = tapp.applicant_id), '') as col4,
+				(select concat((select case 
+								when applicant_working_since is null then 'Fresh'
+								else concat(format(PERIOD_DIFF(EXTRACT(YEAR_MONTH FROM now()),EXTRACT(YEAR_MONTH FROM applicant_working_since))/12, 1), ' ', 'yrs')
+								end), '\n', ifnull(ta.applicant_current_employer, ''))
+				from tp_applicants ta
+				where ta.applicant_id = tapp.applicant_id) as col5,
+				ifnull((select concat(ifnull(tpd.degree_title, ''), 
+				'(', ifnull(tpi.institute_name, ''), ',', 
+				ifnull(EXTRACT(YEAR FROM taei.educational_info_year_of_passing), ''), ',',
+				ifnull(tbr.branch_name, ''), ')')
+				from tp_degrees tpd, tp_applicant_educational_info taei, tp_institutes tpi, tp_branches tbr
+				where tpd.degree_id = taei.degree_id 
+				and tpi.institute_id = taei.institute_id
+				and taei.applicant_id= tapp.applicant_id 
+				and taei.branch_id = tbr.branch_id
+				order by taei.educational_info_year_of_passing desc limit 0,1), '') as col6,
+				(select group_concat(tu.USER_FNAME order by tu.USER_FNAME) 
+				from tp_users tu, tp_appointment_attendees tappa
+				where tu.user_id=tappa.attendee_id
+				and tappa.appointment_id=tapp.appointment_id
+				group by appointment_id) as col7
+				from tp_appointments tapp
+				left join tp_positions tp on (tapp.position_id=tp.position_id)
+				left join tp_departments tdept on (tp.dept_id=tdept.dept_id)
+				where tapp.appointment_from_date &gt; ?
+				AND tapp.appointment_id in (select t.appointment_id	from tp_appointment_attendees t	@@)
+				@@
+				order by tapp.appointment_from_date
+			</dbquery>
+			<dbquery name="qGetUsersForIds">
+				select group_concat(trim(concat(USER_FNAME, ' ', USER_LNAME)) order by trim(concat(USER_FNAME, ' ', USER_LNAME)) SEPARATOR  ', ') as users
+				from tp_users
+				where user_id in (@@)
+			</dbquery>
+		<!-- End: Interview List -->
+		<!-- Start: Interview List Status -->
+		<dbquery name ="qReportManager_InterviewListStatus">
+				  SELECT DISTINCT concat(date_format(tapp.appointment_from_date, '%d-%b-%y'),' ', date_format(tapp.appointment_from_date, '%h:%i %p')) AS col0, ta.applicant_name AS col1, 
+				  tapp.interview_mode AS col2 ,tdept.dept_name AS col3, tp.position_title AS col4, concat(tu.USER_FNAME,' ',tu.USER_LNAME) AS col5,
+				  (SELECT CASE
+				  				WHEN tasp.position_step_id_to = ? THEN 'On Hold'
+								WHEN tasp.position_step_id_to = ? THEN 'Joined'
+								WHEN tasp.position_step_id_to in (?,?) THEN 'Rejected'
+			              	    WHEN tasp.position_step_id_to = ? THEN 'Feedback Pending'
+				             	WHEN tasp.position_step_id_to = ? THEN 'Did not attend- Rejected'
+				             	WHEN tasp.position_step_id_to = ? THEN 'Interviewed- Rejected'
+				              	WHEN tapp.appointment_status_id = ? THEN 'Attendance Not Confirmed'
+				              	ELSE concat('Moved to ',
+				                            (SELECT position_step_title
+				                             FROM tp_position_steps tps
+				                             WHERE tps.position_step_id = tasp.position_step_id_to))
+				   END) AS col6,
+				
+				  (SELECT position_step_title
+				   FROM tp_position_steps
+				   WHERE position_step_id=ta.applicant_step_id) AS col7,
+				               ts.source_title AS col8,
+				  (SELECT group_concat(tu.USER_FNAME,' ',tu.USER_LNAME
+				                       )
+				   FROM tp_users tu, tp_appointment_attendees tappa
+				   WHERE tu.user_id=tappa.attendee_id
+				   AND tappa.appointment_id=tapp.appointment_id
+				   GROUP BY appointment_id) AS col9,
+				    taspt.trait_comment AS col11
+				FROM tp_appointments tapp
+				LEFT JOIN tp_positions tp ON (tapp.position_id=tp.position_id)
+				LEFT JOIN tp_departments tdept ON (tp.dept_id=tdept.dept_id)
+				LEFT JOIN tp_applicants ta ON (ta.applicant_id = tapp.applicant_id)
+				LEFT JOIN tp_users tu ON (tapp.appointment_created_by = tu.user_id)
+				LEFT JOIN tp_position_steps tps ON (tps.position_step_id=tapp.position_step_id)
+				LEFT JOIN tp_applicant_selection_process tasp ON (tasp.position_step_id_from = tapp.position_step_id
+				                                                  AND tasp.applicant_id = tapp.applicant_id)
+			   LEFT JOIN tp_applicant_selection_process_traits taspt ON (taspt.process_id = tasp.process_id),tp_sources ts
+				WHERE ta.source_id= ts.source_id AND tasp.position_step_id_to NOT IN (?) @@
+				
+		</dbquery>
+		<!-- End: Interview List Status -->
+		<!-- Start: User Activity -->
+			<dbquery name="qReportManager_GetUserActivityData">
+				select interaction_id, interaction_type, t4.applicant_id, t4.user_id, t4.position_id,
+				CAST(t4.interaction_date AS DATETIME) AS interaction_date, interaction, department_position, t4.stage,
+				ta.applicant_name, trim(concat(tu.user_fname, ' ', tu.user_lname)) as username
+				from
+				(
+				(
+				select interaction_id, interaction_type, applicant_id, user_id, interaction_date, interaction, t3.position_id, 
+				(select concat(td.dept_name, ' / ', @@) 
+				from tp_departments td, tp_positions tpos
+				where td.dept_id=tpos.dept_id
+				and tpos.position_id=t3.position_id) as department_position, 
+				(select position_step_level	
+				from tp_position_steps tps
+				where tps.position_step_id=t3.step_id) as stage
+				from
+				(
+				(
+				select t2.interaction_id, t2.interaction_type, t2.interaction, t2.interaction_date, t2.user_id, 
+				t2.applicant_id, tasp1.position_id, 
+				(select case when tasp1.position_step_id_from = ? then tasp1.position_step_id_to
+					    else tasp1.position_step_id_from
+					    end) as step_id
+				from
+				(
+				select t1.interaction_id, t1.interaction_type, t1.interaction, t1.interaction_date, t1.user_id, t1.applicant_id,
+				(select tasp.process_id 
+				from tp_applicant_selection_process tasp
+				where tasp.applicant_id = t1.applicant_id
+				and tasp.process_moved_date &lt; t1.interaction_date
+				order by tasp.process_moved_date desc limit 0, 1) as process_id
+				from
+				(
+				(
+				select te.email_id as interaction_id, 
+				case when te.folder_id =? then ? else ? end as interaction_type, 
+				case when te.folder_id =? then ? else ? end as interaction,
+				case when te.folder_id =? then email_date_send else email_date_received end as interaction_date, 
+				te.user_id as user_id, te.applicant_id
+				from tp_applicant_inbox_emails te
+				)
+				union
+				(
+				select tc.communication_id as interaction_id, tc.communication_type_id as interaction_type, 
+				case when tc.communication_type_id = ? then concat(?, ': ', communication_text)
+				     when tc.communication_type_id = ? then concat(?, ': ', communication_text)
+				     when tc.communication_type_id = ? then concat(?, ': ', communication_text)
+				     end as interaction,
+				tc.communication_date_created as interaction_date, tc.user_id as user_id, tc.applicant_id
+				from tp_communications tc
+				)
+				) as t1
+				) as t2 left join tp_applicant_selection_process tasp1
+				on (tasp1.process_id = t2.process_id)
+				)
+				union
+				(
+				select tasm.status_message_id as interaction_id, ? as interaction_type,
+				concat(?, ' ', tasm.status_message) as interaction,
+				tasm.date_created as interaction_date, tasm.user_id as user_id, tasm.applicant_id,
+				(select tps.position_id 
+				from tp_position_steps tps
+				where tps.position_step_id=tasm.position_step_id) as position_id, tasm.position_step_id
+				from tp_applicant_status_messages tasm
+				where tasm.system_generated = ?
+				)
+				union
+				(
+				select ta.appointment_id as interaction_id, ? as interaction_type,
+				concat(?, ' ', tps.position_step_title, ' ', 'for', ' ', tdd.dept_name, '-', tpp.position_title, ' ', 'on', ' ', date_format(ta.appointment_from_date, "%d-%b"), ' ', 'at', ' ', date_format(ta.appointment_from_date, "%I:%i %p")) as interaction,
+				ta.appointment_date_created as interaction_date, ta.appointment_created_by as user_id, 
+				ta.applicant_id, ta.position_id, ta.position_step_id
+				from tp_appointments ta, tp_applicants taa, tp_positions tpp, tp_departments tdd, tp_position_steps tps
+				where taa.applicant_id = ta.applicant_id
+				and tpp.position_id = (case when taa.applicant_position_id is null then (select taspp.position_id 
+							from tp_applicant_selection_process taspp
+							where taspp.position_step_id_to in (?, ?, ?, ?) and taspp.applicant_id=taa.applicant_id 
+							order by taspp.process_moved_date desc limit 0,1)
+				else taa.applicant_position_id	end)
+				and tps.position_step_id = ((case when taa.applicant_step_id is null then (select taspp.position_step_id_from 
+							from tp_applicant_selection_process taspp
+							where taspp.position_step_id_to in (?, ?, ?, ?) and taspp.applicant_id=taa.applicant_id 
+							order by taspp.process_moved_date desc limit 0,1)
+				else taa.applicant_step_id
+				end))
+				and tdd.dept_id = tpp.dept_id
+				@@
+				)
+				union
+				(
+				select tasp.process_id as interaction_id, ? as interaction_type,
+				concat((case when position_step_id_to=? then 'Advanced to Joined'
+				else concat((case when position_step_id_to in (?, ?, ?, ?) then 'Rejected from' 
+				when (position_step_id_to in (?, ?)) 
+				then 'Entered feedback for'
+				when position_step_id_to = ? then 'Confirmed attendance for'  else 'Advanced to' end),' ', tps.position_step_title) end), ' for ', td.dept_name, '-', tpp.position_title) as interaction,
+				tasp.process_moved_date as interaction_date, tasp.user_id as user_id, tasp.applicant_id, tasp.position_id, 
+				(select case when tasp.position_step_id_from = ? then tasp.position_step_id_to
+					else tasp.position_step_id_from
+					end) as step_id
+				from tp_applicant_selection_process tasp, tp_positions tpp, tp_position_steps tps, tp_departments td
+				where case when (tasp.position_step_id_to in (?, ?, ?, ?, ?, ?, ?, ?)) then tps.position_step_id=tasp.position_step_id_from
+				else tps.position_step_id=tasp.position_step_id_to end
+				and tpp.position_id=tasp.position_id
+				and tpp.dept_id=td.dept_id 
+				@@
+				)
+				) as t3 @@
+				)
+				union
+				(
+				select ta.applicant_id as interaction_id, ? as interaction_type, ta.applicant_id, ta.user_id,
+				ta.applicant_date_created as interaction_date,
+				? as interaction, '-1' as position_id, 
+				'-' as department_position, ? as stage
+				from tp_applicants ta, tp_users tu
+				where tu.user_id = ta.user_id
+				@@
+				)
+				) as t4, tp_applicants ta, tp_users tu
+				where ta.applicant_id=t4.applicant_id
+				and tu.user_id=t4.user_id
+				and t4.interaction_date &gt; ? 
+				and t4.interaction_date &lt; ?
+				@@
+				order by username asc, t4.interaction_date desc
+			</dbquery>
+		<!-- End: User Activity -->
+		<!-- Start: Position Activity -->
+			<dbquery name="qReportManager_GetPositionActivityData">
+				select interaction_id, interaction_type, t4.applicant_id, t4.user_id, t4.position_id,
+				CAST(t4.interaction_date AS DATETIME) AS interaction_date, interaction, department_position, t4.stage,
+				ta.applicant_name, trim(concat(tu.user_fname, ' ', tu.user_lname)) as username
+				from
+				(
+				(
+				select interaction_id, interaction_type, applicant_id, user_id, interaction_date, interaction, t3.position_id, 
+				(select concat(td.dept_name, ' / ', @@) 
+				from tp_departments td, tp_positions tpos
+				where td.dept_id=tpos.dept_id
+				and tpos.position_id=t3.position_id) as department_position, 
+				(select position_step_level	
+				from tp_position_steps tps
+				where tps.position_step_id=t3.step_id) as stage
+				from
+				(
+				(
+				select t2.interaction_id, t2.interaction_type, t2.interaction, t2.interaction_date, t2.user_id, 
+				t2.applicant_id, tasp1.position_id, 
+				(select case when tasp1.position_step_id_from = ? then tasp1.position_step_id_to
+					    else tasp1.position_step_id_from
+					    end) as step_id
+				from
+				(
+				select t1.interaction_id, t1.interaction_type, t1.interaction, t1.interaction_date, t1.user_id, t1.applicant_id,
+				(select tasp.process_id 
+				from tp_applicant_selection_process tasp
+				where tasp.applicant_id = t1.applicant_id
+				and tasp.process_moved_date &lt; t1.interaction_date
+				order by tasp.process_moved_date desc limit 0, 1) as process_id
+				from
+				(
+				(
+				select te.email_id as interaction_id, 
+				case when te.folder_id =? then ? else ? end as interaction_type, 
+				case when te.folder_id =? then ? else ? end as interaction,	
+				case when te.folder_id =? then email_date_send else email_date_received end as interaction_date, 
+				te.user_id as user_id, te.applicant_id
+				from tp_applicant_inbox_emails te
+				)
+				union
+				(
+				select tc.communication_id as interaction_id, tc.communication_type_id as interaction_type, 
+				case when tc.communication_type_id = ? then ?
+				     when tc.communication_type_id = ? then ?
+				     when tc.communication_type_id = ? then ?
+				     end as interaction,
+				tc.communication_date_created as interaction_date, tc.user_id as user_id, tc.applicant_id
+				from tp_communications tc
+				)
+				) as t1
+				) as t2 left join tp_applicant_selection_process tasp1
+				on (tasp1.process_id = t2.process_id)
+				)
+				union
+				(
+				select tasm.status_message_id as interaction_id, ? as interaction_type,
+				concat(?, ' ', tasm.status_message) as interaction,
+				tasm.date_created as interaction_date, tasm.user_id as user_id, tasm.applicant_id,
+				(select tps.position_id 
+				from tp_position_steps tps
+				where tps.position_step_id=tasm.position_step_id) as position_id, tasm.position_step_id
+				from tp_applicant_status_messages tasm
+				where tasm.system_generated = ?
+				)
+				union
+				(
+				select ta.appointment_id as interaction_id, ? as interaction_type,
+				concat(?, ' ', tps.position_step_title, ' ', 'for', ' ', tdd.dept_name, '-', @@, ' ', 'on', ' ', date_format(ta.appointment_from_date, "%d-%b"), ' ', 'at', ' ', date_format(ta.appointment_from_date, "%I:%i %p")) as interaction,
+				ta.appointment_date_created as interaction_date, ta.appointment_created_by as user_id, 
+				ta.applicant_id, ta.position_id, ta.position_step_id
+				from tp_appointments ta, tp_applicants taa, tp_positions tpp, tp_departments tdd, tp_position_steps tps
+				where taa.applicant_id = ta.applicant_id
+				and tpp.position_id = (case when taa.applicant_position_id is null then (select taspp.position_id 
+							from tp_applicant_selection_process taspp
+							where taspp.position_step_id_to in (?, ?, ?, ?) and taspp.applicant_id=taa.applicant_id 
+							order by taspp.process_moved_date desc limit 0,1)
+				else taa.applicant_position_id
+				end)
+				and tps.position_step_id = ((case when taa.applicant_step_id is null then (select taspp.position_step_id_from 
+							from tp_applicant_selection_process taspp
+							where taspp.position_step_id_to in (?, ?, ?, ?) and taspp.applicant_id=taa.applicant_id 
+							order by taspp.process_moved_date desc limit 0,1)
+				else taa.applicant_step_id
+				end))
+				and tdd.dept_id = tpp.dept_id
+				)
+				union
+				(
+				select tasp.process_id as interaction_id, ? as interaction_type,
+				concat((case when position_step_id_to=? then 'Advanced to Joined'
+				else concat((case when position_step_id_to in (?, ?, ?, ?) then 'Rejected from' 
+				when (position_step_id_to in (?, ?)) 
+				then 'Entered feedback for'
+				when position_step_id_to = ? then 'Confirmed attendance for'  else 'Advanced to' end),' ', tps.position_step_title) end), ' for ', td.dept_name, '-', @@) as interaction,
+				tasp.process_moved_date as interaction_date, tasp.user_id as user_id, tasp.applicant_id, tasp.position_id, 
+				(select case when tasp.position_step_id_from = ? then tasp.position_step_id_to
+					else tasp.position_step_id_from
+					end) as step_id
+				from tp_applicant_selection_process tasp, tp_positions tpp, tp_position_steps tps, tp_departments td
+				where case when (tasp.position_step_id_to in (?, ?, ?, ?, ?, ?, ?, ?)) then tps.position_step_id=tasp.position_step_id_from
+				else tps.position_step_id=tasp.position_step_id_to end
+				and tpp.position_id=tasp.position_id
+				and tpp.dept_id=td.dept_id 
+				)
+				) as t3 @@
+				)
+				) as t4, tp_applicants ta, tp_users tu
+				where ta.applicant_id=t4.applicant_id
+				and tu.user_id=t4.user_id
+				and t4.interaction_date &gt; ? 
+				and t4.interaction_date &lt; ?
+				@@
+				order by department_position asc, t4.interaction_date desc
+			</dbquery>
+		<!-- End: Position Activity -->
+		<!-- Start: Sourcewise Import Report -->
+		<dbquery name="qGetSourcewiseImportData">
+			SELECT tst.source_type_id, tst.source_type, ta.source_id, ts.source_title, 
+			count(ta.source_id) as cnt, count(tst.source_type_id) as cntCat,
+			ta.applicant_date_created AS import_date
+			from tp_applicants ta, tp_sources ts ,tp_source_types tst
+			where ta.source_id = ts.source_id
+			and ts.source_type_id = tst.source_type_id
+			@@
+			group by ta.applicant_date_created, ts.source_id , tst.source_type_id
+			order by ta.applicant_date_created
+		</dbquery>
+		<!-- End: Sourcewise Import Report -->
+		<!-- Start: Applicant Details Report -->
+		<dbquery name="qReportManager_ApplicantDetailsData">
+			SELECT ta.applicant_id, ta.applicant_name, ta.applicant_current_employer,
+			CONCAT(format(PERIOD_DIFF(EXTRACT(YEAR_MONTH FROM now()),EXTRACT(YEAR_MONTH FROM ta.applicant_working_since))/12, 1), ' ', 'yrs') as exp,
+			tst.source_type, ts.source_title, ta.applicant_city, ta.applicant_email1, ta.applicant_email2,
+			ta.applicant_cell_phone, ta.applicant_work_phone, ta.applicant_home_phone,
+			group_concat(tps.skill order by tps.skill separator ', ') as skills
+			FROM tp_applicants ta
+			LEFT JOIN tp_sources ts ON (ta.source_id = ts.source_id)
+			LEFT JOIN tp_source_types tst ON (ts.source_type_id = tst.source_type_id)
+			LEFT JOIN tp_skills tps ON (tps.skill_id IN (select tpas.skill_id
+						FROM tp_applicant_skills tpas
+						WHERE tpas.applicant_id = ta.applicant_id))
+			@@ @@ @@ @@ @@ @@ @@		
+			GROUP BY ta.applicant_id
+		</dbquery>
+		<dbquery name="qReportManager_ApplicantEducationInfoData">
+			SELECT tei.applicant_id, td.degree_title, ti.institute_name, date_format(tei.educational_info_year_of_passing, '%Y') as educational_info_year_of_passing, 
+			tei.educational_info_grade
+			FROM tp_applicant_educational_info tei 
+			LEFT JOIN tp_degrees td ON (tei.degree_id=td.degree_id)
+			LEFT JOIN tp_institutes ti ON ( tei.institute_id= ti.institute_id)
+			WHERE tei.applicant_id = ?
+			ORDER BY tei.educational_info_year_of_passing desc
+		</dbquery>
+		<!-- End: Applicant Details Report -->
+		<!-- Start: Offer to Joined Report -->
+		<dbquery name="qReportManager_OfferToJoinedReport">
+			select monthYear, offers, joined, notJoined, (offers-joined-notJoined) as willJoin
+			from (
+				select offersTbl.monthYear, offersTbl.offers,
+				case when joinedTbl.joined is null then 0 else joinedTbl.joined end as joined,
+				case when notJoinedTbl.notJoined is null then 0 else notJoinedTbl.notJoined end as notJoined
+				from (
+			                  select date_format(t1.process_moved_date, '%M %Y') as monthYear, count(*) as offers
+			                  from tp_applicant_selection_process t1, tp_positions tp
+			                  where 
+			                  t1.position_id = tp.position_id
+			                  AND (t1.position_step_id_from in (select position_step_id 
+			                          from tp_position_steps
+			                          where position_step_level=? or position_step_level=?) or t1.position_step_id_from = ?)
+			                  and t1.position_step_id_to in (select position_step_id 
+			                          from tp_position_steps
+			                          where position_step_level=?) @@
+			                  group by date_format(t1.process_moved_date, '%M %Y')
+			                  order by t1.process_moved_date
+				) as offersTbl 
+			        left join (
+			   		  select count(*) as joined,
+			                    (select date_format(t2.process_moved_date, '%M %Y') 
+			                    from tp_applicant_selection_process t2
+			                    where (t2.position_step_id_from in (select position_step_id 
+			                            from tp_position_steps
+			                            where position_step_level=? or position_step_level=?) or t2.position_step_id_from = ?)
+			                    and t2.position_step_id_to in (select position_step_id 
+			                            from tp_position_steps
+			                            where position_step_level=?) 
+			                    and t2.process_moved_date &lt; t1.process_moved_date 
+			                    and t2.applicant_id = t1.applicant_id 
+					    order by t2.process_moved_date desc
+			                    limit 0, 1) as monthYear
+					  from tp_applicant_selection_process t1, tp_positions tp
+			                  where t1.position_id = tp.position_id AND t1.position_step_id_to = ? @@
+			                  group by monthYear
+				) as joinedTbl on (joinedTbl.monthYear = offersTbl.monthYear)
+			        left join (
+					  select count(*) as notJoined,
+						(select date_format(t2.process_moved_date, '%M %Y') 
+						from tp_applicant_selection_process t2
+						where (t2.position_step_id_from in (select position_step_id 
+						    from tp_position_steps
+						    where position_step_level=? or position_step_level=? ) or t2.position_step_id_from = ?)
+						and t2.position_step_id_to in (select position_step_id 
+						    from tp_position_steps
+						    where position_step_level=?) 
+						and t2.process_moved_date &lt; t1.process_moved_date
+						and t2.applicant_id = t1.applicant_id
+						order by t2.process_moved_date desc
+						limit 0, 1) as monthYear  
+			          from tp_applicant_selection_process t1, tp_positions tp
+			          where 
+			          t1.position_id = tp.position_id 
+			          AND t1.position_step_id_from in(select position_step_id 
+			                            from tp_position_steps
+			                            where position_step_level=?)
+					  and t1.position_step_id_to in (?,?,?,?)  @@
+			                  group by monthYear
+				) as notJoinedTbl on (notJoinedTbl.monthYear = offersTbl.monthYear)
+			) as outerTbl
+		</dbquery>
+		<dbquery name="qReportManager_GetOfferToJoinedReport_Detail">
+			select outerTbl.monthYear, ta.applicant_id, ta.applicant_name, tpos.position_id, concat(td.dept_name, ' : ', @@) as pos, outerTbl.flag,
+			case when outerTbl.flag = '1' then concat('Joined on ', date_format(ta.applicant_date_joined, '%e-%b-%y'))
+			when outerTbl.flag = '2' then case when ta.applicant_date_joined is null then 'To join - date not known' else concat('To join on ', date_format(ta.applicant_date_joined, '%e-%b')) end
+			else 'Will not join'
+			end as statusText, joined, to_join, will_not_join
+				from (
+					select innerTbl.process_id, monthYearTbl.monthYear, monthYearTbl.process_moved_date, innerTbl.applicant_id,
+					innerTbl.position_id, innerTbl.flag, innerTbl.joined, innerTbl.to_join, innerTbl.will_not_join
+					from (
+				                  select date_format(t1.process_moved_date, '%b %y') as monthYear,
+				                  t1.process_moved_date
+				                  from tp_applicant_selection_process t1, tp_positions tp
+				                  where t1.position_id = tp.position_id  
+				                  AND (t1.position_step_id_from in (select position_step_id 
+				                          from tp_position_steps
+				                          where position_step_level=? or position_step_level=?) or t1.position_step_id_from = ?)
+				                  and t1.position_step_id_to in (select position_step_id 
+				                          from tp_position_steps
+				                          where position_step_level=?) @@
+				                  group by date_format(t1.process_moved_date, '%b %y')
+				                  order by t1.process_moved_date
+					) as monthYearTbl left join (
+						(
+				   		  select t1.process_id, t1.applicant_id, t1.position_id,
+						    '1' as flag, '1' as joined, '0' as to_join, '0' as will_not_join,
+				                    (select date_format(t2.process_moved_date, '%b %y') 
+				                    from tp_applicant_selection_process t2
+				                    where (t2.position_step_id_from in (select position_step_id 
+				                            from tp_position_steps
+				                            where position_step_level=? or position_step_level=?) or t2.position_step_id_from = ?)
+				                    and t2.position_step_id_to in (select position_step_id 
+				                            from tp_position_steps
+				                            where position_step_level=?) 
+				                    and t2.process_moved_date &lt;= t1.process_moved_date 
+				                    and t2.applicant_id = t1.applicant_id 
+						    order by t2.process_moved_date desc
+				                    limit 0, 1) as monthYear
+						  from tp_applicant_selection_process t1, tp_positions tp
+				                  where t1.position_id = tp.position_id AND t1.position_step_id_to = ? @@				                  
+						)
+						union
+						(
+						  select t1.process_id, t1.applicant_id, t1.position_id,
+						  '3' as flag, '0' as joined, '0' as to_join, '1' as will_not_join,
+							(select date_format(t2.process_moved_date, '%b %y') 
+							from tp_applicant_selection_process t2
+							where (t2.position_step_id_from in (select position_step_id 
+							    from tp_position_steps
+							    where position_step_level=? or position_step_level=?) or t2.position_step_id_from = ?)
+							and t2.position_step_id_to in (select position_step_id 
+							    from tp_position_steps
+							    where position_step_level=?) 
+							and t2.process_moved_date &lt;= t1.process_moved_date
+							and t2.applicant_id = t1.applicant_id
+							order by t2.process_moved_date desc
+							limit 0, 1) as monthYear  
+				                  from tp_applicant_selection_process t1, tp_positions tp
+				                  where t1.position_id = tp.position_id 
+				                  AND t1.position_step_id_from in(select position_step_id 
+				                            from tp_position_steps
+				                            where position_step_level=?)
+						  and t1.position_step_id_to in (?,?,?,?) @@
+						)
+						union
+						(
+						  select tbl2.process_id, tbl2.applicant_id, tbl2.position_id, 
+						  '2' as flag, '0' as joined, '1' as to_join, '0' as will_not_join,
+						  tbl2.monthYear
+						  from
+						  (
+						  select tbl.process_id, tbl.applicant_id, tbl.position_id, 
+						  tbl.position_step_id_from, tbl.position_step_id_to, tbl.monthYear
+						  from
+						  (
+						  select t1.process_id, t1.applicant_id, t1.position_id, t1.position_step_id_from,
+						  t1.position_step_id_to, (select date_format(t2.process_moved_date, '%b %y') 
+							from tp_applicant_selection_process t2
+							where (t2.position_step_id_from in (select position_step_id 
+							    from tp_position_steps
+							    where position_step_level=? or position_step_level=?) or t2.position_step_id_from = ?)
+							and t2.position_step_id_to in (select position_step_id 
+							    from tp_position_steps
+							    where position_step_level=?) 
+							and t2.process_moved_date &lt;= t1.process_moved_date
+							and t2.applicant_id = t1.applicant_id
+							order by t2.process_moved_date desc
+							limit 0, 1) as monthYear
+						  from tp_applicant_selection_process t1, tp_positions tp
+						  where t1.position_id = tp.position_id @@
+						  order by t1.applicant_id, t1.process_moved_date desc
+						  ) tbl
+						  group by tbl.applicant_id
+						  ) tbl2
+						  where tbl2.position_step_id_to not in (?,?,?,?,?)
+						  and case when (tbl2.position_step_id_from in (select position_step_id 
+																	    from tp_position_steps
+																	    where position_step_level=? or position_step_level=?) 
+													or tbl2.position_step_id_from=?) then tbl2.position_step_id_to in (select position_step_id 
+																													    from tp_position_steps
+																													    where position_step_level=?)
+						  when tbl2.position_step_id_from in (select position_step_id 
+														    from tp_position_steps
+														    where position_step_level=?) then (tbl2.position_step_id_to in (select position_step_id 
+																														    from tp_position_steps
+																														    where position_step_level=?) or tbl2.position_step_id_to in (?,?,?))
+						  end
+						) 
+					) as innerTbl on (innerTbl.monthYear = monthYearTbl.monthYear)
+				) as outerTbl left join tp_applicants ta on (outerTbl.applicant_id = ta.applicant_id)
+								     left join tp_positions tpos on (outerTbl.position_id = tpos.position_id)
+								     left join tp_departments td on (tpos.dept_id = td.dept_id)		
+				order by outerTbl.process_moved_date, ta.applicant_name					 
+		</dbquery>
+		<dbquery name="qReportManager_GetOfferToJoinedDetailedReport">
+				select date_format(Offered_Month, '%b-%y')Offered_Month, Offered_Candidate, Offer_Type, Recruiter, 
+				case when innrtbl.join_count>0 then 'Joined'
+				else case when innrtbl.rej_count>0 then 'Declined' else 'Inprocess' end end as "Status", Level_Offered, Source, College, Employer, Location
+				from (
+				select tasp.process_date_created as "Offered_Month", ta.applicant_name as "Offered_Candidate", (Select tbu.bu_name from tp_business_unit tbu, tp_position_business_unit tpbu
+				where tp.position_id=tpbu.position_id and tpbu.bu_id=tbu.bu_id) as "Offer_Type",
+				concat(concat(tu.USER_FNAME, " ") , tu.USER_LNAME) as "Recruiter", 
+				(select Count(*) from tp_applicant_selection_process t1
+				where t1.applicant_id=ta.applicant_id
+				and t1.position_id=tp.position_id
+				and t1.position_step_id_to in (?,?,?,?)) as rej_count,
+				(select Count(*) from tp_applicant_selection_process t1
+				where t1.applicant_id=ta.applicant_id
+				and t1.position_id=tp.position_id
+				and t1.position_step_id_to in (?)) as join_count, ta.applicant_level_offered as "Level_Offered",
+				ta.applicant_city as "Location", ts.source_title as "Source", 
+				(Select institute_name from tp_institutes where institute_id =(Select institute_id from tp_applicant_educational_info taei where 
+				 taei.applicant_id=ta.applicant_id ORDER BY taei.educational_info_year_of_passing DESC LIMIT 0,1)) as "College",
+				(Select employer_name from tp_employers where employer_id =(Select employer_id from tp_applicant_employment_history taeh where 
+				 taeh.applicant_id=ta.applicant_id ORDER BY taeh.employmer_from_date DESC LIMIT 0,1)) as "Employer"
+				FROM tp_step_master tsm
+				LEFT JOIN tp_position_steps tps ON (tsm.step_id=tps.step_id)
+				LEFT JOIN tp_positions tp ON (tps.position_id=tp.position_id)
+				LEFT JOIN tp_users tu ON (tp.position_owner_id = tu.user_id)
+				RIGHT JOIN tp_applicant_selection_process tasp ON (tps.position_step_id = tasp.position_step_id_to)
+				LEFT JOIN tp_applicants ta ON (tasp.applicant_id = ta.applicant_id)
+				LEFT JOIN tp_sources ts ON (ta.source_id = ts.source_id)
+				where tsm.step_id=?
+				@@) innrtbl	
+				 
+		</dbquery>
+		<!-- End: Offer to Joined Report -->
+		<!-- Start: Candidate Comparison Report -->
+		<dbquery name="qReportManager_GetApplicantForSteps">
+			select distinct tasp.applicant_id, ta.applicant_name
+			from tp_applicant_selection_process tasp left join tp_applicants ta on (tasp.applicant_id=ta.applicant_id)
+			where tasp.position_step_id_from in (@@) OR tasp.position_step_id_to in (@@)
+			order by ta.applicant_name
+		</dbquery>
+		<dbquery name="qReportManager_GetHeadersForCandidateComparisonReport">
+			SELECT tasp.applicant_id, ta.applicant_name
+			FROM tp_applicant_selection_process tasp, tp_applicants ta
+			WHERE 
+			tasp.applicant_id = ta.applicant_id
+			AND tasp.position_id=? 
+			@@
+			GROUP BY applicant_id
+			ORDER BY applicant_id
+		</dbquery>
+		<dbquery name="qReportManager_GetColumnsForCandidateComparisonReport">
+			SELECT tps.position_step_id, CONCAT('Stage: ', tps.position_step_title) AS position_step_title, 
+			tfld.feedback_field_id, tfld.feedback_field_title
+			from tp_position_steps tps,
+			tp_applicant_selection_process tasp, tp_applicant_selection_process_traits taspt, 
+			tp_feedback_forms tff,tp_feedback_form_fields tfff, 
+			tp_feedback_fields tfld, tp_step_master tsm
+			where tps.position_id=? 	
+			AND tps.position_step_isdefault=?			
+			AND tasp.position_id=tps.position_id
+			AND taspt.process_id=tasp.process_id
+			AND taspt.feedback_form_id = tff.feedback_form_id
+			AND	tff.feedback_form_id = tfff.feedback_form_id AND
+			tfld.feedback_field_id = tfff.feedback_field_id  
+			AND tps.step_id = tsm.step_id
+			@@
+			GROUP BY tps.position_step_id, tfld.feedback_field_id 
+			ORDER BY tsm.step_rank, tfff.feedback_form_field_rank
+		</dbquery>
+		<dbquery name="qReportManager_GetDataForCandidateComparisonReport">
+			SELECT 
+			tasp.applicant_id, tfld.feedback_field_id, taspt.select_field_id,
+			CASE WHEN trf.rating_field_desc IS NOT NULL
+				 THEN CONCAT(trf.rating_field_desc, '; ' , taspt.trait_comment)
+				 <!-- WHEN tmsf.select_field_desc IS NOT NULL
+				 THEN CONCAT(tmsf.select_field_desc, '; ' , taspt.trait_comment)-->
+				 ELSE taspt.trait_comment
+			END as trait_comment, 
+			CONCAT(tu.USER_FNAME, ' ', tu.USER_LNAME) as name
+			FROM
+			tp_applicant_selection_process tasp, 
+			tp_applicant_selection_process_traits taspt LEFT JOIN tp_rating_fields trf ON (trf.rating_field_id = taspt.rating_field_id)
+			LEFT JOIN tp_multiple_select_fields tmsf ON (tmsf.select_field_id = taspt.select_field_id)
+			,tp_position_steps tps,
+			tp_feedback_form_fields tfff, 
+			tp_feedback_fields tfld,
+			tp_users tu
+			WHERE 
+			tasp.process_id = taspt.process_id
+			AND tasp.position_step_id_from = tps.position_step_id
+			AND taspt.feedback_form_field_id=tfff.feedback_form_field_id
+			AND tfld.feedback_field_id = tfff.feedback_field_id  
+			AND taspt.user_id = tu.user_id
+			AND tasp.position_id=?
+			AND tps.position_step_isdefault=?
+			@@
+		</dbquery>
+		<!-- End: Candidate Comparison Report -->	
+		<!-- Start: Position Funnel Report -->
+		<dbquery name="qReportManager_GetPositionSummaryReport">
+			SELECT alias1.position_id,  alias1.position_code, alias1.position_title ,
+			alias1.position_no_of_openings , alias1.hirebydate , alias1.position_primary_skills , alias1.lead_time ,
+			alias1.age , alias1.recruiters , alias1.dept_name , alias1.closuredate,
+			count(ta.applicant_id) as joined, DATE_FORMAT(ta.applicant_date_joined,'%d-%b-%Y') as applicant_date_joined, 
+			ts.source_title,
+			(
+				SELECT COUNT(DISTINCT(taspi.applicant_id)) FROM tp_applicant_selection_process taspi
+				WHERE taspi.position_step_id_to in (SELECT tpsi.position_step_id FROM tp_position_steps tpsi
+					WHERE tpsi.position_id = alias1.position_id AND tpsi.position_step_level=?
+					AND tpsi.position_step_status=?	) 
+				AND	taspi.position_step_id_from not in  (SELECT tpsi.position_step_id FROM tp_position_steps tpsi
+					WHERE tpsi.position_id = alias1.position_id AND tpsi.position_step_level=?
+					AND tpsi.position_step_status=?)
+			) as offered,
+			
+			(
+				SELECT COUNT(DISTINCT(taspi.applicant_id)) FROM tp_applicant_selection_process taspi
+				WHERE taspi.position_step_id_from in (SELECT tpsi.position_step_id FROM tp_position_steps tpsi
+				WHERE tpsi.position_id = alias1.position_id AND tpsi.position_step_level=? 
+				AND tpsi.position_step_status=? ) 
+				AND	taspi.position_step_id_to in  (?, ?, ?, ?)
+			) as offerreject,
+			
+			( 	
+				SELECT MAX(tai.applicant_date_joined) FROM tp_applicants tai , 
+				tp_applicant_selection_process taspi, tp_position_steps tpsi
+				WHERE tai.applicant_id = taspi.applicant_id AND tpsi.position_id = alias1.position_id 
+				AND tpsi.position_id  = taspi.position_id
+				AND	tai.applicant_joined=? AND taspi.position_step_id_to not in  (?, ?, ?, ?)
+				AND tpsi.position_step_id = taspi.position_step_id_to
+				AND tpsi.position_step_level=? 
+				AND tpsi.position_step_status=?
+			) as expectedJoiningDate
+			
+			FROM 	(
+				SELECT tpos.position_id, tpos.position_code, tpos.position_title, tpos.position_no_of_openings,
+				DATE_FORMAT(tpos.position_date_expiry,'%d-%b-%Y') as hirebydate, 
+				(
+				SELECT GROUP_CONCAT(DISTINCT tsk.skill SEPARATOR ', ') FROM
+				tp_position_skills tpsk LEFT JOIN tp_skills tsk ON (tpsk.skill_id = tsk.skill_id)
+				WHERE tpsk.position_id = tpos.position_id
+				AND tpsk.skill_type = ?
+				) AS position_primary_skills,
+				
+				DATE_FORMAT(tpos.position_date_closed,'%d-%b-%Y') as closuredate,
+				CONCAT(TO_DAYS(tpos.position_date_expiry)-TO_DAYS(tpos.position_date_created),' days') as lead_time,
+				CONCAT(TO_DAYS(NOW())-TO_DAYS(tpos.position_date_created),' days') as age,
+				group_concat(DISTINCT(tu.USER_FNAME) SEPARATOR ',') as recruiters,
+				td.dept_name
+				
+				FROM 
+				tp_positions tpos, tp_departments td, tp_position_steps tpst, tp_position_step_users tpsu,
+				tp_users tu , tp_user_roles tur
+				
+				WHERE
+				tpos.dept_id  = td.dept_id AND
+				tpos.position_id = tpst.position_id AND
+				tpst.position_step_id = tpsu.position_step_id AND
+				tpsu.user_id = tu.user_id AND
+				tu.user_id = tur.user_id AND
+				tur.role_id=? AND
+				tpst.position_step_status=?
+				@@
+				GROUP BY  tpos.position_id, tpos.position_code, tpos.position_title, tpos.position_no_of_openings,
+				hirebydate, position_primary_skills, 
+				lead_time ,age,
+				td.dept_name
+				) as alias1
+				LEFT JOIN tp_applicants ta 
+					ON(	alias1.position_id = ta.applicant_position_id AND
+						ta.applicant_joined=?
+					)
+				LEFT JOIN tp_sources ts
+					ON(	ts.source_id = ta.source_id
+					)
+			GROUP BY 
+			alias1.position_id,  alias1.position_code, alias1.position_title ,
+			alias1.position_no_of_openings , alias1.hirebydate , alias1.position_primary_skills , alias1.lead_time ,
+			alias1.age , alias1.recruiters , alias1.dept_name 
+		</dbquery>
+		<dbquery name="qReportManager_GetPositionSummaryReportSteps">
+			SELECT tpos.position_id, tpst.position_step_title,
+			(SELECT count(distinct(taspi.applicant_id)) FROM tp_applicant_selection_process taspi WHERE
+			taspi.position_step_id_to = tpst.position_step_id) as avilable,
+			
+			(SELECT count(distinct(taspi.applicant_id)) FROM tp_applicant_selection_process taspi WHERE
+			taspi.position_step_id_from = tpst.position_step_id 
+			AND taspi.position_step_id_to in  (?, ?, ?)) as rejected,
+			
+			(SELECT count(distinct(taspi.applicant_id)) FROM tp_applicant_selection_process taspi WHERE
+			taspi.position_step_id_from = tpst.position_step_id 
+			AND taspi.position_step_id_to &gt; 0) as forwarded
+			
+			FROM tp_positions tpos, tp_position_steps tpst
+			WHERE 
+			tpos.position_id = tpst.position_id AND tpst.position_step_isdefault=?
+			AND tpst.position_step_status=?
+			@@
+			ORDER BY 
+			tpos.position_id, tpst.position_step_rank		
+		</dbquery>
+		<!-- End: Position Funnel Report -->	
+		<!-- Start: Pending Actions Report -->
+		<dbquery name="qReportManager_GetToDoListDashBoard">
+				call PROC_GET_TODO_LIST(?,?,?,?,?,?,?,?,?)			
+		</dbquery>
+		<!-- End: Pending Actions Report -->
+		<!-- Start: Overall Recruitment Cost Summary Report -->
+		<dbquery name="qReportManager_OverallRecruitmentCostSummary">
+			select tbl.cost_id, tbl.cost_type_id, 
+			sum(tbl.purpose_cost) as purpose_cost,
+			tct.cost_type
+			from 
+			(
+			select tc.cost_id, tc.cost_type_id, tc.cost_date_from, tc.cost_date_to, tc.cost_paid_date,
+			case when tc.cost_date_from is null then tc.cost_amount
+			else (tc.cost_amount * getdatediff(?, ?, tc.cost_date_from, tc.cost_date_to)/(datediff(tc.cost_date_to, tc.cost_date_from) + 1))
+			end as purpose_cost
+			from tp_costs tc
+			where case when tc.cost_date_from is null then tc.cost_paid_date &gt;= ? and tc.cost_paid_date &lt; ?
+			else 1
+			end
+			) tbl left join tp_cost_types tct on (tbl.cost_type_id=tct.cost_type_id)
+			where tbl.purpose_cost &gt; 0
+			group by tbl.cost_type_id
+			order by sum(tbl.purpose_cost) desc, tct.cost_type
+		</dbquery>
+		<dbquery name="qReportManager_GetNoOfCandidatesJoined">
+			select count(*) as cnt
+			from tp_applicants
+			where applicant_joined = ?
+			and applicant_date_joined &gt;= ?
+			and applicant_date_joined &lt; ?
+		</dbquery>
+		<!-- End: Overall Recruitment Cost Summary Report -->
+		<!-- Start: Overall Recruitment Cost Detail Report -->
+		<dbquery name="qReportManager_OverallRecruitmentCostDetail">
+			select tbl2.cost_id, tbl2.cost_type_id, tct.cost_type,
+			tbl2.position_id, tbl2.source_id,
+			case when tbl2.position_id is null then 'All' else @@ end as position_title,
+			case when tbl2.source_id is null then 'None' else ts.source_title end as source_title,
+			sum(tbl2.purpose_cost) as purpose_cost
+			from
+			(
+			select tbl.cost_id, tbl.cost_type_id, 
+			case when tbl.noOfPositions = 0 then tbl.purpose_cost else (tbl.purpose_cost/tbl.noOfPositions) end as purpose_cost,
+			tbl.position_id, tbl.source_id
+			from 
+			(
+			select tc.cost_id, tc.cost_type_id, tc.cost_date_from, tc.cost_date_to, tc.cost_paid_date,
+			tc.source_id, tcp.position_id, 
+			(select count(*)
+			from tp_cost_positions tcp1
+			where tcp1.cost_id=tc.cost_id) as noOfPositions,
+			case when tc.cost_date_from is null then tc.cost_amount
+			else (tc.cost_amount * getdatediff(?, ?, tc.cost_date_from, tc.cost_date_to)/(datediff(tc.cost_date_to, tc.cost_date_from) + 1))
+			end as purpose_cost
+			from tp_costs tc left join tp_cost_positions tcp on (tc.cost_id=tcp.cost_id)
+			where case when tc.cost_date_from is null then tc.cost_paid_date &gt;= ? and tc.cost_paid_date &lt; ?
+			else 1
+			end
+			) tbl
+			) tbl2 left join tp_cost_types tct on (tbl2.cost_type_id=tct.cost_type_id)
+			left join tp_positions tp on (tp.position_id=tbl2.position_id)
+			left join tp_sources ts on (ts.source_id=tbl2.source_id)
+			where tbl2.purpose_cost &gt; 0
+			group by tbl2.cost_type_id, tbl2.position_id, tbl2.source_id
+			order by tct.cost_type, tp.position_title, ts.source_title
+		</dbquery>
+		<!-- End: Overall Recruitment Cost Detail Report -->
+		<!-- Start: Positionwise Recruitment Cost Summary Report -->
+		<dbquery name="qReportManager_GetPositionwiseRecruitmentCostSummaryReport">
+			select tbl3.cost_id, tbl3.cost_type_id, tbl3.position_id, 
+			case when tbl3.position_id is null then 'Other' else @@ end as position_title,
+			case when tbl3.position_id is null then '' else td.dept_name end as dept_name,
+			sum(tbl3.purpose_cost) as purpose_cost
+			from
+			(
+			select tbl2.cost_id, tbl2.cost_type_id, tbl2.position_id, 
+			case when tbl2.position_id is null then -1 else 0 end as mark,
+			case when tbl2.noOfPositions=0 then tbl2.purpose_cost
+			else (tbl2.purpose_cost/tbl2.noOfPositions) 
+			end as purpose_cost
+			from
+			(
+			select tc.cost_id, tc.cost_type_id, tcp.position_id, 
+			tc.cost_paid_date, tc.cost_date_from, tc.cost_date_to,
+			(
+			select count(*)
+			from tp_cost_positions tcp1
+			where tcp1.cost_id = tc.cost_id
+			) as noOfPositions,
+			case when tc.cost_date_from is null then tc.cost_amount
+			else (tc.cost_amount * (getdatediff(?, ?, tc.cost_date_from, tc.cost_date_to))/(datediff(tc.cost_date_to, tc.cost_date_from) + 1)) 
+			end as purpose_cost
+			from tp_costs tc left join tp_cost_positions tcp on (tc.cost_id=tcp.cost_id)
+			where case when tc.cost_date_from is null then tc.cost_paid_date &gt;= ? and tc.cost_paid_date &lt; ?
+			else 1 
+			end
+			@@
+			) tbl2
+			) tbl3 left join tp_positions tp on (tbl3.position_id = tp.position_id)
+			left join tp_departments td on (tp.dept_id = td.dept_id)
+			where tbl3.purpose_cost &gt; 0
+			group by tbl3.position_id
+			order by tbl3.mark desc, sum(tbl3.purpose_cost) desc
+		</dbquery>
+		<!-- End: Positionwise Recruitment Cost Summary Report -->
+		<!-- Start: Positionwise Recruitment Cost Detail Report -->
+		<dbquery name="qReportManager_GetPositionwiseRecruitmentCostDetailReport">
+			select tbl3.cost_id, tbl3.cost_type_id, tbl3.position_id, tbl3.source_id,
+			case when tbl3.position_id is null then 'Other' else @@ end as position_title,
+			case when tbl3.position_id is null then '' else td.dept_name end as dept_name,
+			case when tbl3.source_id is null then 'None' else ts.source_title end as source_title,
+			tct.cost_type, 
+			sum(tbl3.purpose_cost) as purpose_cost
+			from
+			(
+			select tbl2.cost_id, tbl2.cost_type_id, tbl2.position_id, tbl2.source_id,
+			case when tbl2.position_id is null then -1 else 0 end as mark,
+			case when tbl2.noOfPositions=0 then tbl2.purpose_cost
+			else (tbl2.purpose_cost/tbl2.noOfPositions) 
+			end as purpose_cost
+			from
+			(
+			select tc.cost_id, tc.cost_type_id, tc.cost_amount, tcp.position_id, tc.source_id,
+			tc.cost_paid_date, tc.cost_date_from, tc.cost_date_to,
+			case when tc.cost_date_from is null then tc.cost_amount
+			else (tc.cost_amount * (getdatediff(?, ?, tc.cost_date_from, tc.cost_date_to))/(datediff(tc.cost_date_to, tc.cost_date_from) + 1)) 
+			end as purpose_cost,
+			(
+			select count(*)
+			from tp_cost_positions tcp1
+			where tcp1.cost_id = tc.cost_id
+			) as noOfPositions
+			from tp_costs tc left join tp_cost_positions tcp on (tc.cost_id=tcp.cost_id)
+			where case when tc.cost_date_from is null then tc.cost_paid_date &gt;= ? and tc.cost_paid_date &lt; ?
+			else 1 
+			end
+			@@
+			) tbl2
+			) tbl3 left join tp_positions tp on (tbl3.position_id = tp.position_id)
+			left join tp_departments td on (tp.dept_id = td.dept_id)
+			left join tp_cost_types tct on (tbl3.cost_type_id = tct.cost_type_id)
+			left join tp_sources ts on (tbl3.source_id = ts.source_id)
+			where tbl3.purpose_cost &gt; 0
+			group by tbl3.position_id, tbl3.cost_type_id, tbl3.source_id
+			order by tbl3.mark desc, td.dept_name, tp.position_title, 
+			sum(tbl3.purpose_cost) desc, tct.cost_type, ts.source_title
+		</dbquery>
+		<!-- End: Positionwise Recruitment Cost Detail Report -->
+		<!-- Start: Sourcewise Recruitment Cost Summary Report -->
+		<dbquery name="qReportManager_GetSourcewiseRecruitmentCostSummaryReport">
+			select tbl3.cost_id, tbl3.source_id, 
+			case when tbl3.source_id is null then 'None' else ts.source_title end as source_title,
+			sum(tbl3.purpose_cost) as purpose_cost
+			from
+			(
+			select tc.cost_id, tc.source_id, tc.cost_amount,
+			tc.cost_paid_date, tc.cost_date_from, tc.cost_date_to,
+			case when tc.source_id is null then -1 else 0 end as mark,
+			case when tc.cost_date_from is null then tc.cost_amount
+			else (tc.cost_amount * (getdatediff(?, ?, tc.cost_date_from, tc.cost_date_to))/(datediff(tc.cost_date_to, tc.cost_date_from) + 1)) 
+			end as purpose_cost
+			from tp_costs tc
+			where case when tc.cost_date_from is null then tc.cost_paid_date &gt;= ? and tc.cost_paid_date &lt; ?
+			else 1			
+			end
+			@@
+			) tbl3 left join tp_sources ts on (tbl3.source_id=ts.source_id)
+			where tbl3.purpose_cost &gt; 0
+			group by source_id
+			order by mark desc, sum(tbl3.purpose_cost), ts.source_title
+		</dbquery>
+		<!-- End: Sourcewise Recruitment Cost Summary Report -->
+		<!-- Start: Sourcewise Recruitment Cost Detail Report -->
+		<dbquery name="qReportManager_GetSourcewiseRecruitmentCostDetailReport">
+			select tbl3.cost_id, tbl3.mark, tbl3.source_id,
+			case when tbl3.source_id is null then 'None' else ts.source_title end as source_title,
+			tct.cost_type, tbl3.position_id,
+			case when tbl3.position_id is null then 'All' else tp.position_title end as position_title,
+			sum(tbl3.purpose_cost) as purpose_cost
+			from
+			(
+			select tbl2.cost_id, tbl2.source_id, tbl2.position_id, tbl2.cost_type_id,
+			tbl2.mark,
+			case when tbl2.noOfPositions=0 then tbl2.purpose_cost
+			else (tbl2.purpose_cost/tbl2.noOfPositions) 
+			end as purpose_cost
+			from
+			(
+			select tc.cost_id, tc.source_id, tc.cost_amount, tcp.position_id, tc.cost_type_id,
+			tc.cost_paid_date, tc.cost_date_from, tc.cost_date_to,
+			case when tc.source_id is null then -1 else 0 end as mark,
+			case when tc.cost_date_from is null then tc.cost_amount
+			else (tc.cost_amount * (getdatediff(?, ?, tc.cost_date_from, tc.cost_date_to))/(datediff(tc.cost_date_to, tc.cost_date_from) + 1)) 
+			end as purpose_cost,
+			(
+			select count(*)
+			from tp_cost_positions tcp1
+			where tcp1.cost_id = tc.cost_id
+			) as noOfPositions
+			from tp_costs tc left join tp_cost_positions tcp on (tc.cost_id = tcp.cost_id)
+			where case when tc.cost_date_from is null then tc.cost_paid_date &gt;= ? and tc.cost_paid_date &lt; ?
+			else 1
+			end
+			@@
+			) tbl2
+			) tbl3 left join tp_sources ts on (tbl3.source_id=ts.source_id)
+			left join tp_cost_types tct on (tbl3.cost_type_id=tct.cost_type_id)
+			left join tp_positions tp on (tbl3.position_id=tp.position_id)
+			where tbl3.purpose_cost &gt; 0
+			group by tbl3.source_id, tbl3.cost_type_id, tbl3.position_id
+			order by mark desc, ts.source_title, sum(tbl3.purpose_cost), tct.cost_type, tp.position_title
+		</dbquery>
+		<!-- End: Sourcewise Recruitment Cost Detail Report -->
+		<!-- Start: Transaction Cost Report -->
+		<dbquery name="qReportManager_GetTransactionCostReport">
+			select tbl.cost_paid_date AS cost_paid_date, tbl.cost_type_id, tbl.cost_amount, tbl.cost_remark,
+			case when tbl.position_id is null then 'NA' else group_concat(@@) end as position_title,
+			case when tbl.source_id is null then 'NA' else ts.source_title end as source_title,
+			tct.cost_type
+			from
+			(
+			select tc.cost_id, tc.cost_paid_date, tc.cost_type_id, 
+			tc.cost_amount, tcp.position_id, tc.source_id,
+			case when tc.cost_date_from is null then tc.cost_remark
+			else concat('Subscription : ', date_format(tc.cost_date_from, '%d %b, %y'), ' - ', date_format(tc.cost_date_to, '%d %b, %y'), '\n', tc.cost_remark) 
+			end as cost_remark
+			from tp_costs tc left join tp_cost_positions tcp on (tc.cost_id=tcp.cost_id)
+			where tc.cost_paid_date &gt;= ? and tc.cost_paid_date &lt; ?
+			) tbl left join tp_positions tp on (tbl.position_id = tp.position_id)
+			left join tp_sources ts on (tbl.source_id=ts.source_id)
+			left join tp_cost_types tct on (tbl.cost_type_id = tct.cost_type_id)
+			group by tbl.cost_id
+			order by tbl.cost_paid_date, tct.cost_type, tbl.cost_amount desc
+		</dbquery>		
+		<!-- End: Transaction Cost Report -->
+		<!-- Start: Candidate Status Report -->
+		<dbquery name="qReportManager_GetCandidateStatusDetailReport">
+			SELECT ta.applicant_id, ta.applicant_name, ta.applicant_current_employer, ta.applicant_working_since, 
+			ta.applicant_joined, ta.applicant_position_id, ta.applicant_step_id, @@, tpos.position_title, 
+			tpst.position_step_title 
+			FROM tp_applicants ta LEFT JOIN tp_positions tpos ON (tpos.position_id = ta.applicant_position_id)
+			LEFT JOIN tp_position_steps tpst ON(tpst.position_step_id = ta.applicant_step_id), 
+			tp_source_types tst,tp_sources ts
+			WHERE ta.source_id=ts.source_id
+			AND ts.source_type_id=tst.source_type_id 
+			@@
+		</dbquery>
+		<dbquery name="qReportManager_GetCandidateStatusLastAction">
+			SELECT tasp.position_step_id_to, tasp.process_moved_date, tps.position_step_title,
+			CONCAT(tu.USER_FNAME, ' ', tu.USER_LNAME) as name
+			FROM tp_applicant_selection_process tasp LEFT JOIN 
+			tp_position_steps tps ON (tps.position_step_id = tasp.position_step_id_to), tp_users tu
+			WHERE tasp.user_id = tu.user_id AND tasp.applicant_id=?
+			ORDER BY process_id DESC LIMIT 0, 1		
+		</dbquery>				
+		<!-- End: Candidate Status Report -->				
+	    <!-- Start: Fetch Position Detail-->       
+	    <dbquery name="qReportManager_fetchPositionDetail">
+			SELECT position_title FROM tp_positions WHERE position_id=?
+		</dbquery>
+		<dbquery name="qReportManager_GetOferedCTCDetailsReport">
+			SELECT tpod.applicant_id,tpod.position_id,tpod.offer_code,tpod.template_id,date_created,attribute_name, attribute_value from tp_applicant_offer_details tpod WHERE 
+			date_created is not NULL 
+			AND date_created &gt;= ? 
+			AND date_created &lt;= ?
+			AND offer_code = ?
+			@@
+			AND tpod.version =(SELECT taosd.version from tp_applicant_offer_sheet_details taosd where tpod.applicant_id = taosd.applicant_id and tpod.offer_code=taosd.offer_code) 
+		</dbquery>      
+		<dbquery name="qReportManager_GetOfferCodeReport">
+			SELECT distinct tpod.offer_code from tp_applicant_offer_details tpod WHERE 
+			date_created is not NULL 
+			AND date_created &gt;= ? 
+			AND date_created &lt;= ?
+			@@
+			AND tpod.version =(SELECT taosd.version from tp_applicant_offer_sheet_details taosd where tpod.applicant_id = taosd.applicant_id and tpod.offer_code=taosd.offer_code)
+		</dbquery> 
+	    <!-- End: Fetch Position Detail-->       
+	    <dbquery name="qReportManager_CandidateOffersReport">
+	    	SELECT ta.applicant_id, ta.applicant_name, ta.applicant_date_joined, ta.applicant_email1,
+			ta.applicant_cell_phone,ta.applicant_current_employer,ta.current_ctc,
+			ta.applicant_notice_period,ta.offered_ctc,ts.source_title,
+			(SELECT td.degree_title FROM tp_degrees td WHERE td.degree_id=
+				(SELECT tae.degree_id FROM tp_applicant_educational_info tae WHERE tae.applicant_id=tasp.applicant_id)
+			) AS degree,
+			(SELECT ti.institute_name FROM tp_institutes ti WHERE ti.institute_id=
+				(SELECT tae.institute_id FROM tp_applicant_educational_info tae WHERE tae.applicant_id=tasp.applicant_id)
+			) AS institute,tasp.position_step_id_to,
+			CASE WHEN tps.position_step_title is null THEN
+				CASE WHEN tasp.position_step_id_to= ? 
+					OR tasp.position_step_id_to= ? 
+					OR tasp.position_step_id_to= ? THEN 'Rejected'
+				WHEN tasp.position_step_id_to= ? THEN 'Joined'
+				ELSE '' END
+			ELSE
+				tps.position_step_title
+			END AS position_step_title
+			FROM (
+				SELECT position_id,applicant_id,position_step_id_to,process_moved_date
+				FROM tp_applicant_selection_process	
+				WHERE (position_step_id_from in (select position_step_id from tp_position_steps 
+								where position_step_level=? ) 
+					OR position_step_id_to in (select position_step_id from tp_position_steps 
+								where position_step_level=? )
+					)
+				ORDER BY process_id DESC
+			) AS tasp LEFT JOIN tp_position_steps tps ON(tps.position_step_id=tasp.position_step_id_to),
+			tp_applicants ta,tp_sources ts
+			WHERE ta.applicant_id=tasp.applicant_id
+			AND ts.source_id=ta.source_id
+			@@
+			GROUP BY tasp.applicant_id
+	    </dbquery>		
+		<dbquery name="qReportManager_GetCustomFields">
+			SELECT tcf.custom_field_id, tcf.custom_field_name, tcf.custom_field_rank,tcfv.custom_field_value 
+			FROM tp_custom_fields tcf LEFT JOIN @@ tcfv ON(tcf.custom_field_id = tcfv.custom_field_id )
+			WHERE tcfv.entity_id=?
+		</dbquery>
+		<dbquery name="qReportManager_GetPendingOffersList">
+			SELECT *,
+			GROUP_CONCAT(DISTINCT todo.location_name ORDER BY todo.location_name) AS location,
+			CAST(GROUP_CONCAT(distinct 'CUS_',todo.custom_field_id,'=',todo.custom_field_value separator '||' ) AS CHAR) AS custom,
+			(SELECT tasm.status_message 
+				FROM tp_applicant_status_messages tasm  
+				WHERE tasm.applicant_id=todo.applicant_id AND tasm.position_step_id=todo.current_step_id
+				ORDER by tasm.status_message_id DESC
+				LIMIT 0,1 ) AS status_message,	
+				 (SELECT concat(tus.USER_FNAME,' ',tus.USER_LNAME)
+					   FROM tp_users tus,
+					        tp_requisition_approval_steps tps,
+					        tp_requisition_approval_feedback tprf
+					   WHERE tprf.from_step_id=tps.requisition_approval_step_id
+					     AND tprf.position_id=todo.position_id
+					     AND tus.user_id=tprf.by_user_id
+					   ORDER BY tprf.feedback_id DESC LIMIT 0,
+                                        1) AS recruitment_manager,		
+			CAST((SELECT tasm.date_created AS last_interaction_date
+				FROM tp_applicant_status_messages tasm  
+				WHERE tasm.applicant_id=todo.applicant_id AND tasm.position_step_id=todo.current_step_id
+				ORDER by tasm.status_message_id DESC
+				LIMIT 0,1 ) AS DATETIME) AS last_interaction_date
+			FROM (
+				SELECT 
+				ta.applicant_id, ta.applicant_name, CAST(@@ AS CHAR) as applicant_working_since, 
+				ta.applicant_cell_phone, ta.applicant_email1, ta.applicant_email2,
+				ta.applicant_current_employer, ta.applicant_date_joined, ta.applicant_designation_offered,
+				td.dept_name, tds.dept_name AS sub_dept_name, tdss.dept_name AS sub_sub_dept_name,
+				tds3.dept_name AS sub3_dept_name,tds4.dept_name AS sub4_dept_name,
+				tp.position_id, @@ AS position_title, tp.position_no_of_openings, 
+				tp.position_date_expiry, tp.position_date_created, tp.position_date_approved,
+				concat(tu.USER_FNAME,' ',tu.USER_LNAME)As position_requested_by,
+				tg.grade_name, tl.location_name,
+				todo.due_date,todo.current_step_id,
+				tps.position_step_title, ts.source_title,
+				tcfp.custom_field_id, 
+				ifnull(tvp.string_value,ifnull(tvp.number_value,tvp.date_value)) AS custom_field_value
+				FROM 
+				tp_todo todo 
+				,tp_positions tp 
+				LEFT JOIN tp_departments td ON (tp.dept_id = td.dept_id)
+				LEFT JOIN tp_departments tds ON (tp.sub_dept_id = tds.dept_id)
+				LEFT JOIN tp_departments tdss ON (tp.sub_sub_dept_id = tdss.dept_id)
+				LEFT JOIN tp_users tu ON (tu.user_id=tp.position_requested_by)
+				LEFT JOIN tp_departments tds3 ON (tp.sub3_dept_id=tds3.dept_id)
+				LEFT JOIN tp_departments tds4 ON (tp.sub4_dept_id=tds4.dept_id)
+				LEFT JOIN tp_budget_grades tg ON (tg.grade_id=tp.grade_id)
+				LEFT JOIN tp_position_locations tpl ON (tpl.position_id=tp.position_id)
+				LEFT JOIN tp_location_ap tl ON (tl.location_id=tpl.location_id)
+				LEFT JOIN tp_custom_field_values_position tvp ON (tvp.entity_id=tp.position_id)
+				LEFT JOIN tp_custom_fields tcfp ON (tcfp.custom_field_id=tvp.custom_field_id)
+				,tp_applicants ta LEFT JOIN tp_sources ts ON (ta.source_id=ts.source_id)
+				,tp_position_steps tps
+				WHERE todo.position_id=tp.position_id
+				AND todo.current_step_id = tps.position_step_id
+				AND todo.applicant_id=ta.applicant_id		
+				AND todo.todo_type=?
+				AND tp.position_status = ?
+				AND tps.position_step_level=?
+				@@
+				ORDER by tp.position_title, ta.applicant_name
+			) AS todo
+			GROUP BY todo.applicant_id, todo.position_id 
+		</dbquery>
+		<dbquery name="qReportManager_GetTimeToHire">
+			SELECT * ,
+			GROUP_CONCAT(DISTINCT todo.location_name ORDER BY todo.location_name) AS location,
+			GROUP_CONCAT(DISTINCT todo.name ORDER BY todo.name) AS recruiters,
+			GROUP_CONCAT(distinct 'CUS_',todo.custom_field_id,'=',todo.custom_field_value SEPARATOR '||') AS custom
+			FROM (
+			SELECT
+			td.dept_name, tds.dept_name AS sub_dept_name, tdss.dept_name AS sub_sub_dept_name,
+			tds3.dept_name AS sub3_dept_name,tds4.dept_name AS sub4_dept_name,
+			tp.position_id, @@ as position_title, tp.position_no_of_openings, 
+			tp.position_date_expiry, tp.position_date_created, tp.position_date_approved,
+			tg.grade_name, CAST(tg.hire_by_duration AS CHAR) AS hire_by_duration , tb.band_name, tl.location_name,
+			ta.applicant_id, ta.applicant_name, ta.applicant_cell_phone, ta.applicant_email1, 
+			ta.applicant_email2, ta.applicant_date_joined,
+			ts.source_title, tcfp.custom_field_id, stage,position_step_title,
+			ifnull(tvp.string_value,ifnull(tvp.number_value,tvp.date_value)) AS custom_field_value,
+			(SELECT GROUP_CONCAT(DISTINCT tu.USER_FNAME,' ',tu.USER_LNAME) AS name 
+			FROM tp_position_step_users tpsu, tp_user_roles tur, tp_users tu 
+			WHERE tpsu.position_id=tp.position_id AND tur.user_id = tpsu.user_id AND tur.role_id=?
+			 AND tpsu.user_id=tu.user_id ) AS name
+			FROM
+			(
+				SELECT tajh.position_id, tajh.applicant_id, 'Joined' AS position_step_title, ? AS stage FROM tp_applicant_joining_history tajh
+				UNION
+				SELECT tasp.position_id, tasp.applicant_id, tps.position_step_title, ? AS stage
+					FROM (
+					SELECT * FROM (
+						SELECT * FROM tp_applicant_selection_process tasp
+						ORDER BY process_id DESC
+						) AS tasp
+					GROUP BY position_id,applicant_id
+					) AS tasp JOIN tp_position_steps tps ON (tps.position_step_id=tasp.position_step_id_to)
+				WHERE tps.position_step_level=?
+			) as tj,
+			tp_positions tp
+			LEFT JOIN tp_departments td ON (tp.dept_id = td.dept_id)
+			LEFT JOIN tp_departments tds ON (tp.sub_dept_id = tds.dept_id)
+			LEFT JOIN tp_departments tdss ON (tp.sub_sub_dept_id = tdss.dept_id)
+			LEFT JOIN tp_departments tds3 ON (tp.sub3_dept_id=tds3.dept_id)
+			LEFT JOIN tp_departments tds4 ON (tp.sub4_dept_id=tds4.dept_id)
+			LEFT JOIN tp_budget_grades tg ON (tg.grade_id=tp.grade_id)
+			LEFT JOIN tp_budget_bands tb ON (tb.band_id=tp.band_id)
+			LEFT JOIN tp_position_locations tpl ON (tpl.position_id=tp.position_id)
+			LEFT JOIN tp_location_ap tl ON (tl.location_id=tpl.location_id)
+			LEFT JOIN tp_custom_field_values_position tvp ON (tvp.entity_id=tp.position_id)
+			LEFT JOIN tp_custom_fields tcfp ON (tcfp.custom_field_id=tvp.custom_field_id),
+			tp_applicants ta
+			LEFT JOIN tp_sources ts ON (ta.source_id=ts.source_id)
+			WHERE tp.position_id=tj.position_id 
+			AND ta.applicant_id=tj.applicant_id
+			AND ta.applicant_date_joined is not NULL
+			AND ta.applicant_date_joined &gt;=? 
+			AND ta.applicant_date_joined &lt;=?
+			@@ 
+			) AS todo
+			GROUP BY todo.position_id, todo.applicant_id
+		</dbquery>
+		<dbquery name="qReportManager_GetHiringActivitySummary">
+			SELECT CAST(count(*) AS SIGNED) as count, position_id, position_title, position_owner_name,applied_count, step_title,
+			dept_name, sub_dept_name, sub_sub_dept_name,sub3_dept_name, sub4_dept_name, position_no_of_openings, position_date_expiry,
+			position_date_created, position_date_approved, grade_name, band_name, location, pos_custom
+			FROM (
+				SELECT 
+				tp.position_owner_name,  
+				tp.dept_id, tp.sub_dept_id, tp.sub_sub_dept_id,
+				tp.dept_name, tp.sub_dept_name, tp.sub_sub_dept_name,
+				(select count(*) from tp_applicant_applied_position_resume_mapping tprpm
+				where tprpm.position_id=tp.position_id) as applied_count ,
+				tp.sub3_dept_name,tp.sub4_dept_name,
+				tp.position_id, @@ AS position_title, CAST(tp.position_no_of_openings AS CHAR) AS position_no_of_openings, 
+				tp.position_status, tp.position_date_expiry, tp.position_date_created, tp.position_date_approved,
+				tp.grade_name, tp.band_name, tp.location, tp.pos_custom,
+				tasp.process_id, tasp.applicant_id, tasp.position_step_id_from, 
+				tasp.position_step_id_to,
+				CASE WHEN tasp.position_step_id_to = ? THEN ?
+				WHEN tasp.position_step_id_to = ? THEN ?
+				WHEN tasp.position_step_id_to = ? THEN ?
+				WHEN tasp.position_step_id_to = ? THEN ?
+				WHEN tasp.position_step_id_to = ? THEN ?
+				WHEN tasp.position_step_id_to IN (?,?,?) THEN 
+					CASE WHEN tps_from.position_step_level=? THEN ?
+					ELSE ? END
+				ELSE tps.position_step_title END AS step_title
+				
+				FROM ( 
+					SELECT *,
+					GROUP_CONCAT(DISTINCT tp.location_name ORDER BY tp.location_name) AS location,
+					CAST(GROUP_CONCAT(distinct 'CUS_',tp.custom_field_id,'=',tp.custom_field_value separator '||') AS CHAR) AS pos_custom
+					FROM (SELECT 
+					CONCAT(tupo.user_fname,' ',tupo.user_lname) as position_owner_name, tp.position_owner_id,
+					tp.dept_id, tp.sub_dept_id, tp.sub_sub_dept_id,
+					td.dept_name, tds.dept_name AS sub_dept_name, tdss.dept_name AS sub_sub_dept_name,
+					tds3.dept_name AS sub3_dept_name,tds4.dept_name AS sub4_dept_name,
+					tp.position_id, tp.position_title, tp.position_code, tp.position_no_of_openings, 
+					tp.position_status, tp.position_date_expiry, tp.position_date_created, tp.position_date_approved,
+					tg.grade_name, tb.band_name, tl.location_name, tcfp.custom_field_id,
+					ifnull(tvp.string_value,ifnull(tvp.number_value,tvp.date_value)) AS custom_field_value
+					FROM tp_positions tp
+					LEFT JOIN tp_users tupo ON (tupo.user_id=tp.position_owner_id)
+					LEFT JOIN tp_departments td ON (tp.dept_id=td.dept_id)
+					LEFT JOIN tp_departments tds ON (tp.sub_dept_id=tds.dept_id)
+					LEFT JOIN tp_departments tdss ON (tp.sub_sub_dept_id=tdss.dept_id)
+					LEFT JOIN tp_departments tds3 ON (tp.sub3_dept_id=tds3.dept_id)
+					LEFT JOIN tp_departments tds4 ON (tp.sub4_dept_id=tds4.dept_id)
+					LEFT JOIN tp_budget_grades tg ON (tg.grade_id=tp.grade_id)
+					LEFT JOIN tp_budget_bands tb ON (tb.band_id=tp.band_id)
+					LEFT JOIN tp_position_locations tpl ON (tpl.position_id=tp.position_id)
+					LEFT JOIN tp_location_ap tl ON (tl.location_id=tpl.location_id)
+					LEFT JOIN tp_custom_field_values_position tvp ON (tvp.entity_id=tp.position_id)
+					LEFT JOIN tp_custom_fields tcfp ON (tcfp.custom_field_id=tvp.custom_field_id)
+					) AS tp
+					GROUP BY tp.position_id
+					ORDER BY tp.position_title
+				) AS tp
+				 LEFT JOIN  tp_applicant_selection_process tasp ON(tp.position_id=tasp.position_id)
+				LEFT JOIN tp_position_steps tps ON (tps.position_step_id=tasp.position_step_id_to)
+				LEFT JOIN tp_position_steps tps_from ON (tps_from.position_step_id=tasp.position_step_id_from)
+				LEFT JOIN tp_applicant_applied_position_resume_mapping tprpm ON(tp.position_id=tprpm.position_id)
+				WHERE 
+				 
+				@@
+				AND  ((tasp.process_date_created &gt;=?  AND tasp.process_date_created &lt;=?) OR 
+			(tprpm.applied_date&gt;=?  AND tprpm.applied_date &lt;=?))
+				
+				   ORDER BY  tp.position_date_created DESC
+			) AS tasp
+			GROUP BY tasp.position_id, tasp.step_title
+			ORDER BY tasp.position_title
+		</dbquery>
+		<dbquery name="qReportManager_GetHiringActivityDetails">
+			SELECT *,
+			GROUP_CONCAT(DISTINCT tasp.location_name ORDER BY tasp.location_name separator ', ') AS location,
+			CAST(GROUP_CONCAT(distinct 'CUS_',tasp.custom_field_id,'=',tasp.custom_field_value separator '||' ) AS CHAR) AS pos_custom
+			FROM (
+			SELECT ta.applicant_name, ta.applicant_date_joined, ts.source_title,
+			tp.position_owner_id, CONCAT(tupo.user_fname,' ',tupo.user_lname) as position_owner_name, 
+			td.dept_name, tds.dept_name AS sub_dept_name, tdss.dept_name AS sub_sub_dept_name,
+			tds3.dept_name AS sub3_dept_name,tds4.dept_name AS sub4_dept_name,
+			@@ AS position_title, CAST(tp.position_no_of_openings AS CHAR) AS position_no_of_openings, 
+			tp.position_date_expiry, tp.position_date_created, tp.position_date_approved,
+			tg.grade_name, tb.band_name, tl.location_name, tasp.process_moved_date,
+			tcfp.custom_field_id, tasp.process_id,
+			ifnull(tvp.string_value,ifnull(tvp.number_value,tvp.date_value)) AS custom_field_value,
+			CASE WHEN tasp.position_step_id_to = ? THEN ?
+				WHEN tasp.position_step_id_to = ? THEN ?
+				WHEN tasp.position_step_id_to = ? THEN ?
+				WHEN tasp.position_step_id_to = ? THEN ?
+				WHEN tasp.position_step_id_to = ? THEN ?
+				WHEN tasp.position_step_id_to IN (?,?,?) THEN 
+					CASE WHEN position_step_level=? THEN ?
+					ELSE ? END
+				ELSE tps.position_step_title END AS stepName
+			FROM tp_applicant_selection_process tasp
+			LEFT JOIN tp_applicants ta ON (ta.applicant_id=tasp.applicant_id)
+			LEFT JOIN tp_sources ts on (ta.source_id = ts.source_id)
+			, tp_position_steps tps, tp_positions tp
+			LEFT JOIN tp_users tupo ON (tupo.user_id=tp.position_owner_id)
+			LEFT JOIN tp_departments td ON (tp.dept_id=td.dept_id)
+			LEFT JOIN tp_departments tds ON (tp.sub_dept_id=tds.dept_id)
+			LEFT JOIN tp_departments tdss ON (tp.sub_sub_dept_id=tdss.dept_id)
+			LEFT JOIN tp_departments tds3 ON (tp.sub3_dept_id=tds3.dept_id)
+			LEFT JOIN tp_departments tds4 ON (tp.sub4_dept_id=tds4.dept_id)
+			LEFT JOIN tp_budget_grades tg ON (tg.grade_id=tp.grade_id)
+			LEFT JOIN tp_budget_bands tb ON (tb.band_id=tp.band_id)
+			LEFT JOIN tp_position_locations tpl ON (tpl.position_id=tp.position_id)
+			LEFT JOIN tp_location_ap tl ON (tl.location_id=tpl.location_id)
+			LEFT JOIN tp_custom_field_values_position tvp ON (tvp.entity_id=tp.position_id)
+			LEFT JOIN tp_custom_fields tcfp ON (tcfp.custom_field_id=tvp.custom_field_id)
+			WHERE CASE when (tasp.position_step_id_to in (?,?,?,?,?,?,?,?)) 
+				THEN tps.position_step_id=tasp.position_step_id_from
+				ELSE tps.position_step_id=tasp.position_step_id_to END
+			AND tp.position_id=tasp.position_id
+			@@
+			AND tasp.process_date_created &gt;=? 
+			AND tasp.process_date_created &lt;=?
+			) AS tasp
+			GROUP BY tasp.process_id
+			ORDER BY tasp.process_moved_date DESC
+		</dbquery>
+		<dbquery name="qReportManager_showMigrationMessageOnReports">
+			SELECT 
+			CASE WHEN (SELECT count(1)>0 FROM tp_migration_status WHERE migration_status=0)=1 THEN 
+				CASE WHEN (SELECT show_message FROM tp_migration_show_message)=1 THEN 1 ELSE 0 END
+			     ELSE  0
+			END AS show_message
+		</dbquery>
+		<dbquery name="qReportManager_saveMigrationMessageFlag">
+			UPDATE tp_migration_show_message SET show_message=?, flag_modified_by=?, flag_modified_on=now()
+		</dbquery>
+		<dbquery name="qReportManager_GetRequisitionApprovalHiringStepDatewiseHiring">
+		    SELECT	
+		    	tp.position_id, tp.position_code, tp.position_title,
+				IFNULL(ELT(FIELD(tp.position_type_ext_int,?,?),?,?),'Others') AS position_type_ext_int,
+				IFNULL(ELT(FIELD(tp.position_status,?,?,?,?),'Opened','Closed','Inprocess','On Hold'),'') AS position_status_value,
+          		tp.position_status, tp.position_date_expiry, processdata.process_step_name, processdata.process_step_date,
+          		processdata.process_step_id, processdata.process_step_rank, processdata.process_stage, processdata.process_stage_id,
+          		tp.position_level,
+				IFNULL(ELT(FIELD(tp.type_of_vacancy,?,?),?,?),'') AS type_of_vacancy,
+          		tskl_prim.skill AS prim_skill, tskl_prim.skill_id AS prim_skill_id,
+          		tskl_sec.skill AS sec_skill, tskl_sec.skill_id AS sec_skill_id,
+          		tp.replacement_emp_code,
+          		applicant_name, applicant_date_joined, applicant_level_offered,
+          		td.dept_name, tds.dept_name AS sub_dept_name, tdss.dept_name AS sub_sub_dept_name,
+          		tg.grade_name, tb.band_name,
+          		tcfp.custom_field_id, tploc.location_name,
+          		IFNULL(tvp.string_value,IFNULL(tvp.number_value,tvp.date_value)) AS custom_field_value,
+          		CONCAT(tu1.user_name,' ', tu1.user_lname) AS position_owner_name,
+          		CONCAT(tu2.user_name,' ', tu2.user_lname) AS position_requested_by_name,
+          		CONCAT(tu3.user_name,' ', tu3.user_lname) AS processed_by_name,
+       			GROUP_CONCAT(DISTINCT tploc.location_name SEPARATOR ',') AS location_names,
+       			GROUP_CONCAT(DISTINCT tskl_prim.skill SEPARATOR ',') AS primary_skill,
+       			GROUP_CONCAT(DISTINCT tskl_sec.skill SEPARATOR ',') AS secondary_skill,
+       			GROUP_CONCAT(DISTINCT 'CUS_', tcfp.custom_field_id,'=',(IFNULL(tvp.string_value,IFNULL(tvp.number_value,tvp.date_value))) SEPARATOR '||') AS custom
+
+			FROM tp_positions tp INNER JOIN 
+				(
+				SELECT tp.position_id,
+             		tras.requisition_approval_step_rank AS process_step_rank,
+             		tras.requisition_approval_step_id AS process_step_id,
+             		tras.requisition_approval_step_name AS process_step_name,
+             		traf.feedback_date AS process_step_date,
+             		traf.by_user_id AS process_user_id,
+             		'Requisition Approval' AS process_stage,
+             		1 AS process_stage_id,
+             		null AS applicant_name,
+             		null AS applicant_date_joined,
+             		null AS applicant_level_offered
+      			FROM tp_positions tp
+      				LEFT JOIN tp_requisition_approval_feedback traf ON (tp.position_id=traf.position_id )
+      				LEFT JOIN tp_requisition_approval_steps tras ON (traf.from_step_id = tras.requisition_approval_step_id)
+      			WHERE tp.position_status IN (?,?,?,?)
+      				AND feedback_date &gt;=? AND feedback_date &lt;=?
+      				
+      			UNION 
+      			
+      			SELECT tp.position_id,
+                    tps.position_step_rank AS process_step_rank,
+                    tps.position_step_id AS process_step_id,
+                    tps.position_step_title AS process_step_name,
+                    tasp.process_moved_date AS process_step_date,
+                    tasp.user_id AS process_user_id,
+				    IFNULL(ELT(FIELD(tps.position_step_level,?,?,?),'Shortlist','Select','Hire'),'') AS process_stage,	                                                                                                                                                                                          			/*CASE WHEN tps.position_step_level = '0' THEN 2 WHEN tps.position_step_level = '1' THEN 3 WHEN tps.position_step_level = '2' THEN 4 ELSE ''END AS process_stage_id, */
+					IFNULL(ELT(FIELD(tps.position_step_level,?,?,?),2,3,4),'') AS process_stage_id,
+					ta.applicant_name,
+					ta.applicant_date_joined,
+					ta.applicant_level_offered
+      			FROM tp_positions tp
+      				LEFT JOIN tp_position_steps tps ON (tp.position_id=tps.position_id)
+      				LEFT JOIN tp_applicant_selection_process tasp ON (tps.position_step_id=tasp.position_step_id_to)
+      				LEFT JOIN tp_applicants ta ON (tasp.applicant_id=ta.applicant_id)
+				WHERE tp.position_status IN (?,?,?,?)
+					AND process_moved_date &gt;=? AND process_moved_date &lt;=?
+				) processdata ON (tp.position_id = processdata.position_id)
+   				LEFT JOIN tp_departments td ON (tp.dept_id=td.dept_id)
+				LEFT JOIN tp_departments tds ON (tp.sub_dept_id=tds.dept_id)
+			    LEFT JOIN tp_departments tdss ON (tp.sub_sub_dept_id=tdss.dept_id)
+			    LEFT JOIN tp_users tu1 ON (tp.position_owner_id= tu1.user_id)
+			    LEFT JOIN tp_users tu2 ON (tp.position_requested_by= tu2.user_id)
+			    LEFT JOIN tp_users tu3 ON (processdata.process_user_id= tu3.user_id)
+			    LEFT JOIN tp_budget_grades tg ON (tp.grade_id=tg.grade_id)
+			    LEFT JOIN tp_budget_bands tb ON (tp.band_id=tb.band_id)
+			    LEFT JOIN tp_position_locations tposloc ON (tposloc.position_id=tp.position_id)
+			    LEFT JOIN tp_location_ap tploc ON (tposloc.location_id=tploc.location_id)
+			    LEFT JOIN tp_custom_field_values_position tvp ON (tvp.entity_id=processdata.position_id)
+			    LEFT JOIN tp_custom_fields tcfp ON (tcfp.custom_field_id=tvp.custom_field_id)
+			    LEFT JOIN tp_position_skills tpskl_prim ON (tpskl_prim.position_id=tp.position_id
+			                                             AND tpskl_prim.skill_type = ?)
+			    LEFT JOIN tp_skills tskl_prim ON (tskl_prim.skill_id=tpskl_prim.skill_id)
+			    LEFT JOIN tp_position_skills tpskl_sec ON (tpskl_sec.position_id=tp.position_id
+			                                            AND tpskl_sec.skill_type = ?)
+			    LEFT JOIN tp_skills tskl_sec ON (tskl_sec.skill_id=tpskl_sec.skill_id)
+
+			WHERE 1=1
+				@@
+			GROUP BY position_type_ext_int, tp.position_id, processdata.process_stage_id,
+     			processdata.process_step_rank, processdata.applicant_name, processdata.process_step_date
+		</dbquery>
+		<dbquery name="qReportManager_GetRejectedCandidates">
+			SELECT *, CAST(GROUP_CONCAT( 'CUS_',tp.custom_field_id,'=', tp.custom_field_value SEPARATOR '||') AS CHAR) AS app_custom FROM (  
+				  SELECT tasp.process_id, ta.applicant_id, ta.applicant_name, ta.applicant_email1,
+				  ta.applicant_cell_phone, ta.applicant_current_employer, ta.current_ctc, ta.expected_ctc,
+				  ts.source_title,  tp.position_code, tp.position_title, td.dept_name,
+				  tps.position_step_title AS step_title, tsl.step_level_name AS step_level_name,
+				  tcf.custom_field_id, ifnull(tva.string_value,ifnull(tva.number_value,tva.date_value)) AS custom_field_value,
+				  CONCAT(tu.user_fname,' ',tu.user_lname) AS rejected_by,
+				  tasp.process_moved_date	AS rejected_date			
+				  FROM tp_applicant_selection_process tasp, 
+				  tp_applicants ta
+				  LEFT JOIN tp_custom_field_values_applicant tva ON (tva.entity_id=ta.applicant_id)
+				  LEFT JOIN tp_custom_fields tcf ON (tcf.custom_field_id=tva.custom_field_id)
+				  LEFT JOIN tp_sources ts on (ta.source_id = ts.source_id),
+				  tp_positions tp
+				  LEFT JOIN tp_departments td ON td.dept_id = tp.dept_id,
+				  tp_position_steps tps, tp_step_level tsl, tp_users tu
+				  WHERE tasp.position_step_id_to IN (?,?,?,?)
+							AND tasp.applicant_id = ta.applicant_id
+							AND tasp.position_id = tp.position_id
+							AND tasp.position_step_id_from=tps.position_step_id
+							AND tps.position_step_level=tsl.step_level
+							AND tasp.user_id = tu.user_id
+							@@
+							@@
+			) tp
+			GROUP BY tp.process_id
+			ORDER BY @@ rejected_date
+		</dbquery>
+		<dbquery name="qReportManager_GetAllCandidates">
+			SELECT *, group_concat(skill SEPARATOR ', ') as skills, CAST(GROUP_CONCAT( 'CUS_',tp.custom_field_id,'=', tp.custom_field_value SEPARATOR '||') AS CHAR) AS app_custom FROM (  
+				  SELECT ta.applicant_id, ta.applicant_name, ta.applicant_email1,
+				  ta.applicant_cell_phone, ta.applicant_current_employer, ta.current_ctc, ta.expected_ctc,
+				  ts.source_title,  tp.position_code, tp.position_title, td.dept_name,
+				  tps.position_step_title AS step_title, tsl.step_level_name AS step_level_name,
+				  tcf.custom_field_id, ifnull(tva.string_value,ifnull(tva.number_value,tva.date_value)) AS custom_field_value,
+				  ta.sub_category, ta.category, ta.applicant_email2, ta.applicant_home_phone, ta.applicant_work_phone,
+				  ta.passport_number, ta.date_of_birth, ta.applicant_city, 
+				  iss.skill, concat(format(PERIOD_DIFF(EXTRACT(YEAR_MONTH FROM now()),EXTRACT(YEAR_MONTH FROM applicant_working_since))/12, 1), ' ', '') as exp,
+				  ta.applicant_notice_period, ta.applicant_level_offered, ta.applicant_designation_offered,
+				  ta.offered_basic, ta.offered_ctc, ta.input_salary_variable
+				  FROM 
+				  tp_applicants ta
+				  LEFT JOIN tp_custom_field_values_applicant tva ON (ta.applicant_id =tva.entity_id)
+				  LEFT JOIN tp_custom_fields tcf ON (tcf.custom_field_id=tva.custom_field_id)
+				  LEFT JOIN tp_sources ts on (ta.source_id = ts.source_id)
+				  LEFT JOIN tp_positions tp on (ta.applicant_position_id=tp.position_id)
+				  LEFT JOIN tp_departments td ON (td.dept_id = tp.dept_id)
+				  LEFT JOIN tp_position_steps tps ON (ta.applicant_step_id=tps.position_step_id)	
+				  LEFT JOIN tp_step_level tsl ON (tps.position_step_level=tsl.step_level)
+				  LEFT JOIN tp_applicant_skills ias on ias.applicant_id = ta.applicant_id
+				  LEFT JOIN tp_skills iss on ias.skill_id = iss.skill_id
+				  WHERE 1 =1
+					@@
+					@@
+				
+			) tp
+			GROUP BY applicant_id
+		</dbquery>
+		<dbquery name="qReportManager_GetInterviewerList">
+		    SELECT CAST(GROUP_CONCAT(t.appointment_id) AS CHAR)  
+			FROM tp_appointment_attendees t  
+			@@
+		</dbquery>
+		<dbquery name="qUpdateMaxGroupConcat">
+		   SET SESSION group_concat_max_len = 1000000
+		</dbquery>
+		<dbquery name="qReportManager_GetJoinerReport">
+			SELECT CAST(@rn:=@rn+1 AS CHAR) AS col0, t1.* ,
+				CAST(GROUP_CONCAT('CUS_',t1.custom_field_id,'=', t1.custom_field_value SEPARATOR '||') AS CHAR) AS app_custom
+			FROM
+			  (SELECT ta.applicant_date_joined as col1,
+			          ta.applicant_name as col2,
+			          ta.applicant_designation_offered as col3,
+			          tasm.status_message as col4,
+			          td.dept_name as col5,
+			          tcf.custom_field_id,
+			          CONCAT(tu.user_fname,' ', tu.user_lname) as col6,
+			          ifnull(tva.string_value,ifnull(tva.number_value,tva.date_value)) AS custom_field_value
+			   FROM tp_applicant_status_messages tasm
+			   LEFT JOIN tp_applicants ta ON (tasm.applicant_id = ta.applicant_id
+			                                  AND ta.applicant_step_id = tasm.position_step_id)
+			   LEFT JOIN tp_positions tp ON (tp.position_id = ta.applicant_position_id)
+			   LEFT JOIN tp_users tu ON (tp.position_requested_by = tu.user_id)
+			   LEFT JOIN tp_departments td ON (tp.dept_id = td.dept_id)
+			   LEFT JOIN tp_position_steps tps ON (tps.position_step_id = tasm.position_step_id)
+			   LEFT JOIN tp_custom_field_values_applicant tva ON (tva.entity_id = tasm.applicant_id)
+			   LEFT JOIN tp_custom_fields tcf ON (tcf.custom_field_id = tva.custom_field_id), tp_step_master tsm
+			   WHERE tp.position_status = ?
+			     AND tsm.step_id = tps.step_id
+			     AND tsm.step_level = ?
+			     @@
+			     AND tasm.status_message_id =
+			       (SELECT max(status_message_id)
+			        FROM tp_applicant_status_messages
+			        WHERE applicant_id = tasm.applicant_id)
+			   ORDER BY applicant_name) t1 ,
+			  (SELECT @rn:=0) AS x
+			GROUP BY col2
+		</dbquery>
+		<dbquery name="qReportManager_GetJoinedReport">
+			SELECT CAST(@rn:=@rn+1 AS CHAR) AS sr_no, x.*
+			FROM (SELECT ta.applicant_name, tajh.joining_date, tajh.designation_offered, tasm.status_message,
+					td.dept_name, CONCAT(tu.user_fname,' ', tu.user_lname) as requisitioner,
+					CAST(GROUP_CONCAT('CUS_',tcf.custom_field_id,'=', ifnull(tva.string_value,ifnull(tva.number_value,tva.date_value)) SEPARATOR '||') AS CHAR) AS app_custom
+				FROM tp_applicants ta 
+					JOIN tp_applicant_joining_history tajh ON (tajh.applicant_id = ta.applicant_id)
+					LEFT JOIN tp_applicant_status_messages tasm ON (ta.applicant_id = tasm.applicant_id)
+					JOIN tp_positions tp ON (tp.position_id = tajh.position_id)
+					JOIN tp_users tu ON (tp.position_requested_by = tu.user_id)
+					LEFT JOIN tp_departments td ON (tp.dept_id = td.dept_id)
+					LEFT JOIN tp_custom_field_values_applicant tva ON (tva.entity_id = ta.applicant_id)
+					LEFT JOIN tp_custom_fields tcf ON (tcf.custom_field_id = tva.custom_field_id)	
+				WHERE tasm.status_message_id = (SELECT max(status_message_id)
+					FROM tp_applicant_status_messages
+			        WHERE applicant_id = tasm.applicant_id)
+			        @@			        
+				GROUP BY applicant_name
+			) AS x, (SELECT @rn:=0) AS y
+		</dbquery>
+		<dbquery name="qReportManager_ClosedPositionTAT"> 
+			select (@rn:=@rn+1) as sr_no, T.* from(SELECT 
+				 ta.applicant_id, ta.applicant_name,ta.applicant_current_employer,ta.current_ctc,ta.expected_ctc,ta.applicant_notice_period,ts.source_title,tp.position_title,tp.position_code,
+				td.dept_name AS Client,ta.applicant_level_offered,ta.applicant_designation_offered,
+				IFNULL(tajh.level_offered, tp.position_level) AS 'Position Level',tl.location_name,CONCAT(format(PERIOD_DIFF(EXTRACT(YEAR_MONTH FROM now()),EXTRACT(YEAR_MONTH FROM ta.applicant_working_since))/12, 1), ' ', 'yrs') as exp,
+				CONCAT(tu.user_fname, ' ', tu.user_lname) AS 'Position Owner',tp.position_status,ta.applicant_position_id,tp.position_id,
+				tp.position_no_of_openings AS '# of openings',
+				DATE_FORMAT(tasp.process_date_created, '%D-%b-%y') AS 'Date Process Created', 
+				DATE_FORMAT(tp.position_date_created, '%D-%b-%y') AS 'Date Position Created', 
+				DATE_FORMAT(tp.position_date_approved, '%D-%b-%y') AS 'Date Position Approved', 
+				DATE_FORMAT(tp.position_date_opend, '%D-%b-%y') AS 'Date Position Opend', 
+				DATE_FORMAT(tp.position_date_expiry, '%D-%b-%y') AS 'Date Position Expire', 
+				DATE_FORMAT(tp.position_date_closed, '%D-%b-%y') AS 'Date Position Closed', 
+				CASE WHEN tp.position_date_closed IS NULL 
+					THEN 
+						DATEDIFF(now(), tp.position_date_created)
+					ELSE 
+						DATEDIFF(tp.position_date_closed, tp.position_date_created) 
+				END AS 'Position Age', 
+				DATE_FORMAT(ta.applicant_date_joined, '%D-%b-%y') AS joining_date,
+				DATE_FORMAT(tajh.date_created, '%D-%b-%y') AS actual_joined_date,
+				( SELECT group_concat(DISTINCT skill SEPARATOR ', ') FROM tp_skills WHERE skill_id IN (SELECT skill_id FROM tp_position_skills WHERE position_id=tp.position_id) ) AS 'Position Skill',
+				TAT.default_tat AS 'Default TAT',
+				DATEDIFF(tp.position_date_expiry, tp.position_date_created) AS 'Expected TAT', 
+				DATEDIFF(tajh.joining_date, tp.position_date_created) AS 'Actual TAT',
+				(DATEDIFF(tajh.joining_date, tp.position_date_created) - TAT.default_tat) AS 'TAT diff'
+			FROM tp_applicant_selection_process tasp
+				Left JOIN  tp_positions tp ON (tasp.position_id=tp.position_id)
+				LEFT JOIN tp_applicants ta ON (tasp.applicant_id = ta.applicant_id)
+				LEFT JOIN tp_applicant_joining_history tajh ON (ta.applicant_id = tajh.applicant_id)
+				LEFT JOIN tp_position_locations tpl ON (tp.position_id = tpl.position_id)
+				LEFT JOIN tp_location_ap tl ON (tpl.location_id = tl.location_id)
+				LEFT JOIN tp_departments td ON (tp.dept_id = td.dept_id)
+				LEFT JOIN tp_departments td1 ON (tp.sub_dept_id = td1.dept_id)
+				LEFT JOIN tp_sources ts ON (ta.source_id = ts.source_id)
+				LEFT JOIN tp_users tu ON (tp.position_owner_id = tu.user_id), 
+				(SELECT @rn:=0) temp_table, 
+				(SELECT CAST(application_property_value AS SIGNED) AS default_tat FROM tp_application_properties 
+					WHERE application_property = 'default_hire_by_duration_in_days') as TAT
+			WHERE tp.position_date_created &gt;= ? AND tp.position_date_created &lt;= ?
+				@@
+			Group BY tasp.position_id,tasp.applicant_id) T
+		</dbquery>
+		<dbquery name="qReportManager_GetClosedPositionTATStepDetails">
+		    SELECT applicant_id, step_name,step_status, DATE_FORMAT(step_start_date, '%D-%b-%y') AS step_start_date, DATE_FORMAT(step_end_date, '%D-%b-%y') AS step_end_date, 
+		    	DATEDIFF(x.step_end_date, x.step_start_date) AS step_duration,Interviewer, position_id,position_step_id_from,position_step_id_to
+		    FROM 
+				(SELECT ta.applicant_id, ta.applicant_name, tsm.step_name,tasp.position_id,tasp.position_step_id_from,tasp.position_step_id_to,
+					IFNULL((SELECT MAX(appointment_from_date) FROM tp_appointments tap 
+							WHERE tap.applicant_id = tasp.applicant_id 
+								AND tap.position_step_id = tasp.position_step_id_to LIMIT 0,1), 
+						tasp.process_moved_date) AS step_start_date,
+					(SELECT MAX(process_moved_date) FROM tp_applicant_selection_process 
+					 WHERE position_step_id_from = tasp.position_step_id_to AND applicant_id = tasp.applicant_id 
+							AND process_moved_date >= tasp.process_moved_date ORDER BY process_moved_date LIMIT 0,1) 
+					AS step_end_date,
+					
+                   (SELECT appointment_status_text
+                    FROM tp_appointment_status taps,tp_appointments tap
+                    WHERE tap.appointment_status_id=taps.appointment_status_id
+			AND tap.applicant_id = tasp.applicant_id
+                      AND tap.position_step_id = tasp.position_step_id_to
+                     LIMIT 0,1) AS step_status,
+                     (SELECT group_concat(tu.USER_FNAME ORDER BY tu.USER_FNAME) FROM tp_users tu,tp_appointments tapp, tp_appointment_attendees tappa WHERE 
+					tu.user_id=tappa.attendee_id AND 
+					tappa.appointment_id=tapp.appointment_id AND tapp.applicant_id = tasp.applicant_id  AND tapp.position_step_id = tasp.position_step_id_to
+                      ORDER BY tappa.appointment_id LIMIT 0,
+                                        1) AS Interviewer
+                     
+				FROM tp_applicant_selection_process tasp
+					JOIN tp_positions tp ON (tasp.position_id = tp.position_id)
+					JOIN tp_applicants ta ON (ta.applicant_id = tasp.applicant_id)
+					JOIN tp_position_steps tps ON (tasp.position_step_id_to = tps.position_step_id)
+					JOIN tp_step_master tsm ON (tps.step_id = tsm.step_id)
+					JOIN tp_users tu ON (tu.user_id = tasp.user_id)
+				WHERE tasp.process_date_created >= (SELECT MAX(process_date_created) 
+								FROM tp_applicant_selection_process tasp1 JOIN tp_positions tp1 ON (tasp1.position_id = tp1.position_id) 
+								WHERE applicant_id = tasp.applicant_id 
+									AND position_step_id_from = 0) 
+				@@
+				) AS x
+			ORDER BY x.applicant_id, x.step_start_date 
+		</dbquery>
+		<dbquery name="qReportManager_ApplicantProcessData">
+		    select tps.process_id from tp_applicant_selection_process tps where tps.process_date_created=(select max(tps1.process_date_created) from 
+		    tp_applicant_selection_process tps1 where tps1.applicant_id=?) 
+		    	</dbquery>
+		    	<dbquery name="q_Reportmanager_traitComment">
+			SELECT trait_comment FROM tp_applicant_selection_process_traits tpst WHERE tpst.process_id=? order by trait_comment desc Limit 0,1
+		</dbquery>
+		<dbquery name="q_Reportmanager_Position_Title_For_Rejected">
+			select tp.position_title from tp_positions tp ,tp_applicant_selection_process tps where tp.position_id=tps.position_id and tps.process_id=?		
+			</dbquery>
+			<dbquery name="q_Reportmanager_Position_Title_For_Interview">
+			select (CASE 
+		         	WHEN tasp.position_step_id_to=0 THEN 'Rejected'
+					WHEN tasp.position_step_id_to=-6 THEN 'Rejected'
+					WHEN tasp.position_step_id_to=-3 THEN ''
+					WHEN tasp.position_step_id_to=-5 THEN ''
+					WHEN tasp.position_step_id_to=-4 THEN 'Rejected'
+					WHEN tasp.position_step_id_to=-1 THEN 'On Hold'
+					WHEN tasp.position_step_id_to=-2 THEN 'Joined'
+					WHEN tasp.position_step_id_to=-7 THEN 'Rejected'
+					WHEN tasp.position_step_id_to &gt; 0 THEN 'Selected'
+		         ELSE (tps1.position_step_title ) 
+		         END) AS fromStepTitle from tp_applicant_selection_process tasp 
+			LEFT JOIN tp_position_steps tps1  ON tps1.position_step_id = tasp.position_step_id_to where tasp.applicant_id=? and tasp.position_step_id_from=? and tasp.position_id=? 	
+			</dbquery>
+				<dbquery name="qReportManager_GetAuditTrailViewReport">
+			SELECT CAST(@rn:=@rn+1 AS CHAR) AS sr_no, x.*
+			FROM (Select tpe.audit_id,tpe.audit_desc,tpe.audit_type,tpe.entity_field,tpe.date_created,CONCAT(tu.user_fname, ' ', tu.user_lname) AS 'user_name' from tp_audit_entries tpe 
+			Left Join tp_users tu ON(tu.user_id=tpe.user_id)
+			where 
+			
+		 @@	
+			) AS x, (SELECT @rn:=0) AS y
+		</dbquery>
+					<dbquery name="qReportManager_GetBlackListedReport">
+			SELECT CAST(@rn:=@rn+1 AS CHAR) AS sr_no, x.*
+			FROM (SELECT ta.applicant_name, ta.applicant_current_employer,ta.current_ctc,ts.source_title,tabh.reason,CONCAT(tu.user_fname, ' ', tu.user_lname) AS 'blacklisted_by',
+				tabh.date_created,ta.applicant_email1,ta.applicant_cell_phone,ta.applicant_id,
+					CAST(GROUP_CONCAT('CUS_',tcf.custom_field_id,'=', ifnull(tva.string_value,ifnull(tva.number_value,tva.date_value)) SEPARATOR '||') AS CHAR) AS app_custom
+				FROM tp_applicants ta 
+					LEFT JOIN tp_applicant_blacklist_history tabh ON (ta.applicant_id = tabh.applicant_id)
+					JOIN tp_users tu ON (tabh.user_id = tu.user_id)
+					
+					LEFT JOIN tp_sources ts ON (ta.source_id = ts.source_id)
+					LEFT JOIN tp_custom_field_values_applicant tva ON (tva.entity_id = ta.applicant_id)
+					LEFT JOIN tp_custom_fields tcf ON (tcf.custom_field_id = tva.custom_field_id)	
+				WHERE ta.applicant_status='2'
+			        @@			        
+				GROUP BY applicant_name
+			) AS x, (SELECT @rn:=0) AS y
+		</dbquery>
+				    	<dbquery name="qReportManager_BlacklistedPositionData">
+		   select tp.position_title,tps.position_step_title from tp_applicant_selection_process tasp
+ 			Left JOIn tp_position_steps tps ON(tps.position_step_id=tasp.position_step_id_from)
+			 Left JOIn tp_positions tp ON(tp.position_id=tasp.position_id)
+				where tasp.process_id=(select max(tasp.process_id)from tp_applicant_selection_process tasp where tasp.applicant_id=?)
+		    	</dbquery>
+		    	<dbquery name="qReportManager_OneStopFileReportCandidates">
+			SELECT CAST(@rn:=@rn+1 AS CHAR) AS sr_no, x.* FROM (SELECT applicant_id,employee_code,applicant_date_joined
+			FROM tp_applicants
+			 where applicant_date_joined is not null and applicant_date_joined &gt;= ? and applicant_date_joined &lt;=?) AS x, (SELECT @rn:=0) AS y
+			</dbquery>
+			<dbquery name="qReportManager_OneStopFileReportStepData">
+			SELECT ta.applicant_name,taspt.trait_comment,tff.feedback_field_title FROM tp_applicant_selection_process_traits taspt
+				JOIN tp_feedback_form_fields tfff ON (tfff.feedback_form_field_id = taspt.feedback_form_field_id)
+				JOIN tp_feedback_fields tff ON (tff.feedback_field_id= tfff.feedback_field_id)
+				JOIN tp_applicant_selection_process tasp ON(tasp.process_id=taspt.process_id)
+				JOIN tp_applicants ta ON (ta.applicant_id =tasp.applicant_id)
+ 				where taspt.process_id in (select tasp.process_id from 
+ 				tp_applicant_selection_process tasp where tasp.applicant_id = ? ) 
+ 				and taspt.feedback_form_id in (@@)
+			</dbquery>
+			<dbquery name="qReportManager_OneStopFileReportPositionData">
+			SELECT tp.position_id,tp.position_status,tp.position_date_created,tp.position_date_opend ,td.dept_name
+				from tp_positions tp LEFT JOIN tp_departments td ON (tp.sub_dept_id = td.dept_id)
+				where
+				 tp.position_id =
+				(SELECT tasp.position_id
+   					FROM tp_applicant_selection_process tasp 
+    				where tasp.applicant_id=? order by tasp.process_id desc LIMIT 1)
+			</dbquery>
+			<dbquery name="qReportManager_OneStopFileReportOfferGenerationData">
+			    select distinct(tpod.date_created) from  tp_applicant_offer_details tpod where
+                  tpod.version = (SELECT taosd.version from tp_applicant_offer_sheet_details taosd 
+                  where tpod.applicant_id = taosd.applicant_id and tpod.offer_code=taosd.offer_code and tpod.applicant_id=?)
+            </dbquery>
+            <dbquery name="qReportManager_OneStopFileReportOfferApprovalData">
+              select process_moved_date from 	
+               where position_step_id_from = (select position_step_id from tp_position_steps where position_id=? and step_id=? and position_step_status=1)
+            </dbquery>
+	</dbqueries>
+	<dataqueries>
+		<!--Non report queries or filter related queries ********************-->
+	    <dataquery name="dReportManager_GetPositions" dbquery="qReportManager_GetPositions" object = "com.talentPool.positions.dataobject.PositionData">
+	        <attribute name= "positionId" column="position_id" type ="STRING" />
+	        <attribute name= "positionTitle" column="position_title" type ="STRING"/>
+		</dataquery> 
+		<!--End Non report queries or filter related queries *****************-->
+
+		<!--Report Queries ***************************************************-->
+	    <dataquery name="dReportManager_GetHiringStatusSummary" dbquery="qReportManager_GetHiringStatusSummary" object="com.talentPool.reports.views.HiringStatusSummaryView">
+	        <attribute name="positionId" column="position_id" type="STRING"/>
+	        <attribute name="position" column="departmentPosition" type="STRING"/>
+	        <attribute name="vacancies" column="position_no_of_openings" type="INT"/>
+	        <attribute name="inProcess" column="candidates" type="INT"/>
+	        <attribute name="pendingOffers" column="offered" type="INT"/>
+	        <attribute name="joined" column="joined" type="INT"/>
+	         <attribute name="applied" column="applied" type="INT"/>
+		</dataquery>
+		<dataquery name="dReportManager_GetMonthlyJoiningSummaryReport" dbquery="qReportManager_GetMonthlyJoiningSummaryReport" object="com.talentPool.reports.views.monthlyJoiningView">
+	        <attribute name= "deptName" column="dept_name" type ="STRING"/>
+	        <attribute name= "noOfJoined" column="joined" type ="INT"/>
+	        <attribute name= "monthJoined" column="joined_date" type ="STRING"/>
+		</dataquery>
+		<dataquery name="dReportManager_GetMonthlyJoiningDetailsReport" dbquery="qReportManager_GetMonthlyJoiningDetailsReport" object="com.talentPool.reports.views.monthlyJoiningView">
+		     <attribute name= "applicantName" column="applicant_name" type ="STRING" />
+		     <attribute name= "dateJoined" column="joining_date" type ="STRING" />
+		     <attribute name= "monthJoined" column="applicant_month_joined" type ="STRING" />
+		     <attribute name= "positionTitle" column="position_title" type ="STRING" />
+	         <attribute name= "deptName" column="dept_name" type ="STRING"/>
+		</dataquery>
+		
+		<dataquery name="dReportManager_callListReport" dbquery="qReportManager_callListReport" object="com.talentPool.reports.views.callListReportView">
+	        <attribute name= "applicantId" column="applicant_id" type ="STRING"/>
+	        <attribute name= "applicantName" column="applicant_name" type ="STRING" />
+	        <attribute name= "applicantPositionId" column="applicant_position_id" type ="INT" />
+	        <attribute name= "applicantEmail" column="applicant_email1" type ="STRING"/>
+	        <attribute name= "applicantEmail2" column="applicant_email2" type ="STRING" />
+	        <attribute name= "applicantHomePhone" column="applicant_home_phone" type ="STRING" />
+	        <attribute name= "applicantWorkPhone" column="applicant_work_phone" type ="STRING" />
+	        <attribute name= "applicantCellPhone" column="applicant_cell_phone" type ="STRING" />
+	        <attribute name= "positionTitle" column="position_title" type ="STRING" />
+	        <attribute name= "deptId" column="dept_id" type ="INT" />
+	        <attribute name= "deptName" column="dept_name" type ="STRING" />
+	        <attribute name= "statusMessage" column="current_ststus" type ="STRING" />
+	        <attribute name= "stepIn" column="step" type ="STRING" />
+	        <attribute name= "yearsOfExp" column="yearsOfExp" type ="INT" />
+	        <attribute name= "degree" column="degree_title" type ="STRING" />
+		    <attribute name= "institute" column="institute_name" type ="STRING" />
+		    <attribute name= "yearOfPassing" column="YearOfPassing" type ="STRING" />
+		</dataquery>
+		<dataquery name="dReportManager_GetPositionSkillsInfo" dbquery="qReportManager_GetPositionSkillsInfo" object="com.talentPool.common.db.SimpleDataObject">
+		    <attribute name= "skill" column="skill" type ="STRING" />
+		</dataquery>
+		<dataquery name="dReportManager_GetHiringStatusDetail" dbquery="qReportManager_GetHiringStatusDetail" object="com.talentPool.reports.views.HiringStatusDetailView">
+	        <attribute name= "positionId" column="position_id" type ="STRING" />
+	        <attribute name= "departmentPosition" column="departmentPosition" type ="STRING" />
+	        <attribute name= "stepTitle" column="step_title" type ="INT"/>
+	        <attribute name= "applicantName" column="applicant_name" type ="INT"/>
+	        <attribute name= "educationExperience" column="educationExperience" type ="INT"/>
+		</dataquery>
+		<dataquery name="dGetSourceTitles" dbquery="qGetSourceTitles" object="com.talentPool.common.db.SimpleDataObject">
+	       <attribute name="sourceId" column="source_id" type ="STRING" />
+	       <attribute name="sourceTitle" column="source_title" type ="STRING" />
+	    </dataquery>
+	    <dataquery name="dReportManager_GetImportReport" dbquery="qReportManager_GetImportReport" object="com.talentPool.reports.views.importReportView">
+	        <attribute name= "applicantName" column="applicant_name" type ="STRING" />
+	        <attribute name= "dateCreated" column="DateCreated" type ="STRING" />
+	        <attribute name= "userName" column="user_name" type ="STRING" />
+	        <attribute name= "sourceTitle" column="source_title" type ="STRING" />
+	    </dataquery>
+	    <dataquery name="dReportManager_GetHiringEfficiencySummaryReport" dbquery="qReportManager_GetHiringEfficiencySummaryReport" object="com.talentPool.reports.views.hiringEfficiencyReportView">
+	    	<attribute name= "positionId" column="position_id" type ="STRING" />
+	        <attribute name= "positionTitle" column="position_title" type ="STRING" />
+	        <attribute name= "dateCreated" column="position_date_created" type ="STRING"/>
+	        <attribute name= "dateHireBy" column="position_date_expiry" type ="STRING"/>
+	        <attribute name= "noOfOpenings" column="position_no_of_openings" type ="INT" />
+	        <attribute name= "deptName" column="dept_name" type ="STRING"/>
+	        <attribute name= "noOfJoined" column="noOfJoined" type ="INT"/>
+	        <attribute name= "minimumDays" column="minimumDays" type ="INT"/>
+	        <attribute name= "maximumDays" column="maximumDays" type ="INT"/>
+	        <attribute name= "averageDays" column="averageDays" type ="INT"/>
+	        <attribute name= "averageDeviation" column="averageDeviation" type ="INT"/>
+	    </dataquery>
+	    <dataquery name="dReportManager_GetHiringEfficiencyDetailsReport" dbquery="qReportManager_GetHiringEfficiencyDetailsReport" object="com.talentPool.reports.views.hiringEfficiencyReportView">
+	        <attribute name= "positionId" column="position_id" type ="STRING" />
+	        <attribute name= "positionTitle" column="position_title" type ="STRING" />
+	        <attribute name= "dateCreated" column="position_date_created" type ="STRING"/>
+	        <attribute name= "dateHireBy" column="position_date_expiry" type ="STRING"/>
+	        <attribute name= "noOfOpenings" column="position_no_of_openings" type ="INT" />
+	        <attribute name= "deptName" column="dept_name" type ="STRING"/>
+	        <attribute name= "deptId" column="dept_id" type ="STRING"/>
+	        <attribute name= "applicantName" column="applicant_name" type ="STRING"/>
+	        <attribute name= "dateJoined" column="joining_date" type ="STRING"/>
+	        <attribute name= "averageDays" column="averageDays" type ="INT"/>
+	        <attribute name= "averageDeviation" column="averageDeviation" type ="INT"/>
+	    </dataquery>
+	    <dataquery name="dReportManager_GetSourceWiseHiring" dbquery="qReportManager_GetSourceWiseHiring" object="com.talentPool.reports.views.sourceWiseHiringView">
+	        <attribute name= "sourceCategory" column="source_type" type ="STRING" />
+	        <attribute name= "sourceName" column="source_title" type ="STRING" />
+	        <attribute name= "noOfJoined" column="noOfJoined" type ="INT" />
+	    </dataquery>
+		<!-- Start: Hiring Funnel Summary Report -->
+		<dataquery name="dReportManager_GetHiringFunnelSummaryReport" dbquery="qReportManager_GetHiringFunnelSummaryReport" object="com.talentPool.reports.views.HiringFunnelSummaryView">
+		      <attribute name= "deptId" column="dept_id" type ="STRING"/>
+		      <attribute name= "deptName" column="dept_name" type ="STRING"/>
+		      <attribute name= "positionId" column="position_id" type ="STRING"/>
+		      <attribute name= "positionTitle" column="position_title" type ="STRING"/>
+		      <attribute name= "stepTitle" column="position_step_title" type ="STRING"/>
+		      <attribute name= "processed" column="processed" type ="INT"/>
+		      <attribute name= "rejected" column="rejected" type ="INT"/>
+		      <attribute name= "advanced" column="advanced" type ="INT"/>
+		      <attribute name= "inProcess" column="inProcess" type ="INT"/>
+		      <attribute name= "joined" column="joined" type ="INT"/>
+		</dataquery>		
+		<!-- End: Hiring Funnel Summary Report -->
+		<!-- Start: Hiring Funnel Detail Report -->
+		<dataquery name="dReportManager_GetHiringFunnelDetails" dbquery="qReportManager_GetHiringFunnelDetails" object="com.talentPool.reports.views.HiringFunnelDetailView">
+		      <attribute name= "departmentPosition" column="departmentPosition" type ="STRING"/>
+		      <attribute name= "positionTitle" column="position_title" type ="STRING"/>
+		      <attribute name= "positionId" column="position_id" type ="STRING"/>
+		      <attribute name= "positionStepTitle" column="position_step_title" type ="STRING"/>
+		      <attribute name= "stepId" column="position_step_id_from" type ="STRING"/>
+		      <attribute name="positionDateExpiry" column="position_date_expiry" type="STRING"/>
+		      
+		      <attribute name="deptName" column="dept_name" type="STRING"/>
+			  <attribute name="subDeptName" column="sub_dept_name" type="STRING"/>
+			  <attribute name="subSubDeptName" column="sub_sub_dept_name" type="STRING"/>
+			  <attribute name="sub3DeptName" column="sub3_dept_name" type="STRING"/>
+			  <attribute name="sub4DeptName" column="sub4_dept_name" type="STRING"/>
+		      
+		      <attribute name= "applicantName" column="applicant_name" type ="STRING"/>
+		      <attribute name= "applicantStatus" column="applicant_status" type ="STRING"/>
+		      <attribute name= "actionTime" column="action_time" type ="STRING"/>
+		      <attribute name= "movedBy" column="user_fname" type ="INT"/>
+		      <attribute name= "count" column="cnt" type ="INT"/>
+		      <attribute name= "applicantId" column="applicant_id" type ="STRING"/>
+		      <attribute name= "employeeCode" column="employee_code" type ="STRING"/>
+		      <attribute name= "applicantHrmsCode" column="applicant_hrms_code" type ="STRING"/>		      
+		      <attribute name= "buName" column="bu_name" type ="STRING"/>
+		      <attribute name= "costCenterName" column="cost_center_name" type ="STRING"/>
+		      
+		      <attribute name= "gradeName" column="grade_name" type ="STRING"/>
+		      <attribute name= "bandName" column="band_name" type ="STRING"/>
+		</dataquery>
+		<!-- End: Hiring Funnel Detail Report -->
+		<!--End Report Queries ***********************************************-->
+		<!-- Start: Interview List -->
+		<dataquery name="dReportManager_InterviewList" dbquery="qReportManager_InterviewList" object="com.talentPool.reports.views.InterviewListView">
+			<attribute name= "date" column="col0" type ="STRING"/>
+			<attribute name= "time" column="col1" type ="STRING"/>
+		    <attribute name= "positionDepartmentStep" column="col2" type ="STRING"/>
+		    <attribute name= "nameLocation" column="col3" type ="STRING"/>
+		    <attribute name= "emailPhone" column="col4" type ="STRING"/>
+		    <attribute name= "experienceCurrentEmployer" column="col5" type ="STRING"/>
+		    <attribute name= "education" column="col6" type ="STRING"/>
+		    <attribute name= "interviewers" column="col7" type ="STRING"/>
+		</dataquery>
+		<dataquery name="dGetUsersForIds" dbquery="qGetUsersForIds" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name="users" column="users" type="STRING"/>
+		</dataquery>
+		<!-- End: Interview List -->
+		<!-- Start: Interview List Status -->
+		<dataquery name="dReportManager_InterviewListStatus" dbquery="qReportManager_InterviewListStatus" object="com.talentPool.reports.views.InterviewListStatusView">
+			<attribute name= "date" column="col0" type ="STRING"/>
+			<attribute name= "name" column="col1" type ="STRING"/>
+			<attribute name= "modeOfInterview" column="col2" type ="STRING"/>
+		    <attribute name= "department" column="col3" type ="STRING"/>
+		    <attribute name= "position" column="col4" type ="STRING"/>
+		    <attribute name= "recruiter" column="col5" type ="STRING"/>
+		    <attribute name= "status" column="col6" type ="STRING"/>
+		    <attribute name= "currentStep" column="col7" type ="STRING"/>
+		    <attribute name= "source" column="col8" type ="STRING"/>
+		    <attribute name="interviewers" column="col9" type="STRING"/> 
+		    <attribute name= "feedback" column="col11" type ="STRING"/>
+		</dataquery>
+		<!-- End: Interview List Status -->
+		<!-- Start: User Activity -->
+		<dataquery name="dReportManager_GetUserActivityData" dbquery="qReportManager_GetUserActivityData" object="com.talentPool.reports.views.UserActivityReportView">
+			<attribute name= "candidate" column="applicant_name" type ="STRING"/>
+			<attribute name= "positionId" column="position_id" type ="STRING"/>
+		    <attribute name= "interaction" column="interaction" type ="STRING"/>
+		    <attribute name= "interactionDate" column="interaction_date" type ="STRING"/>
+		    <attribute name= "positionDepartment" column="department_position" type ="STRING"/>
+		    <attribute name= "username" column="username" type ="STRING"/>
+		</dataquery>
+		<!-- End: User Activity -->
+		<!-- Start: Position Activity -->
+		<dataquery name="dReportManager_GetPositionActivityData" dbquery="qReportManager_GetPositionActivityData" object="com.talentPool.reports.views.PositionActivityReportView">
+			<attribute name= "candidate" column="applicant_name" type ="STRING"/>
+	      	<attribute name= "interaction" column="interaction" type ="STRING"/>
+	      	<attribute name= "interactionDate" column="interaction_date" type ="STRING"/>
+	      	<attribute name= "positionDepartment" column="department_position" type ="STRING"/>
+	      	<attribute name= "username" column="username" type ="STRING"/>
+		</dataquery>
+		<!-- End: Position Activity -->
+		<!-- Start: Sourcewise Import Report -->
+		<dataquery name="dGetSourcewiseImportData" dbquery="qGetSourcewiseImportData" object="com.talentPool.reports.views.SourcewiseImportView">
+		      <attribute name= "sourceId" column="source_id" type ="STRING"/>
+		      <attribute name= "sourceTitle" column="source_title" type ="STRING"/>
+		      <attribute name= "count" column="cnt" type ="STRING"/>
+		      <attribute name= "importDate" column="import_date" type ="STRING"/>
+		      <attribute name= "sourceCategory" column="source_type" type ="STRING"/>
+		      <attribute name= "countCategory" column="cntCat" type ="STRING"/>
+		</dataquery>
+		<!-- End: Sourcewise Import Report -->
+		<!-- Start: Applicant Details Report -->
+		<dataquery name="dReportManager_ApplicantDetailsData" dbquery="qReportManager_ApplicantDetailsData" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name="applicantId" column="applicant_id" type="STRING"/>
+			<attribute name="applicantName" column="applicant_name" type="STRING"/>
+			<attribute name="currentEmployer" column="applicant_current_employer" type="STRING"/>
+			<attribute name="experience" column="exp" type="STRING"/>
+			<attribute name="source" column="source_title" type="STRING"/>
+			<attribute name="sourceCategory" column="source_type" type="STRING"/>
+			<attribute name="location" column="applicant_city" type="STRING"/>
+			<attribute name="email1" column="applicant_email1" type="STRING"/>
+			<attribute name="email2" column="applicant_email2" type="STRING"/>
+			<attribute name="cellPhone" column="applicant_cell_phone" type="STRING"/>
+			<attribute name="workPhone" column="applicant_work_phone" type="STRING"/>
+			<attribute name="homePhone" column="applicant_home_phone" type="STRING"/>
+			<attribute name="skills" column="skills" type="STRING"/>
+		</dataquery>
+		<dataquery name="dReportManager_ApplicantEducationInfoData" dbquery="qReportManager_ApplicantEducationInfoData" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name="degree" column="degree_title" type="STRING"/>
+			<attribute name="institute" column="institute_name" type="STRING"/>
+			<attribute name="yearOfPassing" column="educational_info_year_of_passing" type="STRING"/>
+			<attribute name="grade" column="educational_info_grade" type="STRING"/>
+		</dataquery>
+		<!-- End: Applicant Details Report -->
+		<!-- Start: Offer to Joined Report -->
+		<dataquery name="dReportManager_OfferToJoinedReport" dbquery="qReportManager_OfferToJoinedReport" object="com.talentPool.reports.views.OfferToJoinedView">
+			<attribute name="monthYear" column="monthYear" type="STRING"/>
+			<attribute name="offers" column="offers" type="STRING"/>
+			<attribute name="joined" column="joined" type="STRING"/>
+			<attribute name="notJoined" column="notJoined" type="STRING"/>
+			<attribute name="willJoin" column="willJoin" type="STRING"/>
+		</dataquery>
+		<dataquery name="dReportManager_GetOfferToJoinedReport_Detail" dbquery="qReportManager_GetOfferToJoinedReport_Detail" object="com.talentPool.reports.views.OfferToJoinedView">
+			<attribute name="monthYear" column="monthYear" type="STRING"/>
+			<attribute name="applicantName" column="applicant_name" type="STRING"/>
+			<attribute name="positionDept" column="pos" type="STRING"/>
+			<attribute name="positionId" column="position_id" type="STRING"/>			
+			<attribute name="flag" column="flag" type="STRING"/>
+			<attribute name="statusText" column="statusText" type="STRING"/>
+			<attribute name="joinedFlag" column="joined" type="STRING"/>
+			<attribute name="toJoinFlag" column="to_join" type="STRING"/>
+			<attribute name="notJoinFlag" column="will_not_join" type="STRING"/>
+		</dataquery>
+		<dataquery name="dReportManager_GetOfferToJoinedDetailedReport" dbquery="qReportManager_GetOfferToJoinedDetailedReport" object="com.talentPool.reports.views.OfferToJoinedDetailedView">
+			<attribute name="offeredMonth" column="Offered_Month" type="STRING"/>
+			<attribute name="applicantName" column="Offered_Candidate" type="STRING"/>
+			<attribute name="offerType" column="Offer_Type" type="STRING"/>
+			<attribute name="recruiter" column="Recruiter" type="STRING"/>
+			<attribute name="status" column="Status" type="STRING"/>			
+			<attribute name="levelOffered" column="Level_Offered" type="STRING"/>
+			<attribute name="college" column="College" type="STRING"/>
+			<attribute name="location" column="Location" type="STRING"/>
+			<attribute name="employer" column="Employer" type="STRING"/>
+			<attribute name="source" column="Source" type="STRING"/>
+		</dataquery>
+		<!-- End: Offer to Joined Report -->
+		<!-- Start: Candidate Comparison Report -->		
+		<dataquery name="dReportManager_GetApplicantForSteps" dbquery="qReportManager_GetApplicantForSteps" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name="applicantId" column="applicant_id" type="STRING"/>
+			<attribute name="applicantName" column="applicant_name" type="STRING"/>			
+		</dataquery>
+		<dataquery name="dReportManager_GetHeadersForCandidateComparisonReport" dbquery="qReportManager_GetHeadersForCandidateComparisonReport" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name="applicantId" column="applicant_id" type="STRING"/>
+			<attribute name="applicantName" column="applicant_name" type="STRING"/>			
+		</dataquery>
+		<dataquery name="dReportManager_GetColumnsForCandidateComparisonReport" dbquery="qReportManager_GetColumnsForCandidateComparisonReport" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name="stepId" column="position_step_id" type="STRING"/>
+			<attribute name="stepTitle" column="position_step_title" type="STRING"/>			
+			<attribute name="traitId" column="feedback_field_id" type="STRING"/>
+			<attribute name="traitTitle" column="feedback_field_title" type="STRING"/>	
+		</dataquery>
+		<dataquery name="dReportManager_GetDataForCandidateComparisonReport" dbquery="qReportManager_GetDataForCandidateComparisonReport" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name="applicantId" column="applicant_id" type="STRING"/>			
+			<attribute name="traitId" column="feedback_field_id" type="STRING"/>
+			<attribute name="traitComment" column="trait_comment" type="STRING"/>
+			<attribute name="userFullName" column="name" type="STRING"/>
+			<attribute name="selectFieldIds" column="select_field_id" type="STRING"/>
+		</dataquery>
+		<!-- End: Candidate Comparison Report -->
+		<!-- Start: Position Funnel Report -->
+		<dataquery name="dReportManager_GetPositionSummaryReport" dbquery="qReportManager_GetPositionSummaryReport" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name="positionId" column="position_id" type="STRING"/>
+			<attribute name="positionCode" column="position_code" type="STRING"/>
+			<attribute name="positionTitle" column="position_title" type="STRING"/>
+			<attribute name="vacancies" column="position_no_of_openings" type="INT"/>
+			<attribute name="hireByDate" column="hirebydate" type="STRING"/>
+			<attribute name="positionPrimarySkills" column="position_primary_skills" type="STRING"/>
+			<attribute name="leadTime" column="lead_time" type="STRING"/>
+			<attribute name="age" column="age" type="STRING"/>
+			<attribute name="recruiters" column="recruiters" type="STRING"/>
+			<attribute name="departmentName" column="dept_name" type="STRING"/>
+			<attribute name="noJoined" column="joined" type="INT"/>
+			<attribute name="dateJoined" column="applicant_date_joined" type="STRING"/>
+			<attribute name="sourceTitle" column="source_title" type="STRING"/>
+			<attribute name="noOffered" column="offered" type="INT"/>
+			<attribute name="noOfferRejected" column="offerreject" type="INT"/>
+			<attribute name="expectedJoiningDate" column="expectedJoiningDate" type="STRING"/>
+			<attribute name="closuredate" column="closuredate" type="STRING"/>
+		</dataquery>
+		<dataquery name="dReportManager_GetPositionSummaryReportSteps" dbquery="qReportManager_GetPositionSummaryReportSteps" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name="positionId" column="position_id" type="STRING"/>
+			<attribute name="positionStepTitle" column="position_step_title" type="STRING"/>
+			<attribute name="noAvailable" column="avilable" type="STRING"/>
+			<attribute name="noRejected" column="rejected" type="STRING"/>
+			<attribute name="noForwarded" column="forwarded" type="STRING"/>
+		</dataquery>
+		<!-- End: Position Funnel Report -->
+		<!-- Start: Pending Actions Report -->
+		<dataquery name="dReportManager_GetToDoListDashBoard" dbquery="qReportManager_GetToDoListDashBoard" object="com.talentPool.reports.views.PendingActionsView">
+	        <attribute name="candidate" column="applicant_name" type="STRING"/>
+	        <attribute name="position" column="position_code" type="STRING"/>
+	        <attribute name="dueOn" column="process_moved_date" type="STRING"/>
+	        <attribute name="action" column="action_required" type="INT"/>
+	        <attribute name="stepTitle" column="position_step_title" type="STRING"/>
+	    </dataquery>
+	    <!-- End: Pending Actions Report -->
+	    <!-- Start: Overall Recruitment Cost Summary Report -->
+	    <dataquery name="dReportManager_OverallRecruitmentCostSummary" dbquery="qReportManager_OverallRecruitmentCostSummary" object="com.talentPool.reports.views.OverallRecruitmentCostSummary">
+	    	<attribute name="costType" column="cost_type" type="STRING"/>
+	        <attribute name="cost" column="purpose_cost" type="STRING"/>
+	    </dataquery>
+	    <dataquery name="dReportManager_GetNoOfCandidatesJoined" dbquery="qReportManager_GetNoOfCandidatesJoined" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name="count" column="cnt" type="STRING"/>
+	    </dataquery>	    
+		<!-- End: Overall Recruitment Cost Summary Report -->
+		<!-- Start: Overall Recruitment Cost Detail Report -->
+	    <dataquery name="dReportManager_OverallRecruitmentCostDetail" dbquery="qReportManager_OverallRecruitmentCostDetail" object="com.talentPool.reports.views.OverallRecruitmentCostDetail">
+	    	<attribute name="costTypeId" column="cost_type_id" type="STRING"/>
+	    	<attribute name="costType" column="cost_type" type="STRING"/>
+	        <attribute name="cost" column="purpose_cost" type="STRING"/>
+	        <attribute name="positionTitle" column="position_title" type="STRING"/>
+	        <attribute name="sourceTitle" column="source_title" type="STRING"/>
+	    </dataquery>
+		<!-- End: Overall Recruitment Cost Detail Report -->		
+		<!-- Start: Positionwise Recruitment Cost Summary Report -->
+		<dataquery name="dReportManager_GetPositionwiseRecruitmentCostSummaryReport" dbquery="qReportManager_GetPositionwiseRecruitmentCostSummaryReport" object="com.talentPool.reports.views.PositionwiseRecruitmentCostSummaryView">
+			<attribute name="positionId" column="position_id" type="STRING"/>
+	    	<attribute name="positionTitle" column="position_title" type="STRING"/>
+	    	<attribute name="departmentTitle" column="dept_name" type="STRING"/>
+	        <attribute name="cost" column="purpose_cost" type="STRING"/>
+		</dataquery>
+		<!-- End: Positionwise Recruitment Cost Summary Report -->
+		<!-- Start: Positionwise Recruitment Cost Detail Report -->
+		<dataquery name="dReportManager_GetPositionwiseRecruitmentCostDetailReport" dbquery="qReportManager_GetPositionwiseRecruitmentCostDetailReport" object="com.talentPool.reports.views.PositionwiseRecruitmentCostDetailView">
+			<attribute name="positionId" column="position_id" type="STRING"/>
+	    	<attribute name="positionTitle" column="position_title" type="STRING"/>
+	    	<attribute name="departmentTitle" column="dept_name" type="STRING"/>
+	        <attribute name="amount" column="purpose_cost" type="STRING"/>
+	        <attribute name="purpose" column="cost_type" type="STRING"/>
+	    	<attribute name="source" column="source_title" type="STRING"/>
+		</dataquery>
+		<!-- End: Positionwise Recruitment Cost Detail Report -->		
+		<!-- Start: Sourcewise Recruitment Cost Summary Report -->
+		<dataquery name="dReportManager_GetSourcewiseRecruitmentCostSummaryReport" dbquery="qReportManager_GetSourcewiseRecruitmentCostSummaryReport" object="com.talentPool.reports.views.SourcewiseRecruitmentCostSummaryView">
+			<attribute name="sourceId" column="source_id" type="STRING"/>
+	    	<attribute name="sourceTitle" column="source_title" type="STRING"/>
+	        <attribute name="cost" column="purpose_cost" type="STRING"/>
+		</dataquery>
+		<!-- End: Sourcewise Recruitment Cost Summary Report -->
+		<!-- Start: Sourcewise Recruitment Cost Detail Report -->
+		<dataquery name="dReportManager_GetSourcewiseRecruitmentCostDetailReport" dbquery="qReportManager_GetSourcewiseRecruitmentCostDetailReport" object="com.talentPool.reports.views.SourcewiseRecruitmentCostDetailView">
+			<attribute name="sourceId" column="source_id" type="STRING"/>
+	    	<attribute name="source" column="source_title" type="STRING"/>
+	        <attribute name="amount" column="purpose_cost" type="STRING"/>
+	        <attribute name="purpose" column="cost_type" type="STRING"/>
+	    	<attribute name="positionTitle" column="position_title" type="STRING"/>
+		</dataquery>
+		<!-- End: Sourcewise Recruitment Cost Detail Report -->			
+		<!-- Start: Transaction Cost Report -->
+		<dataquery name="dReportManager_GetTransactionCostReport" dbquery="qReportManager_GetTransactionCostReport" object="com.talentPool.reports.views.TransactionCostView">
+			<attribute name="date" column="cost_paid_date" type="STRING"/>
+	    	<attribute name="amount" column="cost_amount" type="STRING"/>
+	        <attribute name="remark" column="cost_remark" type="STRING"/>
+	        <attribute name="purposeId" column="cost_type_id" type="STRING"/>
+	    	<attribute name="purpose" column="cost_type" type="STRING"/>
+	    	<attribute name="sourceTitle" column="position_title" type="STRING"/>
+	    	<attribute name="positionTitle" column="source_title" type="STRING"/>
+		</dataquery>
+		<!-- End: Transaction Cost Report -->
+		<!-- Start: Candidate Status Report  -->
+		<dataquery name="dReportManager_GetCandidateStatusDetailReport" dbquery="qReportManager_GetCandidateStatusDetailReport" object="com.talentPool.reports.views.CandidateStatusReportView">
+			<attribute name="applicantId" column="applicant_id" type="STRING"/>
+	    	<attribute name="applicantName" column="applicant_name" type="STRING"/>
+	    	<attribute name="applicantCurrentEmployer" column="applicant_current_employer" type="STRING"/>
+	    	<attribute name="applicantWorkingSince" column="applicant_working_since" type="STRING"/>
+	    	<attribute name="applicantJoined" column="applicant_joined" type="STRING"/>
+	    	<attribute name="applicantPositionId" column="applicant_position_id" type="STRING"/>
+	    	<attribute name="applicantStepId" column="applicant_step_id" type="STRING"/>	    	
+	    	<attribute name="sourceTitle" column="source_title" type="STRING"/>
+	    	<attribute name="sourceCategory" column="source_type" type="STRING"/>
+	    	<attribute name="positionTitle" column="position_title" type="STRING"/>
+	    	<attribute name="positionStepTitle" column="position_step_title" type="STRING"/>
+	    </dataquery>	
+		<dataquery name="dReportManager_GetCandidateStatusLastAction" dbquery="qReportManager_GetCandidateStatusLastAction" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name="positionStepIdTo" column="position_step_id_to" type="INT"/>
+	    	<attribute name="processMovedDate" column="process_moved_date" type="STRING"/>
+	        <attribute name="positionStepTitle" column="position_step_title" type="STRING"/>
+	        <attribute name="name" column="name" type="STRING"/>
+		</dataquery>			
+		<!-- End: Candidate Status Report -->
+		<!-- Start: Fetch Posion Detail-->       
+	   	<dataquery name="dReportManager_fetchPositionDetail" dbquery="qReportManager_fetchPositionDetail" />       	
+		<!-- End: Fetch Posion Detail-->     
+		<dataquery name="dReportManager_CandidateOffersReport" dbquery="qReportManager_CandidateOffersReport" object="com.talentPool.reports.views.custom.CandidateOffersView">
+			<attribute name="applicantId" column="applicant_id" type="STRING"/>
+			<attribute name="applicantName" column="applicant_name" type="STRING"/>
+			<attribute name="applicantDateJoined" column="applicant_date_joined" type="String"/>
+			<attribute name="applicantEmail" column="applicant_email1" type="STRING"/>
+			<attribute name="applicantCellPhone" column="applicant_cell_phone" type="STRING"/>
+			<attribute name="applicantCurrentEmployer" column="applicant_current_employer" type="STRING"/>
+			<attribute name="currentCtc" column="current_ctc" type="STRING"/>
+			<attribute name="noticePeriod" column="applicant_notice_period" type="STRING"/>
+			<attribute name="offeredCtc" column="offered_ctc" type="STRING"/>
+			<attribute name="source" column="source_title" type="STRING"/>
+			<attribute name="degree" column="degree" type="STRING"/>
+			<attribute name="institute" column="institute" type="STRING"/>
+			<attribute name="positionStepTitle" column="position_step_title" type="STRING"/>
+		</dataquery>
+		<dataquery name="dReportManager_GetOferedCTCDetailsReport" dbquery="qReportManager_GetOferedCTCDetailsReport" object="com.talentPool.reports.views.OfferedCTCView">
+		<attribute name="applicantId" column="applicant_id" type="STRING"/>
+		<attribute name="positionId" column="position_id" type="STRING"/>
+		<attribute name="templateId" column="template_id" type="STRING"/>
+		<attribute name="offerCode" column="offer_code" type="STRING"/>
+		<attribute name="dateCreated" column="date_created" type="STRING"/>
+		<attribute name="attributeName" column="attribute_name" type="STRING"/>
+		<attribute name="attributeValue" column="attribute_value" type="STRING"/>
+		</dataquery>
+		
+		<dataquery name="dReportManager_GetOfferCodeReport" dbquery="qReportManager_GetOfferCodeReport"  object="com.talentPool.reports.views.OfferedCTCView">
+			<attribute name="offerCode" column="offer_code" type="STRING"/>
+			</dataquery>
+		
+		<dataquery name="dReportManager_GetCustomFields" dbquery="qReportManager_GetCustomFields" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name="fieldId" column="custom_field_id" type="STRING"/>
+			<attribute name="fieldName" column="custom_field_name" type="STRING"/>
+			<attribute name="fieldRank" column="custom_field_rank" type="STRING"/>
+			<attribute name="fieldValue" column="custom_field_value" type="STRING"/>
+		</dataquery>
+		
+		<dataquery name="dReportManager_GetMonthlyJoiningCSVReport" dbquery="qReportManager_GetMonthlyJoiningCSVReport" object="com.talentPool.reports.views.CandidateJoiningCSVReportView">
+			<attribute name="applicantId" column="applicant_id" type="STRING"/>
+			<attribute name="applicantName" column="applicant_name" type="STRING"/>
+			<attribute name="applicantCity" column="applicant_city" type="STRING"/>			
+			<attribute name="applicantEmail" column="applicant_email1" type="STRING"/>
+			<attribute name="applicantEmail2" column="applicant_email2" type="STRING"/>
+			<attribute name="applicantHomePhone" column="applicant_home_phone" type="STRING"/>
+			<attribute name="applicantCellPhone" column="applicant_cell_phone" type="STRING"/>
+			<attribute name="applicantWorkPhone" column="applicant_work_phone" type="STRING"/>
+			<attribute name="applicantWorkingSince" column="applicant_working_since" type="STRING"/>			
+			<attribute name="positionTitle" column="position_title" type="STRING"/>			
+			<attribute name="applicantDateCreated" column="applicant_date_created" type="DATE"/>			
+			<attribute name="sourceTitle" column="source_title" type="STRING"/>
+			<attribute name="joiningDate" column="applicant_date_joined" type="STRING"/>
+			<attribute name="applicantCurrentEmployer" column="applicant_current_employer" type="STRING"/>
+			<attribute name="currentCtc" column="current_ctc" type="STRING"/>
+			<attribute name="expectedCtc" column="expected_ctc" type="STRING"/>
+			<attribute name="applicantNoticePeriod" column="applicant_notice_period" type="STRING"/>
+			<attribute name="levelOffered" column="applicant_level_offered" type="STRING"/>
+			<attribute name="designationOffered" column="applicant_designation_offered" type="STRING"/>
+			<attribute name="offeredCtc" column="offered_ctc" type="STRING"/>
+			<attribute name="employeeCode" column="employee_code" type="STRING"/>
+		</dataquery>
+		<dataquery name="dReportManager_GetPendingOffersList" dbquery="qReportManager_GetPendingOffersList" object="com.talentPool.dynamicReports.data.PendingOffersReportData">
+			<attribute name="applicantName" column="applicant_name" type="STRING"/>
+			<attribute name="applicantWorkingSince" column="applicant_working_since" type="STRING"/>
+			<attribute name="applicantCellPhone" column="applicant_cell_phone" type="STRING"/>
+			<attribute name="applicantEmail1" column="applicant_email1" type="STRING"/>
+			<attribute name="applicantEmail2" column="applicant_email2" type="STRING"/>
+			<attribute name="applicantCurrentEmployer" column="applicant_current_employer" type="STRING"/>
+			<attribute name="applicantDateJoined" column="applicant_date_joined" type="STRING"/>
+			<attribute name="designationOffered" column="applicant_designation_offered" type="STRING"/>
+			<attribute name="positionTitle" column="position_title" type="STRING"/>
+			<attribute name="deptName" column="dept_name" type="STRING"/>
+			<attribute name="subDeptName" column="sub_dept_name" type="STRING"/>
+			<attribute name="subSubDeptName" column="sub_sub_dept_name" type="STRING"/>
+			<attribute name="sub3DeptName" column="sub3_dept_name" type="STRING"/>
+			<attribute name="sub4DeptName" column="sub4_dept_name" type="STRING"/>
+			<attribute name="positionDateExpiry" column="position_date_expiry" type="STRING"/>
+			<attribute name="positionDateCreated" column="position_date_created" type="STRING"/>
+			<attribute name="positionDateApproved" column="position_date_approved" type="STRING"/>
+			<attribute name="positionRequestedBy" column="position_requested_by" type="STRING"/>
+			<attribute name="recruitmentManager" column="recruitment_manager" type="STRING"/>
+			<attribute name="gradeName" column="grade_name" type="STRING"/>
+			<attribute name="locationName" column="location" type="STRING"/>
+			<attribute name="dueDate" column="due_date" type="STRING"/>
+			<attribute name="sourceTitle" column="source_title" type="STRING"/>
+			<attribute name="positionStepTitle" column="position_step_title" type="STRING"/>
+			<attribute name="statusMessage" column="status_message" type="STRING"/>
+			<attribute name="lastInteractionDate" column="last_interaction_date" type="DATE"/>
+			<attribute name="posCustomFieldValues" column="custom" type="STRING"/>
+		</dataquery>
+		<dataquery name="dReportManager_GetTimeToHire" dbquery="qReportManager_GetTimeToHire" object="com.talentPool.dynamicReports.data.TimeToHireReportData">
+			<attribute name="applicantName" column="applicant_name" type="STRING"/>
+			<attribute name="applicantCellPhone" column="applicant_cell_phone" type="STRING"/>
+			<attribute name="applicantEmail1" column="applicant_email1" type="STRING"/>
+			<attribute name="applicantEmail2" column="applicant_email2" type="STRING"/>
+			<attribute name="applicantDateJoined" column="applicant_date_joined" type="STRING"/>
+			<attribute name="positionTitle" column="position_title" type="STRING"/>
+			<attribute name="deptName" column="dept_name" type="STRING"/>
+			<attribute name="subDeptName" column="sub_dept_name" type="STRING"/>
+			<attribute name="subSubDeptName" column="sub_sub_dept_name" type="STRING"/>
+			<attribute name="sub3DeptName" column="sub3_dept_name" type="STRING"/>
+			<attribute name="sub4DeptName" column="sub4_dept_name" type="STRING"/>
+			<attribute name="positionDateExpiry" column="position_date_expiry" type="STRING"/>
+			<attribute name="positionDateCreated" column="position_date_created" type="STRING"/>
+			<attribute name="positionDateApproved" column="position_date_approved" type="STRING"/>
+			<attribute name="gradeName" column="grade_name" type="STRING"/>
+			<attribute name="hireByDuration" column="hire_by_duration" type="STRING"/>
+			<attribute name="bandName" column="band_name" type="STRING"/>
+			<attribute name="locationName" column="location" type="STRING"/>
+			<attribute name="sourceTitle" column="source_title" type="STRING"/>
+			<attribute name="stage" column="stage" type="STRING"/>
+			<attribute name="positionStepTitle" column="position_step_title" type="STRING"/>
+			<attribute name="posCustomFieldValues" column="custom" type="STRING"/>
+			<attribute name="recruiters" column="recruiters" type="STRING"/>
+		</dataquery>
+		<dataquery name="dReportManager_GetHiringActivitySummary" dbquery="qReportManager_GetHiringActivitySummary" object="com.talentPool.dynamicReports.data.HiringActivityReportData">
+			<attribute name="count" column="count" type="INT"/>
+			<attribute name="positionId" column="position_id" type="STRING"/>
+			<attribute name="positionTitle" column="position_title" type="STRING"/>
+			<attribute name="positionOwnerName" column="position_owner_name" type="STRING"/>
+			<attribute name="stepTitle" column="step_title" type="STRING"/>
+			<attribute name="deptName" column="dept_name" type="STRING"/>
+			<attribute name="subDeptName" column="sub_dept_name" type="STRING"/>
+			<attribute name="subSubDeptName" column="sub_sub_dept_name" type="STRING"/>
+			<attribute name="sub3DeptName" column="sub3_dept_name" type="STRING"/>
+			<attribute name="sub4DeptName" column="sub4_dept_name" type="STRING"/>
+			<attribute name="positionNoOfOpenings" column="position_no_of_openings" type="STRING"/>
+			<attribute name="positionDateExpiry" column="position_date_expiry" type="STRING"/>
+			<attribute name="positionDateCreated" column="position_date_created" type="STRING"/>
+			<attribute name="positionDateApproved" column="position_date_approved" type="STRING"/>
+			<attribute name="positionNoOfOpenings" column="position_no_of_openings" type="STRING"/>
+			<attribute name="gradeName" column="grade_name" type="STRING"/>
+			<attribute name="bandName" column="band_name" type="STRING"/>
+			<attribute name="locationName" column="location" type="STRING"/>
+			<attribute name="stepTitle" column="step_title" type="STRING"/>
+			<attribute name="appliedCount" column="applied_count" type="STRING"/>
+			<attribute name="posCustomFieldValues" column="pos_custom" type="STRING"/>
+		</dataquery>
+		<dataquery name="dReportManager_GetHiringActivityDetails" dbquery="qReportManager_GetHiringActivityDetails" object="com.talentPool.dynamicReports.data.HiringActivityReportData">
+			<attribute name="applicantName" column="applicant_name" type="STRING"/>
+			<attribute name="applicantDateJoined" column="applicant_date_joined" type="STRING"/>
+			<attribute name="sourceTitle" column="source_title" type="STRING"/>
+			<attribute name="positionTitle" column="position_title" type="STRING"/>
+			<attribute name="positionOwnerName" column="position_owner_name" type="STRING"/>
+			<attribute name="deptName" column="dept_name" type="STRING"/>
+			<attribute name="subDeptName" column="sub_dept_name" type="STRING"/>
+			<attribute name="subSubDeptName" column="sub_sub_dept_name" type="STRING"/>
+			<attribute name="sub3DeptName" column="sub3_dept_name" type="STRING"/>
+			<attribute name="sub4DeptName" column="sub4_dept_name" type="STRING"/>
+			<attribute name="positionDateExpiry" column="position_date_expiry" type="STRING"/>
+			<attribute name="positionDateCreated" column="position_date_created" type="STRING"/>
+			<attribute name="positionDateApproved" column="position_date_approved" type="STRING"/>
+			<attribute name="positionNoOfOpenings" column="position_no_of_openings" type="STRING"/>
+			<attribute name="gradeName" column="grade_name" type="STRING"/>
+			<attribute name="bandName" column="band_name" type="STRING"/>
+			<attribute name="locationName" column="location" type="STRING"/>
+			<attribute name="positionStepTitle" column="stepName" type="STRING"/>
+			<attribute name="processMovedDate" column="process_moved_date" type="STRING"/>
+			<attribute name="posCustomFieldValues" column="pos_custom" type="STRING"/>
+		</dataquery>
+		<dataquery name="dReportManager_showMigrationMessageOnReports" dbquery="qReportManager_showMigrationMessageOnReports" />
+		<dataquery name="dReportManager_saveMigrationMessageFlag" dbquery="qReportManager_saveMigrationMessageFlag" />
+		<dataquery name="dReportManager_GetRequisitionApprovalHiringStepDatewiseHiring" dbquery="qReportManager_GetRequisitionApprovalHiringStepDatewiseHiring" object="com.talentPool.dynamicReports.data.DatewiseHiringReportData">			
+			<attribute name="positionId" column="position_id" type="STRING"/>
+			<attribute name="positionCode" column="position_code" type="STRING"/>			
+			<attribute name="positionTitle" column="position_title" type="STRING"/>	
+			<attribute name="positionOwnerName" column="position_owner_name" type="STRING"/>
+			<attribute name="positionDateExpiry" column="position_date_expiry" type ="STRING"/>
+			<attribute name="positionRequestedBy" column="position_requested_by_name" type ="STRING"/>
+			<attribute name="deptName" column="dept_name" type ="STRING"/>
+			<attribute name="subDeptName" column="sub_dept_name" type ="STRING"/>
+			<attribute name="subSubDeptName" column="sub_sub_dept_name" type ="STRING"/>
+			<attribute name="positionTypeExtInt" column="position_type_ext_int" type="STRING"/>
+			<attribute name="positionLevel" column="position_level" type="STRING"/>
+			<attribute name="typeOfVacancy" column="type_of_vacancy" type="STRING"/>
+			<attribute name="replacementEmpCode" column="replacement_emp_code" type="STRING"/>
+			<attribute name="bandName" column="band_name" type ="STRING"/>
+			<attribute name="gradeName" column="grade_name" type ="STRING"/>
+			<attribute name="processStepName" column="process_step_name" type="STRING"/>
+			<attribute name="processStepDate" column="process_step_date" type="STRING"/>
+			<attribute name="processStage" column="process_stage" type="STRING"/>
+			<attribute name="processedByName" column="processed_by_name" type ="STRING"/>			
+			<attribute name="applicantName" column="applicant_name" type="STRING"/>
+			<attribute name="applicantDateJoined" column="applicant_date_joined" type ="STRING"/>
+			<attribute name="applicantLevelOffered" column="applicant_level_offered" type ="STRING"/>
+			<attribute name="posCustomFieldValues" column="custom" type="STRING"/>
+			<attribute name="positionStatusValue" column="position_status_value" type="STRING"/>
+			<attribute name="positionPrimarySkills" column="primary_skill" type="STRING"/>
+			<attribute name="positionSecondarySkills" column="secondary_skill" type="STRING"/>	
+			<attribute name="locationName" column="location_names" type="STRING"/>
+		</dataquery>
+		<dataquery name="dReportManager_GetRejectedCandidates" dbquery="qReportManager_GetRejectedCandidates" object="com.talentPool.common.db.SimpleDataObject" >
+			<attribute name="applicantId" column="applicant_id" type="STRING" />
+			<attribute name="applicantName" column="applicant_name" type ="STRING" />
+			<attribute name="applicantCellPhone" column="applicant_cell_phone" type ="STRING" />
+			<attribute name="applicantEmail1" column="applicant_email1" type ="STRING" />
+			<attribute name="applicantCurrentEmployer" column="applicant_current_employer" type ="STRING" />
+			<attribute name="currentCTC" column="current_ctc" type ="STRING" />
+			<attribute name="expectedCTC" column="expected_ctc" type ="STRING" />
+			<attribute name="sourceTitle" column="source_title" type ="STRING" />
+			<attribute name="appCustomFieldValues" column="app_custom" type ="STRING" />
+			<attribute name="positionTitle" column="position_title" type ="STRING" />
+			<attribute name="positionCode" column="position_code" type ="STRING" />
+			<attribute name="deptName" column="dept_name" type ="STRING" />
+			<attribute name="stepTitle" column="step_title" type ="STRING" />
+			<attribute name="stepLevelName" column="step_level_name" type ="STRING" />
+			<attribute name="rejectedBy" column="rejected_by" type ="STRING" />
+			<attribute name="rejectedDate" column="rejected_date" type ="DATE" />
+   	 	</dataquery>
+   	 	<dataquery name="dReportManager_GetAllCandidates" dbquery="qReportManager_GetAllCandidates" object="com.talentPool.common.db.SimpleDataObject" >
+			<attribute name="applicantId" column="applicant_id" type="STRING" />
+			<attribute name="applicantName" column="applicant_name" type ="STRING" />
+			<attribute name="applicantCellPhone" column="applicant_cell_phone" type ="STRING" />
+			<attribute name="applicantEmail1" column="applicant_email1" type ="STRING" />
+			<attribute name="applicantCurrentEmployer" column="applicant_current_employer" type ="STRING" />
+			<attribute name="currentCTC" column="current_ctc" type ="STRING" />
+			<attribute name="expectedCTC" column="expected_ctc" type ="STRING" />
+			<attribute name="sourceTitle" column="source_title" type ="STRING" />
+			<attribute name="appCustomFieldValues" column="app_custom" type ="STRING" />
+			<attribute name="positionTitle" column="position_title" type ="STRING" />
+			<attribute name="positionCode" column="position_code" type ="STRING" />
+			<attribute name="deptName" column="dept_name" type ="STRING" />
+			<attribute name="stepTitle" column="step_title" type ="STRING" />
+			<attribute name="stepLevelName" column="step_level_name" type ="STRING" />
+			<attribute name="skills" column="skills" type ="STRING" />
+			<attribute name="subCategory" column="sub_category" type="STRING" />
+			<attribute name="category" column="category" type ="STRING" />
+			<attribute name="applicantEmail2" column="applicant_email2" type ="STRING" />
+			<attribute name="applicantWorkPhone" column="applicant_work_phone" type ="STRING" />
+			<attribute name="applicantHomePhone" column="applicant_home_phone" type ="STRING" />
+			<attribute name="passportNumber" column="passport_number" type ="STRING" />
+			<attribute name="dateOfBirth" column="date_of_birth" type ="STRING" />
+			<attribute name="location" column="applicant_city" type ="STRING" />
+			<attribute name="exp" column="exp" type ="STRING" />
+			<attribute name="applicantNoticePeriod" column="applicant_notice_period" type ="STRING" />
+			<attribute name="applicantLevelOffered" column="applicant_level_offered" type ="STRING" />
+			<attribute name="applicantDesignationOffered" column="applicant_designation_offered" type ="STRING" />
+			<attribute name="offeredBasic" column="offered_basic" type ="STRING" />
+			<attribute name="offeredCtc" column="offered_ctc" type ="STRING" />
+			<attribute name="inputSalaryVariable" column="input_salary_variable" type ="STRING" />
+   	 	</dataquery>
+   	 	<dataquery name="dReportManager_GetInterviewerList" dbquery="qReportManager_GetInterviewerList"/>
+   	 	<dataquery name="dReportManager_GetJoinerReport" dbquery="qReportManager_GetJoinerReport" object="com.talentPool.dynamicReports.data.JoinerReportData">
+   	 	    <attribute name="srNo" column="col0" type="STRING"/>
+   	 	    <attribute name="dateOfJoining" column="col1" type="STRING"/>
+   	 	    <attribute name="name" column="col2" type="STRING"/>
+   	 	    <attribute name="designation" column="col3" type="STRING"/>
+   	 	    <attribute name="status" column="col4" type="STRING"/>
+   	 	    <attribute name="team" column="col5" type="STRING"/>
+   	 	    <attribute name="requisitioner" column="col6"></attribute>
+   	 	    <attribute name="appCustomFieldValues" column="app_custom" type="STRING"/>
+   	 	</dataquery>
+		<dataquery name="dReportManager_GetJoinedReport" dbquery="qReportManager_GetJoinedReport" object="com.talentPool.dynamicReports.data.JoinerReportData">
+   	 	    <attribute name="srNo" column="sr_no" type="STRING"/>
+   	 	    <attribute name="dateOfJoining" column="joining_date" type="STRING"/>
+   	 	    <attribute name="name" column="applicant_name" type="STRING"/>
+   	 	    <attribute name="designation" column="designation_offered" type="STRING"/>
+   	 	    <attribute name="status" column="status_message" type="STRING"/>
+   	 	    <attribute name="team" column="dept_name" type="STRING"/>
+   	 	    <attribute name="requisitioner" column="requisitioner"></attribute>
+   	 	    <attribute name="appCustomFieldValues" column="app_custom" type="STRING"/>
+   	 	</dataquery>
+		<dataquery name="dReportManager_ClosedPositionTAT" dbquery="qReportManager_ClosedPositionTAT" object="com.talentPool.reports.dataobject.CandidateTATData">
+			<attribute name= "srNo" column="sr_no" type ="INT"/>
+			<attribute name= "applicantId" column="applicant_id" type ="STRING"/>
+			<attribute name= "applicantName" column="applicant_name" type ="STRING"/>
+		    <attribute name= "applicantJoiningDate" column="joining_date" type ="DATE"/>
+		    <attribute name= "client" column="Client" type ="STRING"/>
+			<attribute name= "positionTitle" column="position_title" type ="STRING"/>
+			<attribute name= "positionSkill" column="Position Skill" type ="STRING"/>
+		    <attribute name= "positionLevel" column="Position Level" type ="STRING"/>
+		    <attribute name= "positionOwner" column="Position Owner" type ="STRING"/>
+		    <attribute name= "noOfOpenings" column="# of openings" type ="INT"/>
+		    <attribute name= "positionCreatedDate" column="Date Position Created" type ="DATE"/>
+		    <attribute name= "positionOpendDate" column="Date Position Opend" type ="DATE"/>
+		    <attribute name= "positionClosedDate" column="Date Position Closed" type ="DATE"/>
+		    <attribute name= "positionAge" column="Position Age" type="INT"/>
+		    <attribute name= "defaultTat" column="Default TAT" type="INT"/>
+		    <attribute name= "expectedTat" column="Expected TAT" type="INT"/>
+		    <attribute name= "actualTat" column="Actual TAT" type="INT"/>
+		    <attribute name= "tatDiff" column="TAT diff" type="INT"/>
+		    <attribute name= "positionCode" column="position_code" type ="STRING"/>
+		    <attribute name= "positionLocation" column="location_name" type ="STRING"/>
+		    <attribute name= "sourceTitle" column="source_title" type ="STRING"/>
+			<attribute name= "applicantCurrentEmployer" column="applicant_current_employer" type ="STRING"/>
+			<attribute name= "currentCtc" column="current_ctc" type ="STRING"/>
+			<attribute name= "expectedCtc" column="expected_ctc" type ="STRING"/>
+			<attribute name= "applicantNoticePeriod" column="applicant_notice_period" type ="STRING"/>
+			<attribute name= "applicantLevelOffered" column="applicant_level_offered" type ="STRING"/>
+			<attribute name= "applicantDesignationOffered" column="applicant_designation_offered" type ="STRING"/>
+			<attribute name="experience" column="exp" type="STRING"/>
+			<attribute name="positionStatus" column="position_status" type="STRING"/>
+			  <attribute name= "positionApprovedDate" column="Date Position Approved" type ="DATE"/>
+		    <attribute name= "positionExpireDate" column="Date Position Expire" type ="DATE"/>
+		    <attribute name="applicantPositionId" column="applicant_position_id" type="STRING"/>
+		    <attribute name="positionId" column="position_id" type="STRING"/>
+		  	<attribute name="joinedDate" column="actual_joined_date" type="DATE"/>
+		</dataquery>
+		<dataquery name="dReportManager_GetClosedPositionTATStepDetails" dbquery="qReportManager_GetClosedPositionTATStepDetails" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name= "applicantId" column="applicant_id" type ="STRING"/>
+		    <attribute name= "step" column="step_name" type ="STRING"/>
+		    <attribute name= "stepStartDate" column="step_start_date" type ="DATE"/>
+		    <attribute name= "stepEndDate" column="step_end_date" type ="DATE"/>
+		    <attribute name= "stepDuration" column="step_duration" type ="INT"/>	
+		     <attribute name= "stepStatus" column="step_status" type ="STRING"/>
+		      <attribute name= "positionId" column="position_id" type ="STRING"/>
+		       <attribute name= "positionStepIdFrom" column="position_step_id_from" type ="STRING"/>
+		       <attribute name= "positionStepIdTo" column="position_step_id_to" type ="STRING"/>
+		      <attribute name= "interviewer" column="Interviewer" type ="STRING"/>	    
+		</dataquery>	
+		
+		<dataquery name="dReportManager_ApplicantProcessData" dbquery="qReportManager_ApplicantProcessData" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name= "processId" column="process_id" type ="STRING"/>
+			
+		</dataquery>	
+		<dataquery name="dUpdateMaxGroupConcat" dbquery="qUpdateMaxGroupConcat"/>
+		<dataquery name="d_Reportmanager_traitComment" dbquery="q_Reportmanager_traitComment"/>
+		<dataquery name="d_Reportmanager_Position_Title_For_Rejected" dbquery="q_Reportmanager_Position_Title_For_Rejected"/>
+		<dataquery name="d_Reportmanager_Position_Title_For_Interview" dbquery="q_Reportmanager_Position_Title_For_Interview"/>
+		<dataquery name="dReportManager_GetAuditTrailViewReport" dbquery="qReportManager_GetAuditTrailViewReport" object="com.talentPool.reports.views.AuditTrailView">
+			<attribute name="srNo" column="sr_no" type="STRING"/>
+			<attribute name="auditId" column="audit_id" type="STRING"/>
+	    	<attribute name="auditDesc" column="audit_desc" type="STRING"/>
+	    	<attribute name="auditType" column="audit_type" type="STRING"/>
+	    	<attribute name="entityField" column="entity_field" type="STRING"/>
+	    	<attribute name="userName" column="user_name" type="STRING"/>
+	    	<attribute name="dateCreated" column="date_created" type="STRING"/>
+	    </dataquery>	
+	    <dataquery name="dReportManager_GetBlackListedReport" dbquery="qReportManager_GetBlackListedReport" object="com.talentPool.dynamicReports.data.BlackListReportData">
+   	 	    <attribute name="srNo" column="sr_no" type="STRING"/>
+   	 	    <attribute name="blacklistDate" column="date_created" type="STRING"/>
+   	 	    <attribute name="name" column="applicant_name" type="STRING"/>
+   	 	    <attribute name="blacklistReason" column="reason" type="STRING"/>
+   	 	    <attribute name="blacklistedBy" column="blacklisted_by" type="STRING"/>
+   	 	    <attribute name="email" column="applicant_email1" type="STRING"/>
+   	 	      <attribute name="mobile" column="applicant_cell_phone" type="STRING"/>
+   	 	    <attribute name="currentEmployer" column="applicant_current_employer" type="STRING"/>
+   	 	    <attribute name="currentCtc" column="current_ctc" type="STRING"/>
+   	 	    <attribute name="source" column="source_title" type="STRING"/>
+   	 	    <attribute name= "applicantId" column="applicant_id" type ="STRING"/>
+   	 	    <attribute name="appCustomFieldValues" column="app_custom" type="STRING"/>
+   	 	</dataquery>
+   	 	<dataquery name="dReportManager_BlacklistedPositionData" dbquery="qReportManager_BlacklistedPositionData" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name= "position" column="position_title" type ="STRING"/>
+			<attribute name= "step" column="position_step_title" type ="STRING"/>
+		</dataquery>
+		<dataquery name="dReportManager_OneStopFileReportCandidates" dbquery="qReportManager_OneStopFileReportCandidates" object="com.talentPool.reports.dataobject.CandidateOneStopFileReportData">
+		    <attribute name= "srNo" column="sr_no" type ="INT"/>
+		    <attribute name= "applicantId" column="applicant_id" type ="STRING"/>
+		    <attribute name= "empID" column="employee_code" type ="STRING"/>
+		    <attribute name= "expectedDOJ" column="applicant_date_joined" type ="DATE"/>
+		 </dataquery>
+		<dataquery name="dReportManager_OneStopFileReportStepData" dbquery="qReportManager_OneStopFileReportStepData" object="com.talentPool.reports.dataobject.CandidateOneStopFileReportData">
+		    <attribute name= "candidateName" column="applicant_name" type ="STRING"/>
+		    <attribute name= "feedbackFieldTitle" column="feedback_field_title" type ="STRING"/>
+		    <attribute name= "traitComment" column="trait_comment" type ="STRING"/>
+		</dataquery>
+		<dataquery name="dReportManager_OneStopFileReportPositionData" dbquery="qReportManager_OneStopFileReportPositionData" object="com.talentPool.reports.dataobject.CandidateOneStopFileReportData">
+		    <attribute name= "positionId" column="position_id" type ="STRING"/>
+		    <attribute name= "requisitionStatus" column="position_status" type ="INT"/>
+		     <attribute name= "requisitionRaiseDate" column="position_date_created" type ="DATE"/>
+		    <attribute name= "requisitionAllocationDate" column="position_date_opend" type ="DATE"/>
+		    <attribute name= "subBU" column="dept_name" type ="STRING"/>
+		</dataquery>
+		<dataquery name="dReportManager_OneStopFileReportOfferGenerationData" dbquery="qReportManager_OneStopFileReportOfferGenerationData" object="com.talentPool.reports.dataobject.CandidateOneStopFileReportData">
+		    <attribute name= "offeredDate" column="date_created" type ="DATE"/>
+		</dataquery>
+		<dataquery name="dReportManager_OneStopFileReportOfferApprovalData" dbquery="qReportManager_OneStopFileReportOfferApprovalData" object="com.talentPool.reports.dataobject.CandidateOneStopFileReportData">
+		    <attribute name= "offeredApprovalDate" column="process_moved_date" type ="DATE"/>
+		</dataquery>	
+	</dataqueries>   
+</dbmap>

@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>
+		<dbquery name="qUserConfigurationManager_AddUserConfigurations">
+			INSERT INTO tp_user_configurations (conf_id,user_id,value) VALUES (?,?,?)
+		</dbquery>
+		<dbquery name="qUserConfigurationManager_DeleteUserConfigurations">
+			DELETE FROM tp_user_configurations WHERE conf_id=? AND user_id=?
+		</dbquery>
+		<dbquery name="qUserConfigurationManager_GetUserConfigurations">
+			SELECT value FROM tp_user_configurations WHERE conf_id=? AND user_id=?
+		</dbquery>
+		<dbquery name="qUserConfigurationManager_GetAllUserConfigurations">
+			SELECT value, conf_id, user_id FROM tp_user_configurations 
+		</dbquery>
+	</dbqueries>
+	<dataqueries>
+	    <dataquery name="dUserConfigurationManager_AddUserConfigurations" dbquery="qUserConfigurationManager_AddUserConfigurations"/>
+	    <dataquery name="dUserConfigurationManager_DeleteUserConfigurations" dbquery="qUserConfigurationManager_DeleteUserConfigurations"/>
+	    <dataquery name="dUserConfigurationManager_GetUserConfigurations" dbquery="qUserConfigurationManager_GetUserConfigurations"/>
+	    <dataquery name="dUserConfigurationManager_GetAllUserConfigurations" dbquery="qUserConfigurationManager_GetAllUserConfigurations" object="com.talentPool.userConfiguration.dataobject.UserConfData">
+			<attribute name="confValue" column="value" type="STRING"/>
+			<attribute name="confId" column="conf_id" type="STRING"/>
+			<attribute name="userId" column="user_id" type="STRING"/>
+	    </dataquery>
+	</dataqueries>   
+</dbmap>

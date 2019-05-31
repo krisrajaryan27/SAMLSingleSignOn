@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE struts PUBLIC
+    "-//Apache Software Foundation//DTD Struts Configuration 2.0//EN"
+    "http://struts.apache.org/dtds/struts-2.0.dtd">
+
+<struts>
+	<package name="admin" namespace="/" extends="pool-default">
+	
+        <default-interceptor-ref name="poolStack" />
+
+		<action name="schedulerStatus" class="com.talentPool.scheduler.action.SchedulerAction" method="schedulerStatus">
+            <result type="tiles">manageSummaryReportScheduler</result>
+            <result type="tiles" name="error">manageSummaryReportScheduler</result>
+        </action>
+        
+        <action name="saveSchedulerProperties" class="com.talentPool.scheduler.action.SchedulerAction" method="saveSchedulerProperties">
+            <result type="tiles">manageSummaryReportScheduler</result>
+            <result type="tiles" name="error">manageSummaryReportScheduler</result>
+        </action>        
+        
+        <action name="runScheduler" class="com.talentPool.scheduler.action.SchedulerAction" method="runScheduler">
+            <result type="tiles">manageSummaryReportScheduler</result>
+            <result type="tiles" name="error">manageSummaryReportScheduler</result>
+        </action>        
+        
+        <action name="socialSettings" class="com.talentPool.socialNetwork.action.SocialSettingsAction" method="socialSettings">
+            <result type="tiles">socialSettings</result>
+            <result type="tiles" name="error">socialSettings</result>
+        </action>
+
+        <action name="saveSocialSettings" class="com.talentPool.socialNetwork.action.SocialSettingsAction" method="saveSocialSettings">
+            <result name="success" type="redirect">/socialSettings.action</result>
+        </action>
+        
+        <action name="socialConfig" class= "com.talentPool.socialNetwork.action.SocialIntegrationConfigurationAction" method="execute">
+             <result type="tiles">socialMediaConfiguration</result>
+            <result type="tiles" name="error">socialMediaConfiguration</result>
+        </action>
+        
+        <action name="loadGroups" class="com.talentPool.socialNetwork.action.SocialSettingsAction" method="loadGroups">
+            <result name="success">/common/xmlFile.jsp</result>
+        </action>      
+        <action name="saveOAuthToken" class="com.talentPool.socialNetwork.action.SocialSettingsAction" method="saveOAuthToken"/>
+        <action name="deleteSocialGroup" class="com.talentPool.socialNetwork.action.SocialSettingsAction" method="deleteSocialGroup">
+            <result name="success">/common/xmlFile.jsp</result>
+        </action>
+        
+         <action name="saveLinkedInSettings" class="com.talentPool.socialNetwork.action.SocialSettingsAction" method="saveLinkedInSettings">
+            <result name="success" type="redirect">/socialSettings.action</result>
+        </action>
+         <action name="saveFacebookSettings" class="com.talentPool.socialNetwork.action.SocialSettingsAction" method="saveFacebookSettings">
+            <result name="success" type="redirect">/socialSettings.action</result>
+        </action>
+        
+         <action name="positionStatus" class="com.talentPool.positions.action.PositionStatusAction" method="positionStatus">
+            <result type="tiles">managePositionStatusScheduler</result>
+            <result type="tiles" name="error">managePositionStatusScheduler</result>
+        </action>
+        
+        <action name="savePositionStatusProperties" class="com.talentPool.positions.action.PositionStatusAction" method="savePositionStatusProperties">
+            <result type="tiles">managePositionStatusScheduler</result>
+            <result type="tiles" name="error">managePositionStatusScheduler</result>
+        </action>        
+        
+        <action name="runPositionStatusScheduler" class="com.talentPool.positions.action.PositionStatusAction" method="runPositionStatusScheduler">
+            <result type="tiles">managePositionStatusScheduler</result>
+            <result type="tiles" name="error">managePositionStatusScheduler</result>
+        </action>
+        
+         <action name="userSchedulerStatus" class="com.talentPool.scheduler.action.SchedulerAction" method="userSchedulerStatus">
+            <result type="tiles">manageUserScheduler</result>
+            <result type="tiles" name="error">manageUserScheduler</result>
+        </action>
+        
+        <action name="saveUserSchedulerProperties" class="com.talentPool.scheduler.action.SchedulerAction" method="saveUserSchedulerProperties">
+            <result type="tiles">manageUserScheduler</result>
+            <result type="tiles" name="error">manageUserScheduler</result>
+        </action>        
+        
+        <action name="runUserScheduler" class="com.talentPool.scheduler.action.SchedulerAction" method="runUserScheduler">
+            <result type="tiles">manageUserScheduler</result>
+            <result type="tiles" name="error">manageUserScheduler</result>
+        </action>   
+    </package>
+</struts>

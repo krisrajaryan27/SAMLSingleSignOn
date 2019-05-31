@@ -1,0 +1,647 @@
+/**
+ * 
+ */
+package com.talentPool.search.action;
+
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Iterator;
+import java.util.List;
+import java.util.UUID;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.struts.action.ActionForm;
+import org.apache.struts.action.ActionForward;
+import org.apache.struts.action.ActionMapping;
+
+import com.talentPool.applicant.manager.ApplicantManager;
+import com.talentPool.audit.action.AuditAction;
+import com.talentPool.audit.constants.AuditConstants;
+import com.talentPool.common.CommonConstants;
+import com.talentPool.common.NavigationConstants;
+import com.talentPool.common.Pagination;
+import com.talentPool.common.Logger.TPLogger;
+import com.talentPool.common.base.TPDispatchAction;
+import com.talentPool.common.db.SimpleDataObject;
+import com.talentPool.common.properties.GlobalApplicationProperties;
+import com.talentPool.common.properties.GlobalConstants;
+import com.talentPool.common.properties.TPLabels;
+import com.talentPool.common.utils.CommonUtils;
+import com.talentPool.common.utils.Utils;
+import com.talentPool.custom.constants.CustomFieldConstants;
+import com.talentPool.custom.dataobject.CustomFieldData;
+import com.talentPool.custom.manager.CustomFieldManager;
+import com.talentPool.custom.utils.CustomFieldDataProcessor;
+import com.talentPool.dashboard.bc.DashboardBC;
+import com.talentPool.masters.dataobject.LocationData;
+import com.talentPool.masters.manager.LocationManager;
+import com.talentPool.positions.PositionConstants;
+import com.talentPool.positions.dataobject.PositionData;
+import com.talentPool.positions.manager.PositionManager;
+import com.talentPool.repository.IndexManager;
+import com.talentPool.search.SearchConstants;
+import com.talentPool.search.dataobjects.SavedSearchData;
+import com.talentPool.search.dataobjects.SearchCriteriaData;
+import com.talentPool.search.dataobjects.SearchResultData;
+import com.talentPool.search.form.SearchForm;
+import com.talentPool.search.manager.SavedSearchManager;
+import com.talentPool.search.manager.SearchManager;
+import com.talentPool.search.utils.SearchUtils;
+import com.talentPool.selectionProcess.manager.SelectionProcessManager;
+import com.talentPool.user.constants.ModuleConstants;
+import com.talentPool.user.constants.PermissionConstants;
+import com.talentPool.user.manager.PermissionSet;
+import com.talentPool.user.manager.SessionManager;
+
+/**
+ * @author shivprasad
+ * 
+ */
+public class SearchAction extends TPDispatchAction {
+
+	public ActionForward search(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		String forward = "search";
+		Integer[] permissions = new Integer[1];
+		permissions[0] = PermissionConstants.PERMISSION_SCREEN;
+		if(!isUserAuthorized(request, CommonConstants.NO_MODULE, permissions,null,null,null)) {
+			forward = "authorizationFailure";			
+			return mapping.findForward(forward);
+		}
+		try {
+			String userId = (String) request.getSession(false).getAttribute("userId");
+			DashboardBC.setLeftPanel(request, userId);
+			SearchForm searchForm = (SearchForm) actionForm;
+			searchForm.setPageNo("1");
+			searchForm.setSortBy(SearchConstants.SORT_BY_SCORE);
+			request.getSession().setAttribute("searchCriteria", null);
+			request.setAttribute("t", NavigationConstants.T_SCREEN);
+			// get custom fields
+			CustomFieldManager customFieldManager = new CustomFieldManager();
+			ArrayList<CustomFieldData> customFields = customFieldManager.getCustomFieldsForSearch(CustomFieldConstants.ENTITY_TYPE_APPLICANT);
+			request.setAttribute("customFields", customFields);
+			if(GlobalConstants.ENABLED.equals(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_EMPLOYEE_CAN_APPLY_FOR_JOB))) {
+				searchForm.setExcludeInprocess(SearchConstants.SEARCH_EXCLUDE_EMPLOYEE);
+			}else if(GlobalConstants.ENABLED.equals(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_SHOW_JOINED_CANDIDATE_IN_SEARCH))){
+				searchForm.setExcludeInprocess(SearchConstants.SEARCH_EXCLUDE_EMPLOYEE);
+			}else {
+				searchForm.setExcludeInprocess(SearchConstants.SEARCH_ALL);
+			}			
+			String jsFlagsArray = getJSFlagsArray(userId);
+			searchForm.setJsFlagsArray(jsFlagsArray);
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error in search screen", e);
+		}
+		return mapping.findForward(forward);
+	}
+
+	public ActionForward doSearch(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		String forward = "search";
+		Integer[] permissions = new Integer[1];
+		permissions[0] = PermissionConstants.PERMISSION_SCREEN;
+		if(!isUserAuthorized(request, CommonConstants.NO_MODULE, permissions,null,null,null)) {
+			forward = "authorizationFailure";			
+			return mapping.findForward(forward);
+		}
+		SearchForm searchForm = (SearchForm) actionForm;
+		try {
+			request.setAttribute("t", NavigationConstants.T_SCREEN);
+			String userId = (String) request.getSession(false).getAttribute("userId");
+			PermissionSet permissionSet = (PermissionSet) request.getSession().getAttribute("permissionSet");
+			DashboardBC.setLeftPanel(request, userId);
+
+			SearchCriteriaData cData = searchForm.getSearchCriteriaData();
+			request.getSession().setAttribute("searchCriteria", cData);
+
+			// get custom fields
+			CustomFieldManager customFieldManager = new CustomFieldManager();
+			ArrayList<CustomFieldData> customFields = customFieldManager.getCustomFieldsForSearch(CustomFieldConstants.ENTITY_TYPE_APPLICANT);
+			if (Utils.isBlankOrNull(searchForm.getResetSearch())) {
+				CustomFieldDataProcessor customFieldDataProcessor = new CustomFieldDataProcessor();
+				customFieldDataProcessor.setCustomFieldValuesFromRequestForSearch(request, customFields);
+			}
+			cData.setCustomFields(customFields);
+			
+			SearchManager searchManager = new SearchManager();
+			SearchResultData searchResultData = searchManager.search(cData,permissionSet);
+			
+			request.setAttribute("searchResultData", searchResultData);
+			// searchForm.setSearchResultData(searchResultData);
+			SelectionProcessManager selectionProcessManager = new SelectionProcessManager();
+			
+			List<SimpleDataObject> joinedApplicants = selectionProcessManager.getJoinedApplicants(userId, permissionSet, null, null, GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_LOCK_PERIOD_FOR_JOINED_CANDIDATE_SHORTLIST));
+			ArrayList<Object> jndAppIds = new ArrayList<Object>();
+			for (Iterator<SimpleDataObject> iterator = joinedApplicants.iterator(); iterator.hasNext();) {
+				SimpleDataObject simpleDataObject = iterator.next();
+				jndAppIds.add(simpleDataObject.getAttribute("applicantId"));
+			}
+			
+			request.setAttribute("jndAppIds", jndAppIds);
+			
+			request.setAttribute("joinedApplicants", joinedApplicants);
+			
+			String save = (String) request.getParameter("save");
+			if (Utils.isBlankOrNull(save) || save.equals("1")) {
+				SavedSearchManager savedSearchManager = new SavedSearchManager();
+				savedSearchManager.addRecentSearchData(userId, cData);
+			}
+			request.setAttribute("customFields", customFields);
+			UUID token = UUID.randomUUID();
+			request.getSession().setAttribute("deleteApplicantTokenId", token.toString());
+
+			String jsFlagsArray = getJSFlagsArray(userId);
+			searchForm.setJsFlagsArray(jsFlagsArray);
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while searching", e);
+		}
+		return mapping.findForward(forward);
+	}
+
+	public String getJSFlagsArray(String userId) {
+		SelectionProcessManager selectionProcessManager = new SelectionProcessManager();
+		List<SimpleDataObject> flags = selectionProcessManager.getAllFlags(userId);
+		return CommonUtils.getListJavaScriptArrayForFlags(flags);
+	}
+
+	public ActionForward newApplicants(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+	
+		SearchForm searchForm = (SearchForm) actionForm;
+		try {
+			searchForm.setImportDaysFilter(SearchConstants.CRITERIA_GREATER_THAN);
+			Calendar calendar = Calendar.getInstance();
+			calendar.set(Calendar.DATE, calendar.get(Calendar.DATE) - Integer.parseInt(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_DURATION_AS_NEW_RESUME)));
+			searchForm.setImportDaysFROM(calendar.get(Calendar.DATE) + "/" + (calendar.get(Calendar.MONTH) + 1) + "/" + calendar.get(Calendar.YEAR));
+			searchForm.setSortBy(SearchConstants.SORT_BY_IMPORT_DATE);
+			
+			if(GlobalConstants.ENABLED.equals(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_EMPLOYEE_CAN_APPLY_FOR_JOB))) { 
+				searchForm.setExcludeInprocess(SearchConstants.SEARCH_EXCLUDE_EMPLOYEE);
+			}else if(GlobalConstants.ENABLED.equals(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_SHOW_JOINED_CANDIDATE_IN_SEARCH))) { 
+				searchForm.setExcludeInprocess(SearchConstants.SEARCH_EXCLUDE_EMPLOYEE);
+			}else {
+				searchForm.setExcludeInprocess(SearchConstants.SEARCH_ALL);
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error in new applicants", e);
+			searchForm.setImportDaysFilter(SearchConstants.CRITERIA_GREATER_THAN);
+			Calendar calendar = Calendar.getInstance();
+			calendar.set(Calendar.DATE, calendar.get(Calendar.DATE) - 7);
+			searchForm.setImportDaysFROM(calendar.get(Calendar.DATE) + "/" + (calendar.get(Calendar.MONTH) + 1) + "/" + calendar.get(Calendar.YEAR));
+		}
+		return doSearch(mapping, actionForm, request, response);
+	}
+
+	/**
+	 * This is temporary method if user wants to build new index replacing old
+	 * 
+	 * @param mapping
+	 * @param actionForm
+	 * @param request
+	 * @param response
+	 * @return
+	 */
+	public ActionForward buildNewIndex(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		SearchForm searchForm = (SearchForm) actionForm;
+		try {
+			IndexManager.buildNewIndex();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error in new applicants", e);
+			searchForm.setImportDaysFilter(SearchConstants.CRITERIA_GREATER_THAN);
+			Calendar calendar = Calendar.getInstance();
+			calendar.set(Calendar.DATE, calendar.get(Calendar.DATE) - 7);
+			searchForm.setImportDaysFROM(calendar.get(Calendar.DATE) + "/" + (calendar.get(Calendar.MONTH) + 1) + "/" + calendar.get(Calendar.YEAR));
+		}
+		return doSearch(mapping, actionForm, request, response);
+	}
+
+	public ActionForward displaySearchResult(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		SearchForm searchForm = (SearchForm) actionForm;
+		try {
+			String searchId = searchForm.getSearchId();
+			SavedSearchManager savedSearchManager = new SavedSearchManager();
+			SearchCriteriaData cData = savedSearchManager.getSearchCriteriaData(searchId);
+			searchForm.setSearchCriteriaData(cData);
+			searchForm.populateSearchForm(cData);
+			searchForm.setPageNo("1");
+
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while searching", e);
+		}
+		return doSearch(mapping, actionForm, request, response);
+	}
+
+	public ActionForward massEmail(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		String forward = "massEmail";
+		
+		Integer[] permissions = new Integer[1];
+		permissions[0] = PermissionConstants.PERMISSION_MASS_EMAIL;
+		if(!isUserAuthorized(request, ModuleConstants.MODULE_MASS_EMAILS, permissions,null,null,null)) {
+			forward = "authorizationFailure";			
+			return mapping.findForward(forward);
+		}
+		SearchForm searchForm = (SearchForm) actionForm;
+		try {
+			PermissionSet permissionSet = (PermissionSet) request.getSession().getAttribute("permissionSet");
+			SearchCriteriaData cData = searchForm.getSearchCriteriaData();
+			request.getSession().setAttribute("searchCriteria", cData);
+			CustomFieldManager customFieldManager = new CustomFieldManager();
+			ArrayList<CustomFieldData> customFields = customFieldManager.getCustomFieldsForSearch(CustomFieldConstants.ENTITY_TYPE_APPLICANT);
+			CustomFieldDataProcessor customFieldDataProcessor = new CustomFieldDataProcessor();
+			customFieldDataProcessor.setCustomFieldValuesFromRequest(request, customFields);
+			cData.setCustomFields(customFields);
+			SearchManager searchManager = new SearchManager();
+			SearchResultData searchResultData = searchManager.search(cData,permissionSet);
+			if (searchResultData != null) {
+				if (searchResultData.getRecords() != null && searchResultData.getRecords().size() < searchResultData.getRecordCount()) {
+					cData.getPager().setPageNo(1);
+					cData.getPager().setPageSize((int) searchResultData.getRecordCount());
+					searchResultData = searchManager.search(cData,permissionSet);
+				}
+			}
+			request.setAttribute("searchResultData", searchResultData);
+
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while searching", e);
+		}
+		return mapping.findForward(forward);
+	}
+
+	public ActionForward deleteApplicant(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		
+		Integer[] permissions = new Integer[1];
+		permissions[0] = PermissionConstants.PERMISSION_DELETE_APPLICANT;
+		if(!isUserAuthorized(request,CommonConstants.NO_MODULE, permissions,((SearchForm)actionForm).getApplicantId(),null,null)) {
+			String forward = "authorizationFailure";			
+			return mapping.findForward(forward);
+		}
+		SearchForm searchForm = (SearchForm) actionForm;
+		try {
+			String userId = (String) request.getSession(false).getAttribute("userId");
+			String deleteApplicantTokenId = (String)request.getSession().getAttribute("deleteApplicantTokenId");
+			if (Utils.isBlankOrNull(deleteApplicantTokenId) || !deleteApplicantTokenId.equals(searchForm.getDeleteApplicantTokenId())){
+				SessionManager.invalidateSession(request, response, userId);
+				try {
+					SessionManager.sessionExpireRedirect(mapping, actionForm, request, response, this, false);
+					TPLogger.getLogger().error("Invalid CSRFToken while deleting user. Session invalidated because of suspicious activity.");
+					return null;
+				} catch (Exception e) {
+					TPLogger.getLogger().error("Error While validating session", e);
+				} 
+			}
+			if (!Utils.isBlankOrNull(searchForm.getApplicantId())) {
+				ApplicantManager applicantManager = new ApplicantManager();
+				AuditAction auditAction = new AuditAction();
+				String clientIpAddr = getClientIpAddr(request);
+				auditAction.insertAuditInfo(TPLabels.getLabel("common.applicant"), AuditConstants.TYPE_DELETED,
+						searchForm.getApplicantId(), AuditConstants.AUDIT_CANDIDATE, userId, null, null, null, true, clientIpAddr);
+				applicantManager.deleteApplicant(searchForm.getApplicantId());
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while deleting applicant", e);
+		}
+		return doSearch(mapping, actionForm, request, response);
+	}
+
+	public ActionForward resetViewed(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		try {
+			request.getSession(false).setAttribute("viewed", null);
+		} catch (Exception e) {
+			TPLogger.getLogger().error("ERROR", e);
+		}
+		return doSearch(mapping, actionForm, request, response);
+	}
+
+	public ActionForward getHTMLForApplicantStatus(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		String forward = "xmlFile";
+		String xmlFile = "";
+		try {
+			if (!SessionManager.isLoginFound(mapping, actionForm, request, response, this)) {
+				xmlFile = Utils.getXMLForSessionExpiry();
+				forward = "xmlFile";
+			} else {
+				SearchForm searchForm = (SearchForm) actionForm;
+				SearchManager searchManager = new SearchManager();
+				ArrayList<SimpleDataObject> feedbacks = searchManager.getLastFeedbackDetails(searchForm.getApplicantId());
+
+				xmlFile = searchForm.getApplicantId() + "|" + SearchUtils.getStatusText(feedbacks);
+			}
+
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+			xmlFile = Utils.getXMLForError();
+		}
+		request.setAttribute("xmlFile", xmlFile);
+		return mapping.findForward(forward);
+	}
+	
+	public ActionForward selectPositionForSearch(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		String forward = "selectPositionForSearch";
+		try {
+			String userId = (String) request.getSession(false).getAttribute("userId");
+			PermissionSet permissionSet = (PermissionSet) request.getSession(false).getAttribute("permissionSet");
+			SearchForm searchForm = (SearchForm) actionForm;
+			setOpenPositions(userId, permissionSet, searchForm);
+			setDepartments(searchForm);
+			setLocations(searchForm);
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return mapping.findForward(forward);
+	}
+	
+	private void setOpenPositions(String userId, PermissionSet permissionSet, SearchForm searchForm) {
+		PositionManager positionManager = new PositionManager();
+		ArrayList<PositionData> positions = positionManager.getPositionListWithStatus(PositionConstants.POSITION_STATUS_OPENED, permissionSet, userId);
+		String positionName = "positionTitle";
+
+		String jsPositionsArray = CommonUtils.getListJavaScriptArrayWithProperties(positions, "positionId", positionName);
+		searchForm.setJsPositionsArray(jsPositionsArray);
+	}
+	
+	private void setDepartments(SearchForm searchForm){
+		String jsDepartmentArray = CommonUtils.getListJavaScriptArray(CommonUtils.getDeptIds(),CommonUtils.getDeptNames());
+		searchForm.setJsDepartmentArray(jsDepartmentArray);
+	}
+	
+	private void setLocations(SearchForm searchForm) throws Exception {
+		LocationManager locationManager = new LocationManager();
+		ArrayList<LocationData> locations = (ArrayList<LocationData>)locationManager.getAllLocations();
+		String jsLocationArray = CommonUtils.getListJavaScriptArrayWithProperties(locations, "locationId", "locationName");
+		searchForm.setJsLocationArray(jsLocationArray);
+	}
+	
+	public ActionForward getXMLPositionsForDeparmentNLocation(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response){
+		String forward = "xmlFile";
+		String xmlFile = "";
+		SearchManager searchManager = new SearchManager();
+		ArrayList<PositionData> positions = new ArrayList<PositionData>();
+		String userId = (String) request.getSession(false).getAttribute("userId");
+		PermissionSet permissionSet = (PermissionSet) request.getSession(false).getAttribute("permissionSet");
+		try {
+			if (!SessionManager.isLoginFound(mapping, actionForm, request, response, this)) {
+				xmlFile = Utils.getXMLForSessionExpiry();
+			} else {
+				SearchForm searchForm = (SearchForm) actionForm;
+				String departmentId = searchForm.getDepartmentId();
+				String locationId = searchForm.getLocationId();
+				
+				PositionManager positionManager = new PositionManager();
+				positions = positionManager.getPositionListWithStatusNDepartmenNLocation(PositionConstants.POSITION_STATUS_OPENED,departmentId,locationId, permissionSet, userId);
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting position XML for selected department and location", e);
+		}
+		xmlFile = searchManager.getPositionXml(positions);
+		request.setAttribute("xmlFile", xmlFile);
+		return mapping.findForward(forward);
+	}
+	
+	public ActionForward doSearchForPosition(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		try {
+			SearchForm searchForm = (SearchForm) actionForm;
+			String positionId = searchForm.getPositionId();
+			
+			String departmentId = searchForm.getDepartmentId();
+			String locationId = searchForm.getLocationId();
+			
+			PositionManager positionManager = new PositionManager();
+			SimpleDataObject positionData = positionManager.getSearchablePositionFields(positionId);
+			SearchCriteriaData cData = new SearchCriteriaData();
+						
+			populateSearchCriteriaFromPositionData(positionData, cData);
+			
+			// set pagination
+			Pagination pager = new Pagination();
+			pager.setPageNo(1);
+			cData.setPager(pager);
+
+			searchForm.populateSearchForm(cData);
+			
+			//set search by requirement String
+			StringBuffer searchByRequirmentStr = new StringBuffer();
+			searchByRequirmentStr.append(TPLabels.getLabel("search.by.requirements.search.label")+": ");
+			searchByRequirmentStr.append(positionData.getString("positionTitle"));
+			if(departmentId!=null && !departmentId.equalsIgnoreCase("-1")){
+				searchByRequirmentStr.append(" | "+CommonUtils.getDeptName(departmentId));
+			}
+			if(locationId!=null && !locationId.equalsIgnoreCase("-1")){
+				LocationManager locationManager = new LocationManager();
+				LocationData locationData = locationManager.getLocationByLocationId(locationId);
+				searchByRequirmentStr.append(" | "+locationData.getLocationName());
+			}
+			
+			searchForm.setSearchByRequirementsString(searchByRequirmentStr.toString());
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+			return search(mapping, actionForm, request, response);
+		}
+		return doSearch(mapping, actionForm, request, response);
+	}
+	
+	private void populateSearchCriteriaFromPositionData(SimpleDataObject positionData, SearchCriteriaData cData) {
+		try {
+			String minExperience = positionData.getString("minimumExperience");
+			String maxExperience = positionData.getString("maximumExperience");
+
+			String primarySkills = positionData.getString("primarySkills");
+			String secondarySkills = positionData.getString("secondarySkills");
+			
+			String degreeId = positionData.getString("degreeId");
+			String branchId = positionData.getString("branchId");
+			
+			double minExp = 0; 
+			if(!Utils.isBlankOrNull(minExperience)){
+				minExp = Double.parseDouble(minExperience);
+			}
+			cData.setMinExperience(minExp);
+			
+			double maxExp = 0; 
+			if(!Utils.isBlankOrNull(maxExperience)){
+				maxExp = Double.parseDouble(maxExperience);
+			}
+			cData.setMaxExperience(maxExp);
+			
+			StringBuffer sb = new StringBuffer();
+			if (!Utils.isBlankOrNull(primarySkills)) {
+				String[] primarySkillArr = primarySkills.split(",");
+				for (int i = 0; i < primarySkillArr.length; i++) {
+					sb.append(primarySkillArr[i] + " ");
+				}
+			}
+			if (!Utils.isBlankOrNull(secondarySkills)) {
+				String[] secondarySkillArr = secondarySkills.split(",");
+				for (int i = 0; i < secondarySkillArr.length; i++) {
+					sb.append(secondarySkillArr[i] + " ");
+				}
+			}
+			cData.setSearchText(sb.toString().trim());
+			
+			cData.setDegree(degreeId);
+			cData.setDegreeId(degreeId);
+			
+			cData.setBranch(branchId);
+			cData.setBranchId(branchId);
+			
+			cData.setMatchCondition(SearchConstants.MATCH_ANY);
+			cData.setDegreeCriteria(SearchConstants.OR);
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+	}
+	
+	public ActionForward saveSearch(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		String forward = "saveSearch";
+		try {
+
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return mapping.findForward(forward);
+	}
+	
+	public ActionForward saveThisSearch(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		String forward = "closeModalCall";
+		try {
+			SearchForm searchForm = (SearchForm) actionForm;
+			request.setAttribute("t", NavigationConstants.T_SEARCH);
+			String userId = (String) request.getSession(false).getAttribute("userId");
+			String searchName = searchForm.getSearchName();
+			String shared = searchForm.getShared();			
+			SearchCriteriaData cData = (SearchCriteriaData) request.getSession().getAttribute("searchCriteria");
+
+			if (CustomFieldManager.isCustomFieldsAvailable(CustomFieldConstants.ENTITY_TYPE_APPLICANT) && cData.getCustomFields() == null) {
+				CustomFieldManager customFieldManager = new CustomFieldManager();
+				ArrayList<CustomFieldData> customFields = customFieldManager.getCustomFieldsForSearch(CustomFieldConstants.ENTITY_TYPE_APPLICANT);
+				CustomFieldDataProcessor customFieldDataProcessor = new CustomFieldDataProcessor();
+				customFields = customFieldDataProcessor.setCustomFieldValuesFromRequestForSearch(request, customFields);
+				cData.setCustomFields(customFields);
+			}
+
+			SavedSearchManager savedSearchManager = new SavedSearchManager();
+			//using same table of saved searches thus a new constant(Flag) while saving the data
+			savedSearchManager.saveSearch(searchName, shared, userId, cData, SearchConstants.SEARCH_ID_SAVED_SEARCHES);
+
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return mapping.findForward(forward);
+	}
+	
+	public ActionForward showSavedSearches(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		String forward = "showSavedSearches";
+		SearchForm searchForm = (SearchForm) actionForm;
+		try {
+			
+			String userId = (String) request.getSession(false).getAttribute("userId");
+			SavedSearchManager savedSearchManager = new SavedSearchManager();
+			ArrayList<SavedSearchData> savedSearchList = savedSearchManager.getAllSavedSearches(userId,SearchConstants.SEARCH_ID_SAVED_SEARCHES,searchForm.getShowShared());
+			request.setAttribute("savedSearchList", savedSearchList);
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return mapping.findForward(forward);
+	}
+	
+	public ActionForward doSavedSearch(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		SearchForm searchForm = (SearchForm) actionForm;
+		try {
+			String searchId = searchForm.getSearchId();
+			SavedSearchManager savedSearchManager = new SavedSearchManager();
+			SearchCriteriaData cData = savedSearchManager.getSavedSearchCriteriaData(searchId);
+			searchForm.setSearchCriteriaData(cData);
+			searchForm.populateSearchForm(cData);
+			searchForm.setPageNo("1");
+
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while searching", e);
+		}
+		return doSearch(mapping, actionForm, request, response);
+	}
+	
+	public ActionForward deleteSavedSearch(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		String forward = "xmlFile";
+		String xmlFile = "";
+		try {
+			SearchForm searchForm = (SearchForm) actionForm;
+			String searchId = searchForm.getSearchId();
+			SavedSearchManager savedSearchManager = new SavedSearchManager();
+			savedSearchManager.deleteSavedSearch(searchId);
+			xmlFile = Utils.getXMLForIds(searchId);
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		request.setAttribute("xmlFile", xmlFile);
+		return mapping.findForward(forward);
+	}
+	
+	public ActionForward getAutoCompleteList(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		String forward = "xmlFile";
+		
+		try {
+			SearchForm searchForm = (SearchForm) actionForm;
+			String xmlFile = "";
+			String searchText = searchForm.getSearchText();
+			SearchManager searchManager = new SearchManager();
+			ArrayList<SimpleDataObject> result =  null;
+			if (!Utils.isBlankOrNull(searchText)){
+				try{
+					Long.parseLong(searchText);
+					result = searchManager.getApplicantNumbers(searchText);
+					xmlFile = Utils.getListInXML(result, "applicantNumber");
+				} catch (NumberFormatException nfe){
+					result = searchManager.getApplicantNames(searchText);
+					xmlFile = Utils.getListInXML(result, "applicantName");
+				}
+			}
+			request.setAttribute("xmlFile", xmlFile);
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return mapping.findForward(forward);
+	}
+}

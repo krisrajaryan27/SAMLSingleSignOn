@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE struts PUBLIC
+    "-//Apache Software Foundation//DTD Struts Configuration 2.0//EN"
+    "http://struts.apache.org/dtds/struts-2.0.dtd">
+
+<struts>
+    <package name="custom-reports" namespace="/" extends="pool-default">
+    
+		 <interceptors>
+			<interceptor name="customReports" class="com.talentPool.customReports.inerceptor.CustomReportsInterceptor" />
+            <interceptor-stack name="customReportStack">
+				<interceptor-ref name="customReports" />
+                <interceptor-ref name="poolStack" />
+            </interceptor-stack>
+        </interceptors>
+        
+        <default-interceptor-ref name="customReportStack" />
+		
+		<action name="reportTemplate" class="customReportAction" >
+	          <result type="tiles" >addNewReport</result>
+		</action>
+		
+		<action name="getReportRelatedCategory" class="customReportAction" method="getReportRelatedCategory" >
+	         <result>/common/xmlFile.jsp</result>
+		</action>
+		<action name="saveReportCategory" class="customReportAction" method="saveReportCategory" >
+	         <result type="tiles" name="reportColumns" >selectReportColumns</result>
+		</action>
+		<action name="saveReportColumns" class="customReportAction" method="saveReportColumns" >
+	         <result type="tiles" name="reportGrouping" >selectReportGrouping</result>
+		</action>
+		<action name="saveReportGrouping" class="customReportAction" method="saveReportGrouping" >
+	         <result type="tiles" name="saveReport" >saveReport</result>
+		</action>
+		<action name="candidateNamesSpecification" class="customReportAction" method="candidateNamesSpecification" >
+	         <result type="tiles">candidateNamesSpecification</result>
+		</action>
+		<action name="configureReportTotals" class="customReportAction" method="configureReportTotals" >
+	         <result type="tiles">configureReportTotals</result>
+		</action>
+		<action name="selectFilters" class="customReportAction" method="selectFilters" >
+	         <result type="tiles">selectFilters</result>
+		</action>
+		
+		<action name="saveFilters" class="customReportAction" method="saveFilters" >
+	         <result type="tiles">saveAsReport</result>
+		</action>
+		
+		<!--Report Designer Starts--> 
+		<action name="customizeReport" class="customReportAction" method="customizeReport" >
+	         <result type="tiles">customizeReport</result>
+		</action>
+		<action name="editCustomReport" class="customReportAction" method="editCustomReport" >
+	         <result type="tiles">customizeReport</result>
+	         <result type="tiles" name="error" >customizeReport</result>
+		</action>
+		<action name="addNewCustomReport" class="customReportAction" method="addNewCustomReport" >
+	         <result type="tiles">customizeReport</result>
+		</action>
+		<action name="getReportColumns" class="customReportAction" method="getReportColumns" >
+	         <result>/common/xmlFile.jsp</result>
+		</action>
+		<action name="saveModifiedColumns" class="customReportAction" method="saveModifiedColumns" >
+	         <result type="chain">customizeReport</result>
+		</action>
+		<action name="saveAsNewReport" class="customReportAction" method="saveAsNewReport" >
+	         <result type="redirect">reports.do?mode=reportFilter</result>
+	         <result type="tiles" name="error">saveAsReport</result>
+		</action>
+		<action name="editReport" class="customReportAction" method="editReport" >
+	         <result type="redirect">reports.do?mode=reportFilter</result>
+	         <result type="tiles" name="error">selectFilters</result>
+		</action>
+		
+		<action name="getReportUsersXML" class="com.talentPool.customReports.action.FilterAction" method="getReportUsersXML" >
+	         <result>/common/xmlFile.jsp</result>
+		</action>
+		
+		<action name="deleteCustomReport" class="customReportAction" method="deleteCustomReport" >
+			<result>/common/xmlFile.jsp</result>
+		</action>
+		<!--Report Designer Ends-->
+		
+		<!--Run Custom report Starts-->
+		<action name="reportMain" class="runCustomReportAction" >
+	         <result type="tiles">reportMain</result>
+	         <result type="tiles" name="migrationmessage">migrationMessage</result>
+		</action>
+		
+		<action name="saveMigrationMessageFlag" class="runCustomReportAction" method="saveMigrationMessageFlag" >
+	         <result type="chain">reportMain</result>
+		</action>
+		
+		<action name="runReport" class="runCustomReportAction" method="runReport" >
+	         <result type="tiles">reportMain</result>
+	         <result type="tiles" name="error">reportMain</result>
+		</action>
+		
+		<action name="exportToXLS" class="exportToXLSCRAction" method="exportReport" >
+	         <result name="success" type="stream">
+	           <param name="contentType">application/vnd.ms-excel</param>
+			   <param name="inputName">inputStream</param>
+			   <param name="contentDisposition">attachment;filename="TalentPool.xls"</param>
+			   <param name="bufferSize">1024</param>
+        	</result>
+        	 <result type="tiles" name="error">reportMain</result>
+		</action>
+		
+		<action name="exportToXLSX" class="exportToXLSXCRAction" method="exportReport" >
+	         <result name="success" type="stream">
+	           <param name="contentType">application/vnd.openxmlformats-officedocument.spreadsheetml.sheet</param>
+			   <param name="inputName">inputStream</param>
+			   <param name="contentDisposition">attachment;filename="TalentPool.xlsx"</param>
+			   <param name="bufferSize">1024</param>
+        	</result>
+        	 <result type="tiles" name="error">reportMain</result>
+		</action>
+		
+		<action name="exportToPlainXLS" class="exportToPlainXLSCRAction" method="exportReport" >
+	         <result name="success" type="stream">
+	           <param name="contentType">application/vnd.ms-excel</param>
+			   <param name="inputName">inputStream</param>
+			   <param name="contentDisposition">attachment;filename="TalentPool.xls"</param>
+			   <param name="bufferSize">1024</param>
+        	</result>
+        	 <result type="tiles" name="error">reportMain</result>
+		</action>
+		
+		<action name="exportToCSV" class="exportToCSVCRAction" method="exportReport" >
+	         <result name="success" type="stream">
+	           <param name="contentType">application/vnd.ms-excel</param>
+			   <param name="inputName">inputStream</param>
+			   <param name="contentDisposition">attachment;filename="TalentPool.csv"</param>
+			   <param name="bufferSize">1024</param>
+        	</result>
+        	 <result type="tiles" name="error">reportMain</result>
+		</action>
+		
+		<action name="exportToPDF" class="exportToPDFCRAction" method="exportReport" >
+	         <result name="success" type="stream">
+	           <param name="contentType">application/pdf</param>
+			   <param name="inputName">inputStream</param>
+			   <param name="contentDisposition">attachment;filename="TalentPool.pdf"</param>
+			   <param name="bufferSize">1024</param>
+        	</result>
+        	 <result type="tiles" name="error">reportMain</result>
+		</action>
+		<!--Run Custom Report Ends-->
+			
+    </package>
+</struts>

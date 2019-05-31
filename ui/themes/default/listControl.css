@@ -1,0 +1,55 @@
+/* Decorative stuff */
+/*body { font: 76%/1.4 Verdana, Arial, sans-serif; }
+code { font: 1.2em Consolas, "Courier New," Courier, monospace; color: #149514; }*/
+
+/* CSS for checklists */
+.listboxdiv{
+}
+.checklist {
+	border: 1px solid #ccc;
+	list-style: none;
+	height: 10em;
+	overflow: auto;
+	width: 10em;
+	background: #F3F9DC;
+	color: #000;
+}
+.checklist, .checklist li { margin:0px;padding:0px;}
+.checklist li { display: block; height: 15px; padding:1px 0px 0px 3px;}
+.checklist li:hover, .checklist li.hover { background: #777; color: #000; }
+
+/* Checklist 1 */
+.cl1 { width:170px; height:78px; }
+.cl1 .alt { background: #fff; }
+.cl1 input { vertical-align: middle; }
+.cl1 li:hover, .cl1 li.hover { background: #FEF6B0; color: #000; }
+
+/* Checklist 2 */
+.cl2 {
+	background: #67893d;
+	color: #D1DCC5;
+	font-family: Tahoma, Geneva, Arial, sans-serif;
+	width: 50%;
+}
+.cl2 input { vertical-align: middle; }
+.cl2 li { border-bottom: 1px solid #769550; padding: 0.2em 0.2em 0.2em 25px; }
+.cl2 li:hover, .cl2 li.hover { background: #306B34; color: #fff; }
+
+/* Checklist 3 */
+.cl3 {
+	border: 1px dotted #a17c04;
+	color: #a05a04;
+	font-family: "Trebuchet MS", Tahoma, Geneva, Arial, sans-serif;
+	font-size: 0.9em;
+	height: 19em;
+}
+.cl3 .alt { background: #f8f6ed; }
+.cl3 li { padding: 0.2em 0.2em 0.2em 25px; }
+.cl3 li:hover, .cl3 li.hover { background: #EFE9D4; color: #a05a04; }
+
+
+/* this is class for the image you display*/
+.listcontrolimage{
+ width: 1.0em;
+ height: 1.0em;
+}

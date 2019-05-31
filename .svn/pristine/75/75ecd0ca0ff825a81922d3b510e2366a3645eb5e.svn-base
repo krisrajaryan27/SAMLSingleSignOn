@@ -1,0 +1,40 @@
+.tblTpMnu{
+	border:1px;
+	cursor: pointer;
+	border:1px solid #F3F9DC; /*this color same as BG*/
+	border-bottom:1px solid #D0E4A3;
+}
+.tblTpMnu td{
+	font-family:Arial, Helvetica, sans-serif;
+	font-size:11px;
+	padding-left:3px;
+	height:10px;
+}
+.tblTpMnu td.imgtd
+{
+    CLEAR: left;
+    VERTICAL-ALIGN: top;
+    OVERFLOW: hidden;
+    CURSOR: hand;
+    WIDTH: 20px;
+    HEIGHT: 16px;
+    TEXT-ALIGN: center;
+    SPACING: 0px;
+	border:0px solid #F3F9DC;
+	padding-top:2px;
+}
+.tblTpMnu td.imgtdToggle{
+	border:1px solid #696;
+}
+
+.tblTpMnu td.imgarrow
+{
+    CLEAR: left;
+    VERTICAL-ALIGN: middle;
+    OVERFLOW: hidden;
+    CURSOR: hand;
+    WIDTH: 20px;
+    HEIGHT: 16px;
+    TEXT-ALIGN: center;
+    SPACING: 0px;
+}

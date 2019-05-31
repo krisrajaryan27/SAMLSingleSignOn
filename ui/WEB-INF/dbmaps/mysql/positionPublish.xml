@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>
+		<dbquery name="qPositionPublishManager_GetAnnouncementsToPublish">
+			SELECT announcemnts FROM tp_announcements WHERE portal=?
+		</dbquery>
+		<dbquery name="qPositionPublishManager_UpdateAnnouncements">
+			UPDATE tp_announcements SET announcemnts=?, user_id=?, date_modified=now()
+			WHERE portal=?
+		</dbquery>
+	</dbqueries> 
+	<dataqueries>
+	    <dataquery name="dPositionPublishManager_GetAnnouncementsToPublish" dbquery="qPositionPublishManager_GetAnnouncementsToPublish"/>
+	    <dataquery name="dPositionPublishManager_UpdateAnnouncements" dbquery="qPositionPublishManager_UpdateAnnouncements"/>
+	</dataqueries>   
+</dbmap>

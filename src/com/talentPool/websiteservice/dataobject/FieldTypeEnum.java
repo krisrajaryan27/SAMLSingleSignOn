@@ -1,0 +1,10 @@
+package com.talentPool.websiteservice.dataobject;
+
+/**
+ * @author SumeetS
+ *
+ */
+public enum FieldTypeEnum {
+    TEXT, NUMBER, DATE, DROPDOWN, MULTI_SELECT, OPTION_LIST, TEXT_AUTOSUGGEST, GROUP, DATE_DROPDOWN, TABLE_GROUP, 
+    ACTION, USER_DROPDOWN, USER_MULTI_SELECT, RADIO, CHECKBOX, TEXTAREA, TEXT_DROPDOWN, LISTBOX,HIDDEN;
+}

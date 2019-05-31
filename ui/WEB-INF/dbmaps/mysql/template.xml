@@ -1,0 +1,140 @@
+<?xml version="1.0"?>
+<dbmap> 
+	<dbqueries>
+		<dbquery name="qTemplateManager_GetTemplate">
+			select tp.template_id, tp.template_code, tp.template_name, tp.template_subject_file, 
+			tp.template_content_file, tp.template_auto, tp.template_format, tp.template_private,
+			tp.template_date_created, tp.user_id, ttt.template_type, tp.template_type_id, 
+			tp.template_is_default, tp.do_show_save_as_draft_option,
+			tp.template_is_save_as_draft,
+			CAST(group_concat(distinct tv.template_variable_type separator ',') AS CHAR )  as templateVariableIds,
+			group_concat(tg.template_variable order by tg.template_variable separator ',') as templateVariables
+			from tp_templates tp
+			LEFT JOIN tp_template_types ttt ON (ttt.template_type_id=tp.template_type_id)
+			LEFT JOIN tp_template_vars tv ON(tp.template_type_id = tv.template_type_id)
+			LEFT JOIN tp_template_generic_vars tg ON (tv.template_variable_type=tg.template_variable_type)
+			where
+			tp.template_code=?
+			group by tp.template_id
+		</dbquery>
+		<dbquery name="qTemplateManager_GetTemplateByTemplateTypeId">
+			select tp.template_id, tp.template_code, tp.template_name, tp.template_subject_file, 
+			tp.template_content_file, tp.template_auto, tp.template_format, tp.template_private,
+			tp.template_date_created, tp.user_id, ttt.template_type, tp.template_type_id, 
+			tp.template_is_default, tp.do_show_save_as_draft_option,
+			tp.template_is_save_as_draft,
+			CAST(group_concat(distinct tv.template_variable_type separator ',') AS CHAR )  as templateVariableIds,
+			group_concat(tg.template_variable order by tg.template_variable separator ',') as templateVariables
+			from tp_templates tp
+			LEFT JOIN tp_template_types ttt ON (ttt.template_type_id=tp.template_type_id)
+			LEFT JOIN tp_template_vars tv ON(tp.template_type_id = tv.template_type_id)
+			LEFT JOIN tp_template_generic_vars tg ON (tv.template_variable_type=tg.template_variable_type)
+			WHERE tp.template_type_id = ?
+			AND tp.template_auto = ?
+			GROUP BY tp.template_id
+			ORDER BY tp.template_is_default desc, template_private
+			LIMIT 0, 1
+		</dbquery>
+		<dbquery name="qTemplateManager_GetAllTemplates">
+			select tp.template_code, tp.template_name
+			from tp_templates tp
+			where
+			tp.template_auto =? @@
+			group by tp.template_id
+		</dbquery>
+		<dbquery name="qTemplateManager_CreateTemplate">
+			insert into `tp_templates` (`template_code`,`template_name`,`template_subject_file`,
+			`template_content_file`,`template_auto`,`template_format`,`template_private`,
+			`template_date_created`,`user_id`, template_type_id, template_is_save_as_draft, do_show_save_as_draft_option,is_repeat) 
+			values (?,?,?,?,?,?,?,now(),?, ?, ?, ?,?)
+		</dbquery>
+		<dbquery name="qTemplateManager_EditTemplate">
+			update tp_templates
+			set template_name = ?,
+			template_type_id = ?,
+			template_is_save_as_draft = ?,
+			is_repeat=?
+			@@
+			where template_code = ?
+		</dbquery>	
+		<dbquery name="qTemplateManager_DeleteTemplate">
+			delete from tp_templates
+			where template_code = ?
+		</dbquery>
+		<dbquery name="qTemplateManager_GetTemplateTypes">
+			select template_type_id, template_type
+			from tp_template_types
+		</dbquery>
+		<dbquery name="qTemplateManager_ResetDefaultTemplate">
+			update tp_templates
+			set template_is_default=?
+			where template_type_id=?
+		</dbquery>
+		<dbquery name="qTemplateManager_SetDefaultTemplate">
+			update tp_templates
+			set template_is_default=?
+			where template_code=?
+		</dbquery>
+		<dbquery name="qTemplateManager_GetTemplateTypeId">
+			select template_type_id 
+			from tp_templates
+			where template_code = ?
+		</dbquery>
+	</dbqueries>
+	<dataqueries>
+	    <dataquery name="dTemplateManager_GetTemplate" dbquery="qTemplateManager_GetTemplate" object="com.talentPool.notifier.dataobject.TemplateData">
+		    <attribute name= "templateId" column="template_id" type ="INT" />
+		    <attribute name= "templateCode" column="template_code" type ="STRING" />
+		    <attribute name= "templateName" column="template_name" type ="STRING" />
+		    <attribute name= "templateSubjectFile" column="template_subject_file" type ="STRING" />
+		    <attribute name= "templateContentFile" column="template_content_file" type ="STRING" />
+		    <attribute name= "templateAuto" column="template_auto" type ="STRING" />
+		    <attribute name= "templateFormat" column="template_format" type ="STRING" />
+		    <attribute name= "templatePrivate" column="template_private" type ="STRING" />
+		    <attribute name= "dateCreated" column="template_date_created" type ="STRING" />
+		    <attribute name= "userId" column="user_id" type ="STRING" />
+		    <attribute name= "templateType" column="template_type" type ="STRING" />
+		    <attribute name= "templateTypeId" column="template_type_id" type ="STRING" />
+		    <attribute name= "templateVariableIds" column="templateVariableIds" type ="STRING" />		
+			<attribute name= "templateVariables" column="templateVariables" type ="STRING" />
+			<attribute name= "isTemplateDefault" column="template_is_default" type ="STRING" />		
+			<attribute name= "isTemplateSaveAsDraft" column="template_is_save_as_draft" type ="STRING" />		
+			<attribute name= "doShowSaveAsDraftOption" column="do_show_save_as_draft_option" type ="STRING" />		
+    	</dataquery>
+    	<dataquery name="dTemplateManager_GetTemplateByTemplateTypeId" dbquery="qTemplateManager_GetTemplateByTemplateTypeId" object="com.talentPool.notifier.dataobject.TemplateData">
+		    <attribute name= "templateId" column="template_id" type ="INT" />
+		    <attribute name= "templateCode" column="template_code" type ="STRING" />
+		    <attribute name= "templateName" column="template_name" type ="STRING" />
+		    <attribute name= "templateSubjectFile" column="template_subject_file" type ="STRING" />
+		    <attribute name= "templateContentFile" column="template_content_file" type ="STRING" />
+		    <attribute name= "templateAuto" column="template_auto" type ="STRING" />
+		    <attribute name= "templateFormat" column="template_format" type ="STRING" />
+		    <attribute name= "templatePrivate" column="template_private" type ="STRING" />
+		    <attribute name= "dateCreated" column="template_date_created" type ="STRING" />
+		    <attribute name= "userId" column="user_id" type ="STRING" />
+		    <attribute name= "templateType" column="template_type" type ="STRING" />
+		    <attribute name= "templateTypeId" column="template_type_id" type ="STRING" />
+		    <attribute name= "templateVariableIds" column="templateVariableIds" type ="STRING" />		
+			<attribute name= "templateVariables" column="templateVariables" type ="STRING" />
+			<attribute name= "isTemplateDefault" column="template_is_default" type ="STRING" />		
+			<attribute name= "isTemplateSaveAsDraft" column="template_is_save_as_draft" type ="STRING" />
+			<attribute name= "doShowSaveAsDraftOption" column="do_show_save_as_draft_option" type ="STRING" />									
+    	</dataquery>
+	    <dataquery name="dTemplateManager_GetAllTemplates" dbquery="qTemplateManager_GetAllTemplates" object="com.talentPool.notifier.dataobject.TemplateData">
+		    <attribute name= "templateCode" column="template_code" type ="STRING" />
+		    <attribute name= "templateName" column="template_name" type ="STRING" />
+    	</dataquery>
+	    <dataquery name="dTemplateManager_CreateTemplate" dbquery="qTemplateManager_CreateTemplate" />
+	    <dataquery name="dTemplateManager_EditTemplate" dbquery="qTemplateManager_EditTemplate" />	    
+	    <dataquery name="dTemplateManager_DeleteTemplate" dbquery="qTemplateManager_DeleteTemplate" />	    
+    	<dataquery name="dTemplateManager_GetTemplateTypes" dbquery="qTemplateManager_GetTemplateTypes" object="com.talentPool.common.db.SimpleDataObject">
+		    <attribute name= "templateType" column="template_type" type ="STRING" />
+		    <attribute name= "templateTypeId" column="template_type_id" type ="STRING" />
+    	</dataquery>
+    	<dataquery name="dTemplateManager_ResetDefaultTemplate" dbquery="qTemplateManager_ResetDefaultTemplate" />
+    	<dataquery name="dTemplateManager_SetDefaultTemplate" dbquery="qTemplateManager_SetDefaultTemplate" />
+    	<dataquery name="dTemplateManager_GetTemplateTypeId" dbquery="qTemplateManager_GetTemplateTypeId" object="com.talentPool.common.db.SimpleDataObject">
+    		<attribute name= "templateTypeId" column="template_type_id" type ="STRING" />
+    	</dataquery>
+	</dataqueries>   
+</dbmap>

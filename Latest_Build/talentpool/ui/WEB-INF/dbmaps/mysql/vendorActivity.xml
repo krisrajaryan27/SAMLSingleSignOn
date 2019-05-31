@@ -1,0 +1,74 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>	
+		<!-- Start : Vendor Management -->		
+		<dbquery name="qVendorActivityManager_GetActivities">
+			SELECT tasp.applicant_id, ta.applicant_name, tasp.position_id, tp.position_title,tasp.process_moved_date,
+			CASE WHEN tasp.position_step_id_to = ? THEN 'Joined' 
+			WHEN tasp.position_step_id_to IN (?, ?, ?, ?) THEN 'Rejected'
+			WHEN tasp.position_step_id_to = '-1' THEN 'On Hold'
+			WHEN tps.position_step_level=? THEN concat('In Process', ' (', tps.position_step_title, ')')
+			WHEN (SELECT application_property_value FROM tp_application_properties 	WHERE application_property=?) = ? 
+				THEN 
+				CASE WHEN tps.position_step_isscheduled=? THEN concat('In Process', ' (', tps.position_step_title, ')')
+				ELSE concat('In Process', ' (', tps.position_step_title, ')')
+				END
+			ELSE concat('In Process', ' (', tps.position_step_title, ')')
+			END AS activity
+			FROM tp_applicant_selection_process tasp 
+			LEFT JOIN tp_position_steps tps ON(tasp.position_step_id_to=tps.position_step_id)
+			,tp_applicants ta ,tp_positions tp , tp_position_vendors tpv
+			WHERE
+			tasp.position_id=tp.position_id
+			AND tasp.applicant_id=ta.applicant_id
+			AND tp.position_id= tpv.position_id 
+			AND ta.source_id=tpv.source_id
+			AND ta.vendor_id=?
+			AND ta.source_id=?
+			@@ @@ @@
+			ORDER BY tasp.process_moved_date DESC			
+			LIMIT ?, ?
+		</dbquery>
+		<dbquery name="qVendorActivityManager_GetActivitiesCount">
+			SELECT count(*) AS cnt
+			FROM tp_applicant_selection_process tasp ,tp_applicants ta ,tp_positions tp , tp_position_vendors tpv
+			WHERE
+			tasp.position_id=tp.position_id
+			AND tasp.applicant_id=ta.applicant_id
+			AND tp.position_id= tpv.position_id 
+			AND ta.source_id=tpv.source_id
+			AND ta.vendor_id=?
+			AND ta.source_id=?
+			@@ @@ @@
+		</dbquery>
+		<dbquery name="qVendorActivityManager_GetPositions">
+			SELECT tp.position_id, tp.position_title			
+			FROM tp_positions tp, tp_position_vendors tpv
+			WHERE tp.position_id = tpv.position_id 
+			AND tpv.source_id=?
+			AND tp.position_status = ?
+			ORDER BY tp.position_title
+		</dbquery>
+		<!-- End : Vendor Management -->
+	</dbqueries>
+	<dataqueries>
+	    <!-- Start : Vendor Management -->
+	    <dataquery name="dVendorActivityManager_GetActivities" dbquery="qVendorActivityManager_GetActivities" object="com.talentPool.common.db.SimpleDataObject">	   
+	    	<attribute name= "applicantId" column="applicant_id" type ="STRING" /> 	
+	    	<attribute name= "applicantName" column="applicant_name" type ="STRING" />
+	    	<attribute name= "positionId" column="position_id" type ="STRING" />
+	    	<attribute name= "positionTitle" column="position_title" type ="STRING" />
+	    	<attribute name= "activityDate" column="process_moved_date" type ="STRING" />	
+	    	<attribute name= "activity" column="activity" type ="STRING" />
+	    </dataquery>
+	    <dataquery name="dVendorActivityManager_GetActivitiesCount" dbquery="qVendorActivityManager_GetActivitiesCount" />
+	    <dataquery name="dVendorActivityManager_GetPositions" dbquery="qVendorActivityManager_GetPositions" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "positionId" column="position_id" type ="STRING" />    	
+	    	<attribute name= "positionTitle" column="position_title" type ="STRING" />    	
+	    </dataquery>
+	    <!-- End : Vendor Management -->
+	</dataqueries>   
+</dbmap>

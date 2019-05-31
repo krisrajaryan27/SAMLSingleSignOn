@@ -1,0 +1,59 @@
+/**
+ * 
+ */
+package com.talentPool.license.utils;
+
+import java.io.FileOutputStream;
+
+import com.talentPool.license.manager.NetworkInfo;
+
+/**
+ * @author pallavi
+ * @date Jan 11, 2007
+ */
+public class GenerateInstallationKey {
+	private static final String FILE = "installationKey.dat";
+	
+	public final void generateInstallationKey(String[] args) {
+		try {
+			
+			StringBuffer key = new StringBuffer();
+			key.append(args[0]);			// MAC Address
+			key.append("|");
+			key.append(args[1]);			// Company Name
+			key.append("|");
+			key.append(args[2]);			// Product Name
+			key.append("|");
+			key.append(args[3]);			// Product Version
+			key.append("|");
+			key.append(args[4]);			// Installation Date
+			String installationKey = StringToHex.convert(key.toString());
+			FileOutputStream stream = new FileOutputStream(FILE);
+			stream.write(installationKey.getBytes());
+			stream.close();
+		} catch (Exception e) {
+			
+		}		
+	}
+	
+	public static void main(String args[]) {	
+		try {
+			String[] temp = new String[5];
+			int indx = 0;
+			if (args.length == 4) {
+				NetworkInfo networkInfo = new NetworkInfo();
+				temp[0] = networkInfo.getMacAddress();
+			} else {
+				temp[0] = args[indx++];			
+			}
+			
+			for (int i = 1; indx < args.length; i++) {
+				temp[i] = args[indx++];
+			}
+			GenerateInstallationKey generateInstallationKey = new GenerateInstallationKey();
+			generateInstallationKey.generateInstallationKey(temp);
+		} catch (Exception e) {
+			
+		}
+	}
+}

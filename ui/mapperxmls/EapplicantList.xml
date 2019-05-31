@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mapping xmlns="http://castor.exolab.org/" xmlns:cst="http://castor.exolab.org/">
+    <description xmlns="">Castor generated mapping file</description>
+    <class name="com.talentPool.employeeservice.dataobject.Epagination">
+        <description xmlns="">Default mapping for class com.talentPool.employeeservice.dataobject.Epagination</description>
+        <map-to xml="epagination"/>
+        <field name="noOfPages" type="int">
+            <bind-xml name="no-of-pages" node="attribute"/>
+        </field>
+        <field name="pageSize" type="int">
+            <bind-xml name="page-size" node="attribute"/>
+        </field>
+        <field name="pageNo" type="int">
+            <bind-xml name="page-no" node="attribute"/>
+        </field>
+        <field name="recordCount" type="long">
+            <bind-xml name="record-count" node="attribute"/>
+        </field>
+        <field name="startRecordNo" type="int">
+            <bind-xml name="start-record-no" node="attribute"/>
+        </field>
+        <field name="recordRange" type="java.lang.String">
+            <bind-xml name="record-range" node="element"/>
+        </field>
+        <field name="showPaging" type="java.lang.String">
+            <bind-xml name="show-paging" node="element"/>
+        </field>
+    </class>
+    <class name="com.talentPool.employeeservice.dataobject.EapplicantList">
+        <description xmlns="">Default mapping for class com.talentPool.employeeservice.dataobject.EapplicantList</description>
+        <map-to xml="eapplicant-list"/>
+        <field name="pagination" type="com.talentPool.employeeservice.dataobject.Epagination">
+            <bind-xml name="pagination" node="element"/>
+        </field>
+        <field name="applicants" type="java.lang.Object" collection="arraylist">
+            <bind-xml name="applicants" node="element"/>
+        </field>
+    </class>
+    <class name="com.talentPool.employeeservice.dataobject.EapplicantData">
+        <description xmlns="">Default mapping for class com.talentPool.employeeservice.dataobject.EapplicantData</description>
+        <map-to xml="eapplicant-data"/>
+        <field name="applicantJoined" type="boolean">
+            <bind-xml name="applicant-joined" node="attribute"/>
+        </field>
+        <field name="positionReferalFees" type="java.lang.String">
+            <bind-xml name="position-referal-fees" node="element"/>
+        </field>
+        <field name="applicantPositionId" type="java.lang.String">
+            <bind-xml name="applicant-position-id" node="element"/>
+        </field>
+        <field name="customFields" type="java.lang.Object" collection="arraylist">
+            <bind-xml name="custom-fields" node="element"/>
+        </field>
+        <field name="expectedCTCDate" type="java.util.Date">
+            <bind-xml name="expected-cTCDate" node="element"/>
+        </field>
+        <field name="educationalDetails" type="java.lang.Object" collection="arraylist">
+            <bind-xml name="educational-details" node="element"/>
+        </field>
+        <field name="applicantName" type="java.lang.String">
+            <bind-xml name="applicant-name" node="element"/>
+        </field>
+        <field name="currentCTC" type="java.lang.String">
+            <bind-xml name="current-cTC" node="element"/>
+        </field>
+        <field name="currentLocation" type="java.lang.String">
+            <bind-xml name="current-location" node="element"/>
+        </field>
+        <field name="applicantWorkingSince" type="java.util.Date">
+            <bind-xml name="applicant-working-since" node="element"/>
+        </field>
+        <field name="expectedCTC" type="java.lang.String">
+            <bind-xml name="expected-cTC" node="element"/>
+        </field>
+        <field name="positionTitle" type="java.lang.String">
+            <bind-xml name="position-title" node="element"/>
+        </field>
+        <field name="experience" type="java.lang.String">
+            <bind-xml name="experience" node="element"/>
+        </field>
+        <field name="currentStatus" type="java.lang.String">
+            <bind-xml name="current-status" node="element"/>
+        </field>
+        <field name="currentEmployer" type="java.lang.String">
+            <bind-xml name="current-employer" node="element"/>
+        </field>
+        <field name="currentCTCDate" type="java.util.Date">
+            <bind-xml name="current-cTCDate" node="element"/>
+        </field>
+        <field name="applicantId" type="java.lang.String">
+            <bind-xml name="applicant-id" node="element"/>
+        </field>
+        <field name="skills" type="java.lang.String">
+            <bind-xml name="skills" node="element"/>
+        </field>
+        <field name="originalResumePath" type="java.lang.String">
+            <bind-xml name="original-resume-path" node="element"/>
+        </field>
+        <field name="applicantStepId" type="java.lang.String">
+            <bind-xml name="applicant-step-id" node="element"/>
+        </field>
+        <field name="dateUploaded" type="java.lang.String">
+            <bind-xml name="date-uploaded" node="element"/>
+        </field>
+        <field name="category" type="java.lang.String">
+            <bind-xml name="category" node="element"/>
+        </field>
+        <field name="subCategory" type="java.lang.String">
+            <bind-xml name="subCategory" node="element"/>
+        </field>
+        <field name="isEmployeeApply" type="java.lang.String">
+            <bind-xml name="isEmployeeApply" node="element"/>
+        </field>
+         <field name="reasonForReject" type="java.lang.String">
+            <bind-xml name="reasonForReject" node="element"/>
+        </field>
+    </class>
+</mapping>

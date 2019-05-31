@@ -1,0 +1,303 @@
+VERSION 11.9.0
+
+TalentPool Changes:
+1.	Offer Letter Generation
+	-	Added Applicant Id, Skills, Education related fields (Degree, Branch, Institute, Class, YOP), Experience.
+2.	BCC option while sending Email from TalentPool.
+3.	Education Details on Enter Feedback Screen.
+4.	Date and Time Format maintained uniformly throughout the application.
+
+Employee Portal Changes:
+1. User registration configurable and mandatory validation made proper.
+2. Date and Time Format made uniform throughout the employee portal.
+
+Vendor Portal Settings:
+1. Date and Time Format made uniform throughout the vendor portal. 
+
+
+
+VERSION 3.0.0
+WHAT'S NEW?
+- Talentpool labels can be modified. The labels displayed in talentpool can be customized, to do this go to Admin->Messages. In order to apply the changes, the talentpool service needs to be stopped and start again.
+- Extra custom fields can also be added to Positions. Go to Admin->Custom fields
+You need to take help of our customer support in order to make the changes
+
+WHAT'S MODIFIED?
+- While entering feedback a link on candidate name will open the Candidate details in separate window
+
+
+VERSION 2.9.0
+WHAT'S NEW?
+- Create compact feedback form
+- User can mark few fields in feedback form as compulsory
+- DocX support. Needs office 2007 on the server.
+
+WHAT'S MODIFIED?
+- Search on custom fields modified to search within fields
+- Scheduled by users displays only hr users
+- Users can be selected efficiently using grid controls in selection steps
+- Duplicate’s can be detected on click on import screen and then proceed. The system will also warn you regarding duplicate on auto parsed content
+
+VERSION 2.8.0
+
+WHAT'S NEW?
+- Folders in inbox. User can create folder’s in folder master. User will be able to move emails in the inbox to different folders. 
+- Sorting of emails by From, attachement, subject and date is possible on import tab
+- Notification to assigned user when candidate is short listed or moved to a stage which is non schedulable
+When candidate is shortlisted and moved to non schedulable step (Technical Screening) an email notification is sent automatically to all assigned users to enter feedback for the same. The template “Feedback Notification To Assigned User” is added to template’s master. 
+The notification to assigned user is sent only when “Send feedback reminders” property is enabled in Admin->Application Settings and permission “Send Notification to User for non Schedulable step” is enabled in advanced permission for user.
+
+WHAT'S MODIFIED?
+- To do was generated for all users selected as decision makers for the particular step even if user is not selected while scheduling appointment.
+This is modified such that, If at least one of the user selected while scheduling appointment has decision making rights then to do will be generated only for the users selected in the appointment. If no user selected in appointment is decision maker then a to do item will be generated to all users selected in appointment and decision makers for the stage.
+ 
+WHAT'S FIXED?
+- Time format displayed in interview list report is fixed to display in hr:mm format
+
+
+
+VERSION 2.7.0
+
+WHAT'S NEW?
+- Walkin Module 
+- Require license change
+
+
+VERSION 2.6.0
+
+WHAT'S NEW?
+
+-         Notice period field is added on the import screen
+-         Filter’s on manage user’s screen
+-         Employee Portal (Description is given in separate section below)
+-         Feedback form is modified to take Level Offered, CTC offered, Designation Offered with joining date. Also this interaction is hidden by default
+-         A New Stage is added “Shortlist” with “Select” and “Hire”. 
+-         New status “On Hold” is added to positions with “Open” and “Close”. Positions “On hold” will not be reflected in the application anywhere.
+-         While creating position, user will be able to select “Department”, “Sub department” and “Group”. 
+-         New fields “Position Level” and “Referral fees” are added while creating position
+-         Department master is changed to add department, sub department and group in hierarchical manner
+-         Master report
+			1.      Generate master report based on activities done with given date range.
+			2.      It includes Department wise activity report
+			3.      Recruiter wise activity report
+			4.      Pending Offers report
+			5.      Joined candidates report
+			6.      Aging report
+			7.      All above reports are generated for given date range in single excel file and drill down is possible to see the details in master sheet
+-         Exchange server support for fetching emails is added with POP3 and IMAP. Current release supports MS Exchange (2000/2003) 
+
+WHAT'S MODIFIED?
+-         Display of position creation date on positions screen
+-         Sort by position priority is possible on dashboard in position summary
+-         While creating user, if LDAP is enabled and user does not exists on the domain, you can still create a user with “skip ldap settings” option
+-         Username with spaces is not allowed
+-         If maximum no of skills extracted while import is set to 0 in application settings, system will not fetch any skill. If set to -1 then system will try to fetch all skills found in resume.
+-         Multiple users with same email address are not allowed
+-         Vendor application changes
+			1.      While importing applicant, recruiter will be able to select the user of vendor and the resume will be displayed to the vendor in vendor portal.
+			2.      When email is sent from vendor application, the candidate is assigned to vendor user based on username of the vendor
+-         Sender’s email address is displayed on the import screen
+-         Mass email reply goes to recruiter’s email address instead of talentpool
+-         While sending emails from talentpool, email will be always sent using inbox SMTP authentication, But sent with display name and reply to email of user who is sending the email
+ 
+WHAT’S FIXED
+-         Rating’s deleted even in use is fixed
+-         Issue with disabling user, where screen was not displaying the status is fixed
+-         Username limit on login screen, not allowing user to login is fixed
+-         Selected row appearance is made more prominent, so user can easily distinguish the selected row in the grid
+-         On feedback form when user is moved to different positions, the position steps shown for selected position are changed from all steps to only active steps.
+
+Employee Portal
+Employee Portal is an application which can be installed on the same or different server where talentpool is installed
+Vendor application is an independent application, which you can deploy on separate or same system where talentpool is installed
+The application is accessible to all employees of organization.
+
+Employees accessing application:
+-         Employee will be able to see the login screen using a link 
+-         Employee will fill up the registration form and creates username and password.
+-         Using above generated username and password login to employee portal
+-         Open Positions 
+			1.      Employee will be able to see all open positions with date posted on and referral fees on “Open Positions” tab
+			2.      Can Filter using skills and experience 
+			3.      Can Sort by position date posted and referral fees
+			4.      Can see position details on click of position name
+-         Position Details
+			1.      On this screen position details are displayed
+			2.      Can refer a friend
+			3.      Can forward this position in email to friend
+-         Refer a Friend
+			1.      Fill the form
+			2.      Upload friends resume
+			3.      Submit
+-         My Candidates
+			1.      Can see all candidates he has referred with their current status in the system
+			2.      Can filter by Joined, in process and rejected status
+
+When employee get’s registered, a login is automatically created in talentpool with role as “Employee” and Souce with employee name is also created and get’s attached to this login. Recruiter can also create a user of type “Employee” and give this login username and password to employee to login using employee portal.
+While importing candidate it is possible to attach the employee as a source. For this while importing, select Employee referral as source and select the name of the employee as source while importing. 
+
+
+
+VERSION 2.4.0
+WHAT'S NEW?
+-	Reminders. User can set reminders from applicant details page. All reminders set by user can be seen on his dashboard. To remove reminders from dashboard click on the delete icon in front of the reminder.
+-	Improved naukri and monster resume parser. If resume is in naukri and moster specific format (Not plain resume) then the application will try to extract all the fields present in the resume. The source with name monster and naukri should be pre defined in the source master
+-	Candidate status report. Now user can fetch a list of users with their current status and last action to whom they have moved/rejected/imported during given date range. Using this report it is also possible to fetch list of all candidates got from particular Employment agency and view their current status. Filter can be applied on all positions/open positions/specific position etc.
+-	Undo last action. If user by mistake rejects a candidate, or move him to next stage or confirmed attendance instead. Now the last action done by user can be roll back. 
+	For Example: If you reject a candidate by mistake. Just go to applicant details page, you will see a button on the top “Undo last feedback”. Clicking on the button will undo your last action “reject” and will put the candidate in the last position/stage from where you rejected him.
+
+WHAT'S MODIFIED?
+-	With hiring process defined, now it is possible to mark interviewer also to confirm attendance. This is important in case of telephonic interview where interviewer is supposed to mark the attendance. To make this work, you need to go to position->hiring process and edit a step. Check the “Interviewer can confirm” checkbox. If you make this change, once interview “from time” is passed, to do to confirm attendance will be also displayed to interviewer. 
+-	When confirming attendance, previously the application used to send feedback reminder email to all attendee of interview. Now in confirm attendance user can select the users to whom the feedback reminder will go. This is useful in case user has assigned the appointment to multiple interviewers but at the end only one interviewer takes the interview.
+
+
+VERSION 2.3.0
+WHAT'S NEW?
+- Interactions can be hidden
+- Set/modify individual user permissions or permissions for role
+WHAT'S MODIFIED?
+- Header and footer are displayed while importing
+- Users in position step are alphabetically ordered
+
+
+VERSION 2.2.0
+- Candidate assesment sheet, with ratings
+- Talentpool hangs on import screen problem fixed
+
+VERSION 2.1.0
+
+WHAT'S NEW?
+- Requisition management
+- Report access to requisitioners, view only position specific data
+
+VERSION 2.0.0
+
+WHAT'S NEW?
+- Print feedback
+- You can upload documents to candidate profile. Go to candidate details page. go to more->upload file. The file privacy can be also limited to HR users only.
+- Import resume directly from your system, instead of sending email to talentpool inbox. go to Import tab and click "upload resume" button.
+
+- Expenses
+You can store recruitment related expenses. You can access this feature from new expenses tab.
+REPORT: Recruitment cost report(summary/details) based on various criteria’s for given financial year.
+
+- Vendor management application: The details are given below separately
+- Duplicate settings can be customized. To configure duplicate settings for talentpool go to Admin->duplicate detection settings.
+- REPORT: Pending actions report
+
+
+WHAT'S MODIFIED?
+- Email formatting can be done easily.
+- HTML editor while creating templates.
+- More restrictions on user with Interviewer role. facility of scheduling, mailing the candidate etc. is not available for them
+- You can change the flags from select as well as hire tab for selected candidate.
+- Reply/forward directly from import window.
+- While creating position facility to select skills from existing skills is given on Requirements tab.
+- If position is closed, all the inprocess candidates are automatically marked as "Moved to Position Closed" instead of reject.
+- All screens now displays experience as 1 yrs 6 mos instead on 1.5 yrs
+- Enhanced search for multiple branches. Options to search "All words" or "Any word" or "Exact term" available
+
+
+
+VENDOR APPLICATION:
+Vendor application is an independent application, which you need to deploy on separate system in order to secure talentpool data.
+The application is accessible to all vendors.
+
+Vendor accessing application:
+Vendor will be able to login into the application using their own username and password. Each vendor can have one or multiple logins.
+Vendors will be able to see only positions which are published to them on Positions tab and will be also able to upload resume for selected position.
+Vendors will be able to see the entire candidate they uploaded and their current status on Candidates tab.
+Vendors will be able to latest activities for their candidates on Activities tab.
+
+Recruiter's role for vendor application:
+As a recruiter you will be responsible to publish position to vendor.
+You will be responsible to create login for vendor using which they can login.
+You can define separate duplicate detection settings for vendors.
+
+
+Version 1.6.0
+
+What's new?
+- Ability to flag candidate. The flag text is customizable. User can apply one or more that one flag to each profile and is able to search based on flags
+- LDAP integration. With LDAP integrated in talentpool, User can use windows username and password instead of talentpool username and password.
+- Talentpool inbox can be configured to send auto reply email, when email is received.
+- Delete applicant is possible with admin rights only
+- Offer to join report in summary and detail format
+- Candidate comparison report can be used to compare candidates shortlisted for position and also for specific stage
+
+What's modified?
+-  Print email with header
+-  While importing resumes if same resume is found in the system, system gives an alert as applicant name already exist in the system. This alert is modified to show last resume updated date of the applicant in the system.
+-  While creating appointment, user can select template to be used for reminder email and SMS. By default there will one template always selected but user can change the template while creating appointment, this is helpful in case interview is telephonic interview or interview is to be conducted at different location/city
+-  Interviewer access is limited and interviewer can not access reports, inbox and screen.
+	
+
+Version 1.5.0
+What's new?
+- Send SMS using talentpool.
+
+What's modified?
+- User having rights to higher step can see feedback for steps already done.
+- Support for Secure IMAP, POP3 and SMTP added to inbox.
+
+
+Version 1.4.0
+What's modified?
+- Appointments reminders are send using sender email address
+- While sending appointments to attendee, confirmation is taken from the user
+- Decision maker is able to see the todo list even if not involved in the process
+- Ability to put line breaks in the feedback form
+
+
+Version 1.3.0
+
+What's new?
+- Custom fields can be added on import and search screen
+- Reports
+	- Applicant details report
+	- Sourcewise import report
+
+What's modified?
+- Multiple educational qualification are allowed to enter on Import screen 
+
+
+Version 1.2.0
+
+What's new?
+- View sent emails
+- Allow user to set expected joining date for candidates in hire level
+
+What's modified?
+- While entering feedback only user who is responsible for moving candidate from the step, 
+is able to view the feedback entered by other users. (This way interviewer will not be able to see and edit 
+feedback entered by other users). 
+- search filter applied checks for strict matches
+- While sending message, the message to select box is replaced with autocomplete textbox
+
+Bug fixes
+- Interviewer was able to change the process, It is fixed so interviewer is not able to change the process
+- Concurrent + multiple users submitting feddback condition handled.
+  
+
+version 1.1.0
+What's new?
+- Modified - dashboard, Sent messages in last 7 days can be seen on dashboard.
+- Reports Added
+	- Position Activity Report
+	- User Activity Report
+	- Interview List Report
+- Allow cc for messages
+
+What's modified?
+- Multiple degree's search allowed in screen (search)-> filter
+- Degree level is removed from admin degree master
+- Joining date is displayed permanantly on feedback form when applicant is in hire level stage.
+
+Bug fixes
+- Send interview reminder's bug fixed
+- Explorer caching modal pop up, bug fixed.
+- Hiring efficiency report from date required bug fixed.
+
+
+
+

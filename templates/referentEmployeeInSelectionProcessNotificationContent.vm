@@ -1,0 +1,1 @@
+<p>Hi $CONTACT_PERSON_FNAME $CONTACT_PERSON_LNAME,</p><p>The employee who referred the shortlisted candidate is a part of the selection panel appointed for the position. </p><p>&nbsp;Candidate Name :&nbsp;$CANDIDATE_NAME</p><p>&nbsp;Position Name&nbsp;&nbsp;&nbsp; : $POSITION_TITLE</p><p>&nbsp;Employee Name : $EMPLOYEE_NAME&nbsp; </p>

@@ -1,0 +1,242 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>
+		<dbquery name="qMasterReportManager_GetApplicantMasterData">
+			SELECT tasp.process_id, ta.applicant_id, ta.applicant_name, ta.applicant_city, ta.applicant_email1, ta.applicant_email2,
+			  ta.applicant_home_phone, ta.applicant_home_phone_is_invalid, ta.applicant_cell_phone,
+			  ta.applicant_cell_phone_is_invalid, ta.applicant_work_phone, ta.applicant_work_phone_is_invalid,
+			  ta.applicant_working_since,ta.applicant_position_id, ta.applicant_step_id, ta.applicant_date_created,
+			  ta.source_id, ta.applicant_joined, ta.applicant_date_joined, ta.applicant_current_employer, ta.user_id,
+			  ta.current_ctc, ta.current_ctc_date, ta.expected_ctc, ta.expected_ctc_date,
+			  ta.applicant_notice_period, ta.applicant_level_offered, 
+			  ta.applicant_designation_offered, ta.offered_ctc,tp.position_id,
+			  tp.position_code, tp.position_title, tp.position_no_of_openings, tp.position_date_created,tp.position_date_expiry,tp.position_date_closed,
+			  tp.dept_id, tp.position_status, tp.sub_dept_id, tp.sub_sub_dept_id, tp.position_level, tp.position_note,
+			  tp.position_requested_by, tasp.process_date_created, tp.type_of_vacancy,tp.requirements, 
+			  tp.position_min_exp, tp.position_max_exp, 
+				Case 
+				when tp.position_priority=0 then 'low'
+				else 
+				Case 
+				when tp.position_priority=1 then 'medium'
+				else 'high'
+				end
+				end AS 'Priority', position_date_approved, position_date_opend,
+			 (    select tp1.approval_user_ids from tp_positions tp1 where tp1.position_id=tp.position_id
+				
+			  ) AS approval_users,
+			  (SELECT count(distinct (tasp.applicant_id)) from tp_applicant_selection_process tasp
+				where tasp.position_id=tp.position_id) as applicants_submitted,
+				(SELECT count(distinct (tasp.applicant_id)) from tp_applicant_selection_process tasp, tp_position_steps tps, tp_step_master tsm, tp_step_level tsl
+				where tasp.position_step_id_from = tps.position_step_id
+				and tps.step_id = tsm.step_id
+				and tsm.step_level=tsl.step_level
+				and tsl.step_level ='0'
+				and tasp.position_step_id_to in ('0','-4','-6','-7')
+				and tasp.position_id=tp.position_id) as screen_rejected,
+				(SELECT count(distinct (tasp.applicant_id)) from tp_applicant_selection_process tasp
+				where tasp.position_id=tp.position_id
+				and tasp.applicant_id not in (SELECT distinct (tasp.applicant_id) from tp_applicant_selection_process tasp, tp_position_steps tps, tp_step_master tsm, tp_step_level tsl
+				where tasp.position_step_id_from = tps.position_step_id
+				and tps.step_id = tsm.step_id
+				and tsm.step_level=tsl.step_level
+				and tsl.step_level ='0'
+				and tasp.position_step_id_to in ('0','-4','-6','-7')
+				and tasp.position_id=tp.position_id)) as applicants_screened,	
+			  (SELECT group_concat(drop_comment) FROM tp_positions_dropped_info tpdi WHERE tpdi.position_id=tp.position_id) as position_drop_comment,
+				(SELECT group_concat(date_dropped) FROM tp_positions_dropped_info tpdi WHERE tpdi.position_id=tp.position_id) as position_drop_date,
+				(select count(*) from tp_applicant_joining_history ta where ta.position_id=tp.position_id) as joined,
+				(select max(date_created) from tp_applicant_joining_history ta where ta.position_id=tp.position_id) as last_joining_date,
+			  ( SELECT group_concat(DISTINCT location_name SEPARATOR ', ') FROM tp_location_ap 
+				WHERE location_id IN 
+				(SELECT location_id FROM tp_position_locations WHERE position_id=tp.position_id)
+			  ) AS positionLocation,
+			  (SELECT concat(USER_FNAME,' ',USER_LNAME) FROM tp_users tu WHERE tu.user_id=tp.position_requested_by) AS requisitioner,
+			  
+			  ( SELECT group_concat(DISTINCT bu_name SEPARATOR ', ') FROM tp_business_unit 
+				WHERE bu_id IN 
+				(SELECT bu_id FROM tp_position_business_unit WHERE position_id=tp.position_id)
+			   ) AS positionBusinessUnit,
+			   
+			  ( SELECT group_concat(DISTINCT cost_center_name SEPARATOR ', ') FROM tp_cost_center 
+				WHERE cost_center_id IN 
+				(SELECT cost_center_id FROM tp_position_cost_center WHERE position_id=tp.position_id)
+			   ) AS positionCostCenter,
+			   
+			 (SELECT concat(USER_FNAME,' ',USER_LNAME) FROM tp_users tu WHERE tu.user_id=tp.position_owner_id) AS positionOwner,
+			 
+			 (SELECT band_name FROM tp_budget_bands tbb WHERE tbb.band_id=tp.band_id) AS positionBand,
+
+			 (SELECT grade_name FROM tp_budget_grades tbg WHERE tbg.grade_id=tp.grade_id) AS positionGrade,
+			 
+			 (SELECT budget_item_name FROM tp_budget_items tbi WHERE tbi.budget_item_id=tp.budget_item_id) AS positionBudgetItemName,
+			 
+			 (SELECT dept_name FROM tp_departments WHERE dept_id=tp.dept_id ) AS department,
+			 (SELECT dept_name FROM tp_departments WHERE dept_id=tp.sub_dept_id ) AS subDepartment,
+			 (SELECT dept_name FROM tp_departments WHERE dept_id=tp.sub_sub_dept_id ) AS subSubdepartment,
+			  ts.source_title, tst.source_type,
+			  (     SELECT group_concat(DISTINCT skill SEPARATOR ', ') FROM tp_skills 
+				WHERE skill_id IN 
+				(SELECT skill_id FROM tp_position_skills WHERE position_id=tp.position_id)
+			  ) AS skills,
+			  (	SELECT group_concat(DISTINCT concat(USER_FNAME,' ',USER_LNAME) SEPARATOR ', ') FROM tp_users tu,tp_position_step_users tpsu, tp_user_roles tur 
+				WHERE tu.user_id= tpsu.user_id AND tpsu.position_id=tp.position_id AND tur.user_id=tu.user_id AND tur.role_id=?
+			) AS recruiter
+			
+			  FROM tp_applicants ta, tp_sources ts, tp_source_types tst, tp_positions tp ,
+			  (SELECT process_id, applicant_id, position_step_id_from, position_step_id_to, process_date_created, position_id 
+			FROM(
+				SELECT process_id, applicant_id, position_step_id_from, position_step_id_to, process_date_created, position_id 
+				FROM(
+					SELECT process_id, applicant_id, position_step_id_from, position_step_id_to, process_date_created, position_id 
+					FROM(
+						SELECT max(process_id) as process_id, applicant_id, position_step_id_from, position_step_id_to, process_date_created, position_id 
+						FROM tp_applicant_selection_process 
+						WHERE process_date_created &gt;=? AND process_date_created &lt;=?
+						GROUP BY applicant_id, position_id
+					) AS x 
+					
+					UNION 
+					
+					SELECT process_id, applicant_id, position_step_id_from, position_step_id_to, process_date_created, position_id 
+					FROM(
+						SELECT process_id, applicant_id, position_step_id_from, position_step_id_to, process_date_created, position_id 
+						FROM(
+							SELECT max(process_id) as process_id, applicant_id, position_step_id_from, position_step_id_to, process_date_created, position_id 
+							FROM tp_applicant_selection_process 
+							WHERE process_date_created &lt;? 
+							GROUP BY applicant_id, position_id
+						) AS x 
+					) AS y	WHERE position_step_id_to NOT IN (?,?,?,?,?)
+					
+				) AS z ORDER BY process_id DESC
+			
+			) as i GROUP BY applicant_id, position_id) as tasp	
+			  WHERE tasp.position_id=tp.position_id
+			AND tasp.applicant_id = ta.applicant_id	
+			AND ts.source_id=ta.source_id
+			AND ts.source_type_id=tst.source_type_id @@
+		</dbquery>
+		<dbquery name="qMasterReportManager_GetApplicantInteractionData">
+			SELECT * FROM(
+			SELECT tasp.process_id, tasp.applicant_id, tasp.position_id, tasp.position_step_id_from,
+			tasp.position_step_id_to, tasp.process_date_created, tps.position_step_isscheduled,tps.position_step_title,
+			(SELECT position_step_level FROM tp_position_steps itps WHERE itps.position_step_id=tasp.position_step_id_to)
+			AS position_step_level_to, tapo.appointment_from_date,
+			(SELECT group_concat(DISTINCT concat(USER_FNAME,' ',USER_LNAME) SEPARATOR ', ') FROM tp_users tu,
+			tp_appointment_attendees taa WHERE tapo.appointment_id=taa.appointment_id AND taa.attendee_id=tu.user_id) AS interviewers,
+			(SELECT concat(USER_FNAME,' ',USER_LNAME) FROM tp_users tu LEFT JOIN tp_user_roles tur ON (tu.user_id=tur.user_id)
+			WHERE tu.user_id=tasp.user_id AND ( tur.role_id=? OR tur.role_id=?) ) AS recruiter,
+			tps.position_step_level
+			FROM tp_applicant_selection_process tasp LEFT JOIN tp_position_steps tps 
+			ON (tasp.position_id=tps.position_id AND tasp.position_step_id_from = tps.position_step_id)
+			LEFT JOIN tp_appointments tapo ON(tasp.position_id=tapo.position_id 
+			AND tasp.applicant_id=tapo.applicant_id AND tasp.position_step_id_from = tapo.position_step_id
+			@@
+			)
+			WHERE 
+			tasp.applicant_id=?
+			AND tasp.position_id=?
+			AND process_id &lt;=?
+			AND process_id &gt;=(SELECT process_id FROM tp_applicant_selection_process WHERE applicant_id=? AND position_id=?
+								AND process_id &lt;=? AND position_step_id_from=? ORDER BY process_id DESC LIMIT 0,1)
+			ORDER BY process_id, tapo.appointment_from_date DESC
+			) as x GROUP BY process_id
+
+		</dbquery>
+		<dbquery name="qMasterReportManager_GetPositionIdsWithJoiningCandidates">
+			select distinct position_id as applicant_position_id
+			from tp_applicant_joining_history
+		</dbquery>
+	</dbqueries>
+	<dataqueries>
+		<dataquery name="dMasterReportManager_GetApplicantMasterData" dbquery="qMasterReportManager_GetApplicantMasterData" object="com.talentPool.reports.dataobject.MasterReportData">
+	    	<attribute name="processId" column="process_id" type="STRING" />
+	    	<attribute name="processDateCreated" column="process_date_created" type="DATE" />
+	    	<attribute name="applicantId" column="applicant_id" type="STRING" />
+	    	<attribute name="applicantName" column="applicant_name" type="STRING" />
+	    	<attribute name="applicantCity" column="applicant_city" type="STRING" />
+	    	<attribute name="applicantEmail1" column="applicant_email1" type="STRING" />
+	    	<attribute name="applicantEmail2" column="applicant_email2" type="STRING" />
+	    	<attribute name="applicantHomePhone" column="applicant_home_phone" type ="STRING" />
+			<attribute name="applicantHomePhoneIsInvalid" column="applicant_home_phone_is_invalid" type ="STRING" />
+			<attribute name="applicantCellPhone" column="applicant_cell_phone" type ="STRING" />
+			<attribute name="applicantCellPhoneIsInvalid" column="applicant_cell_phone_is_invalid" type ="STRING" />
+			<attribute name="applicantWorkPhone" column="applicant_work_phone" type ="STRING" />
+			<attribute name="applicantWorkPhoneIsInvalid" column="applicant_work_phone_is_invalid" type ="STRING" />
+			<attribute name="applicantWorkingSince" column="applicant_working_since" type="DATE" />
+	    	<attribute name="positionId" column="position_id" type="STRING" />
+	    	<attribute name="applicantStepId" column="applicant_step_id" type="STRING" />
+	    	<attribute name="applicantDateCreated" column="applicant_date_created" type="DATE" />
+	    	<attribute name="applicantJoined" column="applicant_joined" type="STRING" />
+	    	<attribute name="applicantDateJoined" column="applicant_date_joined" type="DATE" />
+	    	<attribute name="applicantCurrentEmployer" column="applicant_current_employer" type="STRING" />
+	    	<attribute name="currentCTC" column="current_ctc" type="STRING" />
+	    	<attribute name="expectedCTC" column="expected_ctc" type="STRING" />
+	    	<attribute name="applicantNoticePeriod" column="applicant_notice_period" type="STRING" />
+	    	<attribute name="applicantLevelOffered" column="applicant_level_offered" type="STRING" />
+	    	<attribute name="applicantDesignationOffered" column="applicant_designation_offered" type="STRING" />
+	    	<attribute name="offeredCTC" column="offered_ctc" type="STRING" />
+	    	<attribute name="positionCode" column="position_code" type="STRING" />
+	    	<attribute name="positionTitle" column="position_title" type="STRING" />
+	    	<attribute name="vacancies" column="position_no_of_openings" type="STRING" />
+	    	<attribute name="positionDateCreated" column="position_date_created" type="DATE" />
+	    	<attribute name="positionDateExpiry" column="position_date_expiry" type="DATE" />
+	    	<attribute name="positionDateClosed" column="position_date_closed" type="DATE" />
+	    	<attribute name="positionStatus" column="position_status" type="STRING" />
+	    	<attribute name="positionLevel" column="position_level" type="STRING" />
+	    	<attribute name="positionNote" column="position_note" type="STRING" />
+	    	<attribute name="positionLocation" column="positionLocation" type="STRING" />
+	    	<attribute name="requisitioner" column="requisitioner" type="STRING" />
+	    	<attribute name="department" column="department" type="STRING" />
+	    	<attribute name="subDepartment" column="subDepartment" type="STRING" />
+	    	<attribute name="subSubdepartment" column="subSubdepartment" type="STRING" />
+	    	<attribute name="sourceTitle" column="source_title" type="STRING" />
+	    	<attribute name="sourceType" column="source_type" type="STRING" />
+	    	<attribute name="skills" column="skills" type="STRING" />
+	    	<attribute name="recruiter" column="recruiter" type="STRING" />
+	    	<attribute name="positionOwner" column="positionOwner" type="STRING" />
+	    	<attribute name="positionBusinessUnit" column="positionBusinessUnit" type="STRING" />	    	
+	    	<attribute name="positionCostCenter" column="positionCostCenter" type="STRING" />	    	
+	    	<attribute name="positionTypeOfVacancy" column="type_of_vacancy" type="STRING" />
+	    	<attribute name="positionBand" column="positionBand" type="STRING" />
+	    	<attribute name="positionGrade" column="positionGrade" type="STRING" />
+	    	<attribute name="positionBudget" column="positionBudgetItemName" type="STRING" />
+	    	<attribute name="requirements" column="requirements" type="STRING" />	    	
+	    	<attribute name="minExp" column="position_min_exp" type="STRING" />	    	
+	    	<attribute name="priority" column="priority" type="STRING" />
+	    	<attribute name="positionDateApproved" column="position_date_approved" type="STRING" />
+	    	<attribute name="approvalUsers" column="approval_users" type="STRING" />
+	    	<attribute name="maxExp" column="position_max_exp" type="STRING" />
+	    	<attribute name="positionDropComment" column="position_drop_comment" type="STRING" />
+	    	<attribute name="positionDropDate" column="position_drop_date" type="STRING" />
+	    	<attribute name="positionDateOpened" column="position_date_opend" type="STRING" />
+	    	<attribute name="applicantsSubmitted" column="applicants_submitted" type="STRING" />
+	    	<attribute name="screenRejected" column="screen_rejected" type="STRING" />
+	    	<attribute name="applicantsScreened" column="applicants_screened" type="STRING" />
+	    	<attribute name="joined" column="joined" type="STRING" />
+	    	<attribute name="lastCandidateDateJoined" column="last_joining_date" type="STRING" />
+	    </dataquery>
+	    <dataquery name="dMasterReportManager_GetApplicantInteractionData" dbquery="qMasterReportManager_GetApplicantInteractionData" object="com.talentPool.reports.dataobject.MasterReportData">
+	    	<attribute name="processId" column="process_id" type="STRING" />
+	    	<attribute name="applicantId" column="applicant_id" type="STRING" />
+	    	<attribute name="positionId" column="position_id" type="STRING" />
+	    	<attribute name="positionStepIdFrom" column="position_step_id_from" type="STRING" />
+	    	<attribute name="positionStepIdTo" column="position_step_id_to" type="STRING" />
+	    	<attribute name="processDateCreated" column="process_date_created" type="DATE" />
+	    	<attribute name="positionStepIsscheduled" column="position_step_isscheduled" type="STRING" />
+	    	<attribute name="positionStepLevelFrom" column="position_step_level" type="STRING" />
+	    	<attribute name="positionStepLevelTo" column="position_step_level_to" type="STRING" />
+	    	<attribute name="appointmentFromDate" column="appointment_from_date" type="DATE" />
+	    	<attribute name="interviewers" column="interviewers" type="STRING" />
+	    	<attribute name="positionStepTitle" column="position_step_title" type="STRING" />
+	    	<attribute name="recruiter" column="recruiter" type="STRING" />	    	
+	    </dataquery>
+	    <dataquery name="dMasterReportManager_GetPositionIdsWithJoiningCandidates" dbquery="qMasterReportManager_GetPositionIdsWithJoiningCandidates" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name="applicantPositionId" column="applicant_position_id" type="STRING" />
+	    </dataquery>
+	</dataqueries>   
+</dbmap>

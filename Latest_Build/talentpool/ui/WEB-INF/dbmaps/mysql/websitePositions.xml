@@ -1,0 +1,139 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>	
+		<!-- Start : Website Management -->
+		<dbquery name="qWebsitePositionManager_GetPositionDetailsForWebsite">
+			SELECT * FROM(
+			SELECT tp.position_id, tp.position_code, tp.position_title,
+			tp.position_level, tp.position_referal_fees,
+			@@
+			tp.position_note,
+			date_format(tp.position_date_created, '%d-%b-%y') as position_date_created,
+			date_format(tp.website_publish_from_date, '%d-%b-%y') as position_date_published,
+			(select group_concat(DISTINCT tls.location_name) from tp_location_ap tls
+				where tls.location_id in (select tpls.location_id
+						from tp_position_locations tpls
+						where tpls.position_id=tp.position_id 
+						)) as location,
+				tp.position_no_of_openings,
+			(select td.dept_name from tp_departments td
+				where td.dept_id=tp.dept_id) as dept_name,
+			(SELECT td.dept_name FROM tp_departments td WHERE tp.sub_dept_id=td.dept_id) AS sub_dept_name,
+			(SELECT td.dept_name FROM tp_departments td WHERE tp.sub_sub_dept_id=td.dept_id) AS sub_sub_dept_name,
+			(SELECT td.dept_name FROM tp_departments td WHERE tp.sub3_dept_id=td.dept_id) AS sub3_dept_name,
+			(SELECT td.dept_name FROM tp_departments td WHERE tp.sub4_dept_id=td.dept_id) AS sub4_dept_name,
+			(tp.position_no_of_openings - (select count(*) 
+							from tp_applicant_joining_history ta 
+							where ta.position_id = tp.position_id )
+			) as unfilled_vacancies,
+			date_format(tp.position_date_expiry, '%d-%b-%y') as expiry_date,
+			(select group_concat(tpsk.skill) from tp_skills tpsk
+				where tpsk.skill_id in (select tppsk.skill_id
+						from tp_position_skills tppsk
+						where tppsk.position_id=tp.position_id 
+						and tppsk.skill_type=?)) as primary_skills,
+			(select group_concat(tpsk.skill) from tp_skills tpsk
+				where tpsk.skill_id in (select tppsk.skill_id
+						from tp_position_skills tppsk
+						where tppsk.position_id=tp.position_id 
+						and tppsk.skill_type=?)) as secondary_skills,
+			concat(case when ceil(tp.position_min_exp)=floor(tp.position_min_exp) 
+			then round(tp.position_min_exp, 0) 
+			else format(tp.position_min_exp, 1) 
+			end, ' to ', 
+			case when ceil(tp.position_max_exp)=floor(tp.position_max_exp) 
+			then round(tp.position_max_exp, 0) 
+			else format(tp.position_max_exp, 1) 
+			end, ' yrs') as experience,
+			GROUP_CONCAT(DISTINCT tdgr.degree_title SEPARATOR ', ') AS education, 
+			GROUP_CONCAT(DISTINCT tbr.branch_name SEPARATOR ', ') AS branch
+			from tp_positions tp 
+			LEFT JOIN tp_position_branches tpb ON (tpb.position_id=tp.position_id)
+			LEFT JOIN tp_position_degrees tpd ON (tpd.position_id=tp.position_id)
+			LEFT JOIN tp_degrees tdgr ON (tdgr.degree_id=tpd.degree_id)
+			LEFT JOIN tp_branches tbr ON (tpb.branch_id = tbr.branch_id)
+			LEFT JOIN tp_position_locations tpl ON (tpl.position_id = tp.position_id)
+			LEFT JOIN tp_location_ap tl ON (tpl.location_id = tl.location_id) 
+			@@
+			WHERE @@ 
+			GROUP BY position_id
+			) as tp
+			ORDER BY tp.position_title, tp.position_code
+		</dbquery>
+		<dbquery name="qWebsitePositionManager_GetPositionSkills">
+			SELECT DISTINCT tps.skill_id as skill_id,ts.skill as skill_name FROM 
+			tp_position_skills tps
+			LEFT JOIN tp_skills ts ON (ts.skill_id=tps.skill_id),
+			( SELECT position_id from tp_positions tp 
+				    WHERE  @@ ) tp 
+			WHERE 
+			tp.position_id=tps.position_id AND
+			skill_type=?
+			order by skill_name
+		</dbquery>
+		<dbquery name="qWebsitePositionManager_GetPositionLocations">
+			SELECT DISTINCT tpl.location_id as location_id,tl.location_name as location_name FROM 
+			tp_position_locations tpl
+			LEFT JOIN tp_location_ap tl ON (tl.location_id=tpl.location_id),
+			( SELECT position_id from tp_positions tp 
+				    WHERE  @@) tp 
+			WHERE 
+			tp.position_id=tpl.position_id
+			order by location_name
+		</dbquery>
+		<dbquery name="qWebsitePositionManager_GetPositionDepartments">
+			select DISTINCT tp.dept_id as department_id,td.dept_name as department_name from 
+			tp_positions tp 
+			LEFT JOIN tp_departments td ON (tp.dept_id=td.dept_id)
+			where 
+			@@
+			order by department_name
+		</dbquery>
+		<!-- End : Website Management -->
+	</dbqueries>
+	<dataqueries>
+	    <!-- Start : Website Management -->
+	    <dataquery name="dWebsitePositionManager_GetPositionDetailsForWebsite" dbquery="qWebsitePositionManager_GetPositionDetailsForWebsite" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "positionId" column="position_id" type ="STRING" /> 	
+	    	<attribute name= "positionTitle" column="position_title" type ="STRING" />
+	    	<attribute name= "positionCode" column="position_code" type ="STRING" />
+	    	<attribute name= "location"  column="location" type="STRING" />
+	    	<attribute name= "positionCreationDate"  column="position_date_created" type="STRING" />
+	    	<attribute name= "vacancies"  column="position_no_of_openings" type="STRING" />
+	    	<attribute name= "departmentName"  column="dept_name" type="STRING" />
+	    	<attribute name= "subDeptName"  column="sub_dept_name" type="STRING" />
+	    	<attribute name= "groupName"  column="sub_sub_dept_name" type="STRING" />
+	    	<attribute name= "sub3DeptName"  column="sub3_dept_name" type="STRING" />
+	    	<attribute name= "sub4DeptName"  column="sub4_dept_name" type="STRING" />
+	    	<attribute name= "positionLevel"  column="position_level" type="STRING" />
+	    	<attribute name= "referalFees"  column="position_referal_fees" type="STRING" />
+	    	<attribute name= "responsibilities"  column="responsibilities" type="STRING" />
+	    	<attribute name= "requirements"  column="requirements" type="STRING" />
+	    	<attribute name= "noOfUnfilledVacancies"  column="unfilled_vacancies" type="STRING" />
+	    	<attribute name= "hireByDate"  column="expiry_date" type="STRING" />
+	    	<attribute name= "primarySkills"  column="primary_skills" type="STRING" />
+	    	<attribute name= "secondarySkills"  column="secondary_skills" type="STRING" />
+	    	<attribute name= "experience"  column="experience" type="STRING" />
+	    	<attribute name= "education"  column="education" type="STRING" />
+	    	<attribute name= "branch"  column="branch" type="STRING" />
+	    	<attribute name= "positionNote"  column="position_note" type="STRING" />
+	    	<attribute name= "positionPublishedDate"  column="position_date_published" type="STRING" />
+	    </dataquery>
+	    <dataquery name="dWebsitePositionManager_GetPositionSkills" dbquery="qWebsitePositionManager_GetPositionSkills" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "skillId" column="skill_id" type ="STRING" /> 	
+	    	<attribute name= "skillName" column="skill_name" type ="STRING" />
+	    </dataquery>
+	    <dataquery name="dWebsitePositionManager_GetPositionLocations" dbquery="qWebsitePositionManager_GetPositionLocations" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "locationId" column="location_id" type ="STRING" /> 	
+	    	<attribute name= "locationName" column="location_name" type ="STRING" />
+	    </dataquery>
+	    <dataquery name="dWebsitePositionManager_GetPositionDepartments" dbquery="qWebsitePositionManager_GetPositionDepartments" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "departmentId" column="department_id" type ="STRING" /> 	
+	    	<attribute name= "departmentName" column="department_name" type ="STRING" />
+	    </dataquery>
+	    <!-- End : Website Management -->
+	</dataqueries>   
+</dbmap>

@@ -1,0 +1,102 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+   <dbqueries>
+	   <dbquery name="qFeedbackFields_GetAllCategories">
+			SELECT category_id, category_name, system_generated FROM tp_feedback_field_categories 
+			WHERE category_status=? @@ ORDER BY category_name
+       </dbquery>
+	   <dbquery name="qFeedbackFields_GetFieldsForCatgory">
+			SELECT tff.feedback_field_id, tff.category_id, tff.feedback_field_title, tff.feedback_field_desc,
+			tff.system_generated
+			FROM tp_feedback_fields tff
+			WHERE tff.category_id=? AND tff.feedback_field_status=? 
+			ORDER BY tff.feedback_field_title
+       </dbquery>
+	   <dbquery name="qFeedbackFields_GetCatgoryData">
+			SELECT category_id, category_name, summary_field FROM tp_feedback_field_categories WHERE category_id=?
+       </dbquery>
+       
+	   <dbquery name="qFeedbackFields_AddCategory">
+			INSERT INTO tp_feedback_field_categories(category_name,summary_field) values(?,?)
+       </dbquery>
+	   <dbquery name="qFeedbackFields_UpdateCategory">
+			UPDATE tp_feedback_field_categories SET category_name=?, summary_field=? WHERE category_id=?
+       </dbquery>
+       
+	   <dbquery name="qFeedbackFields_DeleteAllFieldsForCategory">
+			DELETE FROM tp_feedback_fields WHERE category_id=?
+       </dbquery>
+	   <dbquery name="qFeedbackFields_DeleteCategory">
+			DELETE FROM tp_feedback_field_categories WHERE category_id=?
+       </dbquery>
+
+	   <dbquery name="qFeedbackFields_AddFeedbackField">
+			INSERT INTO tp_feedback_fields(category_id,feedback_field_title, feedback_field_desc,feedback_field_type,applicant_field_id) VALUES(?,?,?,?,?)
+       </dbquery>
+	   <dbquery name="qFeedbackFields_UpdateFeedbackField">
+			UPDATE tp_feedback_fields SET feedback_field_title=?, feedback_field_desc=?, feedback_field_type=?, applicant_field_id=? WHERE feedback_field_id=?
+       </dbquery>
+	   <dbquery name="qFeedbackFields_DeleteFeedbackField">
+			DELETE FROM tp_feedback_fields WHERE feedback_field_id=?			
+       </dbquery>
+	   <dbquery name="qFeedbackFields_GetFeedbackFieldData">
+			SELECT feedback_field_id, category_id, feedback_field_title, feedback_field_desc,
+			feedback_field_type, applicant_field_id 
+			FROM tp_feedback_fields
+			WHERE feedback_field_id=? 
+       </dbquery>
+       <dbquery name="qFeedbackFields_GetSystemGeneratedFieldId">
+	       	SELECT tfff.feedback_form_field_id
+			FROM tp_feedback_form_fields tfff, tp_feedback_fields tff, 
+			tp_feedback_forms tpff, tp_position_steps tps
+			WHERE tff.feedback_field_id= tfff.feedback_field_id
+			AND tpff.feedback_form_id = tfff.feedback_form_id
+			AND tpff.feedback_form_status=? AND tff.system_generated=?
+			AND tfff.feedback_form_field_type = ?
+			AND tps.feedback_form_id = tpff.feedback_form_id
+			AND tps.position_step_id = ?
+			ORDER BY tfff.feedback_form_field_id DESC
+       </dbquery>
+   </dbqueries>
+   <dataqueries>
+      <dataquery name="dFeedbackFields_GetAllCategories" dbquery="qFeedbackFields_GetAllCategories" object="com.talentPool.masters.dataobject.FeedbackFieldCategoryData">
+         <attribute name="feedbackFieldCategoryId"  column="category_id" type="STRING" />
+         <attribute name="feedbackFieldCategory"  column="category_name" type="STRING" />
+         <attribute name="systemGenerated"  column="system_generated" type="STRING" />
+      </dataquery>
+      <dataquery name="dFeedbackFields_GetFieldsForCatgory" dbquery="qFeedbackFields_GetFieldsForCatgory" object="com.talentPool.masters.dataobject.FeedbackFieldData">
+         <attribute name="feedbackFieldId"  column="feedback_field_id" type="STRING" />
+         <attribute name="feedbackFieldCategoryId"  column="category_id" type="STRING" />
+         <attribute name="feedbackFieldTitle"  column="feedback_field_title" type="STRING" />
+         <attribute name="feedbackFieldDesc"  column="feedback_field_desc" type="STRING" />
+         <attribute name="systemGenerated"  column="system_generated" type="STRING" />
+      </dataquery>
+      <dataquery name="dFeedbackFields_GetCatgoryData" dbquery="qFeedbackFields_GetCatgoryData" object="com.talentPool.masters.dataobject.FeedbackFieldCategoryData">
+         <attribute name="feedbackFieldCategoryId"  column="category_id" type="STRING" />
+         <attribute name="feedbackFieldCategory"  column="category_name" type="STRING" />
+         <attribute name="isSummaryField"  column="summary_field" type="STRING" />
+      </dataquery>
+      
+      <dataquery name="dFeedbackFields_AddCategory" dbquery="qFeedbackFields_AddCategory"/>
+      <dataquery name="dFeedbackFields_UpdateCategory" dbquery="qFeedbackFields_UpdateCategory"/>
+      
+      <dataquery name="dFeedbackFields_DeleteAllFieldsForCategory" dbquery="qFeedbackFields_DeleteAllFieldsForCategory"/>
+      <dataquery name="dFeedbackFields_DeleteCategory" dbquery="qFeedbackFields_DeleteCategory"/>
+
+      <dataquery name="dFeedbackFields_AddFeedbackField" dbquery="qFeedbackFields_AddFeedbackField"/>
+      <dataquery name="dFeedbackFields_UpdateFeedbackField" dbquery="qFeedbackFields_UpdateFeedbackField"/>
+      <dataquery name="dFeedbackFields_DeleteFeedbackField" dbquery="qFeedbackFields_DeleteFeedbackField"/>
+      <dataquery name="dFeedbackFields_GetFeedbackFieldData" dbquery="qFeedbackFields_GetFeedbackFieldData" object="com.talentPool.masters.dataobject.FeedbackFieldData">
+         <attribute name="feedbackFieldId"  column="feedback_field_id" type="STRING" />
+         <attribute name="feedbackFieldCategoryId"  column="category_id" type="STRING" />
+         <attribute name="feedbackFieldTitle"  column="feedback_field_title" type="STRING" />
+         <attribute name="feedbackFieldDesc"  column="feedback_field_desc" type="STRING" />
+         <attribute name="feedbackFieldType"  column="feedback_field_type" type="STRING" />
+         <attribute name="applicantFieldId"  column="applicant_field_id" type="STRING" />
+      </dataquery>
+      <dataquery name="dFeedbackFields_GetSystemGeneratedFieldId" dbquery="qFeedbackFields_GetSystemGeneratedFieldId"/>
+   </dataqueries>   
+</dbmap>

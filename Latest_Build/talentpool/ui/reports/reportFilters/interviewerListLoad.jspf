@@ -1,0 +1,219 @@
+<%@page import="com.talentPool.reports.ReportConstants"%>
+<script src="js/dhtmlxGrid/dhtmlXCommon.js"></script> 
+<script src="js/dhtmlxGrid/dhtmlXGrid.js"></script> 
+<script src="js/dhtmlxGrid/dhtmlXGridCell.js"></script>
+<script  src="js/dhtmlxGrid/dhtmlXGrid_excell_link.js"></script>
+<script src="js/dhtmlxGrid/dhtmlXGrid_drag.js"></script>
+<script src="js/dhtmlxGrid/dhtmlxgrid_filter.js"></script>
+<script src="js/dhtmlxGrid/dhtmlXGrid_pgn.js"></script>
+<script src="js/dhtmlxGrid/dhtmlXGrid_srnd.js"></script>
+
+
+<script type="text/javascript">
+var selectInterviewListFilter = null;
+</script>
+
+<table class="innerReport">
+				<tr>
+  			 		<td class="label">
+						<bean:message key="report.label.interview_status.interviewers" />:&nbsp;
+					</td>
+					<td>
+						<script type="text/javascript">
+							var opts = new Array();
+							opts[0] = new SelectOption('<%=ReportConstants.FILTER_ALL%>','<bean:message key="common.all"/>');
+							opts[1] = new SelectOption('<%=ReportConstants.FILTER_SPECIFIC_USER%>','<bean:message key="report.label.interview_status.select_interviewers"/>');
+							selectInterviewListFilter = new SelectBox(opts,'<%=ReportConstants.FILTER_ALL%>','images/btn_dropdown.gif',{namesonly:false, width:'180px', size:20});
+							document.write(selectInterviewListFilter.getHtml());
+							selectInterviewListFilter.setOnChangeHandler('onChangeInterviewListFilter');
+							selectInterviewListFilter.init();
+						</script>
+					</td>
+				</tr>
+			</table>	
+			<div id="usersFilterDiv1" style="display:none;padding: 0px;">	
+			<table class="innerCustomReport" cellspacing="0" cellpadding="0" border="0">
+				<tr>
+					<td style="height: 100px; padding-top: 10px;"  >
+						<table cellspacing="0" cellpadding="0" border="0">
+							<tr>
+								<td>
+									<table cellpadding="0" cellspacing="0">
+										<tr>
+											<td>
+												<input id="interviewListFilter" name="interviewListFilter" type="text" size="61" value="Filter" style="width:317px;color: grey; border-bottom: 0px;" onclick="onFilterFocus('interviewListFilter','Filter');" onblur="onFilterUnfocus('interviewListFilter','Filter')"/>
+											</td>
+										</tr>
+										<tr>
+											<td class="gridborder">
+												<div id="INTERVIEWER_LIST_FILTER_GRID" style="width:320px; height: 80px; overflow: visible;"></div>
+											</td>
+										</tr>
+									</table>
+								</td>
+								<td width="42px" align="center">	<a href="#" onclick="javascript: selectItem(interviewersListFilter,selectedinterviewersListFilter);return false;" title="<bean:message key='common.add' />" >
+										<img src="images/ico_rightarrow.gif"  border="0" />
+									</a>
+									<br/> 
+									<a href="#" onclick="javascript: deselectItem(selectedinterviewersListFilter,interviewersListFilter);return false;" title="<bean:message key='common.remove' />" >
+										<img src="images/ico_leftarrow.gif"  border="0" />
+									</a> </td>
+								<td >
+									<table cellpadding="0" cellspacing="0">
+										<tr>
+											<td class="gridborder">
+												<div id="SELECTED_INTERVIEWER_LIST_FILTER_GRID" style="width:320px;height: 100px; overflow: visible;"></div>
+											</td>
+										</tr>
+									</table>
+								</td>
+							</tr>
+						</table>
+					</td>
+				</tr>
+			</table>
+			</div>
+			
+			
+<script type="text/javascript">
+
+var interviewersListFilter = null;
+var selectedinterviewersListFilter = null;
+
+function initinterviewersListFilter() {	
+	interviewersListFilter = new dhtmlXGridObject('INTERVIEWER_LIST_FILTER_GRID'); 
+	interviewersListFilter.imgURL = "images/"; 
+	interviewersListFilter.setHeader("User Name"); 
+	interviewersListFilter.setInitWidths("300");
+	interviewersListFilter.setNoHeader(true);
+	interviewersListFilter.setColAlign("left");
+	interviewersListFilter.setColTypes("ro");
+	interviewersListFilter.setColSorting("requisition_userName_sort");
+	interviewersListFilter.enableMultiselect('true');	
+	interviewersListFilter.init();
+	loadinterviewersListFilterGrid();	
+	interviewersListFilter.sortRows(0,'str',"asc");
+	interviewersListFilter.attachEvent("onXLE",doOnLoadInterviewerList);
+	interviewersListFilter.attachEvent("onKeyPress",oninterviewersListFilterKeyPressed);
+	interviewersListFilter.attachEvent("onRowSelect",doOninterviewersListFilterGridRowSelectHandler);
+	interviewersListFilter.attachEvent("onRowDblClicked",doOninterviewersListFilterGirdRowDblClicked);
+	
+	interviewersListFilter.gridToGrid = function(rowId,sgrid,tgrid){
+	    var z=new Array();
+		for(var i=0;i<sgrid.hdr.rows[0].cells.length;i++)
+		z[i]=sgrid.cells(rowId,i).getValue();
+		return z;
+	}	
+}
+
+function initSelectedinterviewersListFilter(){
+	selectedinterviewersListFilter = new dhtmlXGridObject('SELECTED_INTERVIEWER_LIST_FILTER_GRID'); 
+	selectedinterviewersListFilter.imgURL = "images/"; 
+	selectedinterviewersListFilter.setHeader("User Name"); 
+	selectedinterviewersListFilter.setInitWidths("300");
+	selectedinterviewersListFilter.setColAlign("left");
+	selectedinterviewersListFilter.setColTypes("ro"); 	
+	selectedinterviewersListFilter.enableMultiselect('true');
+	selectedinterviewersListFilter.setNoHeader(true);
+	selectedinterviewersListFilter.setColSorting("requisition_userName_sort");
+	selectedinterviewersListFilter.init();
+	selectedinterviewersListFilter.sortRows(0,'str',"asc");
+	selectedinterviewersListFilter.setSortImgState(true,0,"ASC");	
+	selectedinterviewersListFilter.gridToGrid = function(rowId,sgrid,tgrid){
+	    var z=new Array();
+		for(var i=0;i<sgrid.hdr.rows[0].cells.length;i++)
+		z[i]=sgrid.cells(rowId,i).getValue();
+		return z;
+	}
+	selectedinterviewersListFilter.attachEvent("onKeyPress",onSelectedinterviewersListFilterKeyPressed);
+	selectedinterviewersListFilter.attachEvent("onRowSelect",doOnSelectedinterviewersListFilterGridRowSelectHandler);
+	selectedinterviewersListFilter.attachEvent("onRowDblClicked",doOnSelectedinterviewersListFilterGridRowDblClicked);
+}
+
+function doOnLoadInterviewerList() {	
+	interviewersListFilter.sortRows(0, 'str', "asc");
+	interviewersListFilter.setSortImgState(true, 0, "ASC");
+	var interviewer= document.getElementById("interviewListFilter").value;
+	if (interviewer.length>0) {
+		selectItems(interviewer, interviewersListFilter, selectedinterviewersListFilter);
+	} else {
+		selectItems("", interviewersListFilter, selectedinterviewersListFilter);
+	}
+}
+
+function loadinterviewersListFilterGrid(){
+	interviewersListFilter.loadXML("reports.do?mode=getInterviewerListFilterXML");
+}
+
+function oninterviewersListFilterKeyPressed(keyCode,ctrl,shift) {	
+	var text = (interviewersListFilter.cells(interviewersListFilter.getSelectedId(),0)).getValue();
+	
+	selectedinterviewersListFilter.clearSelection();
+	onGridObjKeyPressed(interviewersListFilter,selectedinterviewersListFilter,4,keyCode,ctrl,shift);
+	if(keyCode=='13'){
+		removeIdFromBackUp(interviewersListFilter, text);
+	}
+}
+
+function onSelectedinterviewersListFilterKeyPressed(keyCode,ctrl,shift) {
+	interviewersListFilter.clearSelection();
+	onGridObjKeyPressed(selectedinterviewersListFilter,interviewersListFilter,4,keyCode,ctrl,shift);
+	if(keyCode=='13'){
+		resetFilterBackUp(interviewersListFilter);
+	}
+}
+
+function doOninterviewersListFilterGridRowSelectHandler() {
+	selectedinterviewersListFilter.clearSelection();
+}
+function doOnSelectedinterviewersListFilterGridRowSelectHandler() {
+	interviewersListFilter.clearSelection();
+}
+
+function doOninterviewersListFilterGirdRowDblClicked() {	
+	var text = (interviewersListFilter.cells(interviewersListFilter.getSelectedId(),0)).getValue();
+	selectItem(interviewersListFilter,selectedinterviewersListFilter);
+	removeIdFromBackUp(interviewersListFilter, text);	
+}
+
+function doOnSelectedinterviewersListFilterGridRowDblClicked() {	
+	selectItem(selectedinterviewersListFilter,interviewersListFilter);
+	resetFilterBackUp(interviewersListFilter);
+}
+
+function onInterviewerListCriteriaChange(event){
+	var iKeyCode = event.keyCode;
+	switch(iKeyCode) {
+		case Event.KEY_UP:
+		case Event.KEY_DOWN: 
+		break;
+		case Event.KEY_PAGEUP:
+		case Event.KEY_PAGEDOWN:
+		break;
+		case Event.KEY_RETURN:
+		break;
+		default:
+		if((iKeyCode>=48 && iKeyCode<=90) || (iKeyCode>=96 && iKeyCode<=105) || iKeyCode==Event.KEY_BACKSPACE || iKeyCode==Event.KEY_DELETE){
+			interviewersListFilter.filterBy(0, $('interviewListFilter').value, false);		
+		}
+	}
+}
+
+function onChangeInterviewListFilter(){
+	val = selectInterviewListFilter.getSelectedId();
+	if(val=="<%=ReportConstants.FILTER_ALL%>"){
+		hideInterviewListFilter();		
+	}else if(val=="<%=ReportConstants.FILTER_SPECIFIC_USER%>"){
+		showInterviewListFilter();
+	}
+}
+
+function hideInterviewListFilter(){
+	$("usersFilterDiv1").style.display="none";
+}
+
+
+function showInterviewListFilter(){
+	$("usersFilterDiv1").style.display="";
+}
+</script>

@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>
+		<!--Common Section **************************************************-->
+		<dbquery name="qFetchLastInsertID">SELECT LAST_INSERT_ID()</dbquery>
+		<!--End Common Section **********************************************-->
+	</dbqueries>
+	<dataqueries>
+		<!--Common Section **************************************************************-->
+	    <dataquery name="dFetchLastInsertID" dbquery="qFetchLastInsertID"/>
+		<!--Common Section **************************************************************-->
+	</dataqueries>   
+</dbmap>

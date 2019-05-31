@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE struts PUBLIC
+    "-//Apache Software Foundation//DTD Struts Configuration 2.0//EN"
+    "http://struts.apache.org/dtds/struts-2.0.dtd">
+
+<struts>
+    <constant name="struts.devMode" value="false" />
+    <constant name="struts.action.extension" value="action" />
+	<constant name="struts.custom.i18n.resources" value="talentpoollabels" />
+	<constant name="struts.ui.theme" value="simple" />
+ 	<include file="../struts2/custom-reports.xml"/>
+ 	<include file="../struts2/masters.xml"/>
+ 	<include file="../struts2/admin.xml"/>
+ 	<include file="../struts2/steps-migration.xml"/>
+ 	<include file="../struts2/tp-salary-offer.xml"/>
+	<include file="../struts2/social-media.xml"/>
+ 	
+    <package name="pool-default" namespace="/" extends="struts-default,tiles-default">
+    	<interceptors>
+			<interceptor name="authentication" class="com.talentPool.user.interceptors.SessionInterceptor"/>
+			<interceptor name="logger" class="com.talentPool.struts2.Struts2Logger"/>
+			<interceptor name="masters" class="com.talentPool.masters.inerceptors.MastersInterceptor" />
+			
+			<!--Basic Pool Stack which includes all common interceptors needed for pool -->
+            <interceptor-stack name="poolStack">
+				<interceptor-ref name="authentication" />
+				<interceptor-ref name="logger" />
+                <interceptor-ref name="defaultStack" />
+            </interceptor-stack>
+            <interceptor-stack name="preLoginPoolStack">
+				<interceptor-ref name="authentication" />
+				<interceptor-ref name="logger" />
+                <interceptor-ref name="defaultStack" />
+            </interceptor-stack>
+            <interceptor-stack name="mastersStack">
+            	<interceptor-ref name="poolStack" />
+            	<interceptor-ref name="masters" />
+            </interceptor-stack>
+        </interceptors>
+        
+        <global-results>
+        	<result type="tiles" name="hidePopUp">hidePopUp</result>
+		    <result name="sessionExpired">/common/login.jsp?isExpired=1</result>
+		    <result name="exception">/common/errorMain.jsp</result>
+		    <result name="getDocument">/documents/getDocument.jsp</result>
+		</global-results>
+
+		<global-exception-mappings> 
+			<exception-mapping exception="java.lang.Exception"	result="exception" /> 
+		</global-exception-mappings> 
+    </package>
+</struts>

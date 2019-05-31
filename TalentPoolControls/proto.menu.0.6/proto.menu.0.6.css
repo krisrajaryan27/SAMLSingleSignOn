@@ -1,0 +1,227 @@
+DIV.menu
+{
+    LEFT: 0px;
+    FONT-FAMILY: verdana;
+    POSITION: absolute;
+    TOP: 0px
+}
+DIV.menu A
+{
+    DISPLAY: block;
+    FONT-SIZE: 11px;
+    CURSOR: default;
+    TEXT-DECORATION: none;
+    outline: none
+}
+.menu .separator
+{
+    PADDING-RIGHT: 0px;
+    DISPLAY: block;
+    PADDING-LEFT: 0px;
+    FONT-SIZE: 1px;
+    PADDING-BOTTOM: 0px;
+    OVERFLOW: hidden;
+    PADDING-TOP: 0px;
+    HEIGHT: 1px
+}
+.menu UL
+{
+    PADDING-RIGHT: 0px;
+    PADDING-LEFT: 0px;
+    PADDING-BOTTOM: 0px;
+    MARGIN: 0px;
+    PADDING-TOP: 0px;
+    LIST-STYLE-TYPE: none
+}
+.menu LI
+{
+    PADDING-RIGHT: 0px;
+    PADDING-LEFT: 0px;
+    PADDING-BOTTOM: 0px;
+    MARGIN: 0px;
+    PADDING-TOP: 0px;
+    LIST-STYLE-TYPE: none
+}
+.menu LI
+{
+    LIST-STYLE-POSITION: outside
+}
+.firefox
+{
+    BORDER-RIGHT: #666 1px solid;
+    PADDING-RIGHT: 0px;
+    BORDER-TOP: #ddd 1px solid;
+    PADDING-LEFT: 0px;
+    BACKGROUND: #f4f5eb;
+    PADDING-BOTTOM: 2px;
+    BORDER-LEFT: #ddd 1px solid;
+    WIDTH: 12em;
+    PADDING-TOP: 2px;
+    BORDER-BOTTOM: #666 1px solid
+}
+.firefox A
+{
+    PADDING-RIGHT: 15px;
+    PADDING-LEFT: 15px;
+    PADDING-BOTTOM: 4px;
+    MARGIN: 0px 2px;
+    COLOR: #555;
+    PADDING-TOP: 4px
+}
+.firefox A:hover
+{
+    BACKGROUND: #006;
+    COLOR: #fff
+}
+.firefox A.disabled
+{
+    COLOR: #bbb
+}
+.firefox A.disabled:hover
+{
+    BACKGROUND: #f4f5eb;
+    COLOR: #bbb
+}
+.firefox .separator
+{
+    BACKGROUND: #999;
+    MARGIN: 2px 4px;
+    BORDER-BOTTOM: #fff 1px solid
+}
+.google
+{
+    BORDER-RIGHT: #676767 1px solid;
+    BORDER-TOP: #ccc 1px solid;
+    BACKGROUND: #fff;
+    BORDER-LEFT: #ccc 1px solid;
+    WIDTH: 10.5em;
+    BORDER-BOTTOM: #676767 1px solid
+}
+.google A
+{
+    PADDING-RIGHT: 5px;
+    PADDING-LEFT: 5px;
+    FONT-SIZE: 12px;
+    PADDING-BOTTOM: 2px;
+    CURSOR: pointer;
+    COLOR: #00c;
+    PADDING-TOP: 2px;
+    TEXT-DECORATION: none
+}
+.google A:hover
+{
+    BACKGROUND: #d3e3fe
+}
+.google A.disabled
+{
+    COLOR: #bbb
+}
+.google A.disabled:hover
+{
+    BACKGROUND: #fff;
+    COLOR: #bbb
+}
+.google .separator
+{
+    BACKGROUND: #ccc
+}
+.desktop
+{
+    BORDER-RIGHT: #999 1px solid;
+    PADDING-RIGHT: 0px;
+    BORDER-TOP: #999 1px solid;
+    PADDING-LEFT: 0px;
+    BACKGROUND: #f9f8f7;
+    PADDING-BOTTOM: 0px;
+    BORDER-LEFT: #999 1px solid;
+    WIDTH: 14em;
+    PADDING-TOP: 0px;
+    BORDER-BOTTOM: #999 1px solid
+}
+.desktop UL
+{
+    PADDING-RIGHT: 0px;
+    PADDING-LEFT: 0px;
+    PADDING-BOTTOM: 0px;
+    MARGIN: 0px;
+    PADDING-TOP: 0px
+}
+.desktop LI
+{
+    PADDING-RIGHT: 0px;
+    PADDING-LEFT: 0px;
+    PADDING-BOTTOM: 0px;
+    MARGIN: 0px;
+    PADDING-TOP: 0px
+}
+.desktop LI.separator
+{
+    HEIGHT: 1px
+}
+.desktop A
+{
+    BORDER-RIGHT: #f9f8f7 1px solid;
+    PADDING-RIGHT: 0px;
+    BORDER-TOP: #f9f8f7 1px solid;
+    PADDING-LEFT: 25px;
+    PADDING-BOTTOM: 3px;
+    MARGIN: 0px;
+    BORDER-LEFT: #f9f8f7 1px solid;
+    COLOR: #555;
+    PADDING-TOP: 3px;
+    BORDER-BOTTOM: #f9f8f7 1px solid
+}
+.desktop A.disabled
+{
+    FILTER: alpha(opacity=25);
+    ZOOM: 1;
+    opacity: 0.25
+}
+.desktop LI.separator
+{
+    BACKGROUND: #aaa;
+    MARGIN: 1px 1px 0px;
+    LINE-HEIGHT: 1px! important;
+    BORDER-BOTTOM: #fff 1px solid
+}
+.desktop A.new
+{
+    BACKGROUND: url(images/page.png) #f9f8f7 no-repeat 2px 50%
+}
+.desktop A.edit
+{
+    BACKGROUND: url(images/page_edit.png) #f9f8f7 no-repeat 2px 50%
+}
+.desktop A.copy
+{
+    BACKGROUND: url(images/page_copy.png) #f9f8f7 no-repeat 2px 50%
+}
+.desktop A.delete
+{
+    BACKGROUND: url(images/page_delete.png) #f9f8f7 no-repeat 2px 50%
+}
+.desktop A.save
+{
+    BACKGROUND: url(images/page_save.png) #f9f8f7 no-repeat 2px 50%
+}
+.desktop A.xsl
+{
+    BACKGROUND: url(images/page_excel.png) #f9f8f7 no-repeat 2px 50%
+}
+.desktop A.doc
+{
+    BACKGROUND: url(images/page_word.png) #f9f8f7 no-repeat 2px 50%
+}
+.desktop A.pdf
+{
+    BACKGROUND: url(images/page_acrobat.png) #f9f8f7 no-repeat 2px 50%
+}
+.desktop A.send
+{
+    BACKGROUND: url(images/email.png) #f9f8f7 no-repeat 2px 50%
+}
+.desktop A.enabled:hover
+{
+    COLOR: #fff;
+    BACKGROUND-COLOR: #0a246a
+}

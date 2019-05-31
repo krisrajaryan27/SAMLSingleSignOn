@@ -1,0 +1,76 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>
+		<!-- Start: Recent Search -->
+		<dbquery name="qSavedSearchManager_InsertRecentSearchData">
+			insert into tp_recent_searches 
+			(user_id, date_searched, search_data) 
+			values
+			(?, now(), ?)
+		</dbquery>
+		<dbquery name="qSavedSearchManager_GetRecentSearches">
+			select search_id, search_data
+			from tp_recent_searches
+			where user_id = ?
+			order by date_searched desc
+			limit 0, 7
+		</dbquery>
+		<dbquery name="qSavedSearchManager_GetSearchCriteriaData">
+			select search_data 
+			from tp_recent_searches
+			where search_id = ?
+		</dbquery>		
+		<!-- End: Recent Search -->
+		<dbquery name="qSavedSearchManager_SaveSearch">
+			insert into tp_saved_searches 
+			(user_id, search_name, shared, date_searched, search_data) 
+			values
+			(?, ?,?,now(), ?)
+		</dbquery>
+		<dbquery name="qSavedSearchManager_GetAllSavedSearches">
+			SELECT tss.search_id, tss.search_name, tss.shared, tss.user_id,
+			CONCAT(tu.user_fname,' ',tu.user_lname) AS owner
+			FROM tp_saved_searches tss
+			LEFT JOIN tp_users tu ON (tu.user_id=tss.user_id)
+			WHERE tss.user_id=? @@
+			order by tss.date_searched desc
+			limit 0, 7
+		</dbquery>
+		<dbquery name="qSavedSearchManager_GetSavedSearchCriteriaData">
+			select search_data
+			from tp_saved_searches
+			where search_id = ?			
+		</dbquery>
+		<dbquery name="qSavedSearchManager_deleteSavedSearch">
+			DELETE FROM tp_saved_searches
+			WHERE search_id=?		
+		</dbquery>
+	</dbqueries>
+	<dataqueries>
+		<!-- Start: Recent Search -->
+		<dataquery name="dSavedSearchManager_InsertRecentSearchData" dbquery="qSavedSearchManager_InsertRecentSearchData"/>
+		<dataquery name="dSavedSearchManager_GetRecentSearches" dbquery="qSavedSearchManager_GetRecentSearches" object="com.talentPool.user.dataobject.LastViewedEntity">
+			<attribute name="entityId" column="search_id" type="STRING"/>
+	        <attribute name="description" column="search_data" type="STRING"/>	
+		</dataquery>		
+		<dataquery name="dSavedSearchManager_GetSearchCriteriaData" dbquery="qSavedSearchManager_GetSearchCriteriaData" object="com.talentPool.user.dataobject.LastViewedEntity">
+			<attribute name="description" column="search_data" type="STRING"/>
+		</dataquery>
+		<dataquery name="dSavedSearchManager_SaveSearch" dbquery="qSavedSearchManager_SaveSearch"/>
+		<dataquery name="dSavedSearchManager_GetAllSavedSearches" dbquery="qSavedSearchManager_GetAllSavedSearches" object="com.talentPool.search.dataobjects.SavedSearchData">
+			<attribute name="searchId" column="search_id" type="STRING"/>
+	        <attribute name="searchName" column="search_name" type="STRING"/>
+	        <attribute name="shared" column="shared" type="STRING"/>
+	        <attribute name="owner" column="owner" type="STRING"/>
+	        <attribute name="userId" column="user_Id" type="String"/>
+		</dataquery>
+		<dataquery name="dSavedSearchManager_GetSavedSearchCriteriaData" dbquery="qSavedSearchManager_GetSavedSearchCriteriaData" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name="description" column="search_data" type="STRING"/>	       
+		</dataquery>
+		<dataquery name="dSavedSearchManager_deleteSavedSearch" dbquery="qSavedSearchManager_deleteSavedSearch"/>
+		<!-- End: Recent Search -->
+	</dataqueries>   
+</dbmap>

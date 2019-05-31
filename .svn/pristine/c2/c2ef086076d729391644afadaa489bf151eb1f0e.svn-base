@@ -1,0 +1,21 @@
+/*
+div.gridbox table.row20px tr  td{
+	height:35px;
+    white-space: nowrap;
+    padding:0px 4px 0px 6px;
+}
+*/
+.notReadEmail{
+	font-weight:bold;
+}
+.notReadEmailExisting{
+	font-weight:bold;
+	background-color:#F3FEC6;
+}
+.ReadEmail{
+	font-weight:normal;
+}
+.ReadEmailExisting{
+	font-weight:normal;
+	background-color:#F3FEC6;
+}

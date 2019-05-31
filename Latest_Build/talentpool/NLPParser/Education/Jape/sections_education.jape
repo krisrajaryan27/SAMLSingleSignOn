@@ -1,0 +1,58 @@
+/*
+*  basicinfo_email.jape
+*
+*/
+
+Phase: sections_education
+Input: Token CustomSpaceToken Lookup
+Options: control = appelt
+
+
+Macro: SectionTokenStart
+(
+	{Token.kind == word, Token.orth == upperInitial, Token.length > 1}|
+	{Token.kind == word, Token.orth == allCaps, Token.length > 1}|
+	{Token.kind == word, Token.orth == mixedCaps, Token.length > 1}|{Token.length == 1}
+)
+Macro: SectionTokenMiddle
+(
+	{Token.kind == word, Token.length > 1}|
+	{Token.string == "of"}|{Token.string == "and"}|
+	{Token.kind == punctuation}|{Token.string ==~ "[Ss]"}|{Token.length == 1}
+)
+
+Rule: section_wrong
+(
+	{CustomSpaceToken}({Token})[0,6]
+	({Lookup.majorType == education, Lookup.minorType == college}|
+	{Lookup.majorType == education, Lookup.minorType == university})
+	({Token})[0,6]{CustomSpaceToken}
+)--> {}
+
+
+Rule: section_divider_education_middle
+(
+	{CustomSpaceToken}({Token.kind == space})[0,5]
+	(SectionTokenStart){Lookup.majorType == section_header, Lookup.minorType == education}(SectionTokenMiddle)[0,10]
+	({CustomSpaceToken}|{Token.string == ":"}({Token.kind == punctuation})[0,4]|{Token.kind == space})
+):section
+--> 
+:section.SectionToken = {kind = "education", rule = "section_divider_education_middle"}
+
+Rule: section_divider_education_middle1
+(
+	{CustomSpaceToken}({Token.kind == space})[0,5]
+	(SectionTokenStart)(SectionTokenMiddle)[0,5]{Lookup.majorType == section_header, Lookup.minorType == education}(SectionTokenMiddle)[0,5]
+	({CustomSpaceToken}|{Token.string == ":"}({Token.kind == punctuation})[0,4]|{Token.kind == space})
+):section
+--> 
+:section.SectionToken = {kind = "education", rule = "section_divider_education_middle1"}
+
+Rule: section_divider_education_start
+(
+	{CustomSpaceToken}({Token.kind == space})[0,5]
+	{Lookup.majorType == section_header, Lookup.minorType == education}(SectionTokenMiddle)[0,10]
+	({CustomSpaceToken}|{Token.string == ":"}({Token.kind == punctuation})[0,4]|{Token.kind == space})
+):section
+--> 
+:section.SectionToken = {kind = "education", rule = "section_divider_education_start"}

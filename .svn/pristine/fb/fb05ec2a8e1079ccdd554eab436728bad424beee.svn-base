@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mapping xmlns="http://castor.exolab.org/" xmlns:cst="http://castor.exolab.org/">
+    <description xmlns="">Castor generated mapping file</description>
+    <class name="com.talentPool.websiteservice.dataobject.WpositionList">
+        <description xmlns="">Default mapping for class com.talentPool.websiteservice.dataobject.WpositionList</description>
+        <map-to xml="wposition-list"/>
+        <field name="positions" type="java.lang.Object" collection="arraylist">
+            <bind-xml name="positions" node="element"/>
+        </field>
+    </class>
+    <class name="com.talentPool.websiteservice.dataobject.WcustomFieldData">
+        <description xmlns="">Default mapping for class com.talentPool.websiteservice.dataobject.WcustomFieldData</description>
+        <map-to xml="wcustom-field-data"/>
+        <field name="fieldRequired" type="int">
+            <bind-xml name="field-required" node="attribute"/>
+        </field>
+        <field name="fieldSearchable" type="int">
+            <bind-xml name="field-searchable" node="attribute"/>
+        </field>
+        <field name="fieldNumberValue" type="double">
+            <bind-xml name="field-number-value" node="attribute"/>
+        </field>
+        <field name="fieldInputAllowed" type="int">
+            <bind-xml name="field-input-allowed" node="attribute"/>
+        </field>
+        <field name="fieldRank" type="int">
+            <bind-xml name="field-rank" node="attribute"/>
+        </field>
+        <field name="fieldEntityType" type="int">
+            <bind-xml name="field-entity-type" node="attribute"/>
+        </field>
+        <field name="fieldName" type="java.lang.String">
+            <bind-xml name="field-name" node="element"/>
+        </field>
+        <field name="fieldStringValue" type="java.lang.String">
+            <bind-xml name="field-string-value" node="element"/>
+        </field>
+        <field name="fieldOptions" type="java.lang.String">
+            <bind-xml name="field-options" node="element"/>
+        </field>
+        <field name="fieldDisplayName" type="java.lang.String">
+            <bind-xml name="field-display-name" node="element"/>
+        </field>
+        <field name="fieldType" type="java.lang.String">
+            <bind-xml name="field-type" node="element"/>
+        </field>
+        <field name="fieldAttributes" type="java.lang.String">
+            <bind-xml name="field-attributes" node="element"/>
+        </field>
+        <field name="fieldValues" type="java.lang.String" collection="array">
+            <bind-xml name="field-values" node="element"/>
+        </field>
+        <field name="fieldDefaultValue" type="java.lang.String">
+            <bind-xml name="field-default-value" node="element"/>
+        </field>
+        <field name="fieldId" type="java.lang.String">
+            <bind-xml name="field-id" node="element"/>
+        </field>
+        <field name="fieldDateValue" type="java.sql.Date">
+            <bind-xml name="field-date-value" node="element"/>
+        </field>
+        <field name="toValues" type="java.lang.String" collection="array">
+            <bind-xml name="to-values" node="element"/>
+        </field>
+        <field name="fieldOtherAttributes" type="java.lang.String">
+            <bind-xml name="field-other-attributes" node="element"/>
+        </field>
+    </class>
+    <class name="com.talentPool.websiteservice.dataobject.WpositionData">
+        <description xmlns="">Default mapping for class com.talentPool.websiteservice.dataobject.WpositionData</description>
+        <map-to xml="wposition-data"/>
+        <field name="positionNote" type="java.lang.String">
+            <bind-xml name="position-note" node="element"/>
+        </field>
+        <field name="location" type="java.lang.String">
+            <bind-xml name="location" node="element"/>
+        </field>
+        <field name="branch" type="java.lang.String">
+            <bind-xml name="branch" node="element"/>
+        </field>
+        <field name="requirements" type="java.lang.String">
+            <bind-xml name="requirements" node="element"/>
+        </field>
+        <field name="departmentName" type="java.lang.String">
+            <bind-xml name="department-name" node="element"/>
+        </field>
+        <field name="customFields" type="java.lang.Object" collection="arraylist">
+            <bind-xml name="custom-fields" node="element"/>
+        </field>
+        <field name="education" type="java.lang.String">
+            <bind-xml name="education" node="element"/>
+        </field>
+        <field name="primarySkills" type="java.lang.String">
+            <bind-xml name="primary-skills" node="element"/>
+        </field>
+        <field name="subDeptName" type="java.lang.String">
+            <bind-xml name="sub-dept-name" node="element"/>
+        </field>
+        <field name="positionId" type="java.lang.String">
+            <bind-xml name="position-id" node="element"/>
+        </field>
+        <field name="positionCreationDate" type="java.lang.String">
+            <bind-xml name="position-creation-date" node="element"/>
+        </field>
+        <field name="groupName" type="java.lang.String">
+            <bind-xml name="group-name" node="element"/>
+        </field>
+        <field name="referalFees" type="java.lang.String">
+            <bind-xml name="referal-fees" node="element"/>
+        </field>
+        <field name="noOfUnfilledVacancies" type="java.lang.String">
+            <bind-xml name="no-of-unfilled-vacancies" node="element"/>
+        </field>
+        <field name="responsibilities" type="java.lang.String">
+            <bind-xml name="responsibilities" node="element"/>
+        </field>
+        <field name="secondarySkills" type="java.lang.String">
+            <bind-xml name="secondary-skills" node="element"/>
+        </field>
+        <field name="hireByDate" type="java.lang.String">
+            <bind-xml name="hire-by-date" node="element"/>
+        </field>
+        <field name="firstFieldToDisplay" type="java.lang.String">
+            <bind-xml name="first-field-to-display" node="element"/>
+        </field>
+        <field name="positionTitle" type="java.lang.String">
+            <bind-xml name="position-title" node="element"/>
+        </field>
+        <field name="experience" type="java.lang.String">
+            <bind-xml name="experience" node="element"/>
+        </field>
+        <field name="positionLevel" type="java.lang.String">
+            <bind-xml name="position-level" node="element"/>
+        </field>
+        <field name="vacancies" type="java.lang.String">
+            <bind-xml name="vacancies" node="element"/>
+        </field>
+        <field name="contactPerson" type="java.lang.String">
+            <bind-xml name="contact-person" node="element"/>
+        </field>
+        <field name="commaSeparatedFieldList" type="java.lang.String">
+            <bind-xml name="comma-separated-field-list" node="element"/>
+        </field>
+        <field name="positionCode" type="java.lang.String">
+            <bind-xml name="position-code" node="element"/>
+        </field>
+    </class>
+</mapping>

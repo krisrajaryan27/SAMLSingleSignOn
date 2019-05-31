@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>	
+		<dbquery name="qStepsMigration_getMigrationStatus">
+			SELECT tp.position_status, migration_status, count(tms.migration_status) AS count
+			FROM tp_migration_status tms
+			JOIN tp_positions tp ON (tms.position_id=tp.position_id)
+			GROUP BY position_status, migration_status
+	    </dbquery>
+	    <dbquery name="qStepsMigration_getUserMigrating">
+			SELECT tmu.migration_id, tmu.user_id, CONCAT(tu.user_fname,' ',tu.user_lname) AS user_name, tmu.steps_for, tmu.migration_completion_status
+			FROM tp_migration_users tmu, tp_users tu
+			WHERE tmu.user_id=tu.user_id AND tmu.migration_completion_status IN ('1','4')
+			ORDER BY tmu.last_modified
+			LIMIT 1
+	    </dbquery>
+	    <dbquery name="qStepsMigration_saveMigrationUser">
+			INSERT INTO tp_migration_users 
+			(user_id, migration_completion_status, start_date, last_modified) VALUES
+			(?, ?, now(), now())
+	    </dbquery>
+	    <dbquery name="qStepsMigration_deletePreviousGrouping">
+			DELETE FROM tp_migration_temp_steps_grouping WHERE migration_id=?
+	    </dbquery>
+	    <dbquery name="qStepsMigration_setGroupConcatMaxLen">
+	    	SET @@group_concat_max_len = 5120
+	    </dbquery>
+	    <dbquery name="qStepsMigration_insertNewGrouping">
+			INSERT INTO tp_migration_temp_steps_grouping 
+			(migration_id, step_title, grouped_step_ids, step_level, step_scheduled)
+			SELECT ?, tps.position_step_title, GROUP_CONCAT(tps.position_step_id) AS step_ids, 
+			tps.position_step_level, tps.position_step_isscheduled
+			FROM tp_positions tp, 
+			tp_position_steps tps
+			JOIN tp_migration_status tms ON (tps.position_id=tms.position_id), 
+			(SELECT @rownum := 0) r
+			WHERE tps.position_id=tp.position_id AND
+			tp.position_status IN (@@) AND
+			tps.position_step_status=? AND
+			tps.position_step_isdefault=?
+			GROUP BY tps.position_step_level, tps.position_step_isscheduled, tps.position_step_title
+			ORDER BY tps.position_step_level, tps.position_step_isscheduled, tps.position_step_title
+	    </dbquery>
+	    <dbquery name="qStepsMigration_updateMigrationUserStepsFor">
+	    	UPDATE tp_migration_users SET steps_for=? WHERE migration_id=?
+	    </dbquery>
+	    <dbquery name="qStepsMigration_getGroupedSteps">
+			SELECT tmtsg.grouping_id, tmtsg.step_title, tmtsg.step_level, tmtsg.step_scheduled, tmtsg.grouped_step_ids, tmtsg.mapping_step_id
+			FROM tp_migration_temp_steps_grouping tmtsg 
+			WHERE tmtsg.migration_id=?
+	    </dbquery>
+	    <dbquery name="qStepsMigration_deleteMigrationTempPositionSteps">
+			DELETE FROM tp_migration_temp_position_steps
+	    </dbquery>
+	    <dbquery name="qStepsMigration_populateMigrationTempPositionSteps">
+			INSERT INTO tp_migration_temp_position_steps 
+			(position_id, position_step_id, position_step_rank)
+			SELECT tps.position_id, tps.position_step_id, tps.position_step_rank 
+			FROM tp_position_steps tps
+			JOIN tp_migration_status tms ON (tps.position_id=tms.position_id)
+			JOIN tp_positions tp ON (tp.position_id=tps.position_id)
+			WHERE tps.position_step_status=? AND
+			tps.position_step_isdefault=?
+			AND tp.position_status IN (@@)
+	    </dbquery>
+	    <dbquery name="qStepsMigration_updateTempPositionStepMapping">
+			UPDATE tp_migration_temp_position_steps SET step_id=? WHERE 
+			position_step_id IN (@@)
+	    </dbquery>
+	    <dbquery name="qStepsMigration_updateMigrationStepsGrouping">
+			UPDATE tp_migration_temp_steps_grouping SET mapping_step_id=? WHERE 
+			grouping_id=?
+	    </dbquery>
+	    <dbquery name="qStepsMigration_getExceptionPositions">
+			(SELECT DISTINCT a.position_id, a.position_title, a.position_status
+			    FROM (SELECT @rownum := @rownum + 1   AS rank,
+			                tmtps.position_id        AS position_id,
+			                tp.position_title,
+			                tp.position_status,
+			                tmtps.position_step_rank AS rank1,
+			                tsm.step_rank            AS rank2
+			         FROM   tp_migration_temp_position_steps tmtps
+			                LEFT JOIN tp_step_master tsm ON ( tmtps.step_id = tsm.step_id )
+			                LEFT JOIN tp_positions tp ON ( tp.position_id = tmtps.position_id ),
+			                (SELECT @rownum := 0) r
+			         WHERE  @@ ORDER  BY position_id, rank1) A,
+			        (SELECT B.position_id, B.rank2, B.rank - 1 AS rank
+			         FROM   (SELECT @rownum := @rownum + 1   AS rank,
+			                        tmtps.position_id        AS position_id,
+			                        tp.position_title,
+			                        tp.position_status,
+			                        tmtps.position_step_rank AS rank1,
+			                        tsm.step_rank            AS rank2
+			                 FROM   tp_migration_temp_position_steps tmtps
+			                        LEFT JOIN tp_step_master tsm ON ( tmtps.step_id = tsm.step_id )
+			                        LEFT JOIN tp_positions tp ON ( tp.position_id = tmtps.position_id ),
+			                        (SELECT @rownum := 0) r
+			                 		WHERE @@ ORDER  BY position_id, rank1) B
+			         WHERE  B.rank != 1) main
+			 WHERE  A.position_id = main.position_id
+			        AND A.rank2 >= main.rank2
+			        AND A.rank = main.rank)
+			UNION
+			(SELECT DISTINCT tmtps.position_id, tp.position_title, tp.position_status
+				FROM  tp_migration_temp_position_steps tmtps JOIN tp_positions tp ON ( tp.position_id = tmtps.position_id )
+				WHERE  tmtps.step_id =-1 AND @@ )
+	    </dbquery>
+	    <dbquery name="qStepsMigration_getPositionStepsToMigrate">
+			SELECT @rownum := @rownum + 1 AS grouping_id, tps.position_step_title, tps.position_step_level, 
+			tps.position_step_isscheduled, tps.position_step_id AS step_ids, tmtps.step_id AS mapping_step_id  
+			FROM tp_migration_temp_position_steps tmtps
+			JOIN tp_position_steps tps ON (tmtps.position_step_id=tps.position_step_id),
+			(SELECT @rownum := 0) r					 
+			WHERE tps.position_step_status=?
+			AND tps.position_step_isdefault=?
+			AND tmtps.position_id=?
+			ORDER BY tps.position_step_rank
+	    </dbquery>
+	    <dbquery name="qStepsMigration_updateActualPositionsSteps">
+			UPDATE tp_position_steps tps
+			INNER JOIN (SELECT tmtps.step_id, tsm.step_level, tsm.step_name, tmtps.position_id, tmtps.position_step_id
+			FROM tp_migration_temp_position_steps tmtps, tp_step_master tsm
+			WHERE tsm.step_id=tmtps.step_id) A ON (tps.position_step_id=A.position_step_id AND tps.position_id=A.position_id)
+			SET tps.step_id=A.step_id, tps.position_step_title=A.step_name, tps.position_step_level=A.step_level
+	    </dbquery>
+	    <dbquery name="qStepsMigration_updateMigrationStatus">
+			UPDATE tp_migration_status tms
+			SET tms.migration_status=1
+			WHERE EXISTS (SELECT tms.position_id FROM tp_migration_temp_position_steps tmtps WHERE tmtps.position_id=tms.position_id)
+	    </dbquery>
+	    <dbquery name="qStepsMigration_resetMigrationTempTable">
+			DELETE FROM tp_migration_temp_position_steps
+	    </dbquery>
+	    <dbquery name="qStepsMigration_updateMigrationCompletionStatus">
+			UPDATE tp_migration_users SET migration_completion_status=? WHERE migration_id=?
+	    </dbquery>
+	    <dbquery name="qStepsMigration_saveMigrationTemporarily">
+			UPDATE tp_migration_users SET saved_temporarily=? WHERE migration_id=?
+	    </dbquery>
+	</dbqueries>
+	<dataqueries>
+		<dataquery name="dStepsMigration_getMigrationStatus" dbquery="qStepsMigration_getMigrationStatus" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name="positionStatus"  	column="position_status" type="STRING" />
+	  		<attribute name="migrationStatus" 	column="migration_status" type="STRING" />
+	  		<attribute name="count"  			column="count" type="STRING" />
+	    </dataquery>
+	    <dataquery name="dStepsMigration_getUserMigrating" dbquery="qStepsMigration_getUserMigrating" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name="migrationId"  	column="migration_id" type="STRING" />
+	  		<attribute name="userId" 	column="user_id" type="STRING" />
+	  		<attribute name="userName" 		column="user_name" type="STRING" />
+	  		<attribute name="migrateStepsFor"	column="steps_for" type="STRING" />
+	  		<attribute name="migrationCompletionStatus"	column="migration_completion_status" type="STRING" />
+	    </dataquery>
+	    <dataquery name="dStepsMigration_saveMigrationUser" dbquery="qStepsMigration_saveMigrationUser" />
+	    <dataquery name="dStepsMigration_deletePreviousGrouping" dbquery="qStepsMigration_deletePreviousGrouping" />
+	    <dataquery name="dStepsMigration_insertNewGrouping" dbquery="qStepsMigration_insertNewGrouping" />
+	    <dataquery name="dStepsMigration_updateMigrationUserStepsFor" dbquery="qStepsMigration_updateMigrationUserStepsFor" />
+	    <dataquery name="dStepsMigration_getGroupedSteps" dbquery="qStepsMigration_getGroupedSteps" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name="stepTitle"  	column="step_title" type="STRING" />
+	  		<attribute name="stepLevel" 	column="step_level" type="STRING" />
+	  		<attribute name="isscheduled"  	column="step_scheduled" type="STRING" />
+	  		<attribute name="stepIds" 		column="grouped_step_ids" type="STRING" />
+	  		<attribute name="groupingId"	column="grouping_id" type="STRING" />
+	  		<attribute name="mappingStepId"	column="mapping_step_id" type="STRING" />
+	    </dataquery>
+	    <dataquery name="dStepsMigration_deleteMigrationTempPositionSteps" dbquery="qStepsMigration_deleteMigrationTempPositionSteps" />
+	    <dataquery name="dStepsMigration_populateMigrationTempPositionSteps" dbquery="qStepsMigration_populateMigrationTempPositionSteps" />
+	    <dataquery name="dStepsMigration_updateTempPositionStepMapping" dbquery="qStepsMigration_updateTempPositionStepMapping" />
+	    <dataquery name="dStepsMigration_updateMigrationStepsGrouping" dbquery="qStepsMigration_updateMigrationStepsGrouping" />
+	    <dataquery name="dStepsMigration_getExceptionPositions" dbquery="qStepsMigration_getExceptionPositions" object="com.talentPool.positions.dataobject.PositionData">
+	    	<attribute name="positionId"  		column="position_id" type="STRING" />
+	    	<attribute name="positionStatus"	column="position_status" type="STRING" />
+	  		<attribute name="positionTitle" 	column="position_title" type="STRING" />
+	    </dataquery>
+	        <dataquery name="dStepsMigration_getPositionStepsToMigrate" dbquery="qStepsMigration_getPositionStepsToMigrate" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name="stepTitle"  	column="position_step_title" type="STRING" />
+	  		<attribute name="stepLevel" 	column="position_step_level" type="STRING" />
+	  		<attribute name="isscheduled"  	column="position_step_isscheduled" type="STRING" />
+	  		<attribute name="stepIds" 		column="step_ids" type="STRING" />
+	  		<attribute name="groupingId"	column="grouping_id" type="STRING" />
+	  		<attribute name="mappingStepId"	column="mapping_step_id" type="STRING" />
+	    </dataquery>
+	    <dataquery name="dStepsMigration_updateActualPositionsSteps" dbquery="qStepsMigration_updateActualPositionsSteps" />
+	    <dataquery name="dStepsMigration_updateMigrationStatus" dbquery="qStepsMigration_updateMigrationStatus" />
+	    <dataquery name="dStepsMigration_resetMigrationTempTable" dbquery="qStepsMigration_resetMigrationTempTable" />
+	    <dataquery name="dStepsMigration_updateMigrationCompletionStatus" dbquery="qStepsMigration_updateMigrationCompletionStatus" />
+	    <dataquery name="dStepsMigration_setGroupConcatMaxLen" dbquery="qStepsMigration_setGroupConcatMaxLen" />
+	    <dataquery name="dStepsMigration_saveMigrationTemporarily" dbquery="qStepsMigration_saveMigrationTemporarily" />
+	</dataqueries>   
+</dbmap>

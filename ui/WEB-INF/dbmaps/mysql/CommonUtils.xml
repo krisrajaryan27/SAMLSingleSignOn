@@ -1,0 +1,156 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+<dbqueries>
+	<!-- Common Utils Queries Section ************************************************-->
+	<dbquery name="qGetAllStepTypes">
+		SELECT step_type_id, step_type_title FROM tp_step_types WHERE step_type_default=0 ORDER BY step_type_title
+	</dbquery>
+	<dbquery name="qGetAllDegrees">
+		SELECT degree_id, degree_title, degree_type FROM tp_degrees WHERE degree_status='1' ORDER BY degree_type, degree_title
+	</dbquery>
+	<dbquery name="qGetAllDept">
+	    SELECT dept_id,dept_name,dept_externalCode FROM tp_departments WHERE dept_status='1' AND dept_parent_id IS null ORDER BY dept_name
+	</dbquery>
+	<dbquery name="qGetAllLoc">
+	    SELECT location_id,location_name,location_externalCode FROM tp_location_ap WHERE location_parent_id IS null ORDER BY location_name
+	</dbquery>
+	<dbquery name="qGetAllJobFunction">
+	    SELECT jobfunction_id,jobfunction_name,jobfunction_externalCode FROM tp_jobfunction_ap ORDER BY jobfunction_name
+	</dbquery>
+	<dbquery name="qGetAllJobPayGrade">
+	    SELECT paygrade_id,paygrade_name,paygrade_externalCode  FROM tp_paygrade_ap ORDER BY paygrade_name
+	</dbquery>
+	<dbquery name="qGetAllJobCode">
+	    SELECT job_id,job_name,job_externalCode FROM tp_jobcode_ap ORDER BY job_name
+	</dbquery>
+	<dbquery name="qGetAllCountry">
+	    SELECT id,name FROM countries ORDER BY name
+	</dbquery>
+
+	<dbquery name="qGetAllSourcesTypes">
+		SELECT source_type_id, source_type FROM tp_source_types ORDER BY source_type
+	</dbquery>
+	<dbquery name="qGetAllSources">
+		SELECT source_id, source_title FROM tp_sources WHERE source_status ='1' ORDER BY source_title
+	</dbquery>
+	<dbquery name="qGetAllActiveSources">
+		SELECT source_id, source_title FROM tp_sources WHERE source_status ='1' and source_blacklisted=? ORDER BY source_title
+	</dbquery>
+	<dbquery name="qGetAllSkills">
+		SELECT skill_id, skill  FROM tp_skills  ORDER BY skill
+	</dbquery>
+	<dbquery name="qGetAllBranches">
+		SELECT branch_id,  branch_name   FROM tp_branches  ORDER BY branch_name
+	</dbquery>
+	<dbquery name="qGetAllFlags">
+		select tf.flag_id, tf.flag_image, tf.flag_text, tf.flag_type, tf.flag_status, tf.user_id, tf.date_created,
+		concat(tu.user_fname, ' ', tu.user_lname) as name 
+		from tp_flags tf left join tp_users tu on (tu.user_id = tf.user_id)
+	</dbquery>
+	<dbquery name="qGetSourcesWithoutEmployeeSource">
+		SELECT tps.source_id, tps.source_title FROM tp_sources tps,tp_source_types tpsy
+		WHERE tps.source_status ='1' 
+		AND tps.source_type_id=tpsy.source_type_id
+		AND tpsy.source_type_category!=?
+		ORDER BY tps.source_title
+	</dbquery>
+	<dbquery name="qGetSourceCategoryTypeMap">
+		SELECT tpst.source_type_id, tpst.source_type_category
+		FROM tp_source_types tpst 
+		WHERE tpst.system_generated =?
+	</dbquery>
+	<dbquery name="qGetAllResumeTypes">
+		SELECT resume_type_id,  resume_type   FROM tp_resume_types  ORDER BY resume_type
+	</dbquery>
+	<!--End of Common Utils Queries Section ************************************************-->
+</dbqueries>
+<dataqueries>   
+	<!-- Common Utils Section ************************************************-->
+    <dataquery name="dGetAllDegrees" dbquery="qGetAllDegrees" object="com.talentPool.common.db.SimpleDataObject">
+        <attribute name="degreeId" column="degree_id" type ="INT" />
+        <attribute name="title" column="degree_title" type ="STRING" />
+        <attribute name="degreeType" column="degree_type" type ="STRING" />
+    </dataquery>
+	<dataquery name="dGetAllStepTypes" dbquery="qGetAllStepTypes" object="com.talentPool.common.db.SimpleDataObject">
+		<attribute name="stepTypeId" column="step_type_id" type ="STRING" />
+		<attribute name="stepTypeTitle" column="step_type_title" type ="STRING" />
+	</dataquery>
+	<dataquery name="dGetAllDept" dbquery="qGetAllDept" object="com.talentPool.common.db.SimpleDataObject">
+	    <attribute name="deptId" column="dept_id" type ="STRING" />
+	    <attribute name="deptName" column="dept_Name" type ="STRING" />
+	    <attribute name="deptExternalCode" column="dept_externalCode" type ="STRING" />
+	</dataquery>
+	<dataquery name="dGetAllLoc" dbquery="qGetAllLoc" object="com.talentPool.common.db.SimpleDataObject">
+	    <attribute name="locId" column="location_id" type ="STRING" />
+	    <attribute name="locName" column="location_name" type ="STRING" />
+	    <attribute name="locationExternalCode" column="location_externalCode" type ="STRING" />
+	</dataquery>
+	<dataquery name="dGetAllJobFunction" dbquery="qGetAllJobFunction" object="com.talentPool.common.db.SimpleDataObject">
+	    <attribute name="jobFunctionId" column="jobfunction_id" type ="STRING" />
+	    <attribute name="jobFunctionName" column="jobfunction_name" type ="STRING" />
+	    <attribute name="jobFunctionExternalCode" column="jobfunction_externalCode" type ="STRING" />
+	</dataquery>
+	<dataquery name="dGetAllJobPayGrade" dbquery="qGetAllJobPayGrade" object="com.talentPool.common.db.SimpleDataObject">
+	    <attribute name="jobPayGradeId" column="paygrade_id" type ="STRING" />
+	    <attribute name="jobPayGradeName" column="paygrade_name" type ="STRING" />
+	    <attribute name="jobPayGradeExternalCode" column="paygrade_externalCode" type ="STRING" />
+	</dataquery>
+	<dataquery name="dGetAllJobCode" dbquery="qGetAllJobCode" object="com.talentPool.common.db.SimpleDataObject">
+	    <attribute name="jobCodeId" column="job_id" type ="STRING" />
+	    <attribute name="jobCodeName" column="job_name" type ="STRING" />
+	    <attribute name="jobExternalCode" column="job_externalCode" type ="STRING" />
+	</dataquery>
+	<dataquery name="dGetAllCountry" dbquery="qGetAllCountry" object="com.talentPool.common.db.SimpleDataObject">
+	    <attribute name="countryId" column="id" type ="STRING" />
+	    <attribute name="countryName" column="name" type ="STRING" />
+	</dataquery>
+	
+	
+	<dataquery name="dGetAllSourcesTypes" dbquery="qGetAllSourcesTypes" object="com.talentPool.common.db.SimpleDataObject">
+	    <attribute name="sourceTypeId" column="source_type_id" type ="STRING" />
+	    <attribute name="sourceTypeTitle" column="source_type" type ="STRING" />
+	</dataquery>
+	<dataquery name="dGetAllSources" dbquery="qGetAllSources" object="com.talentPool.common.db.SimpleDataObject">
+	    <attribute name="sourceId" column="source_id" type ="STRING" />
+	    <attribute name="sourceTitle" column="source_title" type ="STRING" />
+	</dataquery>
+	<dataquery name="dGetAllActiveSources" dbquery="qGetAllActiveSources" object="com.talentPool.common.db.SimpleDataObject">
+	    <attribute name="sourceId" column="source_id" type ="STRING" />
+	    <attribute name="sourceTitle" column="source_title" type ="STRING" />
+	</dataquery>
+	<dataquery name="dGetAllSkills" dbquery="qGetAllSkills" object="com.talentPool.common.db.SimpleDataObject">
+	   <attribute name="skillId" column="skill_id" type ="STRING" />
+	   <attribute name="skillName" column="skill" type ="STRING" />
+	</dataquery>
+	<dataquery name="dGetAllBranches" dbquery="qGetAllBranches" object="com.talentPool.common.db.SimpleDataObject">
+	   <attribute name="branchId" column="branch_id" type ="STRING" />
+	   <attribute name="branchName" column="branch_name" type ="STRING" />
+	</dataquery>
+	<dataquery name="dGetAllFlags" dbquery="qGetAllFlags" object="com.talentPool.common.db.SimpleDataObject">
+		<attribute name="flagId"  column="flag_id" type="STRING" />
+		<attribute name="flagImage"  column="flag_image" type="STRING" />
+		<attribute name="flagText"  column="flag_text" type="STRING" />		
+		<attribute name="flagType"  column="flag_type" type="STRING" />
+		<attribute name="flagStatus"  column="flag_status" type="STRING" />
+		<attribute name="userId"  column="user_id" type="STRING" />
+		<attribute name="dateCreated"  column="date_created" type="STRING" />		
+		<attribute name="name"  column="name" type="STRING" />
+	</dataquery>
+	<dataquery name="dGetSourcesWithoutEmployeeSource" dbquery="qGetSourcesWithoutEmployeeSource" object="com.talentPool.common.db.SimpleDataObject">
+	    <attribute name="sourceId" column="source_id" type ="STRING" />
+	    <attribute name="sourceTitle" column="source_title" type ="STRING" />
+	</dataquery>
+	<dataquery name="dGetSourceCategoryTypeMap" dbquery="qGetSourceCategoryTypeMap" object="com.talentPool.masters.dataobject.SourceTypeData">
+	    <attribute name="sourceTypeId" column="source_type_id" type ="STRING" />
+	    <attribute name="sourceTypeCategory" column="source_type_category" type ="STRING" />
+	</dataquery>
+	<dataquery name="dGetAllResumeTypes" dbquery="qGetAllResumeTypes" object="com.talentPool.common.db.SimpleDataObject">
+	 	<attribute name="resumeTypeId" column="resume_type_id" type ="STRING" />
+	    <attribute name="resumeType" column="resume_type" type ="STRING" />
+	</dataquery>
+	<!-- End Common Utils Section ********************************************-->
+</dataqueries>   
+</dbmap>

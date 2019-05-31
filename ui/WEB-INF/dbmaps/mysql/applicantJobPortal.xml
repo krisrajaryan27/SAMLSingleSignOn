@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+   <dbqueries>
+       <dbquery name="qAddApplicantPositionMapping">
+        INSERT INTO tp_applicant_applied_position_resume_mapping (applicant_id, position_id) VALUES (?,?)
+       </dbquery>
+       <dbquery name="qDeleteApplicantPositionMapping">
+        UPDATE tp_applicant_applied_position_resume_mapping SET applied_status = 0 where applicant_id = ? and position_id = ?
+       </dbquery>
+       <dbquery name="qDeleteApplicantPositionMappingByApplicant">
+        UPDATE tp_applicant_applied_position_resume_mapping SET applied_status = 0 where applicant_id = ?
+       </dbquery>
+       <dbquery name="qAddResumeApplicantPositionMapping">
+        UPDATE tp_applicant_applied_position_resume_mapping set applicant_original_resume_path = ?, applicant_original_doc_path = ? where applicant_id = ? and position_id = ?
+       </dbquery>
+       <dbquery name="qDeleteApplicantPositionMappingByPosition">
+        UPDATE tp_applicant_applied_position_resume_mapping SET applied_status = 0 where position_id = ?
+       </dbquery>
+       <dbquery name="qAddResumeApplicantPositionMapping1">
+		UPDATE tp_applicant_applied_position_resume_mapping set applicant_original_resume_path = ?, applicant_original_doc_path = ? where applicant_id = ? and isnull(position_id)           
+       </dbquery>
+   </dbqueries>
+   <dataqueries>
+      <dataquery name="dAddApplicantPositionMapping" dbquery="qAddApplicantPositionMapping"/>
+      <dataquery name="dDeleteApplicantPositionMapping" dbquery="qDeleteApplicantPositionMapping"/>
+      <dataquery name="dDeleteApplicantPositionMappingByApplicant" dbquery="qDeleteApplicantPositionMappingByApplicant"/>
+      <dataquery name="dDeleteApplicantPositionMappingByPosition" dbquery="qDeleteApplicantPositionMappingByPosition"/>
+      <dataquery name="dAddResumeApplicantPositionMapping" dbquery="qAddResumeApplicantPositionMapping"/>
+      <dataquery name="dAddResumeApplicantPositionMapping1" dbquery="qAddResumeApplicantPositionMapping1"/>
+   </dataqueries>   
+</dbmap>

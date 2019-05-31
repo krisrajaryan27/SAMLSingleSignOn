@@ -1,0 +1,66 @@
+/*
+*  experiance_date_range.jape
+*
+*/
+
+Phase: experience_date_range
+Input: Lookup Token TempDateToken TempExperienceToken CustomSpaceToken
+Options: control = appelt
+
+Rule: date_range_fromSince_after_company_end
+Priority: 100
+(
+{TempExperienceToken}
+({Token})[0,25]
+({Token.string ==~ "[Ff][Rr][Oo][Mm]"}|{Token.string ==~ "[Ss][Ii][Nn][Cc][Ee]"})
+({TempDateToken, !TempExperienceToken}):fromDate
+):date_range
+-->
+{
+	gate.AnnotationSet fromDateSet = (gate.AnnotationSet)bindings.get("fromDate");
+	//gate.AnnotationSet toDateSet = (gate.AnnotationSet)bindings.get("toDate");
+	gate.AnnotationSet dateRangeSet = (gate.AnnotationSet)bindings.get("date_range");
+	gate.Annotation fromAnn = fromDateSet.iterator().next();
+	//gate.Annotation toAnn = toDateSet.iterator().next();
+	
+	gate.FeatureMap features = Factory.newFeatureMap();
+	features.put("kind", "date_range");
+	features.put("fromDate",fromAnn.getFeatures().get("date").toString());
+	features.put("isTillDate", true);
+	java.text.SimpleDateFormat sdFormat2 = new java.text.SimpleDateFormat("dd-MM-yyyy");		
+	Calendar cal = Calendar.getInstance();
+	features.put("toDate",sdFormat2.format(cal.getTime()));
+	features.put("rule", "date_range_fromSince_after_company_end");
+	features.put("isYearOnly", false);
+	outputAS.add(dateRangeSet.firstNode(),
+	dateRangeSet.lastNode(), "TempExperienceToken", features);
+}
+
+Rule: date_range_fromSince_after_company_start
+Priority: 100
+(
+({Token.string ==~ "[Ff][Rr][Oo][Mm]"}|{Token.string ==~ "[Ss][Ii][Nn][Cc][Ee]"})
+({TempDateToken, !TempExperienceToken}):fromDate
+({Token})[0,25]
+ {TempExperienceToken}
+):date_range
+-->
+{
+	gate.AnnotationSet fromDateSet = (gate.AnnotationSet)bindings.get("fromDate");
+	//gate.AnnotationSet toDateSet = (gate.AnnotationSet)bindings.get("toDate");
+	gate.AnnotationSet dateRangeSet = (gate.AnnotationSet)bindings.get("date_range");
+	gate.Annotation fromAnn = fromDateSet.iterator().next();
+	//gate.Annotation toAnn = toDateSet.iterator().next();
+	
+	gate.FeatureMap features = Factory.newFeatureMap();
+	features.put("kind", "date_range");
+	features.put("fromDate",fromAnn.getFeatures().get("date").toString());
+	features.put("isTillDate", true);
+	java.text.SimpleDateFormat sdFormat2 = new java.text.SimpleDateFormat("dd-MM-yyyy");		
+	Calendar cal = Calendar.getInstance();
+	features.put("toDate",sdFormat2.format(cal.getTime()));
+	features.put("rule", "date_range_fromSince_after_company_start");
+	features.put("isYearOnly", false);
+	outputAS.add(dateRangeSet.firstNode(),
+	dateRangeSet.lastNode(), "TempExperienceToken", features);
+}

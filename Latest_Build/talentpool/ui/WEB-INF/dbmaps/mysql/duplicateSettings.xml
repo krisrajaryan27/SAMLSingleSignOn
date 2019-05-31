@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>	
+       <!-- Start : Duplicate Detection Settings -->
+       <dbquery name="qDuplicateSettings_GetSettings">
+       		select field_id, field_type, check_type, check_for	from tp_duplicate_detection_settings
+       </dbquery>
+       <dbquery name="qDuplicateSettings_DeleteSettings">
+	       	delete from tp_duplicate_detection_settings
+       </dbquery>
+       <dbquery name="qDuplicateSettings_InsertSetting">
+       		insert into tp_duplicate_detection_settings (field_id, field_type, check_type, check_for) 
+       		values(?, ?, ?, ?)
+       </dbquery>
+	   <!-- End : Duplicate Detection Settings -->
+	</dbqueries>
+	<dataqueries>
+       <!-- Start : Duplicate Detection Settings -->
+       <dataquery name="dDuplicateSettings_GetSettings" dbquery="qDuplicateSettings_GetSettings" object="com.talentPool.admin.dataobject.DuplicateSettingsData">
+       		<attribute name="fieldId"  column="field_id" type="STRING" />
+       		<attribute name="fieldType"  column="field_type" type="STRING" />
+       		<attribute name="fieldCheckType"  column="check_type" type="STRING" />
+       		<attribute name="checkFor"  column="check_for" type="STRING" />
+       </dataquery>
+       <dataquery name="dDuplicateSettings_DeleteSettings" dbquery="qDuplicateSettings_DeleteSettings" />
+       <dataquery name="dDuplicateSettings_InsertSetting" dbquery="qDuplicateSettings_InsertSetting" />
+       <!-- End : Duplicate Detection Settings -->
+	</dataqueries>   
+</dbmap>

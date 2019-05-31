@@ -1,0 +1,85 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>
+		<dbquery name="qIndexManager_CountAll">
+			SELECT count(*) FROM tp_applicants
+		</dbquery>
+		<dbquery name="qIndexManager_CountForSkills">
+			SELECT count(distinct ta.applicant_id) FROM tp_applicants ta, tp_applicant_skills tas 
+			WHERE ta.applicant_id =tas.applicant_id AND tas.skill_id=?
+		</dbquery>
+		<dbquery name="qIndexManager_CountForDegree">
+			SELECT count(distinct ta.applicant_id) FROM tp_applicants ta, tp_applicant_educational_info taei 
+			WHERE ta.applicant_id =taei.applicant_id AND taei.degree_id=?
+		</dbquery>
+		<dbquery name="qIndexManager_CountForBranch">
+			SELECT count(distinct ta.applicant_id) FROM tp_applicants ta, tp_applicant_educational_info taei 
+			WHERE ta.applicant_id =taei.applicant_id AND taei.branch_id=?
+		</dbquery>
+		<dbquery name="qIndexManager_CountForInstitute">
+			SELECT count(distinct ta.applicant_id) FROM tp_applicants ta, tp_applicant_educational_info taei 
+			WHERE ta.applicant_id =taei.applicant_id AND taei.institute_id=?
+		</dbquery>
+		<dbquery name="qIndexManager_CountForSource">
+			SELECT count(*) FROM tp_applicants ta WHERE ta.source_id=?
+		</dbquery>
+		<dbquery name="qIndexManager_CountForPreviousEmployer">
+			SELECT count(distinct ta.applicant_id) FROM tp_applicants ta, tp_applicant_employment_history taeh 
+			WHERE ta.applicant_id =taeh.applicant_id AND taeh.employer_id=?
+		</dbquery>
+		<dbquery name="qIndexManager_CountForDesignation">
+			SELECT count(distinct ta.applicant_id) FROM tp_applicants ta, tp_applicant_employment_history taeh 
+			WHERE ta.applicant_id =taeh.applicant_id AND taeh.designation_id=?
+		</dbquery>
+		<dbquery name="qIndexManager_ProcGetApplicantsToIndex">
+			call PROC_GET_APPLICATS_TO_INDEX(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+		</dbquery>
+	</dbqueries>
+	<dataqueries>
+		<dataquery name="dIndexManager_CountAll" dbquery="qIndexManager_CountAll"/>
+		<dataquery name="dIndexManager_CountForSkills" dbquery="qIndexManager_CountForSkills"/>
+		<dataquery name="dIndexManager_CountForDegree" dbquery="qIndexManager_CountForDegree"/>
+		<dataquery name="dIndexManager_CountForBranch" dbquery="qIndexManager_CountForBranch"/>
+		<dataquery name="dIndexManager_CountForInstitute" dbquery="qIndexManager_CountForInstitute"/>
+		<dataquery name="dIndexManager_CountForPreviousEmployer" dbquery="qIndexManager_CountForPreviousEmployer"/>
+		<dataquery name="dIndexManager_CountForDesignation" dbquery="qIndexManager_CountForDesignation"/>
+		<dataquery name="dIndexManager_CountForSource" dbquery="qIndexManager_CountForSource"/>	
+	    <dataquery name="dIndexManager_ProcGetApplicantsToIndex" dbquery="qIndexManager_ProcGetApplicantsToIndex" object="com.talentPool.applicant.dataobject.ApplicantData">
+		    <attribute name= "applicantId" column="applicant_id" type ="INT" />
+		    <attribute name= "applicantName" column="applicant_name" type ="STRING" />
+		    <attribute name= "applicantCity" column="applicant_city" type ="STRING" />
+		    <attribute name= "applicantEmail1" column="applicant_email1" type ="STRING" />
+		    <attribute name= "applicantEmail2" column="applicant_email2" type ="STRING" />
+		    <attribute name= "applicantHomePhone" column="applicant_home_phone" type ="STRING" />
+		    <attribute name= "applicantCellPhone" column="applicant_cell_phone" type ="STRING" />
+		    <attribute name= "applicantWorkPhone" column="applicant_work_phone" type ="STRING" />
+		    <attribute name= "applicantWorkingSince" column="applicant_working_since" type ="STRING" />		
+			<attribute name= "applicantPositionId" column="applicant_position_id" type ="STRING" />
+		    <attribute name= "applicantStepId" column="applicant_step_id" type ="STRING" />
+		    <attribute name= "applicantDateImported" column="applicant_date_created" type ="STRING" />		
+			<attribute name= "applicantSourceId" column="source_id" type ="INT" />
+		    <attribute name= "applicantJoined" column="applicant_joined" type ="STRING" />
+		    <attribute name= "applicantOriginalResumePath" column="applicant_original_resume_path" type ="STRING" />
+		    <attribute name= "applicantTextResume" column="applicant_text_resume" type ="STRING" />
+		    <attribute name= "applicantCurrentEmployer" column="applicant_current_employer" type ="STRING" />
+			<attribute name= "applicantSourceTitle" column="source_title" type ="STRING" />
+			<attribute name= "sourceTypeId" column="source_type_id" type ="STRING" />
+			<attribute name= "rejectReasonIds" column="reject_reason_ids" type ="STRING" />
+			<attribute name= "rejectStepLevels" column="reject_step_levels" type ="STRING" />
+	        <attribute name = "skillsString" column="skill" type ="STRING" />
+	        <attribute name = "aliasesString" column="alias" type ="STRING" />
+	        <attribute name = "flagIds" column="flag_ids" type ="STRING" />
+	        <attribute name = "applicantLastInteractionDate" column="interaction_date" type ="STRING" />
+	        <attribute name = "isConfidential" column="is_confidential" type ="STRING" />
+	        <attribute name = "applicantStatus" column="applicant_status" type ="STRING" />	        
+	        <attribute name = "employeeCode" column="employee_code" type ="STRING" />
+	        <attribute name = "dateOfBirth" column="date_of_birth" type ="STRING" />
+	        <attribute name = "passportNumber" column="passport_number" type ="STRING" />
+	        <attribute name = "resumeType" column="resume_type" type ="STRING" />
+	        <attribute name = "resumeTypeId" column="resume_type_id" type ="STRING" />	        
+    	</dataquery>
+	</dataqueries>   
+</dbmap>

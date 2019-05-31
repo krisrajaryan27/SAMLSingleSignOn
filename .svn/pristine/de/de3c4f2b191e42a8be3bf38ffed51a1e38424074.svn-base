@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<dbmap> 
+	<dbqueries>
+		<dbquery name="qLDAPManager_AddServer">
+			INSERT INTO tp_ldap_servers(ldap_server_url,ldap_security_principal) VALUES(?,?)
+		</dbquery>
+		<dbquery name="qLDAPManager_UpdateServer">
+			UPDATE tp_ldap_servers SET ldap_server_url=?,ldap_security_principal=?	WHERE ldap_server_id=?
+		</dbquery>
+		<dbquery name="qLDAPManager_GetAllServers">
+			SELECT ldap_server_id, ldap_server_url ,ldap_security_principal
+			FROM tp_ldap_servers  ORDER BY ldap_server_id
+		</dbquery>
+		<dbquery name="qLDAPManager_GetServerData">
+			SELECT ldap_server_id, ldap_server_url ,ldap_security_principal
+			FROM tp_ldap_servers  WHERE ldap_server_id =?
+		</dbquery>
+		<dbquery name="qLDAPManager_UpdateAdminUserName">
+			UPDATE tp_users SET user_name=? WHERE user_id=?
+		</dbquery>
+	</dbqueries>
+	<dataqueries>
+	    <dataquery name="dLDAPManager_AddServer" dbquery="qLDAPManager_AddServer" />
+	    <dataquery name="dLDAPManager_UpdateServer" dbquery="qLDAPManager_UpdateServer" />
+	    <dataquery name="dLDAPManager_GetAllServers" dbquery="qLDAPManager_GetAllServers" object="com.talentPool.ldap.dataobject.LDAPServerData">
+		    <attribute name= "serverId" column="ldap_server_id" type ="String" />
+		    <attribute name= "serverURL" column="ldap_server_url" type ="String" />
+		    <attribute name= "securityPrincipal" column="ldap_security_principal" type ="String" />
+    	</dataquery>
+	    <dataquery name="dLDAPManager_GetServerData" dbquery="qLDAPManager_GetServerData" object="com.talentPool.ldap.dataobject.LDAPServerData">
+		    <attribute name= "serverId" column="ldap_server_id" type ="String" />
+		    <attribute name= "serverURL" column="ldap_server_url" type ="String" />
+		    <attribute name= "securityPrincipal" column="ldap_security_principal" type ="String" />
+    	</dataquery>
+	    <dataquery name="dLDAPManager_UpdateAdminUserName" dbquery="qLDAPManager_UpdateAdminUserName" />
+	</dataqueries>   
+</dbmap>

@@ -1,0 +1,8 @@
+use talentpool;
+
+insert into tp_application_properties(application_property,application_property_value) values ( 'vendor_resume_uplaod_limit','4');
+insert into `tp_position_screen_description`(`field_id`,`field_type`,`field_rank`,`field_position_show`,`field_position_mandatory`,`field_vendor_show`,`field_vendor_rank`,`field_employee_show`,`field_employee_rank`) values ( 'DepartmentLevel1','0','46','1','0','0',NULL,'0',NULL);
+insert into `tp_position_screen_description`(`field_id`,`field_type`,`field_rank`,`field_position_show`,`field_position_mandatory`,`field_vendor_show`,`field_vendor_rank`,`field_employee_show`,`field_employee_rank`) values ( 'DepartmentLevel2','0','47','1','0','0',NULL,'0',NULL);
+insert into `tp_position_screen_description`(`field_id`,`field_type`,`field_rank`,`field_position_show`,`field_position_mandatory`,`field_vendor_show`,`field_vendor_rank`,`field_employee_show`,`field_employee_rank`) values ( 'DepartmentLevel3','0','48','1','0','0',NULL,'0',NULL);
+insert into `tp_position_screen_description`(`field_id`,`field_type`,`field_rank`,`field_position_show`,`field_position_mandatory`,`field_vendor_show`,`field_vendor_rank`,`field_employee_show`,`field_employee_rank`) values ( 'DepartmentLevel4','0','49','1','0','0',NULL,'0',NULL);
+insert into `tp_position_screen_description`(`field_id`,`field_type`,`field_rank`,`field_position_show`,`field_position_mandatory`,`field_vendor_show`,`field_vendor_rank`,`field_employee_show`,`field_employee_rank`) values ( 'DepartmentLevel5','0','50','1','0','0',NULL,'0',NULL);

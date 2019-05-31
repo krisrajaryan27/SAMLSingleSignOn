@@ -1,0 +1,49 @@
+/*
+*  basicinfo_email.jape
+*
+*/
+
+Phase: sections_experience
+Input: Token CustomSpaceToken Lookup
+Options: control = appelt
+
+
+Macro: SectionTokenStart
+(
+	{Token.kind == word, Token.orth == upperInitial, Token.length > 1}|
+	{Token.kind == word, Token.orth == allCaps, Token.length > 1}|
+	{Token.kind == word, Token.orth == mixedCaps, Token.length > 1}|{Token.length == 1}
+)
+Macro: SectionTokenMiddle
+(
+	{Token.kind == word, Token.length > 1}|
+	{Token.string == "of"}|{Token.string == "and"}|
+	{Token.kind == punctuation}|{Token.string ==~ "[Ss]"}|{Token.length == 1}
+)
+
+Rule: section_divider_experience_middle
+(
+	{CustomSpaceToken}({Token.kind == space})[0,5]
+	(SectionTokenStart){Lookup.majorType == exp_section_header, Lookup.minorType == experience}(SectionTokenMiddle)[0,10]
+	({CustomSpaceToken}|{Token.string == ":"}({Token.kind == punctuation})[0,4]|{Token.kind == space})
+):section
+--> 
+:section.ExpSectionToken = {kind = "experience", rule = "section_divider_experience_middle"}
+
+Rule: section_divider_experience_middle1
+(
+	{CustomSpaceToken}({Token.kind == space})[0,5]
+	(SectionTokenStart)(SectionTokenMiddle)[0,5]{Lookup.majorType == exp_section_header, Lookup.minorType == experience}(SectionTokenMiddle)[0,5]
+	({CustomSpaceToken}|{Token.string == ":"}({Token.kind == punctuation})[0,4]|{Token.kind == space})
+):section
+--> 
+:section.ExpSectionToken = {kind = "experience", rule = "section_divider_experience_middle1"}
+
+Rule: section_divider_experience_start
+(
+	{CustomSpaceToken}({Token.kind == space})[0,5]
+	{Lookup.majorType == exp_section_header, Lookup.minorType == experience}(SectionTokenMiddle)[0,10]
+	({CustomSpaceToken}|{Token.string == ":"}({Token.kind == punctuation})[0,4]|{Token.kind == space})
+):section
+--> 
+:section.ExpSectionToken = {kind = "experience", rule = "section_divider_experience_start"}

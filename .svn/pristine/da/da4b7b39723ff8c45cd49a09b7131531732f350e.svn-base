@@ -1,0 +1,384 @@
+<%@page import="com.talentPool.reports.ReportConstants"%>
+<script type="text/javascript">
+var selectUserRoleFilter =null
+var selectUserFilter =null
+</script>
+
+<table class="innerReport">
+<tr>
+ 	<td class="label">Roles:</td>
+	<td>
+		<script type="text/javascript">
+			var opts = new Array();
+			opts[0] = new SelectOption('<%=ReportConstants.FILTER_ALL%>','<bean:message key="common.all"/>');			
+			opts[1] = new SelectOption('<%=ReportConstants.FILTER_SPECIFIC_USER_ROLE%>','<bean:message key="common.specific"/> <bean:message key="common.role"/>');			
+			selectUserRoleFilter = new SelectBox(opts,'<%=ReportConstants.FILTER_ALL%>','images/btn_dropdown.gif',{namesonly:false, width:'160px', size:20});
+			document.write(selectUserRoleFilter.getHtml());
+			selectUserRoleFilter.setOnChangeHandler('onChangeUserRoleFilter');
+			selectUserRoleFilter.init();
+		</script>
+	</td>
+</tr>
+</table>
+
+<div id="divSelectSpecificUserRole" style="display:none;">	
+<table class="userRoleFilterGrid">
+		<tr>
+			<td>
+			<table cellpadding="0" cellspacing="0" >
+				<tr>
+					<td class="gridborder" width="300px;">
+						<div class="leftGrid" id="USER_ROLE_LEFT" style="width:320px; height: 100px;"></div>
+					</td>
+				</tr>
+			</table>
+			</td>
+			<td class="arrows" align="center">																												
+				<a href="#" class="active" onclick="javascript: selectItem(userRoleLeftGrid,userRoleRightGrid);return false;" title="Add" >					
+				<img src="images/ico_rightarrow.gif"  border="0" /></a>
+				<br/> 
+				<a href="#" class="active" onclick="javascript: deselectItem(userRoleRightGrid,userRoleLeftGrid);return false;" title="Remove" >					
+				<img src="images/ico_leftarrow.gif"  border="0" /></a>
+			</td>
+			<td >
+			<table cellpadding="0" cellspacing="0" >
+				<tr>
+					<td class="gridborder" width="300px;">
+						<div class="rightGrid" id="USER_ROLE_RIGHT" style="width:320px;height: 100px;"></div>
+					</td>
+				</tr>
+			</table>
+			</td>
+		</tr>
+</table>
+</div>
+<table class="innerReport">
+<tr>
+	<td class="label"><bean:message key="common.user"/>:</td>
+  	<td>
+		<script type="text/javascript">
+			var opts = new Array();
+			opts[0] = new SelectOption('<%=ReportConstants.FILTER_ALL%>','<bean:message key="common.all"/>');			
+			opts[1] = new SelectOption('<%=ReportConstants.FILTER_SPECIFIC_USER%>','<bean:message key="common.specific"/> <bean:message key="common.users"/>');				
+			selectUserFilter = new SelectBox(opts,'<%=ReportConstants.FILTER_ALL%>','images/btn_dropdown.gif',{namesonly:false, width:'160px', size:20});
+			document.write(selectUserFilter.getHtml());
+			selectUserFilter.setOnChangeHandler('onChangeUserFilter');
+			selectUserFilter.init();
+		</script>
+	</td>
+</tr>
+</table>
+
+<div id="divSelectSpecificUser" style="display:none;">
+<table class="userFilterGrid">	
+
+		<tr>
+			<td>
+				<table cellpadding="0" cellspacing="0" class="innerReport">
+				<tr>
+					<td class="gridborder" width="300px;">
+						<div class="leftGrid" id="USER_LEFT" style="width:320px; height: 100px;"></div>
+					</td>
+				</tr>
+				</table>
+			</td>
+			<td class="arrows" align="center">																												
+				<a href="#" class="active" onclick="javascript: selectItem(userLeftGrid,userRightGrid);return false;" title="Add" >					
+				<img src="images/ico_rightarrow.gif"  border="0" /></a>
+				<br/> 
+				<a href="#" class="active" onclick="javascript: deselectItem(userRightGrid,userLeftGrid);return false;" title="Remove" >					
+				<img src="images/ico_leftarrow.gif"  border="0" /></a>													
+			</td>
+			<td>
+				<table cellpadding="0" cellspacing="0">
+				<tr>
+					<td class="gridborder">
+						<div class="rightGrid" id="USER_RIGHT" style="width:320px; height: 100px;"></div>
+					</td>
+				</tr>
+				</table>
+			</td>
+		</tr>
+
+</table>
+</div>
+
+
+<script language="JavaScript">
+var userRoleLeftGrid;
+var userRoleRightGrid;
+
+//GRID For userRole
+function initUserRoleGrids() {
+	userRoleLeftGrid = new dhtmlXGridObject('USER_ROLE_LEFT'); 
+	userRoleLeftGrid.imgURL = "images/"; 
+	userRoleLeftGrid.setHeader("roleTitle"); 
+	userRoleLeftGrid.setInitWidths("295");
+	userRoleLeftGrid.setNoHeader(true);
+	userRoleLeftGrid.setColAlign("left");
+	userRoleLeftGrid.setColTypes("ro");
+	userRoleLeftGrid.setColSorting("user_role_name_sort");
+	//userRoleLeftGrid.enableMultiselect('true');	
+	userRoleLeftGrid.init();
+	loadGridUserRole();	
+	userRoleLeftGrid.sortRows(0,'str',"asc");
+	//userRoleLeftGrid.enableSmartRendering(true);
+	userRoleLeftGrid.setSortImgState(true,0,"ASC");	
+	//userRoleLeftGrid.setAwaitedRowHeight(20);
+	userRoleLeftGrid.attachEvent("onKeyPress",onUserRoleLeftGridKeyPressed);
+	userRoleLeftGrid.attachEvent("onRowSelect",doOnUserRoleLeftGridRowSelectHandler);
+	userRoleLeftGrid.attachEvent("onRowDblClicked",doOnUserRoleLeftGridRowDblClicked);
+	
+	userRoleLeftGrid.gridToGrid = function(rowId,sgrid,tgrid){
+	    var z=new Array();
+		for(var i=0;i<sgrid.hdr.rows[0].cells.length;i++)
+		z[i]=sgrid.cells(rowId,i).getValue();
+		return z;
+	}	
+	
+	userRoleRightGrid = new dhtmlXGridObject('USER_ROLE_RIGHT'); 
+	userRoleRightGrid.imgURL = "images/"; 
+	userRoleRightGrid.setHeader("roleTitle"); 
+	userRoleRightGrid.setInitWidths("295");
+	userRoleRightGrid.setColAlign("left");
+	userRoleRightGrid.setColTypes("ro"); 	
+	//userRoleRightGrid.enableMultiselect('true');
+	userRoleRightGrid.setNoHeader(true);
+	userRoleRightGrid.setColSorting("user_role_name_sort");
+	userRoleRightGrid.init();
+	userRoleRightGrid.sortRows(0,'str',"asc");
+	userRoleRightGrid.setSortImgState(true,0,"ASC");	
+	userRoleRightGrid.gridToGrid = function(rowId,sgrid,tgrid){
+	    var z=new Array();
+		for(var i=0;i<sgrid.hdr.rows[0].cells.length;i++)
+		z[i]=sgrid.cells(rowId,i).getValue();
+		return z;
+	}
+	userRoleRightGrid.attachEvent("onKeyPress",onUserRoleRightGridKeyPressed);
+	userRoleRightGrid.attachEvent("onRowSelect",doOnUserRoleRightGridRowSelectHandler);
+	userRoleRightGrid.attachEvent("onRowDblClicked",doOnUserRoleRightGridRowDblClicked);
+	initUserGrids();	
+}
+
+function user_role_name_sort(a,b,order,aId,bId) {
+	a0 =userRoleLeftGrid.getUserData(aId,"userTitle");
+	b0 = userRoleLeftGrid.getUserData(bId,"userTitle");	
+	return sort_data(a0,b0,order);
+}
+
+function loadGridUserRole(){	
+	userRoleLeftGrid.clearAll();	
+	userRoleLeftGrid.loadXML("reports.do?mode=XMLUserRoles");	
+}
+
+function onUserRoleLeftGridKeyPressed(keyCode,ctrl,shift) {
+	onGridObjKeyPressed(userRoleLeftGrid,userRoleRightGrid,4,keyCode,ctrl,shift);
+}
+
+function doOnUserRoleLeftGridRowSelectHandler() {
+	userRoleRightGrid.clearSelection();
+}
+
+function doOnUserRoleLeftGridRowDblClicked() {	
+	var text = (userRoleLeftGrid.cells(userRoleLeftGrid.getSelectedId(),0)).getValue();
+	selectItem(userRoleLeftGrid,userRoleRightGrid);	
+	loadUsersForRoles();
+}
+
+//for right userRole grid
+function onUserRoleRightGridKeyPressed(keyCode,ctrl,shift) {
+	onGridObjKeyPressed(userRoleRightGrid,userRoleLeftGrid,4,keyCode,ctrl,shift);
+}
+
+function doOnUserRoleRightGridRowSelectHandler() {
+	userRoleLeftGrid.clearSelection();
+}
+
+function doOnUserRoleRightGridRowDblClicked() {	
+	var text = (userRoleRightGrid.cells(userRoleRightGrid.getSelectedId(),0)).getValue();
+	selectItem(userRoleRightGrid,userRoleLeftGrid);
+	loadUsersForRoles();
+}
+
+//Common Function
+function sort_data(a,b,order) {
+	if(order=="asc")
+		return a.toLowerCase()>b.toLowerCase()?1:-1;
+	else
+		return a.toLowerCase()<b.toLowerCase()?1:-1;
+}
+
+function onChangeUserRoleFilter(val){	
+	val = selectUserRoleFilter.getSelectedId();	
+	if(val=="<%=ReportConstants.FILTER_ALL%>"){
+		$("divSelectSpecificUserRole").style.display="none";		
+	}else if(val=="<%=ReportConstants.FILTER_SPECIFIC_USER_ROLE%>"){
+		$("divSelectSpecificUserRole").style.display="block";		
+	}	
+	initUserRoleGrids();	
+	loadUsersForRoles();
+}
+
+function validateUserRoleFilter(){	
+	//if specific userRole option selected	
+	var filterVal = selectUserRoleFilter.getSelectedId();	
+	document.reportForm.roleFilter.value=filterVal;
+	if(filterVal=="<%=ReportConstants.FILTER_SPECIFIC_USER_ROLE%>"){
+		var selectedUserRole = userRoleRightGrid.getAllItemIds(',');		
+		if(!selectedUserRole){
+			alert('<bean:message key="common.please_select"/> <bean:message key="common.role"/>');
+			return false;
+		}
+		document.reportForm.userRoleId.value=selectedUserRole;
+	}
+	return true;
+}
+
+
+var userLeftGrid;
+var userRightGrid;
+
+//GRID For User
+function initUserGrids() {
+	userLeftGrid = new dhtmlXGridObject('USER_LEFT');
+	userLeftGrid.imgURL = "images/";	
+	userLeftGrid.setHeader("User Name");	
+	userLeftGrid.setInitWidths("295");	
+	userLeftGrid.setNoHeader(true);	
+	userLeftGrid.setColAlign("left");	
+	userLeftGrid.setColTypes("ro");	
+	userLeftGrid.setColSorting("user_name_sort");	
+	//userLeftGrid.enableMultiselect('true');	
+	userLeftGrid.init();
+	loadGridUser();
+	//userLeftGrid.enableSmartRendering(true);	
+	userLeftGrid.setAwaitedRowHeight(21);
+	userLeftGrid.sortRows(0,'str',"asc");
+	userLeftGrid.setSortImgState(true,0,"ASC");
+	userLeftGrid.gridToGrid = function(rowId,sgrid,tgrid){
+	    var z=new Array();
+		for(var i=0;i<sgrid.hdr.rows[0].cells.length;i++)
+		z[i]=sgrid.cells(rowId,i).getValue();
+		return z;
+	}
+	userLeftGrid.attachEvent("onKeyPress",onUserLeftGridKeyPressed);
+	userLeftGrid.attachEvent("onRowSelect",doOnUserLeftGridRowSelectHandler);
+	userLeftGrid.attachEvent("onRowDblClicked",doOnUserLeftGridRowDblClicked);
+	
+	userRightGrid = new dhtmlXGridObject('USER_RIGHT'); 
+	userRightGrid.imgURL = "images/"; 
+	userRightGrid.setHeader("User Name"); 
+	userRightGrid.setInitWidths("295");
+	userRightGrid.setColAlign("left");
+	userRightGrid.setColTypes("ro"); 	
+	//userRightGrid.enableMultiselect('true');
+	userRightGrid.setNoHeader(true);
+	userRightGrid.setColSorting("user_name_sort");
+	userRightGrid.init();
+	userRightGrid.sortRows(0,'str',"asc");
+	userRightGrid.setSortImgState(true,0,"ASC");	
+	userRightGrid.gridToGrid = function(rowId,sgrid,tgrid){
+	    var z=new Array();
+		for(var i=0;i<sgrid.hdr.rows[0].cells.length;i++)
+		z[i]=sgrid.cells(rowId,i).getValue();
+		return z;
+	}
+	userRightGrid.attachEvent("onKeyPress",onUserRightGridKeyPressed);
+	userRightGrid.attachEvent("onRowSelect",doOnUserRightGridRowSelectHandler);
+	userRightGrid.attachEvent("onRowDblClicked",doOnUserRightGridRowDblClicked);
+}
+
+function user_name_sort(a,b,order,aId,bId) {
+	a0 =userLeftGrid.getUserData(aId,"user");
+	b0 = userLeftGrid.getUserData(bId,"user");	
+	return sort_data(a0,b0,order);
+}
+
+function loadGridUser(){	
+	userLeftGrid.clearAll();
+	userLeftGrid.loadXML("reports.do?mode=XMLRolewiseUsers");	
+}
+
+function onUserLeftGridKeyPressed(keyCode,ctrl,shift) {
+	onGridObjKeyPressed(userLeftGrid,userRightGrid,4,keyCode,ctrl,shift);
+}
+
+function doOnUserLeftGridRowSelectHandler() {
+	userRightGrid.clearSelection();
+}
+
+function doOnUserLeftGridRowDblClicked() {	
+	var text = (userLeftGrid.cells(userLeftGrid.getSelectedId(),0)).getValue();
+	selectItem(userLeftGrid,userRightGrid);
+}
+
+//for right User grid
+function onUserRightGridKeyPressed(keyCode,ctrl,shift) {
+	onGridObjKeyPressed(userRightGrid,userLeftGrid,4,keyCode,ctrl,shift);
+}
+
+function doOnUserRightGridRowSelectHandler() {
+	userLeftGrid.clearSelection();
+}
+
+function doOnUserRightGridRowDblClicked() {	
+	var text = (userRightGrid.cells(userRightGrid.getSelectedId(),0)).getValue();
+	selectItem(userRightGrid,userLeftGrid);
+}
+
+//Common Function
+function sort_data(a,b,order) {
+	if(order=="asc")
+		return a.toLowerCase()>b.toLowerCase()?1:-1;
+	else
+		return a.toLowerCase()<b.toLowerCase()?1:-1;
+}
+
+function onChangeUserFilter(val){
+	val = selectUserFilter.getSelectedId();	
+	if(val=="<%=ReportConstants.FILTER_ALL%>"){
+		$("divSelectSpecificUser").style.display="none";
+	}else if(val=="<%=ReportConstants.FILTER_SPECIFIC_USER%>"){		
+		$("divSelectSpecificUser").style.display="block";
+		initUserGrids();
+		loadUsersForRoles();
+	}
+}
+
+function validateUserFilter(){	
+	//if specific User option selected	
+	var filterVal = selectUserFilter.getSelectedId();
+	document.reportForm.souserlter.value=filterVal;
+	if(filterVal=="<%=ReportConstants.FILTER_SPECIFIC_USER%>"){
+		var selectedUser = userRightGrid.getAllItemIds(',');	 		
+		if(!selectedUser){
+			alert('<bean:message key="common.please_select"/> <bean:message key="common.user"/>');
+			return false;
+		}
+		document.reportForm.userId.value=selectedUser;
+	}
+	return true;
+}
+
+
+function loadUsersForRoles(){	
+	var selectedUsersRoles='';	
+	userRightGrid.clearAll();		
+	userLeftGrid.clearAll();	
+	if(selectUserFilter.getSelectedId()=="<%=ReportConstants.FILTER_SPECIFIC_USER%>"){
+		var roleFilter = selectUserRoleFilter.getSelectedId();		
+		if(roleFilter == "<%=ReportConstants.FILTER_SPECIFIC_USER_ROLE%>"){			
+			selectedUsersRoles =	userRoleRightGrid.getAllItemIds();			
+			if(selectedUsersRoles==''){
+				userLeftGrid.loadXML("reports.do?mode=XMLRolewiseUsers");
+			}else{				
+				userLeftGrid.loadXML("reports.do?mode=XMLRolewiseUsers&roleId="+selectedUsersRoles);
+			}
+		}else{
+			userLeftGrid.loadXML("reports.do?mode=XMLRolewiseUsers");
+		}
+	}else{
+		userLeftGrid.loadXML("reports.do?mode=XMLRolewiseUsers");
+	}
+}
+</script>

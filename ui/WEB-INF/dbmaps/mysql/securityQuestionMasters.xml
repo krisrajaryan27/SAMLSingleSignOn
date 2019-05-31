@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+
+<dbmap> 
+	<dbqueries>
+		<dbquery name="qSecurityQuestionMasters_AddSecurityQuestion">
+			INSERT INTO tp_security_questions (security_question) VALUES (?)
+		</dbquery>
+		<dbquery name="qSecurityQuestionMasters_GetAllSecurityQuestions">
+			SELECT security_question_id, security_question FROM tp_security_questions
+		</dbquery>
+		<dbquery name="qSecurityQuestionMasters_DeleteSecurityQuestion">
+			DELETE FROM tp_security_questions WHERE security_question_id=?
+		</dbquery>
+		<dbquery name="qSecurityQuestionMasters_GetSecurityQuestion">
+			SELECT security_question_id, security_question FROM tp_security_questions WHERE security_question_id=?
+		</dbquery>
+		<dbquery name="qSecurityQuestionMasters_UpdateSecurityQuestion">
+			UPDATE tp_security_questions SET security_question=? WHERE security_question_id=?
+		</dbquery>
+	</dbqueries>
+	<dataqueries>
+	    <dataquery name="dSecurityQuestionMasters_AddSecurityQuestion" dbquery="qSecurityQuestionMasters_AddSecurityQuestion"/>
+	    <dataquery name="dSecurityQuestionMasters_GetAllSecurityQuestions" dbquery="qSecurityQuestionMasters_GetAllSecurityQuestions" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "securityQuestionId" column="security_question_id" type ="STRING" />
+	    	<attribute name= "securityQuestion" column="security_question" type ="STRING" />
+	    </dataquery>
+	    <dataquery name="dSecurityQuestionMasters_DeleteSecurityQuestion" dbquery="qSecurityQuestionMasters_DeleteSecurityQuestion"/>
+	    <dataquery name="dSecurityQuestionMasters_GetSecurityQuestion" dbquery="qSecurityQuestionMasters_GetSecurityQuestion" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "securityQuestionId" column="security_question_id" type ="STRING" />
+	    	<attribute name= "securityQuestion" column="security_question" type ="STRING" />
+	    </dataquery>
+	    <dataquery name="dSecurityQuestionMasters_UpdateSecurityQuestion" dbquery="qSecurityQuestionMasters_UpdateSecurityQuestion"/>
+	</dataqueries>   
+</dbmap>

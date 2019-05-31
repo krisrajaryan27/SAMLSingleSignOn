@@ -1,0 +1,85 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+   <dbqueries>
+	   <dbquery name="qRatingsManager_GetAllActiveRatings">
+			SELECT rating_id, rating_title FROM tp_ratings WHERE rating_status=? ORDER BY rating_title
+       </dbquery>
+	   <dbquery name="qRatingsManager_GetAllRatings">
+			SELECT rating_id, rating_title FROM tp_ratings ORDER BY rating_title
+       </dbquery>
+       
+	   <dbquery name="qRatingsManager_GetRatingData">
+			SELECT rating_id, rating_title, user_id, rating_status FROM tp_ratings 
+			WHERE rating_id=?
+       </dbquery>
+	   <dbquery name="qRatingsManager_GetRatingFields">
+			SELECT rating_field_id, rating_id, rating_field_desc, rating_field_status, rating_rank 
+			FROM tp_rating_fields
+			WHERE rating_id=? AND rating_field_status=?
+			ORDER BY rating_rank
+       </dbquery>
+	   <dbquery name="qRatingsManager_AddRating">
+			INSERT INTO tp_ratings (rating_title,date_created,user_id,rating_status) VALUES(?,now(),?,?)
+       </dbquery>
+	   <dbquery name="qRatingsManager_AddRatingField">
+			INSERT INTO tp_rating_fields (rating_id, rating_field_desc, rating_field_status, rating_rank) VALUES(?,?,?,?)
+       </dbquery>
+	   <dbquery name="qRatingsManager_UpdateRatingField">
+			UPDATE tp_rating_fields SET rating_field_desc=? , rating_rank=? WHERE rating_field_id=?
+       </dbquery>
+       
+	   <dbquery name="qRatingsManager_UpdateRating">
+			UPDATE tp_ratings SET rating_title=? WHERE rating_id=?
+       </dbquery>
+       
+	   <dbquery name="qRatingsManager_DeleteFieldsNotIn">
+			DELETE FROM tp_rating_fields WHERE rating_id=? AND rating_field_id not in (@@)
+       </dbquery>
+	   <dbquery name="qRatingsManager_CountActiveFormForRating">
+			SELECT count(*) FROM tp_feedback_forms tf, tp_feedback_form_fields tff
+			WHERE tf.feedback_form_id= tff.feedback_form_id
+			AND tf.feedback_form_status=?
+			AND tff.rating_id=?
+       </dbquery>
+	   <dbquery name="qRatingsManager_ChangeRatingStatus">
+       		UPDATE tp_ratings SET rating_status=? WHERE rating_id=?
+       </dbquery>
+       
+   </dbqueries>
+   <dataqueries>
+      <dataquery name="dRatingsManager_GetAllActiveRatings" dbquery="qRatingsManager_GetAllActiveRatings" object="com.talentPool.masters.dataobject.RatingsData">
+         <attribute name="ratingId"  column="rating_id" type="STRING" />
+         <attribute name="ratingTitle"  column="rating_title" type="STRING" />
+      </dataquery>
+      <dataquery name="dRatingsManager_GetAllRatings" dbquery="qRatingsManager_GetAllRatings" object="com.talentPool.masters.dataobject.RatingsData">
+         <attribute name="ratingId"  column="rating_id" type="STRING" />
+         <attribute name="ratingTitle"  column="rating_title" type="STRING" />
+      </dataquery>
+      
+      <dataquery name="dRatingsManager_GetRatingData" dbquery="qRatingsManager_GetRatingData" object="com.talentPool.masters.dataobject.RatingsData">
+         <attribute name="ratingId"  column="rating_id" type="STRING" />
+         <attribute name="ratingTitle"  column="rating_title" type="STRING" />
+         <attribute name="userId"  column="user_id" type="STRING" />
+         <attribute name="ratingStatus"  column="rating_status" type="STRING" />
+      </dataquery>
+      <dataquery name="dRatingsManager_GetRatingFields" dbquery="qRatingsManager_GetRatingFields" object="com.talentPool.masters.dataobject.RatingFieldsData">
+         <attribute name="ratingId"  column="rating_id" type="STRING" />
+         <attribute name="ratingFieldId"  column="rating_field_id" type="STRING" />
+         <attribute name="ratingFieldDesc"  column="rating_field_desc" type="STRING" />
+         <attribute name="ratingStatus"  column="rating_field_status" type="STRING" />
+         <attribute name="ratingFieldRank"  column="rating_rank" type="STRING" />
+      </dataquery>
+      <dataquery name="dRatingsManager_AddRating" dbquery="qRatingsManager_AddRating" />
+      <dataquery name="dRatingsManager_AddRatingField" dbquery="qRatingsManager_AddRatingField" />
+      <dataquery name="dRatingsManager_UpdateRatingField" dbquery="qRatingsManager_UpdateRatingField" />
+      <dataquery name="dRatingsManager_UpdateRating" dbquery="qRatingsManager_UpdateRating" />
+      <dataquery name="dRatingsManager_DeleteFieldsNotIn" dbquery="qRatingsManager_DeleteFieldsNotIn" />
+      <dataquery name="dRatingsManager_CountActiveFormForRating" dbquery="qRatingsManager_CountActiveFormForRating" />
+      <dataquery name="dRatingsManager_ChangeRatingStatus" dbquery="qRatingsManager_ChangeRatingStatus" />
+      
+      
+   </dataqueries>   
+</dbmap>

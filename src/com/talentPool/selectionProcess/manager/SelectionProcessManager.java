@@ -1,0 +1,6686 @@
+/**
+ * 
+ */
+package com.talentPool.selectionProcess.manager;
+
+import java.io.StringWriter;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.stereotype.Component;
+import org.xml.sax.SAXException;
+import org.xml.sax.helpers.AttributesImpl;
+
+import com.talentPool.admin.manager.AdminManager;
+import com.talentPool.applicant.ApplicantConstants;
+import com.talentPool.applicant.constants.ImportConfigurationConstants;
+import com.talentPool.applicant.dataobject.ApplicantData;
+import com.talentPool.applicant.dataobject.EducationalData;
+import com.talentPool.applicant.manager.ApplicantManager;
+import com.talentPool.applicant.manager.ImportConfigurationManager;
+import com.talentPool.audit.constants.AuditConstants;
+import com.talentPool.audit.manager.AuditManager;
+import com.talentPool.budget.utils.BudgetUtils;
+import com.talentPool.calendar.CalendarConstants;
+import com.talentPool.calendar.dataobject.AppointmentData;
+import com.talentPool.calendar.manager.CalendarManager;
+import com.talentPool.calendar.scheduler.FeedbackScheduler;
+import com.talentPool.common.CommonConstants;
+import com.talentPool.common.NavigationConstants;
+import com.talentPool.common.Logger.TPLogger;
+import com.talentPool.common.db.DBPreparedQuery;
+import com.talentPool.common.db.DBQuery;
+import com.talentPool.common.db.DBTransaction;
+import com.talentPool.common.db.SimpleDataObject;
+import com.talentPool.common.db.Exception.NoResultFoundException;
+import com.talentPool.common.properties.GlobalApplicationProperties;
+import com.talentPool.common.properties.GlobalConstants;
+import com.talentPool.common.properties.TPLabels;
+import com.talentPool.common.utils.CommonUtils;
+import com.talentPool.common.utils.DateUtils;
+import com.talentPool.common.utils.Utils;
+import com.talentPool.common.xmlutils.XMLWriter;
+import com.talentPool.dashboard.constants.DashboardConstants;
+import com.talentPool.employeeservice.scheduler.EmployeeProgressMailScheduler;
+import com.talentPool.employeeservice.scheduler.EmployeeRejectMailScheduler;
+import com.talentPool.inbox.InboxConstants;
+import com.talentPool.inbox.TPMailSender;
+import com.talentPool.inbox.dataobject.InboxData;
+import com.talentPool.inbox.dataobject.MessageData;
+import com.talentPool.inbox.manager.InboxManager;
+import com.talentPool.jobPortals.manager.ApplicantJobPortalManager;
+import com.talentPool.latestActivity.manager.LatestActivityManager;
+import com.talentPool.masters.constants.FeedbackFieldsConstant;
+import com.talentPool.masters.constants.FeedbackFormConstants;
+import com.talentPool.masters.constants.MastersConstants;
+import com.talentPool.masters.constants.StepConstants;
+import com.talentPool.masters.dataobject.MultipleSelectsData;
+import com.talentPool.masters.dataobject.RatingsData;
+import com.talentPool.masters.dataobject.SourceData;
+import com.talentPool.masters.dataobject.SourceTypeData;
+import com.talentPool.masters.manager.MastersManager;
+import com.talentPool.masters.manager.MultipleSelectsManager;
+import com.talentPool.masters.manager.RatingsManager;
+import com.talentPool.masters.utils.FeedbackFormUtils;
+import com.talentPool.notifier.TemplateConstants;
+import com.talentPool.notifier.dataobject.TemplateData;
+import com.talentPool.notifier.manager.TemplateManager;
+import com.talentPool.notifier.manager.VelocityManager;
+import com.talentPool.notifier.utils.TemplateUtils;
+import com.talentPool.otherApplications.constant.OtherApplicationConstants;
+import com.talentPool.otherApplications.manager.OtherApplicationManager;
+import com.talentPool.positions.PositionConstants;
+import com.talentPool.positions.dataobject.PositionData;
+import com.talentPool.positions.dataobject.StepData;
+import com.talentPool.positions.dataobject.TraitData;
+import com.talentPool.positions.manager.PositionManager;
+import com.talentPool.positions.utils.PositionWithRightsClause;
+import com.talentPool.reports.views.FeedbackFormView;
+import com.talentPool.repository.TPIndexEvent;
+import com.talentPool.repository.TPIndexEventQueue;
+import com.talentPool.salaryStructure.databject.ApplicantOfferDetails;
+import com.talentPool.selectionProcess.SelectionProcessConstants;
+import com.talentPool.selectionProcess.dataobject.ActionRequiredData;
+import com.talentPool.selectionProcess.dataobject.CommunicationData;
+import com.talentPool.selectionProcess.dataobject.FeedbackData;
+import com.talentPool.selectionProcess.dataobject.RejectedCandidateData;
+import com.talentPool.selectionProcess.dataobject.SelectionProcessData;
+import com.talentPool.selectionProcess.dataobject.UserData;
+import com.talentPool.selectionProcess.exception.ApplicantBlacklistedException;
+import com.talentPool.selectionProcess.exception.AppointmentExistsException;
+import com.talentPool.selectionProcess.exception.InProcessException;
+import com.talentPool.selectionProcess.scheduler.CandidateProgressNotificationScheduler;
+import com.talentPool.selectionProcess.scheduler.FeedbackNotificationScheduler;
+import com.talentPool.selectionProcess.utils.SelectionProcessUtils;
+import com.talentPool.todo.constants.ToDoConstants;
+import com.talentPool.todo.manager.ToDoManager;
+import com.talentPool.todo.utils.ToDoUtils;
+import com.talentPool.user.MessageConstants;
+import com.talentPool.user.UserConstants;
+import com.talentPool.user.dataobject.LoginData;
+import com.talentPool.user.manager.LoginManager;
+import com.talentPool.user.manager.ModuleSet;
+import com.talentPool.user.manager.PermissionSet;
+import com.talentPool.vendorservice.scheduler.VendorRejectMailSchedular;
+
+/**
+ * @author pallavi
+ * 
+ */
+@Component
+public class SelectionProcessManager {
+	/**
+	 * Method to get the position filters.
+	 * 
+	 * @param userId
+	 *            The identifier of the logged-in user.
+	 * @param userRoles
+	 *            The role of the logged-in user.
+	 * @return The list of the position filters.
+	 */
+	public List getPositionFilters(String userId, PermissionSet permissionSet) {
+		List<SimpleDataObject> positionFilters = new ArrayList<SimpleDataObject>();
+		DBPreparedQuery dq = null;
+		Map<String, SimpleDataObject> filters = new HashMap<String, SimpleDataObject>();
+		try {
+			String[] dynaParam = new String[1];
+			ArrayList<String> dynamicContent = new ArrayList<String>();
+			dynaParam[0] = PositionWithRightsClause.getClauseForStepUserAndRequestedByAndRequisitionApproval(userId, "position_id", dynamicContent, permissionSet);
+
+			dq = new DBPreparedQuery("dGetAllOpenPositions", dynaParam);
+			dq.setString(1, PositionConstants.POSITION_STATUS_OPENED);
+			int cnt = 2;
+			for (int i = 0; i < dynamicContent.size(); i++) {
+				dq.setString(cnt++, dynamicContent.get(i));
+			}
+
+			List<SimpleDataObject> temp = dq.getResult();
+			for (int i = 0; i < temp.size(); i++) {
+				SimpleDataObject sdo = (SimpleDataObject) temp.get(i);
+				if (!filters.containsKey(sdo.getString("deptId"))) {
+					SimpleDataObject obj = new SimpleDataObject();
+					obj.setAttribute("deptId", sdo.getString("deptId"));
+					obj.setAttribute("deptName", sdo.getString("deptName"));
+					obj.setAttribute("children", new ArrayList());
+					filters.put(sdo.getString("deptId"), obj);
+				}
+				((ArrayList) ((SimpleDataObject) filters.get(sdo.getString("deptId"))).getAttribute("children")).add(sdo);
+			}
+			Iterator<String> itr = filters.keySet().iterator();
+			while (itr.hasNext()) {
+				String key = itr.next();
+				positionFilters.add(filters.get(key));
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting open positions", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return positionFilters;
+	}
+
+	/**
+	 * Method to generate the XML string for applicants in process.
+	 * 
+	 * @param applicantsInProcess
+	 *            The list of the applicants in process.
+	 * @return The XML string for applicants in process.
+	 */
+	public String getXMLForApplicantsInProcess(List<SelectionProcessData> applicantsInProcess) {
+		StringWriter sWr = new StringWriter();
+		XMLWriter wr = new XMLWriter(sWr);
+		try {
+			wr.startDocument();
+			wr.startElement("rows");
+			if (applicantsInProcess != null && applicantsInProcess.size() > 0) {
+				for (int indx = 0; indx < applicantsInProcess.size(); indx++) {
+					SelectionProcessData data = applicantsInProcess.get(indx);
+					AttributesImpl atr = new AttributesImpl();
+					atr.addAttribute("", "id", "", "", String.valueOf(data.getApplicantId()));
+					wr.startElement("", "row", "", atr);
+
+					String applicantOriginalResumePath = (data.getApplicantOriginalResumePath() == null) ? "" : data.getApplicantOriginalResumePath();
+					atr = new AttributesImpl();
+					atr.addAttribute("", "name", "", "", "originalResume");
+					wr.startElement("", "userdata", "", atr);
+					wr.characters(applicantOriginalResumePath);
+					wr.endElement("userdata");
+
+					String applicantName = (data.getApplicantName() == null) ? "" : data.getApplicantName();
+					wr.startElement("cell");
+					wr.characters(applicantName);
+					wr.endElement("cell");
+
+					String applicantPosition = (data.getApplicantPosition() == null) ? "" : data.getApplicantPosition();
+					wr.startElement("cell");
+					wr.characters(applicantPosition);
+					wr.endElement("cell");
+
+					String applicantStep = (data.getApplicantStep() == null) ? "" : data.getApplicantStep();
+					wr.startElement("cell");
+					wr.characters(applicantStep);
+					wr.endElement("cell");
+
+					String applicantCellPhone = (data.getApplicantCellPhone() == null) ? "" : data.getApplicantCellPhone();
+					wr.startElement("cell");
+					wr.characters(applicantCellPhone);
+					wr.endElement("cell");
+
+					String status = (data.getApplicantStatus() == null) ? "" : data.getApplicantStatus();
+					wr.startElement("cell");
+					wr.characters(status);
+					wr.endElement("cell");
+
+					String applicantAppointment = (data.getApplicantAppointment() == null) ? "" : data.getApplicantAppointment();
+					/*
+					 * if (!Utils.isBlankOrNull(applicantAppointment)) { try {
+					 * Date dt = Utils.convertToDate(applicantAppointment,
+					 * "yyyy-MM-dd hh:mm:ss"); applicantAppointment =
+					 * Utils.getDateConvertedToString(dt, "EEE dd MMM yyyy hh:mm
+					 * a"); } catch (Exception e) { e.printStackTrace();
+					 * applicantAppointment = "UNKNOWN"; } }
+					 */
+					wr.startElement("cell");
+					wr.characters(applicantAppointment);
+					wr.endElement("cell");
+
+					wr.endElement("row");
+				}
+			}
+			wr.endElement("rows");
+			wr.endDocument();
+
+		} catch (SAXException e) {
+			TPLogger.getLogger().error("Error while creating xml file for applicants in process", e);
+		}
+		return sWr.toString();
+	}
+
+	public FeedbackData getApplicantSummaryData(String applicantId) {
+		FeedbackData fData = null;
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dGetApplicantData");
+			dq.setId(1, applicantId);
+			SimpleDataObject sDo = (SimpleDataObject) dq.getSingleObjectResult();
+			fData = new FeedbackData();
+			fData.setApplicantId(sDo.getInt("applicantId"));
+			fData.setApplicantName(sDo.getString("applicantName"));
+			fData.setApplicantSourceTitle(sDo.getString("applicantSourceTitle"));
+			fData.setPositionTitle(sDo.getString("positionTitle"));
+			fData.setPositionId(sDo.getString("positionId"));
+			fData.setEmployeeCode(sDo.getString("employeeCode"));
+			StepData data = new StepData();
+			data.setStepId(sDo.getInt("stepId"));
+			data.setStepTitle(sDo.getString("stepTitle"));
+			fData.setFromStepData(data);
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting the applicant summary data", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return fData;
+	}
+
+	/**
+	 * Returns feedback data with current step data as well as the traits
+	 * populated for the same.
+	 * 
+	 * @param applicantId
+	 *            The identifier of the applicant.
+	 * @return The feedback data.
+	 */
+	public FeedbackData getCurrentStepData(String applicantId) {
+		FeedbackData fData = null;
+		DBPreparedQuery dq = null;
+		ArrayList<SimpleDataObject> result = new ArrayList<SimpleDataObject>();
+		try {
+			dq = new DBPreparedQuery("dSelectionProcess_GetApplicantCurrentStepData");
+			dq.setString(1, FeedbackFormConstants.FIELD_TYPE_CATEGORY);
+			dq.setString(2, FeedbackFieldsConstant.FIELD_TYPE_NORMAL);
+			dq.setString(3, FeedbackFormConstants.FIELD_TYPE_FIELD);
+			dq.setId(4, applicantId);
+			result = dq.getResult();
+			
+			if (result != null) {
+				// Construct feedbackData
+				for (int i = 0; i < result.size(); i++) {
+					SimpleDataObject sDo = (SimpleDataObject) result.get(i);
+					if (i == 0) {
+						fData = new FeedbackData();
+						fData.setApplicantId(sDo.getInt("applicantId"));
+						fData.setApplicantName(sDo.getString("applicantName"));
+						fData.setApplicantSourceTitle(sDo.getString("applicantSourceTitle"));
+						fData.setApplicantOriginalResumePath(sDo.getString("applicantOriginalResumePath"));
+						fData.setJoiningDate(sDo.getDate("joiningDate"));
+						fData.setCtcOffered(sDo.getString("ctcOffered"));
+						fData.setBasicOffered(sDo.getString("basicOffered"));
+						fData.setLevelOffered(sDo.getString("levelOffered"));
+						fData.setDesignationOffered(sDo.getString("designationOffered"));
+						fData.setInputSalaryVariable(sDo.getString("inputSalaryVariable"));
+						fData.setEmployeeCode(sDo.getString("employeeCode"));
+						fData.setPositionId(sDo.getString("positionId"));
+						fData.setPositionTitle(sDo.getString("positionTitle"));
+						fData.setFeedbackFormTitle(sDo.getString("feedbackFormTitle"));
+						fData.setFeedbackFormHeader(sDo.getString("feedbackFormHeader"));
+						fData.setFeedbackFormId(sDo.getString("feedbackFormId"));
+						fData.setJoiningBonus(sDo.getString("joiningBonus"));
+						fData.setVariableOffered(sDo.getString("variableOffered"));
+						StepData fromStepData = new StepData();
+						fromStepData.setStepId(sDo.getInt("fromStepId"));
+						fromStepData.setStepTitle(sDo.getString("fromStepTitle"));
+						fData.setFromStepData(fromStepData);
+					}
+					if (!Utils.isBlankOrNull(sDo.getString("feedbackFormFieldId"))) {
+						ArrayList<TraitData> traits = fData.getFromStepData().getTraits();
+						if (traits == null) {
+							traits = new ArrayList<TraitData>();
+						}
+						TraitData trait = new TraitData();
+						trait.setFeedbackFormFieldId(sDo.getString("feedbackFormFieldId"));
+						trait.setFeedbackFormFieldDesc(sDo.getString("feedbackFormFieldDesc"));
+						trait.setFeedbackFieldTitle(sDo.getString("feedbackFieldTitle"));
+						trait.setFeedbackFormFieldType(sDo.getString("feedbackFormFieldType"));
+						trait.setFeedbackFormFieldDisplayType(sDo.getString("feedbackFormFieldDisplayType"));
+						trait.setFeedbackFormFieldIsMandatory(sDo.getString("feedbackFormFieldIsMandatory"));						
+						trait.setFeedbackFormFieldCommentRequired(sDo.getString("feedbackFormFieldCommentRequired"));
+						trait.setRatingId(sDo.getString("ratingId"));
+						trait.setMultipleSelectId(sDo.getString("multipleSelectId"));
+						trait.setSystemGenerated(sDo.getString("systemGenerated"));
+						trait.setFeedbackFieldType(sDo.getString("feedbackFieldType"));
+						trait.setApplicantFieldId(sDo.getString("applicantFieldId"));
+						traits.add(trait);
+						fData.getFromStepData().setTraits(traits);
+					}
+				}
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting current step data", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return fData;
+	}
+	
+	
+	public FeedbackData getCandidateCurrentStepData(String applicantId) {
+		FeedbackData fData = null;
+		DBPreparedQuery dq = null;
+		ArrayList<SimpleDataObject> result = new ArrayList<SimpleDataObject>();
+		try {
+			dq = new DBPreparedQuery("dSelectionProcess_GetCandidateCurrentStepData");
+			dq.setString(1, FeedbackFormConstants.FIELD_TYPE_CATEGORY);
+			dq.setString(2, FeedbackFieldsConstant.FIELD_TYPE_NORMAL);
+			dq.setString(3, FeedbackFormConstants.FIELD_TYPE_FIELD);
+			dq.setId(4, applicantId);
+			result = dq.getResult();
+			
+			if (result != null) {
+				// Construct feedbackData
+				for (int i = 0; i < result.size(); i++) {
+					SimpleDataObject sDo = (SimpleDataObject) result.get(i);
+					if (i == 0) {
+						fData = new FeedbackData();
+						fData.setApplicantId(sDo.getInt("applicantId"));
+						fData.setApplicantName(sDo.getString("applicantName"));
+						fData.setApplicantSourceTitle(sDo.getString("applicantSourceTitle"));
+						fData.setApplicantOriginalResumePath(sDo.getString("applicantOriginalResumePath"));
+						fData.setJoiningDate(sDo.getDate("joiningDate"));
+						fData.setCtcOffered(sDo.getString("ctcOffered"));
+						fData.setBasicOffered(sDo.getString("basicOffered"));
+						fData.setLevelOffered(sDo.getString("levelOffered"));
+						fData.setDesignationOffered(sDo.getString("designationOffered"));
+						fData.setInputSalaryVariable(sDo.getString("inputSalaryVariable"));
+						fData.setEmployeeCode(sDo.getString("employeeCode"));
+						fData.setPositionId(sDo.getString("positionId"));
+						fData.setPositionTitle(sDo.getString("positionTitle"));
+						fData.setFeedbackFormTitle(sDo.getString("feedbackFormTitle"));
+						fData.setFeedbackFormHeader(sDo.getString("feedbackFormHeader"));
+						fData.setFeedbackFormId(sDo.getString("feedbackFormId"));
+						fData.setJoiningBonus(sDo.getString("joiningBonus"));
+						fData.setVariableOffered(sDo.getString("variableOffered"));
+						StepData fromStepData = new StepData();
+						fromStepData.setStepId(sDo.getInt("fromStepId"));
+						fromStepData.setStepTitle(sDo.getString("fromStepTitle"));
+						fData.setFromStepData(fromStepData);
+					}
+					if (!Utils.isBlankOrNull(sDo.getString("feedbackFormFieldId"))) {
+						ArrayList<TraitData> traits = fData.getFromStepData().getTraits();
+						if (traits == null) {
+							traits = new ArrayList<TraitData>();
+						}
+						TraitData trait = new TraitData();
+						trait.setFeedbackFormFieldId(sDo.getString("feedbackFormFieldId"));
+						trait.setFeedbackFormFieldDesc(sDo.getString("feedbackFormFieldDesc"));
+						trait.setFeedbackFieldTitle(sDo.getString("feedbackFieldTitle"));
+						trait.setFeedbackFormFieldType(sDo.getString("feedbackFormFieldType"));
+						trait.setFeedbackFormFieldDisplayType(sDo.getString("feedbackFormFieldDisplayType"));
+						trait.setFeedbackFormFieldIsMandatory(sDo.getString("feedbackFormFieldIsMandatory"));						
+						trait.setFeedbackFormFieldCommentRequired(sDo.getString("feedbackFormFieldCommentRequired"));
+						trait.setRatingId(sDo.getString("ratingId"));
+						trait.setMultipleSelectId(sDo.getString("multipleSelectId"));
+						trait.setSystemGenerated(sDo.getString("systemGenerated"));
+						trait.setFeedbackFieldType(sDo.getString("feedbackFieldType"));
+						trait.setApplicantFieldId(sDo.getString("applicantFieldId"));
+						traits.add(trait);
+						fData.getFromStepData().setTraits(traits);
+					}
+				}
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting current step data", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return fData;
+	}
+
+	/**
+	 * returns the next valid steps for the applicant applied for positionId
+	 * 
+	 * @param positionId
+	 *            The position identifier.
+	 * @param stepId
+	 *            The step identifier.
+	 * @return The object for next step.
+	 */
+	public List<StepData> getNextStepData(String positionId, String stepId) {
+		List<StepData> steps = null;
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dGetNextStepData");
+			dq.setString(1, PositionConstants.STEP_ACTIVE);
+			dq.setId(2, positionId);
+			dq.setId(3, stepId);
+			dq.setId(4, positionId);
+			List<StepData> resultSet = dq.getResult();
+			if (resultSet != null && resultSet.size() > 0) {
+				steps = new ArrayList<StepData>();
+				for (int i = 0; i < resultSet.size(); i++) {
+					StepData stepTo = (StepData) resultSet.get(i);
+					steps.add(stepTo);
+					if (stepTo.getStepOptional() == PositionConstants.STEP_MANDATORY) {
+						break;
+					}
+				}
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting next step data", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return steps;
+	}
+
+	/**
+	 * Returns the feedback data for already existing feedback.
+	 * 
+	 * @param processId 
+	 *            The identifier of the feedback entry.
+	 * @return The feedback data.
+	 */
+	public FeedbackData getFeedBackDataWithProcessId(String processId) {
+		return getFeedBackDataWithProcessId(processId,SelectionProcessConstants.DETAILED_FEEDBACK);
+	}	
+	
+	/**
+	 * Returns the feedback data for already existing feedback.
+	 * 
+	 * @param processId
+	 *            The identifier of the feedback entry.
+	 * @param feedbackType
+	 *            Defines whether the feedback should be detailed of summarized
+	 *                       
+	 * @return The feedback data.
+	 */
+	public FeedbackData getFeedBackDataWithProcessId(String processId,String feedbackType) {
+		FeedbackData fData = null;
+		DBPreparedQuery dq = null;
+		String[] dynParam = new String[1];
+		ArrayList<String> dynamicContent = new ArrayList<String>();
+		int cnt=0;
+		try {
+			dynParam[0] = "";
+			if(SelectionProcessConstants.SUMMARY_FEEDBACK.equals(feedbackType)){
+				dynParam[0] = " AND all_fields.summary_field=? ";
+				dynamicContent.add(FeedbackFormConstants.SUMMARY_FIELD);
+			}
+			dq = new DBPreparedQuery("dSelectionProcess_GetApplicantDataWithProcessId",dynParam);			
+			dq.setString(1, SelectionProcessConstants.STEP_REJECT);
+			dq.setString(2, SelectionProcessConstants.STEP_TITLE_SHORTLIST);
+			dq.setString(3, FeedbackFormConstants.FIELD_TYPE_CATEGORY);
+			dq.setString(4, FeedbackFieldsConstant.FIELD_TYPE_NORMAL);
+			dq.setString(5, FeedbackFormConstants.FIELD_TYPE_FIELD);
+			dq.setId(6, processId);
+			cnt=7;
+			for (String content : dynamicContent) {
+				dq.setString(cnt++, content);	
+			}
+			ArrayList<SimpleDataObject> result = dq.getResult();
+			if (result != null) {
+				// Construct feedbackData
+				for (int i = 0; i < result.size(); i++) {
+					SimpleDataObject sDo = (SimpleDataObject) result.get(i);
+					if (i == 0) {
+						fData = new FeedbackData();
+						fData.setApplicantName(sDo.getString("applicantName"));
+						fData.setAttribute("applicantStepId", sDo.getString("applicantStepId"));
+						fData.setApplicantSourceTitle(sDo.getString("applicantSourceTitle"));
+						fData.setApplicantOriginalResumePath(sDo.getString("applicantOriginalResumePath"));
+						fData.setJoiningDate(sDo.getDate("joiningDate"));
+						fData.setCtcOffered(sDo.getString("ctcOffered"));
+						fData.setBasicOffered(sDo.getString("basicOffered"));
+						fData.setLevelOffered(sDo.getString("levelOffered"));
+						fData.setDesignationOffered(sDo.getString("designationOffered"));
+						fData.setInputSalaryVariable(sDo.getString("inputSalaryVariable"));
+						fData.setEmployeeCode(sDo.getString("employeeCode"));
+						fData.setApplicantId(sDo.getInt("applicantId"));
+						fData.setPositionId(sDo.getString("positionId"));
+						fData.setPositionTitle(sDo.getString("positionTitle"));
+						fData.setUserId(sDo.getString("userId"));
+						fData.setLastFeedbackBy(sDo.getString("userName"));
+						fData.setFeedbackFormTitle(sDo.getString("feedbackFormTitle"));
+						fData.setFeedbackFormId(sDo.getString("feedbackFormId"));
+						fData.setFeedbackFormHeader(sDo.getString("feedbackFormHeader"));
+						fData.setProcessMovedDate(sDo.getDate("processMovedDate"));
+
+						StepData fromStepData = new StepData();
+						fromStepData.setStepId(sDo.getInt("fromStepId"));
+						fromStepData.setStepTitle(sDo.getString("fromStepTitle"));
+						fData.setFromStepData(fromStepData);
+						StepData toStepData = new StepData();
+						toStepData.setStepId(sDo.getInt("toStepId"));
+						toStepData.setStepTitle(sDo.getString("toStepTitle"));
+						fData.setToStepData(toStepData);
+					}
+					if (!Utils.isBlankOrNull(sDo.getString("feedbackFormFieldId"))) {
+						ArrayList<TraitData> traits = fData.getFromStepData().getTraits();
+						if (traits == null) {
+							traits = new ArrayList<TraitData>();
+						}
+						TraitData trait = new TraitData();
+						trait.setFeedbackFormFieldId(sDo.getString("feedbackFormFieldId"));
+						trait.setFeedbackFormFieldDesc(sDo.getString("feedbackFormFieldDesc"));
+						trait.setFeedbackFieldTitle(sDo.getString("feedbackFieldTitle"));
+						trait.setFeedbackFormFieldType(sDo.getString("feedbackFormFieldType"));
+						trait.setFeedbackFormFieldDisplayType(sDo.getString("feedbackFormFieldDisplayType"));
+						trait.setFeedbackFormFieldIsMandatory(sDo.getString("feedbackFormFieldIsMandatory"));
+						trait.setFeedbackFormFieldCommentRequired(sDo.getString("feedbackFormFieldCommentRequired"));
+						trait.setRatingId(sDo.getString("ratingId"));
+						trait.setRatingFieldId(sDo.getString("ratingFieldId"));
+						trait.setRatingFieldDesc(sDo.getString("ratingFieldDesc"));						
+						trait.setMultipleSelectId(sDo.getString("multipleSelectId"));
+						trait.setMultipleSelectFieldId(sDo.getString("multipleSelectFieldId"));
+						trait.setSystemGenerated(sDo.getString("systemGenerated"));						
+						trait.setTraitComment(sDo.getString("traitComment"));
+						trait.setInterviewerId(sDo.getInt("interviewerId"));
+						trait.setFeedbackFieldType(sDo.getString("feedbackFieldType"));
+						trait.setApplicantFieldId(sDo.getString("applicantFieldId"));
+						traits.add(trait);
+						fData.getFromStepData().setTraits(traits);
+					}
+				}
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting applicant's summary", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return fData;
+	}
+
+	public FeedbackData getAllFeedBackDataWithProcessId(String processId,String feedbackType, String feedbackFormId) {
+		FeedbackData fData = null;
+		DBPreparedQuery dq = null;
+		String[] dynParam = new String[1];
+		ArrayList<String> dynamicContent = new ArrayList<String>();
+		int cnt=0;
+		try {
+			dynParam[0] = "";
+			
+			if(!Utils.isBlankOrNull(feedbackFormId)){
+				dynParam[0] = " AND all_fields.feedback_form_id=? ";
+				dynamicContent.add(feedbackFormId);
+			}
+			if(SelectionProcessConstants.SUMMARY_FEEDBACK.equals(feedbackType)){
+				dynParam[0] += " AND all_fields.summary_field=? ";				
+				dynamicContent.add(FeedbackFormConstants.SUMMARY_FIELD);
+			}
+			dq = new DBPreparedQuery("dSelectionProcess_GetAllFeedbackApplicantDataWithProcessId",dynParam);
+			dq.setString(1, SelectionProcessConstants.STEP_REJECT);
+			dq.setString(2, SelectionProcessConstants.STEP_TITLE_SHORTLIST);
+			dq.setString(3, FeedbackFormConstants.FIELD_TYPE_FIELD);
+			dq.setId(4, processId);
+			cnt=5;
+			for (String content : dynamicContent) {
+				dq.setString(cnt++, content);	
+			}
+			ArrayList<SimpleDataObject> result = dq.getResult();
+			if (result != null) {
+				// Construct feedbackData
+				for (int i = 0; i < result.size(); i++) {
+					SimpleDataObject sDo = (SimpleDataObject) result.get(i);
+					if (i == 0) {
+						fData = new FeedbackData();
+						fData.setApplicantName(sDo.getString("applicantName"));
+						fData.setAttribute("applicantStepId", sDo.getString("applicantStepId"));
+						fData.setApplicantSourceTitle(sDo.getString("applicantSourceTitle"));
+						fData.setApplicantOriginalResumePath(sDo.getString("applicantOriginalResumePath"));
+						fData.setJoiningDate(sDo.getDate("joiningDate"));
+						fData.setCtcOffered(sDo.getString("ctcOffered"));
+						fData.setBasicOffered(sDo.getString("basicOffered"));
+						fData.setLevelOffered(sDo.getString("levelOffered"));
+						fData.setDesignationOffered(sDo.getString("designationOffered"));
+						fData.setEmployeeCode(sDo.getString("employeeCode"));
+						fData.setApplicantId(sDo.getInt("applicantId"));
+						fData.setPositionId(sDo.getString("positionId"));
+						fData.setPositionTitle(sDo.getString("positionTitle"));
+						fData.setUserId(sDo.getString("userId"));
+						fData.setLastFeedbackBy(sDo.getString("userName"));
+						fData.setFeedbackFormTitle(sDo.getString("feedbackFormTitle"));
+						fData.setFeedbackFormId(sDo.getString("feedbackFormId"));
+						fData.setFeedbackFormHeader(sDo.getString("feedbackFormHeader"));
+						fData.setProcessMovedDate(sDo.getDate("processMovedDate"));
+						fData.setJoiningBonus(sDo.getString("joiningBonus"));
+						fData.setVariableOffered(sDo.getString("variableOffered"));
+												
+						StepData fromStepData = new StepData();
+						fromStepData.setStepId(sDo.getInt("fromStepId"));
+						fromStepData.setStepTitle(sDo.getString("fromStepTitle"));
+						fData.setFromStepData(fromStepData);
+						StepData toStepData = new StepData();
+						toStepData.setStepId(sDo.getInt("toStepId"));
+						toStepData.setStepTitle(sDo.getString("toStepTitle"));
+						fData.setToStepData(toStepData);
+					}
+					if (!Utils.isBlankOrNull(sDo.getString("feedbackFormFieldId"))) {
+						ArrayList<TraitData> traits = fData.getFromStepData().getTraits();
+						if (traits == null) {
+							traits = new ArrayList<TraitData>();
+						}
+						TraitData trait = new TraitData();
+						trait.setFeedbackFormTitle(sDo.getString("feedbackFormTitle"));
+						trait.setFeedbackFormId(sDo.getString("feedbackFormId"));
+						trait.setFeedbackFormHeader(sDo.getString("feedbackFormHeader"));
+						trait.setFeedbackFormFieldId(sDo.getString("feedbackFormFieldId"));
+						trait.setFeedbackFormFieldDesc(sDo.getString("feedbackFormFieldDesc"));
+						trait.setFeedbackFieldTitle(sDo.getString("feedbackFieldTitle"));
+						trait.setFeedbackFormFieldType(sDo.getString("feedbackFormFieldType"));
+						trait.setFeedbackFormFieldDisplayType(sDo.getString("feedbackFormFieldDisplayType"));
+						trait.setFeedbackFormFieldIsMandatory(sDo.getString("feedbackFormFieldIsMandatory"));
+						trait.setFeedbackFormFieldCommentRequired(sDo.getString("feedbackFormFieldCommentRequired"));
+						trait.setRatingId(sDo.getString("ratingId"));
+						trait.setRatingFieldId(sDo.getString("ratingFieldId"));
+						trait.setRatingFieldDesc(sDo.getString("ratingFieldDesc"));						
+						trait.setMultipleSelectId(sDo.getString("multipleSelectId"));
+						trait.setMultipleSelectFieldId(sDo.getString("multipleSelectFieldId"));
+						trait.setSystemGenerated(sDo.getString("systemGenerated"));						
+						trait.setTraitComment(sDo.getString("traitComment"));
+						trait.setInterviewerId(sDo.getInt("interviewerId"));
+						trait.setFeedbackFieldType(sDo.getString("feedbackFieldType"));
+						trait.setApplicantFieldId(sDo.getString("applicantFieldId"));
+						trait.setFeedbackFormCategoryTitle(sDo.getId("feedbackFormCategoryTitle"));
+						traits.add(trait);
+						fData.getFromStepData().setTraits(traits);
+					}
+				}
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting applicant's summary", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return fData;
+	}
+	
+	public FeedbackData getAllFeedBackDataWithProcessIdForCandidate(String processId,String feedbackType, String feedbackFormId) {
+		FeedbackData fData = null;
+		DBPreparedQuery dq = null;
+		String[] dynParam = new String[1];
+		ArrayList<String> dynamicContent = new ArrayList<String>();
+		int cnt=0;
+		try {
+			dynParam[0] = "";
+			
+			if(!Utils.isBlankOrNull(feedbackFormId)){
+				dynParam[0] = " AND all_fields.feedback_form_id=? ";
+				dynamicContent.add(feedbackFormId);
+			}
+			if(SelectionProcessConstants.SUMMARY_FEEDBACK.equals(feedbackType)){
+				dynParam[0] += " AND all_fields.summary_field=? ";				
+				dynamicContent.add(FeedbackFormConstants.SUMMARY_FIELD);
+			}
+			dq = new DBPreparedQuery("dSelectionProcess_GetAllFeedbackApplicantDataWithProcessIdForCandidate",dynParam);
+			dq.setString(1, SelectionProcessConstants.STEP_REJECT);
+			dq.setString(2, SelectionProcessConstants.STEP_TITLE_SHORTLIST);
+			dq.setString(3, FeedbackFormConstants.FIELD_TYPE_FIELD);
+			dq.setId(4, processId);
+			cnt=5;
+			for (String content : dynamicContent) {
+				dq.setString(cnt++, content);	
+			}
+			ArrayList<SimpleDataObject> result = dq.getResult();
+			if (result != null) {
+				// Construct feedbackData
+				for (int i = 0; i < result.size(); i++) {
+					SimpleDataObject sDo = (SimpleDataObject) result.get(i);
+					if (i == 0) {
+						fData = new FeedbackData();
+						fData.setApplicantName(sDo.getString("applicantName"));
+						fData.setAttribute("applicantStepId", sDo.getString("applicantStepId"));
+						fData.setApplicantSourceTitle(sDo.getString("applicantSourceTitle"));
+						fData.setApplicantOriginalResumePath(sDo.getString("applicantOriginalResumePath"));
+						fData.setJoiningDate(sDo.getDate("joiningDate"));
+						fData.setCtcOffered(sDo.getString("ctcOffered"));
+						fData.setBasicOffered(sDo.getString("basicOffered"));
+						fData.setLevelOffered(sDo.getString("levelOffered"));
+						fData.setDesignationOffered(sDo.getString("designationOffered"));
+						fData.setEmployeeCode(sDo.getString("employeeCode"));
+						fData.setApplicantId(sDo.getInt("applicantId"));
+						fData.setPositionId(sDo.getString("positionId"));
+						fData.setPositionTitle(sDo.getString("positionTitle"));
+						fData.setUserId(sDo.getString("userId"));
+						fData.setLastFeedbackBy(sDo.getString("userName"));
+						fData.setFeedbackFormTitle(sDo.getString("feedbackFormTitle"));
+						fData.setFeedbackFormId(sDo.getString("feedbackFormId"));
+						fData.setFeedbackFormHeader(sDo.getString("feedbackFormHeader"));
+						fData.setProcessMovedDate(sDo.getDate("processMovedDate"));
+						fData.setJoiningBonus(sDo.getString("joiningBonus"));
+						fData.setVariableOffered(sDo.getString("variableOffered"));
+												
+						StepData fromStepData = new StepData();
+						fromStepData.setStepId(sDo.getInt("fromStepId"));
+						fromStepData.setStepTitle(sDo.getString("fromStepTitle"));
+						fData.setFromStepData(fromStepData);
+						StepData toStepData = new StepData();
+						toStepData.setStepId(sDo.getInt("toStepId"));
+						toStepData.setStepTitle(sDo.getString("toStepTitle"));
+						fData.setToStepData(toStepData);
+					}
+					if (!Utils.isBlankOrNull(sDo.getString("feedbackFormFieldId"))) {
+						ArrayList<TraitData> traits = fData.getFromStepData().getTraits();
+						if (traits == null) {
+							traits = new ArrayList<TraitData>();
+						}
+						TraitData trait = new TraitData();
+						trait.setFeedbackFormTitle(sDo.getString("feedbackFormTitle"));
+						trait.setFeedbackFormId(sDo.getString("feedbackFormId"));
+						trait.setFeedbackFormHeader(sDo.getString("feedbackFormHeader"));
+						trait.setFeedbackFormFieldId(sDo.getString("feedbackFormFieldId"));
+						trait.setFeedbackFormFieldDesc(sDo.getString("feedbackFormFieldDesc"));
+						trait.setFeedbackFieldTitle(sDo.getString("feedbackFieldTitle"));
+						trait.setFeedbackFormFieldType(sDo.getString("feedbackFormFieldType"));
+						trait.setFeedbackFormFieldDisplayType(sDo.getString("feedbackFormFieldDisplayType"));
+						trait.setFeedbackFormFieldIsMandatory(sDo.getString("feedbackFormFieldIsMandatory"));
+						trait.setFeedbackFormFieldCommentRequired(sDo.getString("feedbackFormFieldCommentRequired"));
+						trait.setRatingId(sDo.getString("ratingId"));
+						trait.setRatingFieldId(sDo.getString("ratingFieldId"));
+						trait.setRatingFieldDesc(sDo.getString("ratingFieldDesc"));						
+						trait.setMultipleSelectId(sDo.getString("multipleSelectId"));
+						trait.setMultipleSelectFieldId(sDo.getString("multipleSelectFieldId"));
+						trait.setSystemGenerated(sDo.getString("systemGenerated"));						
+						trait.setTraitComment(sDo.getString("traitComment"));
+						trait.setInterviewerId(sDo.getInt("interviewerId"));
+						trait.setFeedbackFieldType(sDo.getString("feedbackFieldType"));
+						trait.setApplicantFieldId(sDo.getString("applicantFieldId"));
+						trait.setFeedbackFormCategoryTitle(sDo.getId("feedbackFormCategoryTitle"));
+						traits.add(trait);
+						fData.getFromStepData().setTraits(traits);
+					}
+				}
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting applicant's summary", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return fData;
+	}
+	
+	/**
+	 * Returns the number of feedback or interview conducted for the applicant
+	 * after given feedback denoted by processId.
+	 * 
+	 * @param processId
+	 *            The identifier of the feedback entry.
+	 * @param applicantId
+	 *            The identifier of the applicant.
+	 * @return The count of the feedback for applicant after given process.
+	 */
+	public int getNoOfFeedbackEnteredAfterThis(String processId, String applicantId) {
+		int records = 0;
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dGetNoOfFeedbacksAfter");
+			dq.setId(1, applicantId);
+			dq.setId(2, processId);
+			records = dq.getIntResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting no of feedbacks", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return records;
+	}
+
+	/**
+	 * Method to get comma separated string of trait ids and interviewers joined
+	 * by _ character, for current selection step traits.
+	 * 
+	 * @param traits
+	 *            The list containing traits for the current selection step of
+	 *            the applicants.
+	 * @param userId
+	 *            The logged in userId.
+	 * @return The comma separated string of trait ids and interviewers joined
+	 *         by _.
+	 */
+	public String getTraitIdsAsString(ArrayList<TraitData> traits, String userId,boolean appendApplicantFields) {
+		StringBuffer traitIds = new StringBuffer();
+		if (traits != null && traits.size() > 0) {
+			for (int indx = 0; indx < traits.size(); indx++) {
+				TraitData data = traits.get(indx);
+				if (data.getFeedbackFormFieldType().equals(FeedbackFormConstants.FIELD_TYPE_FIELD)) {
+					if (traitIds.length() > 0) {
+						traitIds.append(SelectionProcessConstants.COMMA);
+					}
+					traitIds.append(data.getFeedbackFormFieldId() + SelectionProcessConstants.UNDERSCORE + userId);
+					if(appendApplicantFields){
+						traitIds.append(SelectionProcessConstants.SINGLE_PIPE+Utils.getBlankIfNull(data.getFeedbackFieldType()) + SelectionProcessConstants.DOUBLE_UNDERSCORE + Utils.getBlankIfNull(data.getApplicantFieldId()));
+					}
+				}
+			}
+		}
+		return traitIds.toString();
+	}
+
+	public boolean isAnyStepDeleted(String stepIds) {
+		boolean isAnyStepDeleted = false;
+		DBPreparedQuery dq = null;
+		try {
+			String[] dynParam = new String[1];
+			dynParam[0] = stepIds;
+			dq = new DBPreparedQuery("dSelectionProcessManager_GetStepStatusData", dynParam);
+			List<SimpleDataObject> resultSet = dq.getResult();
+			if (resultSet != null && resultSet.size() > 0) {
+				for (int i = 0; i < resultSet.size(); i++) {
+					SimpleDataObject obj = (SimpleDataObject) resultSet.get(i);
+					if (PositionConstants.STEP_DELETED.equalsIgnoreCase(obj.getString("status"))) {
+						isAnyStepDeleted = true;
+						break;
+					}
+				}
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting the position step status data.", e);
+			isAnyStepDeleted = true;
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return isAnyStepDeleted;
+	}
+
+	/**
+	 * Method to save the results of Move Up/Down functionality.
+	 * @param applicantId
+	 *            The applicantId.
+	 * @param positionId
+	 *            Position id to be updated
+	 * @param positionStepIdFrom
+	 *            The current step id for the position for which applicant is
+	 *            shortlisted.
+	 * @param positionStepIdTo
+	 *            The next position step id to which applicant is moved.
+	 * @param userId
+	 *            The logged in user id.
+	 * @param feedback
+	 *            The map containing the feedback for the selection trait
+	 *            defined.
+	 * @param moveToJoined
+	 *            The flag indicating whether the applicant has joined or not.
+	 * @param communicationId
+	 *            The feedback ID to be updated
+	 * @param deleteAppointments
+	 *            boolean string which tells whether to delete appointments or
+	 *            not.
+	 * @param _positionId
+	 *            New positionId in case user choose to move applicant to other
+	 *            position.
+	 * @param _positionStepIdTo
+	 *            New _positionStepIdTo in case user choose to move applicant to
+	 *            other position.
+	 * @param applicantFieldMap TODO
+	 * @param comment
+	 *            The reason for rejection if any.
+	 * @param _positionStepIdFrom
+	 *            New _positionStepIdFrom in case user choose to move applicant
+	 *            to other position.
+	 * @param applicantFieldMap
+	 * 			Map Contains applicant FieldIds and corresponding values. Null if Feedback Form does not have applicant Fields associated.            
+	 */
+public boolean saveSelectionProcessResult(String applicantId, String positionId, String positionStepIdFrom, String positionStepIdTo, 
+		String userId, Map feedback, HashMap<String, String> ratingsIdValues,HashMap<String, String> multipleSelectIdValues, 
+		boolean moveToJoined, String joiningDate, String ctcOffered, String basicOffered, String levelOffered, String designationOffered, 
+		String inputSalaryVariable, String communicationId, String deleteAppointments, String _positionId, String _positionStepIdTo, 
+		String appointmentId, String attendeesId, String employeeCode,Map<String,String> applicantFieldValueMap, String feedbackFormId, 
+		String clientIpAddr,String joiningBonus, String variableOffered) throws Exception {
+		DBTransaction tran = null;
+		DBPreparedQuery dbq = null;
+		DBQuery dq = null;
+		SimpleDataObject feedbackEntry = null;
+		boolean isAddOrUpdateProcessEntry = true;
+		boolean isConflictingConcurrentResult = false;
+		try {
+			tran = new DBTransaction();
+			ToDoManager toDoManager = new ToDoManager();
+			ApplicantManager applicantManager = new ApplicantManager();
+			//commented since its not getting used
+			/*feedbackEntry = getCommunicationIdForFeedbackOfCurrentStep(applicantId, positionStepIdFrom, positionId, tran);
+			if (feedbackEntry != null && Utils.isBlankOrNull(communicationId)) {
+				communicationId = feedbackEntry.getString("processId");
+				if (feedbackEntry.getInt("applicantStepId") != Integer.parseInt(positionStepIdFrom) || (Integer.parseInt(positionStepIdTo) <= 0 && !positionStepIdTo.equalsIgnoreCase(feedbackEntry.getString("stepIdTo"))) || positionStepIdTo.equalsIgnoreCase(feedbackEntry.getString("stepIdTo"))) {
+					*//**
+					 * Integer.parseInt(positionStepIdTo) <= 0 means applicant
+					 * is moved to any of STEP_REJECT,
+					 * STEP_NOT_INTERESTED_REJECT, STEP_NOT_ATTENDED,
+					 * STEP_ATTENDED, STEP_ON_HOLD, STEP_JOIN, STEP_REPEAT
+					 *//*
+					boolean flag = true;
+					if ((SelectionProcessConstants.STEP_REPEAT.equalsIgnoreCase(feedbackEntry.getString("stepIdTo"))) && SelectionProcessConstants.STEP_ATTENDED.equalsIgnoreCase(positionStepIdTo)) {
+						SimpleDataObject appointment = getLatestAppointmentsInPast(applicantId);
+						if (CalendarConstants.APPOINTMENT_STATUS_NOSHOW != appointment.getInt("appointmentStatus")) {
+							flag = false;
+						}
+					} else if ((SelectionProcessConstants.STEP_REPEAT.equalsIgnoreCase(feedbackEntry.getString("stepIdTo"))) && SelectionProcessConstants.STEP_NOT_INTERESTED_REJECT.equalsIgnoreCase(positionStepIdTo)) {
+						flag = false;
+					} else if ((SelectionProcessConstants.STEP_REPEAT.equalsIgnoreCase(feedbackEntry.getString("stepIdTo"))) && SelectionProcessConstants.STEP_NOT_ATTENDED.equalsIgnoreCase(positionStepIdTo)) {
+						SimpleDataObject appointment = getLatestAppointmentsInPast(applicantId);
+						if (CalendarConstants.APPOINTMENT_STATUS_NOSHOW != appointment.getInt("appointmentStatus")) {
+							flag = false;
+						}
+					} else if ((SelectionProcessConstants.STEP_ON_HOLD.equalsIgnoreCase(feedbackEntry.getString("stepIdTo"))) && SelectionProcessConstants.STEP_REJECT.equalsIgnoreCase(positionStepIdTo)) {
+						flag = false;
+					} else if ((SelectionProcessConstants.STEP_ATTENDED.equalsIgnoreCase(feedbackEntry.getString("stepIdTo"))) && SelectionProcessConstants.STEP_REJECT.equalsIgnoreCase(positionStepIdTo)) {
+						flag = false;
+					}
+					if (flag) {
+						isAddOrUpdateProcessEntry = false;
+						if (!positionStepIdTo.equalsIgnoreCase(feedbackEntry.getString("stepIdTo"))) {
+							if (!(SelectionProcessConstants.STEP_REJECT.equalsIgnoreCase(feedbackEntry.getString("stepIdTo")) && SelectionProcessConstants.STEP_ON_HOLD.equalsIgnoreCase(positionStepIdTo))) {
+								isConflictingConcurrentResult = true;
+							}
+						} else {
+							if (_positionStepIdTo != null) {
+								isConflictingConcurrentResult = true;
+							}
+						}
+					}
+				}
+			}*/
+			// added all rejected statement 0,-3,-4,-6,-7 to mark appointment no show 
+			if (SelectionProcessConstants.STEP_REPEAT.equalsIgnoreCase(positionStepIdTo) ||
+					SelectionProcessConstants.STEP_NOT_INTERESTED_REJECT.equalsIgnoreCase(positionStepIdTo) ||
+					SelectionProcessConstants.STEP_NOT_ATTENDED.equalsIgnoreCase(positionStepIdTo) ||
+					SelectionProcessConstants.STEP_POSITION_CLOSED_REJECT.equalsIgnoreCase(positionStepIdTo) ||
+					SelectionProcessConstants.STEP_REJECT.equalsIgnoreCase(positionStepIdTo)
+					) {
+				SimpleDataObject sDo = getLatestAppointmentsForApplicant(applicantId);
+				if (sDo != null && positionStepIdFrom.equalsIgnoreCase(sDo.getString("stepId"))) {
+					String appointmentId1 = sDo.getString("appointmentId");
+					updateAppointmentStatus("" + CalendarConstants.APPOINTMENT_STATUS_NOSHOW, appointmentId1, tran);
+				}
+			}else if (SelectionProcessConstants.STEP_ATTENDED.equalsIgnoreCase(positionStepIdTo)) {
+				//update attendees - remove the others those who have not attended
+				CalendarManager calendarManager = new CalendarManager();
+				calendarManager.updateAppointmentAttendees(appointmentId, attendeesId,tran);
+				SimpleDataObject sDo = getLatestAppointmentsInPast(applicantId);
+				if (sDo != null && positionStepIdFrom.equalsIgnoreCase(sDo.getString("stepId"))) {
+					String appointmentId1 = sDo.getString("appointmentId");
+					updateAppointmentStatus("" + CalendarConstants.APPOINTMENT_STATUS_HAPPENED, appointmentId1, tran);
+				}
+			}
+			/**
+			 * delete future appointments if flag is set to true.
+			 */
+			if (Boolean.TRUE.toString().equalsIgnoreCase(deleteAppointments)) {
+				dbq = new DBPreparedQuery("dSelectionProcessManager_DeleteAppointments", tran);
+				dbq.setString(1, applicantId);
+				dbq.execute();
+			}
+
+			/**
+			 * update applicant's position id, step id, joining date, joined
+			 * flag.
+			 */
+			if (isAddOrUpdateProcessEntry) {
+				if (moveToJoined) {
+					updateApplicantPositionStatus(applicantId, positionId, null, SelectionProcessConstants.APPLICANT_JOINED, joiningDate, ctcOffered, basicOffered, levelOffered, designationOffered, inputSalaryVariable, employeeCode, tran,joiningBonus,variableOffered);
+					removeIfExistApplicantLatestJoiningHistory(applicantId, tran);
+					createApplicantJoiningHistory(applicantId, positionId, joiningDate, ctcOffered, levelOffered, designationOffered, inputSalaryVariable,joiningBonus,variableOffered,tran);
+					ApplicantJobPortalManager applicantJobPortalManager = new ApplicantJobPortalManager();
+					applicantJobPortalManager.deleteApplicantPositionMappingByApplicant(applicantId, tran);
+					
+					
+					/**
+					 * Kotak: If at talentpool.properties file the property "is_customer.hrms_integrate" is 1.
+					 * then, when a candidate is moved to joined. A xml is generated and posted to the kotak 
+					 * native application, which further response back the employee code. 
+					 * This Employee code is generated on the basis of HRMS Code. 
+					 */
+					if(GlobalConstants.ENABLED.equals(OtherApplicationConstants.IS_CUSTOMER_HRMS_INTEGRATE)){
+						OtherApplicationManager oam = new OtherApplicationManager();
+						ArrayList<String> empCode = oam.onMoveToJoinedAtKotak(applicantId);
+						if(!Utils.isBlankOrNull(empCode.get(0))){
+							updateApplicantAttribute(empCode.get(0),applicantId,"employee_code");
+						}else{
+							applicantManager.addNote(applicantId, userId, "Employee Code Not Generated/Error: " + empCode.get(1));
+						}
+					}
+					
+					/**
+					 * For Generate CSV when a candidate is moved to JOIN. 
+					 */				
+					if(PositionConstants.STEP_LEVEL_JOIN.equals(OtherApplicationConstants.STEP_LEVEL_CHANGE_CSV)){
+						OtherApplicationManager oam = new OtherApplicationManager();
+						oam.addWhenStepLevelChange(applicantId,positionId,PositionConstants.STEP_LEVEL_JOIN);
+					}
+					
+					
+					/**
+					 * Greytip integration is only for Join Step.
+					 * 
+					 */
+					if(GlobalConstants.ENABLED.equals(OtherApplicationConstants.IS_GREYTIP_INTEGRATE)){
+						OtherApplicationManager oam = new OtherApplicationManager();
+						oam.addWhenStepLevelChangeForGreytip(applicantId,positionId,PositionConstants.STEP_LEVEL_JOIN);
+					}
+					
+					if(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_SEND_MAIL_TO_RECRUITER_FOR_CANDIDATE_STATUS).equals(GlobalConstants.ENABLED)){
+						draftOrSendEmail(TemplateConstants.TEMPLATE_TYPE_CANDIDATE_PROGRESS_TO_RECRUITER, applicantId, positionId, positionStepIdTo,userId);
+						
+					}
+					
+				}
+				else if (SelectionProcessConstants.STEP_REJECT.equalsIgnoreCase(positionStepIdTo) || SelectionProcessConstants.STEP_NOT_INTERESTED_REJECT.equalsIgnoreCase(positionStepIdTo) || SelectionProcessConstants.STEP_NOT_ATTENDED.equalsIgnoreCase(positionStepIdTo)) {
+		//added for applicant which is rejected but its position title was not indicated 
+
+					updateApplicantPositionStatus(applicantId, null, null, SelectionProcessConstants.APPLICANT_NOT_JOINED, null, null, null, null, null, null, employeeCode, tran,null,null);
+					 if (GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_SEND_REJECTED_CANDIDATE_NOTIFICATION_TO_RECRUITER).equals(GlobalConstants.ENABLED)) {
+						  draftOrSendEmail(TemplateConstants.TEMPLATE_TYPE_CANDIDATE_PROGRESS_TO_RECRUITER, applicantId, positionId, positionStepIdTo,userId);
+                     }
+				} else if (!SelectionProcessConstants.STEP_ON_HOLD.equalsIgnoreCase(positionStepIdTo) && !SelectionProcessConstants.STEP_REPEAT.equalsIgnoreCase(positionStepIdTo) 
+						&& !SelectionProcessConstants.STEP_ATTENDED.equalsIgnoreCase(positionStepIdTo) && !SelectionProcessConstants.STEP_APPLICANT_RESPONSE.equalsIgnoreCase(positionStepIdTo)) {
+					updateApplicantPositionStatus(applicantId, positionId, positionStepIdTo, SelectionProcessConstants.APPLICANT_NOT_JOINED, joiningDate, ctcOffered, basicOffered, levelOffered, designationOffered, inputSalaryVariable, employeeCode, tran,joiningBonus,variableOffered);
+					/**
+					 * if applicant is moved up, change the status to default
+					 * value of the current step.
+					 */
+					changeStatusToDefault(applicantId, positionStepIdTo, userId, SelectionProcessConstants.STATUS_SYSTEM_GENERATED, tran);
+					ApplicantData applicantData = applicantManager.getApplicantSummaryData(applicantId);
+					ReferentEmployeeInSelectionProcessNotificationManager.sendReferentEmployeeInSelectionProcessNotification(applicantData, positionId, positionStepIdTo);
+					/**
+					 * Kotak: If at talentpool.properties file the property "is_customer.hrms_integrate" is 1.
+					 * then, when a candidate is moved to Selection Step Accept. A xml is generated and posted 
+					 * to the kotak native application, which further response back the HRMS code.
+					 * This HRMS code is generated on the basis of Name of the candidate.
+					 */
+					if("1".equals(OtherApplicationConstants.IS_CUSTOMER_HRMS_INTEGRATE)){
+						boolean isMoveToAccept = isMoveToAccept(positionStepIdTo,positionStepIdFrom); 
+						if(isMoveToAccept){							
+							OtherApplicationManager oam = new OtherApplicationManager();
+							ArrayList<String> hrmsCode = oam.onMoveToAcceptAtKotak(applicantId);
+							if(!Utils.isBlankOrNull(hrmsCode.get(0))){
+								updateApplicantAttribute(hrmsCode.get(0),applicantId,"applicant_hrms_code");
+							}else{
+								applicantManager.addNote(applicantId, userId, "HRMS Code Not Generated/Error: "+hrmsCode.get(1));
+							}
+						}
+					}
+					/**
+					 * For Generate CSV when a candidate is moved to ACCEPT. 
+					 */
+					if(PositionConstants.STEP_LEVEL_ACCEPT.equals(OtherApplicationConstants.STEP_LEVEL_CHANGE_CSV)){
+						boolean isMoveToAccept = isMoveToAccept(positionStepIdTo,positionStepIdFrom); 
+						if(isMoveToAccept){							
+							OtherApplicationManager oam = new OtherApplicationManager();
+							oam.addWhenStepLevelChange(applicantId,positionId,PositionConstants.STEP_LEVEL_ACCEPT);
+						}
+					}
+					
+					
+					/**
+					 * Send notification to applicant
+					 */
+					//if (Utils.isBlankOrNull(communicationId)) {//send notification only for first time.
+						sendProgessNotificationToCandidate(positionStepIdTo, applicantId, positionId, userId);
+					//}
+					if(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_SEND_MAIL_TO_RECRUITER_FOR_CANDIDATE_STATUS).equals(GlobalConstants.ENABLED)){
+						draftOrSendEmail(TemplateConstants.TEMPLATE_TYPE_CANDIDATE_PROGRESS_TO_RECRUITER, applicantId, positionId, positionStepIdTo,userId);
+						
+					}
+				} 
+				
+				else if(SelectionProcessConstants.STEP_ON_HOLD.equalsIgnoreCase(positionStepIdTo)) {
+					updateApplicantPositionStatus(applicantId, positionId, positionStepIdFrom, SelectionProcessConstants.APPLICANT_NOT_JOINED, joiningDate, ctcOffered, basicOffered, levelOffered, designationOffered, inputSalaryVariable, employeeCode, tran,joiningBonus,variableOffered);				
+					//send email to recruiter that candidate is kept in Hold for current position
+					// Send mail or save draft
+					if(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_SEND_EMAIL_TO_RECRUITER_FOR_ON_HOLD_CANDIDATE).equals(GlobalConstants.ENABLED)){
+						draftOrSendEmail(TemplateConstants.TEMPLATE_TYPE_ON_HOLD_EMAIL_TO_RECRUITER, applicantId, positionId, positionStepIdFrom,userId);
+						
+					}
+					
+				}
+			} 
+
+			/**
+			 * add/ update the entry into selection process table.
+			 */
+			if (SelectionProcessConstants.STEP_APPLICANT_RESPONSE.equalsIgnoreCase(positionStepIdTo)){
+				if (Utils.isBlankOrNull(communicationId)) {
+					dbq = new DBPreparedQuery("dAddCandidateResponse", tran);
+					dbq.setString(1, applicantId);
+					dbq.setString(2, positionStepIdFrom);
+					dbq.setString(3, positionStepIdTo);
+					dbq.setString(4, userId);
+					dbq.setString(5, positionId);
+					dbq.execute();
+
+					dq = new DBQuery("dFetchLastInsertID", tran);
+					communicationId = dq.getIdResult();			
+					
+				} else {
+					dbq = new DBPreparedQuery("dUpdateCandidateResponse", tran);
+					dbq.setString(1, positionStepIdFrom);
+					dbq.setString(2, positionStepIdTo);
+					dbq.setString(3, userId);
+					dbq.setString(4, communicationId);
+					dbq.execute();
+				}
+			}else if (isAddOrUpdateProcessEntry) {
+				if (Utils.isBlankOrNull(communicationId)) {
+					dbq = new DBPreparedQuery("dAddMoveUpOrDownResult", tran);
+					dbq.setString(1, applicantId);
+					dbq.setString(2, positionStepIdFrom);
+					dbq.setString(3, positionStepIdTo);
+					dbq.setString(4, userId);
+					dbq.setString(5, positionId);
+					dbq.execute();
+
+					dq = new DBQuery("dFetchLastInsertID", tran);
+					communicationId = dq.getIdResult();			
+					
+				} else {
+					dbq = new DBPreparedQuery("dUpdateMoveUpOrDownResult", tran);
+					dbq.setString(1, positionStepIdFrom);
+					dbq.setString(2, positionStepIdTo);
+					dbq.setString(3, userId);
+					dbq.setString(4, communicationId);
+					dbq.execute();
+				}
+			}
+
+			/*
+			 * Get Step level for positionStepIdTo and make offer interaction
+			 * hide
+			 */
+			DBPreparedQuery db = new DBPreparedQuery("dSelection_GetStepLevel");
+			db.setString(1, positionStepIdTo);
+			String stepLevel = (String) db.getStringResult();
+			if (!Utils.isBlankOrNull(communicationId) && !Utils.isBlankOrNull(stepLevel) && stepLevel.equals(PositionConstants.STEP_LEVEL_ACCEPT)) {
+				dbq = new DBPreparedQuery("dSelection_UpdateIntercationIsHidden", tran);
+				dbq.setString(1, SelectionProcessConstants.INTERACTION_HIDE);
+				dbq.setId(2, communicationId);
+				dbq.execute();
+			}
+			/**
+			 * add/ update the traits.
+			 */
+			
+			if (SelectionProcessConstants.STEP_APPLICANT_RESPONSE.equalsIgnoreCase(positionStepIdTo)){
+				updateTrackForCandidate(feedback, ratingsIdValues,multipleSelectIdValues, communicationId, feedbackFormId, tran, dbq);
+			}else{
+				updateTrack(feedback, ratingsIdValues,multipleSelectIdValues, communicationId, feedbackFormId, tran, dbq);
+			}
+			applicantManager.updateApplicantFields(applicantId,applicantFieldValueMap, tran, dbq);
+
+			/**
+			 * handle the case if applicant is moved to other position.
+			 */
+			if (!Utils.isBlankOrNull(_positionId) && isAddOrUpdateProcessEntry) {
+				moveApplicantToOtherPosition(applicantId, _positionId, _positionStepIdTo, userId, tran);
+				
+				ApplicantData applicantData = applicantManager.getApplicantSummaryData(applicantId);
+				ReferentEmployeeInSelectionProcessNotificationManager.sendReferentEmployeeInSelectionProcessNotification(applicantData, _positionId, _positionStepIdTo);
+				/**
+				 * if applicant is moved up, change the status to default value
+				 * of the current step.
+				 */
+				changeStatusToDefault(applicantId, _positionStepIdTo, userId, SelectionProcessConstants.STATUS_SYSTEM_GENERATED, tran);
+				/**
+				 * Send notification to applicant
+				 */
+				sendProgessNotificationToCandidate(_positionStepIdTo, applicantId, _positionId, userId);
+				//regenerate todo for new position
+				toDoManager.regenerateToDo(_positionId, applicantId, tran);
+			}
+			/**
+			 * Regenerate todo 
+			 */
+			toDoManager.regenerateToDo(positionId, applicantId, tran);
+			/**
+			 * Add Entry in User Activity table 
+			 */			
+			String interactionId ="";
+			if (isAddOrUpdateProcessEntry) {
+				if (Utils.isBlankOrNull(communicationId)) {
+					dq = new DBQuery("dFetchLastInsertID", tran);
+					interactionId = dq.getIdResult();
+				}else{
+					interactionId = communicationId;
+				}
+			}
+			AuditManager auditManager = new AuditManager();
+			auditManager.addAudit(TPLabels.getLabel("common.candidate"),AuditConstants.TYPE_HIRING_PROGRESS_MOVED , applicantId, 
+					AuditConstants.AUDIT_HIRING_PROGRESS,userId,positionId,positionStepIdFrom,positionStepIdTo,true, clientIpAddr);
+			
+			addUserActivity(applicantId, positionId, positionStepIdFrom, positionStepIdTo, userId, interactionId);
+			
+			tran.commit();			
+
+			/**
+			 * if applicant joined/ rejected, then perform the indexing for the
+			 * search.
+			 */
+			if (isAddOrUpdateProcessEntry) {
+				TPIndexEventQueue.push(new TPIndexEvent(TPIndexEvent.TYPE_UPDATE_APPLICANT, applicantId, TPIndexEvent.PRIORITY_HIGH));
+			}
+
+			/**
+			 * after attendance is confirmed, send the enter feedback reminders
+			 * to the interviewers.
+			 */
+			if (isAddOrUpdateProcessEntry && SelectionProcessConstants.STEP_ATTENDED.equalsIgnoreCase(positionStepIdTo)) {
+				FeedbackScheduler.addTrigger(appointmentId, attendeesId);
+			}
+
+			//
+			sendNonSchedulableNotificationEmail(positionStepIdTo, applicantId, positionId, userId);
+		
+			LoginManager loginManager = new LoginManager();
+			ApplicantData applicantData =  applicantManager.getApplicantData(applicantId);
+			if(!Utils.isBlankOrNull(applicantData.getVendorId())){
+				LoginData loginData = loginManager.getUser(applicantData.getVendorId());
+				// send notification to vendor if candidate rejected
+				if(loginData.getRoleId().equals("" + UserConstants.ROLE_VENDOR)){
+					if (GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_REJECTION_EMAIL_TO_VENDOR).equals(GlobalConstants.ENABLED)) {
+						if(positionStepIdTo.equalsIgnoreCase(SelectionProcessConstants.STEP_REJECT) || positionStepIdTo.equalsIgnoreCase(SelectionProcessConstants.STEP_NOT_INTERESTED_REJECT) || positionStepIdTo.equalsIgnoreCase(SelectionProcessConstants.STEP_NOT_ATTENDED) || positionStepIdTo.equalsIgnoreCase(SelectionProcessConstants.STEP_POSITION_CLOSED_REJECT)){
+							// send if source is vendor
+							String vendorEmailAddress = getVendorEmailAddress(applicantId);
+							if(!Utils.isBlankOrNull(vendorEmailAddress)){
+								//send email
+								VendorRejectMailSchedular.resetTrigger(vendorEmailAddress, userId, applicantId, positionId,positionStepIdFrom);
+							}
+						}
+					}
+				}
+			}
+			
+			if(applicantData.getApplicantSourceId()!=0){
+				SourceData sourceData = getSourceMailandType(String.valueOf(applicantData.getApplicantSourceId()));
+				// send notification to Employee if his candidate rejected
+				String employeeReferralSourceType = "";
+				@SuppressWarnings("unchecked")
+				ArrayList<SourceTypeData> employeeReferralSourceTypeData = new AdminManager().getEmployeeSourceTypeId();
+				if(!Utils.isListEmptyOrNull(employeeReferralSourceTypeData)) {
+					employeeReferralSourceType = employeeReferralSourceTypeData.get(0).getSourceTypeId();
+				}
+				if(Utils.isBlankOrNull(employeeReferralSourceType)) {
+					employeeReferralSourceType = UserConstants.EMPLOYEE_REFERAL;
+				}
+				if(sourceData!=null && employeeReferralSourceType.equals(sourceData.getSourceTypeId())){
+					if(positionStepIdTo.equalsIgnoreCase(SelectionProcessConstants.STEP_REJECT) || 
+						positionStepIdTo.equalsIgnoreCase(SelectionProcessConstants.STEP_NOT_INTERESTED_REJECT) || 
+						positionStepIdTo.equalsIgnoreCase(SelectionProcessConstants.STEP_NOT_ATTENDED) || 
+						positionStepIdTo.equalsIgnoreCase(SelectionProcessConstants.STEP_POSITION_CLOSED_REJECT)){
+						// send if source is s
+						if (GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_REJECTION_EMAIL_TO_EMPLOYEE).equals(GlobalConstants.ENABLED)){
+							String employeeEmailAddress = sourceData.getSourceEmail();
+							if(!Utils.isBlankOrNull(employeeEmailAddress)){
+								//send email
+								EmployeeRejectMailScheduler.resetTrigger(employeeEmailAddress, userId, applicantId, positionId,positionStepIdFrom);
+							}
+						}
+					}else if (moveToJoined) {
+						if(GlobalConstants.ENABLED.equals(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_JOINED_EMAIL_TO_EMPLOYEE))){
+							try {
+								//draftOrSendEmail(TemplateConstants.TEMPLATE_TYPE_JOINED_EMAIL_TO_EMPLOYEE, applicantId, positionId, positionStepIdTo, userId);
+								EmployeeProgressMailScheduler.resetTrigger(TemplateConstants.TEMPLATE_TYPE_JOINED_EMAIL_TO_EMPLOYEE, applicantId, positionId, positionStepIdTo, userId);
+							} catch (Exception e) {
+								TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+							}
+						}
+					}
+					else if(Integer.parseInt(positionStepIdTo) > 0){
+						if(GlobalConstants.ENABLED.equals(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_PROGRESS_EMAIL_TO_EMPLOYEE))){
+							try {
+								//draftOrSendEmail(TemplateConstants.TEMPLATE_TYPE_PROGRESS_EMAIL_TO_EMPLOYEE, applicantId, positionId, positionStepIdTo, userId);
+								EmployeeProgressMailScheduler.resetTrigger(TemplateConstants.TEMPLATE_TYPE_PROGRESS_EMAIL_TO_EMPLOYEE, applicantId, positionId, positionStepIdTo, userId);
+							} catch (Exception e) {
+								TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+							}
+						}
+					}
+				}
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+			try {
+				tran.rollback();
+			} catch (Exception ex) {
+				TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+			}
+			throw e;
+		} finally {
+			if (dq != null) {
+				dq.releaseTransaction(tran);
+			}
+			if (dbq != null) {
+				dbq.releaseTransaction(tran);
+			}
+		}
+		return isConflictingConcurrentResult;
+	}
+
+	private void updateTrack(Map feedback, HashMap<String, String> ratingsIdValues, HashMap<String, String> multipleSelectIdValues,
+			String communicationId, String feedbackFormId, DBTransaction tran, DBPreparedQuery dbq) throws SQLException {
+		if (feedback != null && feedback.size() > 0) {
+			Iterator itr = feedback.keySet().iterator();
+			while (itr.hasNext()) {
+				String key = (String) itr.next();
+				String[] parts = key.split(SelectionProcessConstants.UNDERSCORE);
+				String value = (String) feedback.get(key);
+				value = (value == null) ? "" : value;
+				String ratingFieldId = (ratingsIdValues.get(key) == null) ? "" : ratingsIdValues.get(key);
+				String multipleSelectFieldId = (multipleSelectIdValues.get(key) == null) ? "" : multipleSelectIdValues.get(key);
+				
+				ratingFieldId = Utils.isBlankOrNull(ratingFieldId) ? null : ratingFieldId;
+				if (Utils.isBlankOrNull(value) && Utils.isBlankOrNull(ratingFieldId)&& Utils.isBlankOrNull(multipleSelectFieldId)) {
+					dbq = new DBPreparedQuery("dDeleteFeedbackTrait", tran);
+					dbq.setString(1, communicationId);
+					dbq.setString(2, parts[0]);
+					dbq.setString(3, parts[1]);
+					dbq.execute();					
+				} else {
+					dbq = new DBPreparedQuery("dAddMoveUpOrDownTraits", tran);
+					dbq.setString(1, communicationId);
+					dbq.setString(2, parts[0]);
+					dbq.setString(3, value);
+					dbq.setString(4, parts[1]);
+					if (ratingFieldId == null) {
+						dbq.setNull(5, Types.NUMERIC);
+					} else {
+						dbq.setString(5, ratingFieldId);
+					}
+					if (multipleSelectFieldId == null) {
+						dbq.setNull(6, Types.VARCHAR);
+					} else {
+						dbq.setString(6, multipleSelectFieldId);
+					}
+					dbq.setString(7, feedbackFormId);
+					dbq.setString(8, value);
+					if (ratingFieldId == null) {
+						dbq.setNull(9, Types.NUMERIC);
+					} else {
+						dbq.setString(9, ratingFieldId);
+					}
+					if (multipleSelectFieldId == null) {
+						dbq.setNull(10, Types.VARCHAR);
+					} else {
+						dbq.setString(10, multipleSelectFieldId);
+					}
+					dbq.execute();
+				}
+			}
+		}
+	}
+	
+	private void updateTrackForCandidate(Map feedback, HashMap<String, String> ratingsIdValues, HashMap<String, String> multipleSelectIdValues,
+			String communicationId, String feedbackFormId, DBTransaction tran, DBPreparedQuery dbq) throws SQLException {
+		if (feedback != null && feedback.size() > 0) {
+			Iterator itr = feedback.keySet().iterator();
+			while (itr.hasNext()) {
+				String key = (String) itr.next();
+				String[] parts = key.split(SelectionProcessConstants.UNDERSCORE);
+				String value = (String) feedback.get(key);
+				value = (value == null) ? "" : value;
+				String ratingFieldId = (ratingsIdValues.get(key) == null) ? "" : ratingsIdValues.get(key);
+				String multipleSelectFieldId = (multipleSelectIdValues.get(key) == null) ? "" : multipleSelectIdValues.get(key);
+				
+				ratingFieldId = Utils.isBlankOrNull(ratingFieldId) ? null : ratingFieldId;
+				if (Utils.isBlankOrNull(value) && Utils.isBlankOrNull(ratingFieldId)&& Utils.isBlankOrNull(multipleSelectFieldId)) {
+					dbq = new DBPreparedQuery("dDeleteCandidateFeedbackTrait", tran);
+					dbq.setString(1, communicationId);
+					dbq.setString(2, parts[0]);
+					dbq.setString(3, parts[1]);
+					dbq.execute();					
+				} else {
+					dbq = new DBPreparedQuery("dAddMoveUpOrDownCandidateTraits", tran);
+					dbq.setString(1, communicationId);
+					dbq.setString(2, parts[0]);
+					dbq.setString(3, value);
+					dbq.setString(4, parts[1]);
+					if (ratingFieldId == null) {
+						dbq.setNull(5, Types.NUMERIC);
+					} else {
+						dbq.setString(5, ratingFieldId);
+					}
+					if (multipleSelectFieldId == null) {
+						dbq.setNull(6, Types.VARCHAR);
+					} else {
+						dbq.setString(6, multipleSelectFieldId);
+					}
+					dbq.setString(7, feedbackFormId);
+					dbq.setString(8, value);
+					if (ratingFieldId == null) {
+						dbq.setNull(9, Types.NUMERIC);
+					} else {
+						dbq.setString(9, ratingFieldId);
+					}
+					if (multipleSelectFieldId == null) {
+						dbq.setNull(10, Types.VARCHAR);
+					} else {
+						dbq.setString(10, multipleSelectFieldId);
+					}
+					dbq.execute();
+				}
+			}
+		}
+	}
+
+	private void addUserActivity(String applicantId, String positionId, String positionStepIdFrom, 
+			String positionStepIdTo, String userId, String interactionId) {
+		try {
+			PositionManager positionManager = new PositionManager();
+			String positionName = positionManager.getPositionName(positionId);
+			String stepName = ""; 
+			if(Integer.parseInt(positionStepIdTo)>0){
+				stepName = positionManager.getPositionStepName(Integer.parseInt(positionStepIdTo));
+			}else{
+				stepName = positionManager.getPositionStepName(Integer.parseInt(positionStepIdFrom));
+			}
+			String deptName = positionManager.getPositionDepartment(positionId);		
+			String activity = "";
+			if(positionStepIdTo.equals(SelectionProcessConstants.STEP_JOIN)){
+				activity = "Advanced to Joined";
+			}else if(positionStepIdTo.equals(SelectionProcessConstants.STEP_REJECT) ||
+					positionStepIdTo.equals(SelectionProcessConstants.STEP_NOT_INTERESTED_REJECT) ||
+					positionStepIdTo.equals(SelectionProcessConstants.STEP_NOT_ATTENDED) ||
+					positionStepIdTo.equals(SelectionProcessConstants.STEP_POSITION_CLOSED_REJECT)){
+				activity = "Rejected from " + stepName;
+			}else if(positionStepIdTo.equals(SelectionProcessConstants.STEP_ON_HOLD) ||
+					positionStepIdTo.equals(SelectionProcessConstants.STEP_REPEAT)){
+				activity = "Entered feedback for " + stepName;
+			}else if(positionStepIdTo.equals(SelectionProcessConstants.STEP_ATTENDED)){
+				activity = "Confirmed attendance for " + stepName;
+			}else{
+				activity = "Advanced to " + stepName;
+				
+			}
+			activity += " for " + deptName + "-"+ positionName;
+			LatestActivityManager activityManager = new LatestActivityManager(); 
+			activityManager.addUserActivity(activity, interactionId, SelectionProcessConstants.INTERACTION_INTERVIEW, positionId, applicantId, userId);
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+	}
+	
+	private String getVendorEmailAddress(String applicantId) {
+		DBPreparedQuery dq = null;
+		String email = null;
+		try {
+			dq = new DBPreparedQuery("dSelectionProcessManager_GetVendorEmailAddress");
+			dq.setId(1, applicantId);
+			email = dq.getIdResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return email;
+	}
+
+	private void sendProgessNotificationToCandidate(String nextStepId,String applicantId, 
+			String positionId,String userId) throws Exception {
+		PositionManager positionManager = new PositionManager();
+		StepData nextStepData = positionManager.getHiringProcessStepDetails(nextStepId);
+		if(nextStepData.getStepNotifyToCandidate()==PositionConstants.STEP_NOTIFY_PROGRESS_TO_CANDIDATE){
+			CandidateProgressNotificationScheduler.addTrigger(applicantId, positionId,nextStepId, userId);
+		}
+	}
+	
+	
+	/**
+	 * Method to get applicant interactions.
+	 * 
+	 * @param applicantId
+	 *            The identifier of the applicant.
+	 * @return
+	 */
+	@SuppressWarnings("unchecked")
+	public ArrayList<SimpleDataObject> getApplicantsInteractions(String applicantId) {
+		ArrayList<SimpleDataObject> results = new ArrayList<SimpleDataObject>();
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dGetInteractions");
+			dq.setId(1, ApplicantConstants.APPLICANT_EMAIL_FOLDER_SENT);
+			dq.setInt(2, SelectionProcessConstants.INTERACTION_EMAIL_SENT);
+			dq.setInt(3, SelectionProcessConstants.INTERACTION_EMAIL_RECEIVED);
+			dq.setId(4, ApplicantConstants.APPLICANT_EMAIL_FOLDER_SENT);
+			dq.setId(5, applicantId);
+			dq.setInt(6, SelectionProcessConstants.INTERACTION_APPOINTMENTS);
+			dq.setId(7, applicantId);
+			dq.setInt(8, SelectionProcessConstants.INTERACTION_INTERVIEW);
+			dq.setString(9, SelectionProcessConstants.STEP_REJECT);
+			dq.setString(10, SelectionProcessConstants.STEP_TITLE_SHORTLIST);
+			dq.setId(11, applicantId);
+			
+			dq.setInt(12, SelectionProcessConstants.INTERACTION_APPLICANT_RESPONSE);
+			dq.setId(13, applicantId);
+			
+			dq.setId(14, applicantId);
+			dq.setInt(15, SelectionProcessConstants.INTERACTION_MESSAGE);
+			dq.setId(16, applicantId);
+			dq.setInt(17, SelectionProcessConstants.INTERACTION_STATUS_MESSAGE);
+			dq.setId(18, applicantId);
+			dq.setString(19, SelectionProcessConstants.STATUS_USER_GENERATED);
+			
+			dq.setString(20, ""+SelectionProcessConstants.INTERACTION_BLACKLISTED);
+			dq.setString(21,(String)SelectionProcessConstants.INTERACTION_TYPES.get(""+SelectionProcessConstants.INTERACTION_BLACKLISTED));
+			dq.setString(22, ""+SelectionProcessConstants.INTERACTION_UNBLACKLISTED);
+			dq.setString(23,(String)SelectionProcessConstants.INTERACTION_TYPES.get(""+SelectionProcessConstants.INTERACTION_UNBLACKLISTED));
+			dq.setId(24, applicantId);
+			dq.setInt(25, SelectionProcessConstants.INTERACTION_OFFER_PROPOSAL);
+			dq.setId(26, applicantId);
+			dq.setInt(27,SelectionProcessConstants.INTERACTION_OFFER_SHEET_GENERATION);
+			dq.setId(28, applicantId);
+
+			results = dq.getResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return results;
+	}	
+	
+	
+	public ArrayList<SimpleDataObject> getCandidateInteractions(String applicantId) {
+		ArrayList<SimpleDataObject> results = new ArrayList<SimpleDataObject>();
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dGetCandidateInteractions");
+			
+			dq.setInt(1, SelectionProcessConstants.INTERACTION_APPLICANT_RESPONSE);
+			dq.setId(2, applicantId);
+
+			results = dq.getResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return results;
+	}
+
+	/**
+	 * Method to update the applicant phones.
+	 * 
+	 * @param applicantId
+	 *            The identifier of the applicant.
+	 * @param homePhone
+	 *            The applicant's home phone number.
+	 * @param workPhone
+	 *            The applicant's work phone number.
+	 * @param cellPhone
+	 *            The applicant's cell phone number.
+	 */
+	public void updateApplicantPhones(String applicantId, String homePhone, String workPhone, String cellPhone, String homePhoneIsInvalid, String workPhoneIsInvalid, String cellPhoneIsInvalid) {
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dUpdateApplicantPhones");
+			dq.setString(1, Utils.isBlankOrNull(homePhone) ? null : homePhone);
+			dq.setString(2, Utils.isBlankOrNull(workPhone) ? null : workPhone);
+			dq.setString(3, Utils.isBlankOrNull(cellPhone) ? null : cellPhone);
+			dq.setString(4, Utils.isBlankOrNull(homePhone) ? SelectionProcessConstants.PHONE_VALID : homePhoneIsInvalid);
+			dq.setString(5, Utils.isBlankOrNull(workPhone) ? SelectionProcessConstants.PHONE_VALID : workPhoneIsInvalid);
+			dq.setString(6, Utils.isBlankOrNull(cellPhone) ? SelectionProcessConstants.PHONE_VALID : cellPhoneIsInvalid);
+			dq.setId(7, applicantId);
+			dq.execute();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while updating phones of applicant", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+	}
+	
+	/**
+	 * Method to add phone log.
+	 * 
+	 * @param cData
+	 *            The communication data.
+	 */
+	public void addPhoneLog(CommunicationData cData) {
+		try {
+			addPhoneLog(cData, new DBTransaction());			
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while updating phones of applicant", e);
+		}
+	}
+
+	/**
+	 * Method to add phone log.
+	 * 
+	 * @param cData
+	 *            The communication data.
+	 */
+	public void addPhoneLog(CommunicationData cData, DBTransaction tran) throws SQLException {
+		DBPreparedQuery dq = null;
+		try {
+			if(tran!=null) {
+				dq = new DBPreparedQuery("dAddInteraction", tran);
+			} else {
+				dq = new DBPreparedQuery("dAddInteraction");
+			}
+			dq.setInt(1, cData.getCommunicationType());
+			dq.setId(2, cData.getApplicantId());
+			dq.setId(3, cData.getUserId());
+			dq.setTimestamp(4, cData.getCommunicationDate());
+			dq.setString(5, cData.getCommunicationText());
+			dq.setString(6, cData.getCommunicationPhoneNo());
+			if(!Utils.isBlankOrNull(cData.getDocumentId())) {
+				dq.setString(7, cData.getDocumentId());
+			} else {
+				dq.setNull(7, Types.NULL);
+			}
+			dq.execute();
+			
+			if(tran!=null) {
+				dq = new DBPreparedQuery("dFetchLastInsertID", tran);
+			} else {
+				dq = new DBPreparedQuery("dFetchLastInsertID");
+			}
+			String communicationId = dq.getIdResult();
+			
+			// add activity to user log
+			
+			int interactionType = cData.getCommunicationType() ;
+			String activity = getActivity(interactionType);
+			LatestActivityManager activityManager = new LatestActivityManager(); 
+			String positionId = activityManager.getPositionIdWithApplicantId(cData.getApplicantId());
+			activityManager.addUserActivity(activity, communicationId, interactionType, positionId, cData.getApplicantId(), cData.getUserId(), tran);
+
+			TPIndexEventQueue.push(new TPIndexEvent(TPIndexEvent.TYPE_UPDATE_APPLICANT, cData.getApplicantId(), TPIndexEvent.PRIORITY_HIGH));
+			tran.commit();
+		} catch(Exception e){
+			tran.rollback();
+		}finally {
+			if (dq != null) {
+				if (tran == null) {
+					dq.releaseConnection();
+				} else {
+					dq.closeOpenCursors();
+				}
+			}
+		}
+	}
+	
+	private String getActivity(int interactionType){
+		String activity = "Called";
+		if(interactionType== SelectionProcessConstants.INTERACTION_NOTE){
+			activity = "Added Note";
+		}else if(interactionType == SelectionProcessConstants.INTERACTION_SMS){
+			activity = "SMS sent";
+		}else if(interactionType == SelectionProcessConstants.INTERACTION_OFFER_DETAILS_MODIFIED){
+			activity =(String) SelectionProcessConstants.INTERACTION_TYPES.get(""+SelectionProcessConstants.INTERACTION_OFFER_DETAILS_MODIFIED);
+		}else if(interactionType == SelectionProcessConstants.INTERACTION_BLACKLISTED){
+			activity =(String) SelectionProcessConstants.INTERACTION_TYPES.get(""+SelectionProcessConstants.INTERACTION_BLACKLISTED);
+		}
+		return activity;
+	}
+
+	/**
+	 * Method to update phone log.
+	 * 
+	 * @param cData
+	 *            The communication data.
+	 */
+	public void updatePhoneLog(CommunicationData cData) {
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dUpdateInteraction");
+			dq.setString(1, cData.getCommunicationText());
+			dq.setString(2, cData.getCommunicationPhoneNo());
+			dq.setTimestamp(3, cData.getCommunicationDate());
+			dq.setId(4, cData.getCommunicationId());
+			dq.execute();
+			
+			TPIndexEventQueue.push(new TPIndexEvent(TPIndexEvent.TYPE_UPDATE_APPLICANT, cData.getApplicantId(), TPIndexEvent.PRIORITY_HIGH));
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while updating Communication Data", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+	}
+
+	/**
+	 * Method to get the communication data.
+	 * 
+	 * @param communicationId
+	 *            The communication identifier.
+	 * @return The communication data.
+	 */
+	public CommunicationData getCommunicationData(String communicationId) {
+		DBPreparedQuery dq = null;
+		CommunicationData cData = null;
+		try {
+			dq = new DBPreparedQuery("dGetCommunicationData");
+			dq.setId(1, communicationId);
+			cData = (CommunicationData) dq.getSingleObjectResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting communication data", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return cData;
+	}
+
+	/**
+	 * Method to get the status message data.
+	 * 
+	 * @param communicationId
+	 *            The communication identifier.
+	 * @return The communication data.
+	 */
+	public CommunicationData getStatusMessageData(String communicationId) {
+		DBPreparedQuery dq = null;
+		CommunicationData cData = null;
+		try {
+			dq = new DBPreparedQuery("dGetStatusMessageData");
+			dq.setId(1, communicationId);
+			cData = (CommunicationData) dq.getSingleObjectResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting communication data", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return cData;
+	}
+
+	/**
+	 * Method to get the appointment data.
+	 * 
+	 * @param appointmentId
+	 *            The identifier of the appointment.
+	 * @param userId
+	 *            The identifier of the logged-in user.
+	 * @return The appointment data.
+	 */
+	public AppointmentData getAppointmentData(String appointmentId, String userId) {
+		DBPreparedQuery dq = null;
+		AppointmentData data = null;
+		try {
+			dq = new DBPreparedQuery("dGetAppointmentDetails");
+			dq.setId(1, appointmentId);
+			data = (AppointmentData) dq.getSingleObjectResult();
+			CalendarManager calendarManager = new CalendarManager();
+			String interviewers = calendarManager.getAppointmentAttendeesAsString(appointmentId);
+			data.setInterviewer(interviewers);
+			if (data.getAppointmentCreatedBy().equalsIgnoreCase(userId)) {
+				if (new Date().before(data.getAppointmentFrom())) {
+					data.setIsAppointmentFullyEditable(Boolean.TRUE.toString());
+				} else {
+					data.setIsAppointmentFullyEditable(Boolean.FALSE.toString());
+				}
+				data.setEditable(Boolean.toString(true));
+			} else {
+				data.setEditable(Boolean.toString(false));
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting appointment data", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return data;
+	}
+
+	/**
+	 * Method to get communication id.
+	 * 
+	 * @param applicantId
+	 *            The identifier of the applicant.
+	 * @return The communication id.
+	 */
+	public String getCommunicationId(String applicantId) {
+		DBPreparedQuery dq = null;
+		String communicationId = null;
+		try {
+			StringBuffer param = new StringBuffer(SelectionProcessConstants.STEP_ON_HOLD);
+			param.append(", ");
+			param.append(SelectionProcessConstants.STEP_REPEAT);
+			param.append(", ");
+			param.append(SelectionProcessConstants.STEP_ATTENDED);
+			String[] dynParam = new String[1];
+			dynParam[0] = param.toString();
+			dq = new DBPreparedQuery("dGetCommunicationId", dynParam);
+			dq.setId(1, applicantId);
+			SimpleDataObject sDo = (SimpleDataObject) dq.getSingleObjectResult();
+			if (sDo != null) {
+				communicationId = sDo.getString("communicationId");
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting communication id", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return communicationId;
+	}
+	
+	
+	public String getCommunicationIdForCandidate(String applicantId) {
+		DBPreparedQuery dq = null;
+		String communicationId = null;
+		try {
+			StringBuffer param = new StringBuffer(SelectionProcessConstants.STEP_APPLICANT_RESPONSE);
+			String[] dynParam = new String[1];
+			dynParam[0] = param.toString();
+			dq = new DBPreparedQuery("dGetCandidateCommunicationId", dynParam);
+			dq.setId(1, applicantId);
+			SimpleDataObject sDo = (SimpleDataObject) dq.getSingleObjectResult();
+			if (sDo != null) {
+				communicationId = sDo.getString("communicationId");
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting communication id", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return communicationId;
+	}
+
+	public SimpleDataObject getLatestFeedback(String applicantId) {
+		DBPreparedQuery dq = null;
+		SimpleDataObject sDo = null;
+		try {
+			StringBuffer param = new StringBuffer(SelectionProcessConstants.STEP_ON_HOLD);
+			param.append(", ");
+			param.append(SelectionProcessConstants.STEP_REPEAT);
+			param.append(", ");
+			param.append(SelectionProcessConstants.STEP_ATTENDED);
+			String[] dynParam = new String[1];
+			dynParam[0] = param.toString();
+			dq = new DBPreparedQuery("dGetCommunicationId", dynParam);
+			dq.setId(1, applicantId);
+			sDo = (SimpleDataObject) dq.getSingleObjectResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting communication id", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return sDo;
+	}
+
+	/**
+	 * Method to get future appointments for a candidate.
+	 * 
+	 * @param applicantId
+	 *            The identifier of the applicant.
+	 * @return The list of future appointments for applicant.
+	 */
+	public List getAppointmentsInFuture(String applicantId) {
+		DBPreparedQuery dq = null;
+		List rs = null;
+		try {
+			dq = new DBPreparedQuery("dSelectionProcessManager_GetAppointmentsInFuture");
+			dq.setString(1, applicantId);
+			rs = dq.getResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting future appointments for a candidate", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return rs;
+	}
+	
+	public List getAllAtiveAppointmentsInPast(String applicantId) {
+		DBPreparedQuery dq = null;
+		List rs = null;
+		try {
+			dq = new DBPreparedQuery("dSelectionProcessManager_GetAllAtiveAppointmentsInPast");
+			dq.setString(1, applicantId);
+			dq.setInt(2, CalendarConstants.APPOINTMENT_STATUS_NOSHOW);
+			rs = dq.getResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return rs;
+	}
+
+	/**
+	 * Method to get past appointments for a candidate.
+	 * 
+	 * @param applicantId
+	 *            The identifier of the applicant.
+	 * @return The latest past appointment for applicant.
+	 */
+	public SimpleDataObject getLatestAppointmentsInPast(String applicantId) {
+		DBPreparedQuery dq = null;
+		SimpleDataObject sDo = null;
+		try {
+			// Get latest appointment in past for current position and step of
+			// applicant
+			dq = new DBPreparedQuery("dSelectionProcessManager_GetAppointmentsInPast");
+			dq.setString(1, applicantId);
+			sDo = (SimpleDataObject) dq.getSingleObjectResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return sDo;
+	}
+
+	/**
+	 * Method to get the interviewers for position identified by positionId.
+	 * 
+	 * @param stepId
+	 *            The step identifier.
+	 * @return The list of interviewers for position identified by positionId.
+	 */
+	public ArrayList<UserData> getPositionInterviewers(String communicationId, String stepId) {
+		DBPreparedQuery dq = null;
+		ArrayList<UserData> interviewers = null;
+		try {
+			String[] dynParam = new String[1];
+			AppointmentData appointmentData = null;
+
+			if (!Utils.isBlankOrNull(communicationId)) {
+				appointmentData = getAppointmentDataForFeedback(communicationId);
+				dynParam[0] = " union " + "select tu.user_id, CONCAT(user_fname,' ',user_lname) as name " + "from tp_users as tu " + "where tu.user_id in (select tpaspt.user_id " + "from tp_applicant_selection_process_traits tpaspt " + "where tpaspt.process_id = " + communicationId + ")";
+			} else {
+				dynParam[0] = "";
+			}
+			if (appointmentData == null) {
+				dq = new DBPreparedQuery("dSelectionProcessManager_GetPositionInterviewers", dynParam);
+				dq.setString(1, stepId);
+				dq.setInt(2, UserConstants.ACTIVE);
+				dq.setInt(3, PositionConstants.NOT_RESPONSIBLE_FOR_SCHEDULING);
+				interviewers = dq.getResult();
+			} else {
+				dq = new DBPreparedQuery("dSelectionProcessManager_GetPositionInterviewersForSchedulable", dynParam);
+				dq.setString(1, stepId);
+				dq.setInt(2, UserConstants.ACTIVE);
+				dq.setInt(3, PositionConstants.NOT_RESPONSIBLE_FOR_SCHEDULING);
+				dq.setInt(4, PositionConstants.AUTHORIZED_TO_MOVE);
+				dq.setString(5, appointmentData.getAppointmentId());
+				interviewers = dq.getResult();
+
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting selection status info of the applicant", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return interviewers;
+	}
+
+	/**
+	 * Method to get trait data in Map. (trait id)_(user id) will be the key.
+	 * Feedback entered by user for given trait will be value.
+	 * 
+	 * @param isMoveUpOrDown
+	 *            Whether it is add new / edit.
+	 * @param data
+	 *            The current step data.
+	 * @param interviewers
+	 *            The list of interviewers.
+	 * @return The map containing the trait data.
+	 */
+	public Map<String, String> getTraitData(boolean isMoveUpOrDown, StepData data, List interviewers, String userId) {
+		Map<String, String> traitData = new HashMap<String, String>();
+
+		if (data != null && data.getTraits() != null && data.getTraits().size() > 0) {
+			if (interviewers != null && interviewers.size() > 0) {
+				ArrayList<TraitData> traits = data.getTraits();
+				for (int index = 0; index < interviewers.size(); index++) {
+					UserData udata = (UserData) interviewers.get(index);
+					for (int indx = 0; indx < traits.size(); indx++) {
+						TraitData tdata = traits.get(indx);
+						traitData.put(SelectionProcessConstants.RATING_ + tdata.getFeedbackFormFieldId() + SelectionProcessConstants.UNDERSCORE + udata.getUserId(), "");
+						traitData.put(SelectionProcessConstants.RATINGDESC_ + tdata.getFeedbackFormFieldId() + SelectionProcessConstants.UNDERSCORE + udata.getUserId(), "");
+						// if (userId != null && userId.equalsIgnoreCase("" +
+						// udata.getUserId())) {
+						traitData.put(tdata.getFeedbackFormFieldId() + SelectionProcessConstants.UNDERSCORE + udata.getUserId(), "");
+						
+						traitData.put(SelectionProcessConstants.MULTIPLE_SELECT_ + tdata.getFeedbackFormFieldId() + SelectionProcessConstants.UNDERSCORE + udata.getUserId(), "");
+						// } else {
+						// traitData.put(tdata.getFeedbackFormFieldId() +
+						// SelectionProcessConstants.UNDERSCORE +
+						// udata.getUserId(),
+						// TPLabels.getLabel("selection_feedback.label.no_feedback_entered"));
+						// }
+					}
+				}
+				// construct unique traits array because traits may contain
+				// multiple dataobj for single trait
+				ArrayList<TraitData> processTraits = new ArrayList<TraitData>();
+				ArrayList<String> tempTraitIds = new ArrayList<String>();
+				if (!isMoveUpOrDown) {
+					for (int indx = 0; indx < traits.size(); indx++) {
+						TraitData tdata = traits.get(indx);
+						traitData.put(tdata.getFeedbackFormFieldId() + SelectionProcessConstants.UNDERSCORE + tdata.getInterviewerId(), tdata.getTraitComment());
+						traitData.put(SelectionProcessConstants.RATING_ + tdata.getFeedbackFormFieldId() + SelectionProcessConstants.UNDERSCORE + tdata.getInterviewerId(), tdata.getRatingFieldId());
+						traitData.put(SelectionProcessConstants.RATINGDESC_ + tdata.getFeedbackFormFieldId() + SelectionProcessConstants.UNDERSCORE + tdata.getInterviewerId(), tdata.getRatingFieldDesc());
+						traitData.put(SelectionProcessConstants.MULTIPLE_SELECT_ + tdata.getFeedbackFormFieldId() + SelectionProcessConstants.UNDERSCORE + tdata.getInterviewerId(), tdata.getMultipleSelectFieldId());
+						if (!tempTraitIds.contains(tdata.getFeedbackFormFieldId())) {
+							tempTraitIds.add(tdata.getFeedbackFormFieldId());
+							processTraits.add(tdata);
+						}
+					}
+				}
+				if (!processTraits.isEmpty()) {
+					data.setTraits(processTraits);
+				}
+
+			}
+			// else {
+			// List traits = data.getTraits();
+			//			
+			// for (int indx = 0; indx < traits.size(); indx++) {
+			// TraitData tdata = (TraitData) traits.get(indx);
+			// // if (tdata.getSystemGenerated() ==
+			// // PositionConstants.STEP_TRAIT_SYSTEM_GENERATED) {
+			// // traitData.put(tdata.getTraitId(), tdata.getTraitTitle());
+			// // }
+			// }
+			// }
+		}
+		return traitData;
+	}
+
+	/**
+	 * Returns All the users except for the logged in user.
+	 * 
+	 * @param the
+	 *            logged in user id
+	 * @return arraylist of all userids and names .
+	 */
+	public ArrayList getAllUsersForMessaging(String userId) {
+		DBPreparedQuery dq = null;
+		ArrayList users = new ArrayList();
+		try {
+			dq = new DBPreparedQuery("dGetUsersForMessaging");
+			dq.setString(1, userId);
+			dq.setInt(2, UserConstants.ROLE_VENDOR);
+			users = dq.getResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error in get users for messaging", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return users;
+	}
+
+	/**
+	 * Returns 0 or 1 based on failure or success respectively.
+	 * 
+	 * @param applicant
+	 *            Id , fromuserId, touserId, and message text
+	 * @return int 0 or 1;
+	 */
+	public int postMessage(String applicantId, String fromUserId, ArrayList<String> toUserIds, String messageText, ArrayList<String> ccUserIds) throws Exception {
+		DBPreparedQuery dq = null;
+		DBTransaction tran = null;
+		int returnval = 0;
+		try {
+			tran = new DBTransaction();
+			dq = new DBPreparedQuery("dInsertMessage", tran);
+			dq.setString(1, applicantId);
+			dq.setString(2, fromUserId);
+			dq.setString(3, messageText);
+			dq.execute();
+
+			dq = new DBPreparedQuery("dFetchLastInsertID", tran);
+			String messageId = dq.getIdResult();
+
+			// insert message to user
+			if (toUserIds != null) {
+				for (int i = 0; i < toUserIds.size(); i++) {
+					dq = new DBPreparedQuery("dInsertMessageToUsers", tran);
+					dq.setId(1, messageId);
+					dq.setId(2, toUserIds.get(i));
+					dq.setInt(3, MessageConstants.MESSAGE_RECEIVED_AS_TO);
+					dq.execute();
+				}
+			}
+
+			if (ccUserIds != null) {
+				for (int i = 0; i < ccUserIds.size(); i++) {
+					dq = new DBPreparedQuery("dInsertMessageToUsers", tran);
+					dq.setId(1, messageId);
+					dq.setId(2, ccUserIds.get(i));
+					dq.setInt(3, MessageConstants.MESSAGE_RECEIVED_AS_CC);
+					dq.execute();
+				}
+			}
+			LatestActivityManager activityManager = new LatestActivityManager(); 
+			activityManager.addUserActivity(messageText, messageId, SelectionProcessConstants.INTERACTION_MESSAGE, null, applicantId, fromUserId);
+	
+			tran.commit();
+			returnval = 1;
+		} catch (SQLException e) {
+			TPLogger.getLogger().error("Error in get users for messaging", e);
+			tran.rollback();
+			throw e;
+		} finally {
+			if (dq != null) {
+				dq.releaseTransaction(tran);
+			}
+		}
+		return returnval;
+	}
+
+	/**
+	 * Returns Simpledata object with message details
+	 * 
+	 * @param MessageId
+	 * @return Simpledataobject
+	 */
+	public SimpleDataObject getMessageDetails(String messageId) {
+		DBPreparedQuery dq = null;
+		SimpleDataObject sdo = new SimpleDataObject();
+		try {
+			dq = new DBPreparedQuery("dSelectionProcessManager_GetMessageDetails");
+			dq.setInt(1, MessageConstants.MESSAGE_RECEIVED_AS_TO);
+			dq.setInt(2, MessageConstants.MESSAGE_RECEIVED_AS_CC);
+			dq.setString(3, messageId);
+			sdo = (SimpleDataObject) dq.getSingleObjectResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error in get users for messaging", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return sdo;
+	}
+
+	/**
+	 * Method to get applicants for given position and step type.
+	 * 
+	 * @param positionId
+	 *            The position identifier.
+	 * @param stepTypeId
+	 *            The step type identifier.
+	 * @return The list of the applicants.
+	 */
+	public ArrayList<SimpleDataObject> getApplicantsList(String applicantIds, PermissionSet permissionSet) {
+		DBPreparedQuery dq = null;
+		ArrayList<SimpleDataObject> applicants = new ArrayList<SimpleDataObject>();
+		try {
+			String[] dynParam = new String[3];
+			if(GlobalConstants.ENABLED.equals(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_SHOW_POSITION_CODE))) {
+				dynParam[0] = " tpos.position_code "; 
+			} else {
+				dynParam[0] = " tpos.position_title ";
+			}			
+			if (ImportConfigurationManager.isApplicantFieldViewable(ImportConfigurationConstants.FIELD_SOURCE ,permissionSet.isSHOW_CONFIDENTIAL_DATA()) ){  
+				dynParam[1] = "ts.source_title";
+			}else{
+				dynParam[1] = "'"+GlobalConstants.CONFIDENTIAL_CHARACTER+"' as source_title";
+			}
+			dynParam[2] = applicantIds;
+			dq = new DBPreparedQuery("dGetApplicantsforCallList", dynParam);
+			dq.setString(1, ApplicantConstants.APPLICANT_NOT_JOINED);
+			applicants = dq.getResult();
+			for (int i = 0; i < applicants.size(); i++) {
+				SimpleDataObject sDo = (SimpleDataObject) applicants.get(i);
+				/* Get ApplicantId from applicants arrayList */
+				String applicantId = sDo.getId("applicantId");
+				String applicantPositionId = sDo.getId("applicantPositionId");
+				/* for each applicant fire query to get edu info */
+				try {
+					ApplicantManager applicantManager = new ApplicantManager();
+					ArrayList<EducationalData> education = applicantManager.getEducationalInfo(applicantId);
+					/*
+					 * set this eduArray into sDo object using setAttribute
+					 * method of SDO class
+					 */
+					sDo.setAttribute("education", education);
+				} catch (Exception e) {
+					TPLogger.getLogger().error("Error in get Applicants  for Call List", e);
+				}
+				try {
+					dq = new DBPreparedQuery("dGetPositionSkillsInfo");
+					dq.setId(1, applicantPositionId);
+					ArrayList skills = dq.getResult();
+					sDo.setAttribute("skills", skills);
+				} catch (Exception e) {
+					TPLogger.getLogger().error("Error in get Position Skills  for Call List", e);
+				}
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error in get Applicants  for Call List", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return applicants;
+	}
+
+	/**
+	 * Method to get whether the position step the applicant placed in is
+	 * schedulable.
+	 * 
+	 * @param applicantId
+	 *            The identifier of the applicant.
+	 * @return true/false depending on whether the position step is schedulable
+	 *         or not.
+	 */
+	public boolean isPositionStepSchedulable(String applicantId) {
+		boolean positionStepSchedulable = false;
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dSelectionProcessManager_GetPositionStepSchedulable");
+			dq.setString(1, applicantId);
+			SimpleDataObject sDo = (SimpleDataObject) dq.getSingleObjectResult();
+			if (sDo.getInt("isPositionStepScheduled") == PositionConstants.STEP_SCHEDULED) {
+				positionStepSchedulable = true;
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while determining whether position step is schedulable or not", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return positionStepSchedulable;
+	}
+
+	/**
+	 * Method to determine whether to show the "Reapeat This Step" option or
+	 * not. This option is displayed only if 1) Applicant is in the schedulable
+	 * step. 2) Future appointment doesn't exist. 3) Past appointment exists.
+	 * 
+	 * @param applicantId
+	 *            The identifier of the applicant.
+	 * @param stepId
+	 *            The identifier of the step.
+	 * @return true/false depending on whether to show or not the option Repeat
+	 *         This Step.
+	 */
+	public boolean doRepeatTheStep(String applicantId, String stepId) {
+		boolean doRepeat = false;
+		// Check whether applicant is in the schedulable step.
+		if (isPositionStepSchedulable(applicantId)) {
+			// Check whether future appointment exists for the applicant.
+			List futureAppointments = getAppointmentsInFuture(applicantId);
+			if (futureAppointments == null || futureAppointments.size() == 0) {
+				// Check if past appointment exists for the applicant.
+				SimpleDataObject sDo = getLatestAppointmentsInPast(applicantId);
+				if (sDo != null) {
+					if (sDo.getString("stepId").equalsIgnoreCase(stepId)) {
+						doRepeat = true;
+					}
+				}
+			}
+		}
+		return doRepeat;
+	}
+
+	/**
+	 * The the open positions other than the position identified by positionId.
+	 * 
+	 * @param positionId
+	 *            The position identifier.
+	 * @return The list of all open positions except position identified by
+	 *         positionId.
+	 */
+	public List getOtherOpenPositions(String positionId) {
+		DBPreparedQuery dq = null;
+		List positions = null;
+		try {
+			String[] dynParam = new String[1];
+			ArrayList<String> dynamicContent = new ArrayList<String>();
+			dynParam[0] = " ";
+			if (!Utils.isBlankOrNull(positionId)) {
+				dynParam[0] = "and position_id not in (?) ";
+				dynamicContent.add(positionId);
+			}
+			
+			dq = new DBPreparedQuery("dGetOtherOpenPositions",dynParam);
+			dq.setString(1, PositionConstants.POSITION_STATUS_OPENED);
+			int cnt = 2;
+			for (int i = 0; i < dynamicContent.size(); i++) {
+				dq.setString(cnt++, dynamicContent.get(i));
+			}
+			positions = dq.getResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return positions;
+	}
+
+	/**
+	 * Method to get all steps other than default step for position identified
+	 * by positionId into XML.
+	 * 
+	 * @param positionId
+	 *            The identifier of the position.
+	 * @return The XML string of the steps for position except the default step.
+	 */
+	public String getStepsInXml(String positionId, String selectedGroupId) {
+		StringWriter sWr = new StringWriter();
+		XMLWriter wr = new XMLWriter(sWr);
+		try {
+			List<SimpleDataObject> steps = getStepsForPosition(positionId);
+			wr.startDocument();
+			wr.startElement("steps");
+			if (steps != null && steps.size() > 0) {
+				Iterator<SimpleDataObject> itr = steps.iterator();
+				while (itr.hasNext()) {
+					SimpleDataObject data = itr.next();
+
+					AttributesImpl atr = new AttributesImpl();
+					atr.addAttribute("", "id", "", "", String.valueOf(data.getString("stepId")));
+					wr.startElement("", "step", "", atr);
+					String stepTitle = (data.getString("stepTitle") == null) ? "" : data.getString("stepTitle");
+					wr.characters(stepTitle);
+					wr.endElement("step");
+				}
+			}
+			if(!Utils.isBlankOrNull(selectedGroupId)){
+				wr.startElement("selectedGroupId");
+				wr.characters(selectedGroupId);
+				wr.endElement("selectedGroupId");
+			}
+			wr.endElement("steps");
+			
+		} catch (SAXException e) {
+			TPLogger.getLogger().error("Error while generating the xml file for steps for position", e);
+		}
+		return sWr.toString();
+	}
+
+	/**
+	 * Method to get all steps other than default step for position identified
+	 * by positionId.
+	 * 
+	 * @param positionId
+	 *            The identifier of the position.
+	 * @return List of all steps other than default step.
+	 */
+	public List getStepsForPosition(String positionId) {
+		DBPreparedQuery dq = null;
+		List steps = null;
+		try {
+			dq = new DBPreparedQuery("dSelectionProcessManager_GetStepsForPosition");
+			dq.setString(1, positionId);
+			dq.setInt(2, PositionConstants.STEP_NOT_DEFAULT);
+			dq.setString(3, PositionConstants.STEP_ACTIVE);
+			steps = dq.getResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting steps for position", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return steps;
+	}
+
+	/**
+	 * Method to move applicant to other position.
+	 * 
+	 * @param applicantId
+	 *            The identifier of the applicant.
+	 * @param positionId
+	 *            The identifier of the position to which aplicant is moved.
+	 * @param toStepId
+	 *            The identifier of the step to which applicant is moved
+	 * @param userId
+	 *            The identifier of the user who moved the applicant.
+	 * @param tran
+	 *            The DB transaction.
+	 * @throws SQLException
+	 */
+	public void moveApplicantToOtherPosition(String applicantId, String positionId, String toStepId, String userId, DBTransaction tran) throws SQLException {
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dUpdateApplicantPositionStep", tran);
+			dq.setId(1, positionId);
+			dq.setId(2, toStepId);
+			dq.setId(3, applicantId);
+			dq.execute();
+
+			dq = new DBPreparedQuery("dAddMoveUpOrDownResult2", tran);
+			dq.setString(1, applicantId);
+			dq.setString(2, SelectionProcessConstants.STEP_REJECT);
+			dq.setString(3, toStepId);
+			dq.setString(4, userId);
+			dq.setString(5, positionId);
+			dq.execute();
+		} finally {
+			if (dq != null) {
+				if (tran == null) {
+					dq.releaseConnection();
+				} else {
+					dq.closeOpenCursors();
+				}
+
+			}
+		}
+	}
+
+	public String getStatusMessagesInXml(String applicantId) {
+		StringWriter sWr = new StringWriter();
+		XMLWriter wr = new XMLWriter(sWr);
+		try {
+			List<SimpleDataObject> messages = getStatusMessages(applicantId);
+			wr.startDocument();
+			wr.startElement("messages");
+			if (messages != null && messages.size() > 0) {
+				Iterator<SimpleDataObject> itr = messages.iterator();
+				while (itr.hasNext()) {
+					SimpleDataObject data = itr.next();
+
+					AttributesImpl atr = new AttributesImpl();
+					atr.addAttribute("", "id", "", "", String.valueOf(data.getString("messageId")));
+					if (data.getString("message") != null && data.getString("message").equalsIgnoreCase(data.getString("selectedMessage"))) {
+						atr.addAttribute("", "selected", "", "", "selected");
+					}
+					wr.startElement("", "message", "", atr);
+					String stepTitle = (data.getString("message") == null) ? "" : data.getString("message");
+					wr.characters(stepTitle);
+					wr.endElement("message");
+				}
+			}
+			wr.endElement("messages");
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while generating the xml file for messages for step", e);
+		}
+		return sWr.toString();
+	}
+
+	public List getStatusMessages(String applicantId) throws SQLException {
+		List rs = null;
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dSelectionProcessManager_GetStatusMessagesForStep");
+			dq.setString(1, applicantId);
+			rs = dq.getResult();
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return rs;
+	}
+
+	public void saveStatusMessage(String applicantId, String statusMessage, String userId) throws SQLException {
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dSelectionProcessManager_SaveApplicantStatusMessage");
+			dq.setString(1, applicantId);
+			dq.setString(2, applicantId);
+			dq.setString(3, statusMessage);
+			dq.setString(4, userId);
+			dq.execute();
+			
+			dq = new DBPreparedQuery("dFetchLastInsertID");
+			String statusMessageId = dq.getIdResult();
+			
+			// add activity to user log
+			String activity = "Change Status to "+statusMessage;
+			LatestActivityManager activityManager = new LatestActivityManager(); 
+			String positionId = activityManager.getPositionIdWithApplicantId(applicantId);
+			activityManager.addUserActivity(activity, statusMessageId, SelectionProcessConstants.INTERACTION_STATUS_MESSAGE, positionId, applicantId, userId);
+			
+			
+			TPIndexEventQueue.push(new TPIndexEvent(TPIndexEvent.TYPE_UPDATE_APPLICANT, applicantId, TPIndexEvent.PRIORITY_HIGH));
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+	}
+
+	public ArrayList getStepsIfFirstStepOptional(String positionId) {
+		DBPreparedQuery dq = null;
+		ArrayList steps = null;
+		try {
+			dq = new DBPreparedQuery("dSelection_GetStepsIfFirstStepOptional");
+			int cnt=1;
+			dq.setId(cnt++, positionId);
+			dq.setId(cnt++, PositionConstants.STEP_ACTIVE);
+			dq.setInt(cnt++, PositionConstants.STEP_OPTIONAL);
+			dq.setId(cnt++, positionId);
+			dq.setId(cnt++, PositionConstants.STEP_ACTIVE);
+			dq.setId(cnt++, positionId);
+			dq.setId(cnt++, PositionConstants.STEP_ACTIVE);
+			steps = dq.getResult();
+		} catch (SQLException e) {
+			TPLogger.getLogger().error("Error While Retreiving Steps if first step is optional", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return steps;
+	}
+
+	public String getXMLIfFirstStepOptional(ArrayList<SimpleDataObject> steps) {
+		StringWriter sWr = new StringWriter();
+		XMLWriter wr = new XMLWriter(sWr);
+		try {
+			if (steps != null && steps.size() > 0) {
+				wr.startDocument();
+				wr.startElement("steps");
+				for (int i = 0; i < steps.size(); i++) {
+					SimpleDataObject sdo = (SimpleDataObject) steps.get(i);
+					String stepId = sdo.getString("stepId");
+					String stepTitle = sdo.getString("stepTitle");
+					String optional = sdo.getString("optional");
+					wr.startElement("step");
+					wr.startElement("id");
+					wr.characters(stepId);
+					wr.endElement("id");
+					wr.startElement("name");
+					wr.characters(stepTitle);
+					wr.endElement("name");
+					wr.startElement("optional");
+					wr.characters(optional);
+					wr.endElement("optional");
+					wr.endElement("step");
+				}
+				wr.endElement("steps");
+			}
+		} catch (SAXException e) {
+			TPLogger.getLogger().error("Error while generating the xml file for steps for position", e);
+		}
+		return sWr.toString();
+	}
+
+	public void updateAppointmentStatus(String status, String appointmentId, DBTransaction tran) throws SQLException {
+		DBPreparedQuery dq = null;
+		try {
+			if(tran==null) {
+				dq = new DBPreparedQuery("dUpdateAppointmentStatus");
+			} else {
+				dq = new DBPreparedQuery("dUpdateAppointmentStatus", tran);
+			}
+			dq.setString(1, status);
+			dq.setString(2, appointmentId);
+			dq.execute();
+		} catch (SQLException sqle) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, sqle);
+			throw sqle;
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				if (tran == null) {
+					dq.releaseConnection();
+				} else {
+					dq.closeOpenCursors();
+				}
+
+			}
+		}
+	}
+
+	public boolean shortListApplicant(String applicantId, String positionId, String stepId, String userId, boolean indexApplicant) throws InProcessException,ApplicantBlacklistedException {
+		DBPreparedQuery dq = null;
+		DBTransaction tran = null;
+		boolean success = false;
+		try {
+			ApplicantManager applicantManager = new ApplicantManager();
+			ApplicantData applicantData = applicantManager.getApplicantSummaryData(applicantId);
+			if (!Utils.isBlankOrNull(applicantData.getApplicantPositionId()) && !Utils.isBlankOrNull(applicantData.getApplicantStepId())) {
+				throw new InProcessException("Already in process");
+			}
+			if (ApplicantConstants.APPLICANT_STATUS_BLACKLISTED.equals(applicantData.getApplicantStatus())) {
+				throw new ApplicantBlacklistedException();
+			}
+			if (Utils.isBlankOrNull(stepId)) {
+				dq = new DBPreparedQuery("dSelection_GetStepToShortlist");
+				dq.setId(1, positionId);
+				dq.setId(2, PositionConstants.STEP_ACTIVE);
+				stepId = dq.getIdResult();
+			}
+			if (!Utils.isBlankOrNull(positionId) && !Utils.isBlankOrNull(applicantId) && !Utils.isBlankOrNull(stepId) && !Utils.isBlankOrNull(userId)) {
+				tran = new DBTransaction();
+				updateApplicantPositionStatus(applicantId, positionId, stepId, SelectionProcessConstants.APPLICANT_NOT_JOINED, null, null, null, null, null, null, null, tran, null, null);
+				AddStepMoveLog(applicantId, positionId, SelectionProcessConstants.STEP_REJECT, stepId, userId, tran);
+				changeStatusToDefault(applicantId, stepId, userId, SelectionProcessConstants.STATUS_SYSTEM_GENERATED, tran);
+				ApplicantJobPortalManager applicantJobPortalManager = new ApplicantJobPortalManager();
+				applicantJobPortalManager.deleteApplicantPositionMapping(applicantId, positionId, tran);
+				tran.commit();
+				success = true;
+			}
+			if (indexApplicant) {
+				TPIndexEventQueue.push(new TPIndexEvent(TPIndexEvent.TYPE_UPDATE_APPLICANT, applicantId, TPIndexEvent.PRIORITY_HIGH));
+			}
+			//
+			sendNonSchedulableNotificationEmail(stepId, applicantId, positionId, userId);
+			ReferentEmployeeInSelectionProcessNotificationManager.sendReferentEmployeeInSelectionProcessNotification(applicantData, positionId, stepId);
+			
+			ToDoManager toDoManager = new ToDoManager();
+			toDoManager.regenerateToDo(positionId, applicantId, null);
+
+			LatestActivityManager activityManager = new LatestActivityManager();
+			activityManager.addUserActivity("Shortlisted", applicantId, SelectionProcessConstants.INTERACTION_SHORTLISTED, positionId, applicantId, userId);
+			//to send The progress Notification
+			if(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_SEND_MAIL_TO_RECRUITER_FOR_CANDIDATE_STATUS).equals(GlobalConstants.ENABLED)){
+			draftOrSendEmail(TemplateConstants.TEMPLATE_TYPE_CANDIDATE_PROGRESS_TO_RECRUITER, applicantId, positionId, stepId,userId);
+			}
+			
+		} catch (InProcessException inprocessExp) {
+			throw inprocessExp;
+		} catch (ApplicantBlacklistedException applicantBlacklistedExp) {
+			throw applicantBlacklistedExp;
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while shortlisting", e);
+			if (tran != null) {
+				try {
+					tran.rollback();
+				} catch (Exception te) {
+					TPLogger.getLogger().error("error in transaction roll back", te);
+				}
+			}
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+			if (tran != null) {
+				tran.release();
+			}
+		}
+		return success;
+	}
+	
+	public void sendNonSchedulableNotificationEmail(String stepId, String applicantId, String positionId, String userId) {
+		try {
+			String isSchedulable = isStepSchedulable(stepId);
+			LoginManager loginManager = new LoginManager();
+			StringBuffer sb = new StringBuffer();
+			boolean found = false;
+			if (isSchedulable.equals(""+PositionConstants.STEP_NOT_SCHEDULED)) {
+				ArrayList<SimpleDataObject> stepAttendees = getStepAttendees(stepId, positionId);
+				for (int i = 0; stepAttendees != null && i < stepAttendees.size(); i++) {
+					SimpleDataObject sDO = (SimpleDataObject) stepAttendees.get(i);
+					String attendeeId = sDO.getString("userId");
+					BitSet permissions = loginManager.getUserPermissionsBitSet(attendeeId);
+					PermissionSet permissionSet = new PermissionSet(permissions);
+					if (permissionSet.isPERMISSION_SEND_NOTIFICATION_EMAIL()) {
+						if (found) {
+							sb.append(",");
+						}
+						found = true;
+						sb.append(attendeeId);
+					}
+				}
+				if (!Utils.isBlankOrNull(sb.toString())) {
+					FeedbackNotificationScheduler.addTrigger(applicantId, positionId, stepId, sb.toString(), userId);
+				}
+
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("ERROR", e);
+		}
+	}
+
+	public ArrayList<SimpleDataObject> getStepAttendees(String stepId, String positionId) {
+		ArrayList<SimpleDataObject> stepAttendees = null;
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dSelection_stepAttendees");
+			dq.setString(1, stepId);
+			dq.setInt(2, PositionConstants.NOT_RESPONSIBLE_FOR_SCHEDULING);
+			dq.setInt(3, PositionConstants.NOT_AUTHORIZED_TO_MOVE);
+			stepAttendees = dq.getResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting step titles", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return stepAttendees;
+	}
+
+	/**
+	 * updates the applicant positionId and stepid and joined status in
+	 * applicants master
+	 * 
+	 * @param applicantId
+	 * @param positionId
+	 * @param stepId
+	 * @param joinedStatus
+	 * @param tran
+	 * @throws Exception
+	 */
+	public void updateApplicantPositionStatus(String applicantId, String positionId, String stepId, String joinedStatus, 
+			String joiningDate, String ctcOffered, String basicOffered, String levelOffered, String designationOffered, 
+			String inputSalaryVariable, String employeeCode, DBTransaction tran,String joiningBonus, String variableOffered) throws Exception {
+		DBPreparedQuery dq = null;
+		String[] dynParams = null;
+		try {
+			dynParams = new String[1];
+			dynParams[0] = "";
+			if(!Utils.isBlankOrNull(employeeCode)) {
+				dynParams[0] = " , employee_code=? ";
+			}
+			if (tran == null) {
+				dq = new DBPreparedQuery("dSelection_UpdateApplicantPositionStatus", dynParams);
+			} else {
+				dq = new DBPreparedQuery("dSelection_UpdateApplicantPositionStatus", dynParams, tran);
+			}
+			if (Utils.isBlankOrNull(positionId)) {
+				dq.setNull(1, Types.INTEGER);
+			} else {
+				dq.setId(1, positionId);
+			}
+			if (Utils.isBlankOrNull(stepId)) {
+				dq.setNull(2, Types.INTEGER);
+			} else {
+				dq.setId(2, stepId);
+			}
+			dq.setString(3, joinedStatus);
+			if (Utils.isBlankOrNull(joiningDate)) {
+				dq.setNull(4, Types.DATE);
+			} else {
+				java.sql.Date sqlDate = Utils.convertToSQLDate(joiningDate, Utils.regEUDateFormat);
+				dq.setDate(4, sqlDate);
+			}
+			dq.setString(5, ctcOffered);
+			dq.setString(6, basicOffered);
+			dq.setString(7, levelOffered);
+			dq.setString(8, designationOffered);
+			if(!Utils.isBlankOrNull(inputSalaryVariable)) {
+				dq.setInt(9, Integer.parseInt(inputSalaryVariable));
+			} else {
+				dq.setNull(9, Types.INTEGER);
+			}
+			//added by me
+			dq.setString(10, joiningBonus);
+			dq.setString(11, variableOffered);
+			
+			int cnt = 12;
+			if(!Utils.isBlankOrNull(employeeCode)) {
+				dq.setString(cnt++, employeeCode);
+			}
+			dq.setId(cnt++, applicantId);
+			dq.execute();
+		} finally {
+			if (dq != null) {
+				if (tran == null) {
+					dq.releaseConnection();
+				} else {
+					dq.closeOpenCursors();
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Create applicant joining history	 
+	 *  
+	 * @param applicantId
+	 * @param positionId
+	 * @param stepId
+	 * @param joinedStatus
+	 * @param tran
+	 * @throws Exception
+	 */
+	public void createApplicantJoiningHistory(String applicantId, String positionId, String joiningDate, String ctcOffered, String levelOffered, String designationOffered, String inputSalaryVariable,String joiningBonus, String variableOffered, DBTransaction tran) throws Exception {
+		DBPreparedQuery dq = null;
+		String[] dynParams = null;
+		try {
+			dynParams = new String[2];
+			dynParams[0] = "";
+			dynParams[1] = "";
+			if(ModuleSet.isMODULE_BUDGET()&& BudgetUtils.isBudgetModuleActive()){
+				dynParams[0] = " , budget_item_id";
+				dynParams[1] = " , (SELECT budget_item_id FROM tp_positions WHERE position_id = ?)";
+			}
+			if (tran == null) {
+				dq = new DBPreparedQuery("dSelection_InsertApplicantJoiningHistory",dynParams);
+			} else {
+				dq = new DBPreparedQuery("dSelection_InsertApplicantJoiningHistory", dynParams, tran);
+			}
+			dq.setId(1, applicantId);
+			dq.setId(2, positionId);
+			dq.setString(3, ctcOffered);
+			dq.setString(4, levelOffered);
+			dq.setString(5, designationOffered);
+			dq.setString(6, joiningBonus);
+			dq.setString(7, variableOffered);
+			if(!Utils.isBlankOrNull(inputSalaryVariable)) {
+				dq.setInt(8, Integer.parseInt(inputSalaryVariable));
+			} else {
+				dq.setNull(8, Types.INTEGER);
+			}
+			java.sql.Date sqlDate = Utils.convertToSQLDate(joiningDate, Utils.regEUDateFormat);
+			dq.setDate(9, sqlDate);
+			if(ModuleSet.isMODULE_BUDGET()&& BudgetUtils.isBudgetModuleActive()){
+				dq.setId(10, positionId);
+			}			
+			dq.execute();
+		} finally {
+			if (dq != null) {
+				if (tran == null) {
+					dq.releaseConnection();
+				} else {
+					dq.closeOpenCursors();
+				}
+			}
+		}
+	}
+	/**
+	 * Adds a applicant step move record
+	 * 
+	 * @param applicantId
+	 * @param positionId
+	 * @param fromStepId
+	 * @param toStepId
+	 * @param userId
+	 * @param tran
+	 * @throws Exception
+	 */
+	public void AddStepMoveLog(String applicantId, String positionId, String fromStepId, String toStepId, String userId, DBTransaction tran) throws Exception {
+		DBPreparedQuery dq = null;
+		try {
+			if (tran == null) {
+				dq = new DBPreparedQuery("dSelection_AddStepMoveRecord");
+			} else {
+				dq = new DBPreparedQuery("dSelection_AddStepMoveRecord", tran);
+			}
+			dq.setId(1, applicantId);
+			dq.setString(2, fromStepId);
+			dq.setString(3, toStepId);
+			dq.setId(4, userId);
+			dq.setId(5, positionId);
+			dq.execute();
+		} finally {
+			if (dq != null) {
+				if (tran == null) {
+					dq.releaseConnection();
+				} else {
+					dq.closeOpenCursors();
+				}
+			}
+		}
+	}
+
+	private void changeStatusToDefault(String applicantId, String positionStepId, String userId, String systemGenerated, DBTransaction tran) throws Exception {
+		DBPreparedQuery dq = null;
+		try {
+			if (tran == null) {
+				dq = new DBPreparedQuery("dSelection_ChangeStatusToDefault");
+			} else {
+				dq = new DBPreparedQuery("dSelection_ChangeStatusToDefault", tran);
+			}
+			dq.setString(1, applicantId);
+			dq.setString(2, positionStepId);
+			dq.setString(3, positionStepId);
+			dq.setString(4, PositionConstants.MESSAGE_DEFAULT);
+			dq.setString(5, userId);
+			dq.setString(6, systemGenerated);
+			dq.execute();
+		} finally {
+			if (dq != null) {
+				if (tran == null) {
+					dq.releaseConnection();
+				} else {
+					dq.closeOpenCursors();
+				}
+			}
+		}
+	}
+
+	/**
+	 * 
+	 * Changes List:
+	 * <BR>Changed by: Praveen 
+	 * <BR>Changed on: 15-Mar-12
+	 * <BR>Changed for: Bug fix TP-791
+	 * <BR>Changes: Steplevel was passed as comma separated for more than one step level, now that case is handled 
+	 *  <BR>
+	 * @param permissionSet
+	 * @param userRole
+	 * @param userId
+	 * @param departmentId
+	 * @param positionId
+	 * @param candidateName
+	 * @param stepName
+	 * @param stepLevel
+	 * @param locationTitle
+	 * @param actionRequired
+	 * @param selectedUserIds
+	 * @param toDoType
+	 * @param sortOrder
+	 * @param sortByColumn
+	 * @return
+	 */
+	public List getApplicants(PermissionSet permissionSet, String userRole, String userId, String departmentId, String positionId, 
+			String candidateName, String stepName, String stepLevel, String locationTitle, 
+			String actionRequired, String selectedUserIds, String toDoType, String sortOrder, String sortByColumn){	
+		DBPreparedQuery dq = null;
+		List applicants = null;
+		try {
+			ArrayList<String> dynamicContent = new ArrayList<String>();
+			String[] dynParam = new String[24];
+			boolean isGetAggregateResult = false;
+			if(!Utils.isBlankOrNull(toDoType) && !DashboardConstants.TODO_LIST_TYPE_LIST.equals(toDoType) 
+					&& Utils.isBlankOrNull(positionId) && Utils.isBlankOrNull(actionRequired) && Utils.isBlankOrNull(stepName)) {
+				isGetAggregateResult = true;
+			}
+			if(isGetAggregateResult) {
+				dynParam[0] = " SELECT TBL4.action_required AS action_required, COUNT(*) AS count, " + 
+								" '' AS applicant_id, '' AS applicant_name, '' AS applicant_working_since, '' AS current_employer, " +
+								" '' AS applicant_date_joined, '' AS date, '' AS dept_name, TBL4.position_title AS position_title, " +
+								" TBL4.position_step_title AS position_step_title, TBL4.position_id AS position_id, '' AS position_step_id, '' AS position_step_rank, " +
+								" '' AS selected_message, '' AS flags, '' AS applicant_cell_phone, " +
+								" '' AS users_responsible, action_type, CAST(v_process_moved_date AS DATETIME) AS v_process_moved_date, v_process_date_created, '' AS email_id FROM ( ";
+			} else {
+				dynParam[0] = "";
+			}
+			
+			dynamicContent.add(""+PositionConstants.STEP_NOT_SCHEDULED);
+			dynamicContent.add(TPLabels.getLabel("dashboard.label.todo.onhold"));
+			dynamicContent.add(TPLabels.getLabel("dashboard.label.todo.feedback"));
+			dynamicContent.add(TPLabels.getLabel("dashboard.label.todo.schedule"));
+			dynamicContent.add(TPLabels.getLabel("dashboard.label.todo.conduct"));			
+			dynamicContent.add(TPLabels.getLabel("dashboard.label.todo.confirm"));			
+			dynamicContent.add(TPLabels.getLabel("dashboard.label.todo.onhold"));
+			dynamicContent.add(TPLabels.getLabel("dashboard.label.todo.feedback"));
+			dynamicContent.add(""+PositionConstants.STEP_NOT_SCHEDULED);
+			dynamicContent.add(""+DashboardConstants.ACTION_ON_HOLD);
+			dynamicContent.add(""+DashboardConstants.ACTION_REQUIRED_FEEDBACK);
+			dynamicContent.add(""+DashboardConstants.ACTION_REQUIRED_SCHEDULE);
+			dynamicContent.add(""+DashboardConstants.ACTION_ON_CONDUCT);
+			dynamicContent.add(""+DashboardConstants.ACTION_REQUIRED_CONFIRM_ATTENDANCE);
+			dynamicContent.add(""+DashboardConstants.ACTION_ON_HOLD);
+			dynamicContent.add(""+DashboardConstants.ACTION_REQUIRED_FEEDBACK);
+			dynamicContent.add(""+PositionConstants.STEP_NOT_SCHEDULED);
+			
+			if(!Utils.isBlankOrNull(selectedUserIds)) {
+				dynParam[1] = " DISTINCT(CONCAT(iu.USER_FNAME, '_', iu.USER_ID))";
+				dynParam[2] = " AND iu.user_id = ? GROUP BY iu.USER_ID ";								
+				dynParam[3] = " DISTINCT(CONCAT(iu.USER_FNAME, '_', iu.USER_ID))";
+				dynParam[4] = " AND iu.user_id = ? GROUP BY iu.USER_ID ";
+				dynParam[5] = " DISTINCT(CONCAT(iu.USER_FNAME, '_', iu.USER_ID))";
+				dynParam[6] = " AND iu.user_id = ? GROUP BY iu.USER_ID ";
+				dynParam[7] = " DISTINCT(CONCAT(iu.USER_FNAME, '_', iu.USER_ID))";
+				dynParam[8] = " AND iu.user_id = ? GROUP BY iu.USER_ID ";
+				dynParam[9] = " DISTINCT(CONCAT(iu.USER_FNAME, '_', iu.USER_ID))";
+				dynParam[10] = " AND iu.user_id = ? GROUP BY iu.USER_ID ";
+				dynParam[11] = " DISTINCT(CONCAT(iu.USER_FNAME, '_', iu.USER_ID))";
+				dynParam[12] = " AND iu.user_id = ? GROUP BY iu.USER_ID ";
+				
+				dynamicContent.add(""+PositionConstants.NOT_RESPONSIBLE_FOR_SCHEDULING);
+				dynamicContent.add(""+PositionConstants.AUTHORIZED_TO_MOVE);				
+				dynamicContent.add(selectedUserIds);
+				
+				dynamicContent.add(""+PositionConstants.RESPONSIBLE_FOR_SCHEDULING);
+				dynamicContent.add(selectedUserIds);
+				
+				dynamicContent.add(""+PositionConstants.NOT_RESPONSIBLE_FOR_SCHEDULING);
+				dynamicContent.add(""+PositionConstants.AUTHORIZED_TO_MOVE);				
+				dynamicContent.add(selectedUserIds);
+				
+				dynamicContent.add(""+PositionConstants.RESPONSIBLE_FOR_SCHEDULING);
+				dynamicContent.add(""+PositionConstants.STEP_INTERVIEWER_CAN_CONFIRM);
+				dynamicContent.add(""+PositionConstants.NOT_RESPONSIBLE_FOR_SCHEDULING);
+				dynamicContent.add(selectedUserIds);
+				
+				dynamicContent.add(""+PositionConstants.NOT_RESPONSIBLE_FOR_SCHEDULING);
+				dynamicContent.add(""+PositionConstants.AUTHORIZED_TO_MOVE);	
+				dynamicContent.add(selectedUserIds);
+				
+				dynamicContent.add(""+PositionConstants.NOT_RESPONSIBLE_FOR_SCHEDULING);
+				dynamicContent.add(selectedUserIds);
+			} else {
+				dynParam[1] = " DISTINCT(iu.USER_FNAME) ";
+				dynParam[2] = "";
+				dynParam[3] = " DISTINCT(iu.USER_FNAME) ";
+				dynParam[4] = "";
+				dynParam[5] = " DISTINCT(iu.USER_FNAME) ";
+				dynParam[6] = "";
+				dynParam[7] = " DISTINCT(iu.USER_FNAME) ";
+				dynParam[8] = "";
+				dynParam[9] = " DISTINCT(iu.USER_FNAME) ";
+				dynParam[10] = "";
+				dynParam[11] = " DISTINCT(iu.USER_FNAME) ";
+				dynParam[12] = "";
+				
+				dynamicContent.add(""+PositionConstants.NOT_RESPONSIBLE_FOR_SCHEDULING);
+				dynamicContent.add(""+PositionConstants.AUTHORIZED_TO_MOVE);
+				
+				dynamicContent.add(""+PositionConstants.RESPONSIBLE_FOR_SCHEDULING);
+				
+				dynamicContent.add(""+PositionConstants.NOT_RESPONSIBLE_FOR_SCHEDULING);
+				dynamicContent.add(""+PositionConstants.AUTHORIZED_TO_MOVE);		
+				
+				dynamicContent.add(""+PositionConstants.RESPONSIBLE_FOR_SCHEDULING);
+				dynamicContent.add(""+PositionConstants.STEP_INTERVIEWER_CAN_CONFIRM);
+				dynamicContent.add(""+PositionConstants.NOT_RESPONSIBLE_FOR_SCHEDULING);
+				
+				dynamicContent.add(""+PositionConstants.NOT_RESPONSIBLE_FOR_SCHEDULING);
+				dynamicContent.add(""+PositionConstants.AUTHORIZED_TO_MOVE);	
+				
+				dynamicContent.add(""+PositionConstants.NOT_RESPONSIBLE_FOR_SCHEDULING);
+			}
+			
+			dynamicContent.add(userId);
+			dynamicContent.add(MastersConstants.FLAG_TYPE_PUBLIC);
+			dynamicContent.add(SelectionProcessConstants.STEP_REPEAT);
+			dynamicContent.add(""+CalendarConstants.APPOINTMENT_STATUS_NOSHOW);
+			dynamicContent.add(""+CalendarConstants.APPOINTMENT_STATUS_NOSHOW);
+			dynamicContent.add(""+PositionConstants.AUTHORIZED_TO_MOVE);
+			dynamicContent.add(""+CalendarConstants.APPOINTMENT_STATUS_NOSHOW);
+			dynamicContent.add(PositionConstants.POSITION_STATUS_OPENED);			
+			
+			
+			
+			if(GlobalConstants.ENABLED.equals(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_SHOW_POSITION_CODE))) {
+				dynParam[13] = " tpos.position_code ";
+			} else {
+				dynParam[13] = " tpos.position_title ";
+			}
+			
+			dynParam[14] = " ";
+			if (permissionSet.isDO_NOT_SHOW_CONFIDENTIAL_PROFILE()) {
+				dynParam[14] = " AND ta.is_confidential = ?";
+				dynamicContent.add(ApplicantConstants.APPLICANT_NOT_CONFIDENTIAL);
+			}
+			
+			dynParam[15] = " ";
+			
+			if (permissionSet.isSHOW_POSITIONS_WITH_RIGHTS()) {
+				dynParam[15] += " AND ta.applicant_position_id in (select su.position_id from tp_position_step_users su, tp_position_steps ps where su.position_step_id = ps.position_step_id and ps.position_step_status = ? and su.user_id = ? "
+						+ " UNION SELECT position_id from tp_positions where position_requested_by = ? " + " UNION SELECT distinct traf.position_id FROM tp_requisition_approval_feedback traf WHERE traf.by_user_id=? OR traf.to_user_id=? ) ";
+				dynamicContent.add(PositionConstants.STEP_ACTIVE);
+				dynamicContent.add(userId);
+				dynamicContent.add(userId);
+				dynamicContent.add(userId);
+				dynamicContent.add(userId);
+			}
+
+			if(!Utils.isBlankOrNull(stepLevel)) {
+				String qMarks = Utils.setDynamicParamsAndReturnQmarks(stepLevel, dynamicContent);
+				dynParam[15] += " AND tps.position_step_level in ("+qMarks+")  ";
+			}
+			if (!Utils.isBlankOrNull(departmentId)) {
+				dynParam[15] += " AND tpos.dept_id = ? ";
+				dynamicContent.add(departmentId);
+			}
+			if (!Utils.isBlankOrNull(positionId)) {
+				dynParam[15] += " AND tpos.position_id=? ";
+				dynamicContent.add(positionId);
+			}
+			if (!Utils.isBlankOrNull(candidateName)) {
+				dynParam[15] += " AND ta.applicant_name LIKE ? ";
+				dynamicContent.add(candidateName + "%");
+			}
+			if (!Utils.isBlankOrNull(stepName)) {
+				dynParam[15] += " AND tps.position_step_title = ? ";
+				dynamicContent.add(stepName.trim());
+			}
+			if (!Utils.isBlankOrNull(locationTitle)) {
+				dynParam[15] += " AND ta.applicant_city LIKE ? ";
+				dynamicContent.add(locationTitle + "%" );
+			}		
+			//new dynamic parameter
+			if(!Utils.isBlankOrNull(selectedUserIds)) {
+				dynParam[16] = " AND tpu.user_id = ? ";
+				dynamicContent.add(selectedUserIds);
+			} else {
+				dynParam[16] = "";
+			}	
+			//end
+			if(!Utils.isBlankOrNull(selectedUserIds)) {
+				dynParam[17] = " WHERE SUBSTRING(TBL2.users_responsible FROM (LOCATE('_', TBL2.users_responsible) + 1)) = ? ";
+				dynamicContent.add(selectedUserIds);
+			} else {
+				dynParam[17] = "";
+			}		
+			
+			if(!Utils.isBlankOrNull(actionRequired)) {
+				dynParam[18] = " WHERE v_action_type = ? ";
+				dynamicContent.add(actionRequired);
+			} else {
+				dynParam[18] = "";
+			}
+			
+			if(isGetAggregateResult) {
+				dynParam[18] = " WHERE v_action_type != ? ";
+				dynamicContent.add(""+DashboardConstants.ACTION_ON_CONDUCT);
+			}
+			if(Utils.isBlankOrNull(toDoType)) {
+				dynParam[18] += " ORDER BY applicant_name ";
+			}
+
+			dynParam[19] = "";
+			dynamicContent.add(""+DashboardConstants.ACTION_REQUIRED_REQUISITION_APPROVAL);
+			dynamicContent.add(PositionConstants.POSITION_STATUS_INPROCESS);
+			dynamicContent.add(selectedUserIds);
+			if((!Utils.isBlankOrNull(toDoType))) {			
+				if(!Utils.isBlankOrNull(actionRequired)) {
+					dynParam[19] += " AND ? = ? ";
+					dynamicContent.add(""+DashboardConstants.ACTION_REQUIRED_REQUISITION_APPROVAL);
+					dynamicContent.add(actionRequired);
+				}
+				if(!Utils.isBlankOrNull(stepName)) {
+					dynParam[19] += " AND tras.requisition_approval_step_name = ? ";
+					dynamicContent.add(stepName);
+				}
+				if(!Utils.isBlankOrNull(positionId)) {					
+					dynParam[19] += " AND tp.position_id = ? ";
+					dynamicContent.add(positionId);
+				}				
+			} else {
+				dynParam[19] += " AND ?  ";
+				dynamicContent.add("0");
+			}
+			
+			dynParam[20] = "";			
+			dynamicContent.add(""+DashboardConstants.ACTION_CLEAR_DRAFT);
+			dynamicContent.add(MastersConstants.DRAFT);	
+			if(permissionSet.isSHOW_POSITIONS_WITH_RIGHTS()) {
+				dynParam[20] = " AND tie.position_id in (select su.position_id from tp_position_step_users su, tp_position_steps ps where su.position_step_id = ps.position_step_id and ps.position_step_status = ? and su.user_id = ? "
+					+ " UNION SELECT position_id from tp_positions where position_requested_by = ? " + " UNION SELECT distinct traf.position_id FROM tp_requisition_approval_feedback traf WHERE traf.by_user_id=? OR traf.to_user_id=? ) ";
+				dynamicContent.add(PositionConstants.STEP_ACTIVE);
+				dynamicContent.add(userId);
+				dynamicContent.add(userId);
+				dynamicContent.add(userId);
+				dynamicContent.add(userId);				
+			} 					
+			dynParam[21] = " ? ";
+			if((UserConstants.ROLE_HR_MANAGER == Integer.parseInt(userRole) 
+					|| UserConstants.ROLE_RECRUITER == Integer.parseInt(userRole)) 
+				&& !Utils.isBlankOrNull(toDoType)) {				
+				dynamicContent.add("1");
+				if(!Utils.isBlankOrNull(actionRequired)) {
+					dynParam[21] += " AND ? = ? ";
+					dynamicContent.add(""+DashboardConstants.ACTION_CLEAR_DRAFT);
+					dynamicContent.add(actionRequired);
+				}
+				if(!Utils.isBlankOrNull(stepName)) {
+					dynParam[21] += " AND tpps.position_step_title = ? ";
+					dynamicContent.add(stepName);
+				}
+				if(!Utils.isBlankOrNull(positionId)) {					
+					dynParam[21] += " AND tpp.position_id = ? ";
+					dynamicContent.add(positionId);
+				}		
+			} else {
+				dynamicContent.add("0");
+			}			
+			
+			dynParam[22] = "";
+			if(!Utils.isBlankOrNull(toDoType)) {
+				dynParam[22] += " ORDER BY ";
+				if(DashboardConstants.SORT_BY_CANDIDATE.equals(sortByColumn)) {
+					dynParam[22] += " applicant_name ";
+				} else if(DashboardConstants.SORT_BY_POSITION.equals(sortByColumn)) {
+					dynParam[22] += " position_title ";
+				} else if(DashboardConstants.SORT_BY_TODO.equals(sortByColumn)) {
+					dynParam[22] += " action_required ";
+				} else {
+					dynParam[22] += " v_process_date_created ";
+				}
+				
+				if(DashboardConstants.SORT_ORDER_ASC.equals(sortOrder)) {
+					dynParam[22] += " ASC ";
+				} else  {
+					dynParam[22] += " DESC ";
+				}
+			}
+        	if(isGetAggregateResult) {
+        		if(DashboardConstants.TODO_LIST_TYPE_ACTION.equals(toDoType)) {
+        			dynParam[23] = " ) AS TBL4 GROUP BY TBL4.action_type ORDER BY TBL4.action_required ";
+        		} else if(DashboardConstants.TODO_LIST_TYPE_STEP.equals(toDoType)) {
+        			dynParam[23] = " ) AS TBL4 GROUP BY TBL4.position_step_title ORDER BY TBL4.position_step_title ";
+        		} else if(DashboardConstants.TODO_LIST_TYPE_POSITION.equals(toDoType)) {
+        			dynParam[23] = " ) AS TBL4 GROUP BY TBL4.position_title ORDER BY TBL4.position_title ";
+        		}
+			} else {
+				dynParam[23] = "";
+			}
+			dq = new DBPreparedQuery("dSelectionProcessManager_GetApplicants", dynParam);						
+			int cnt = 1;
+			for (int i = 0; i < dynamicContent.size(); i++) {
+				dq.setString(cnt++, dynamicContent.get(i));
+			}
+			applicants = dq.getResult();
+			
+		} catch (SQLException e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}		
+		return applicants;
+	}
+
+/**
+ * @param applicants
+ */
+	private void generateActionRequired(List applicants) {
+		for (int i = 0; i < applicants.size(); i++) {
+			SelectionProcessData data = (SelectionProcessData) applicants.get(i);
+			ApplicantManager applicantManager = new ApplicantManager();
+			SimpleDataObject summaryData = applicantManager.getApplicantShortlistSummary("" + data.getApplicantId(), data.getApplicantPositionId(), data.getApplicantStepId(), 1);
+			String users = (summaryData.getString("userResponsible") == null) ? "" : summaryData.getString("userResponsible");
+			String actionRequired = (summaryData.getString("actionRequired") == null) ? "" : summaryData.getString("actionRequired");
+	
+			if ("schedule".equalsIgnoreCase(actionRequired)) {
+				actionRequired = actionRequired + " " + data.getApplicantStep();
+			} else if ("conduct".equalsIgnoreCase(actionRequired)) {
+				actionRequired = actionRequired + " " + data.getApplicantStep() + " on " + Utils.getDateConvertedToString(summaryData.getDate("appointmentDate"), "dd-MMM") + " at " + Utils.getDateConvertedToString(summaryData.getDate("appointmentDate"), "h:mm a");
+			} else if ("confirm".equalsIgnoreCase(actionRequired)) {
+				actionRequired = actionRequired + " attendance for " + data.getApplicantStep();
+			} else if ("feedback".equalsIgnoreCase(actionRequired)) {
+				actionRequired = "enter feedback for " + data.getApplicantStep();
+			} else if ("hold".equalsIgnoreCase(actionRequired)) {
+				actionRequired = "On Hold";
+			}
+			data.setResponsibleUsers(users);
+			data.setActionRequired(actionRequired);
+		}
+	}
+	
+	
+	
+	public String getXMLForSelectStageApplicants(List<SelectionProcessData> applicants, String actionFilter) {
+		StringWriter sWr = new StringWriter();
+		XMLWriter wr = new XMLWriter(sWr);
+		try {
+			wr.startDocument();
+			AttributesImpl atr = new AttributesImpl();
+			wr.startElement("","rows","",atr);
+			
+			if (applicants != null && applicants.size() > 0) {
+				for (int indx = 0; indx < applicants.size(); indx++) {
+					SelectionProcessData data = (SelectionProcessData) applicants.get(indx);
+
+					ActionRequiredData actionRequiredData = ToDoUtils.getActionRequired(data);
+					String actionRequired = actionRequiredData.getActionRequired();
+					int actionType = actionRequiredData.getActionType();
+					if((!Utils.isBlankOrNull(actionFilter) && actionFilter.equals(""+actionRequiredData.getActionType()))
+							|| Utils.isBlankOrNull(actionFilter)){
+						
+						atr = new AttributesImpl();
+						atr.addAttribute("", "id", "", "", String.valueOf(data.getApplicantId()));
+						wr.startElement("", "row", "", atr);
+	
+						String name = (data.getApplicantName() == null) ? "" : data.getApplicantName();
+						String experience = data.getApplicantExperience();
+						String currentEmployer = (data.getApplicantCurrentEmployer() == null) ? "" : data.getApplicantCurrentEmployer();
+						String experienceAndCurrentEmployer = null;
+						if (!Utils.isBlankOrNull(currentEmployer)) {
+							experienceAndCurrentEmployer = experience + " - " + currentEmployer;
+						} else {
+							experienceAndCurrentEmployer = experience;
+						}
+	
+						atr = new AttributesImpl();
+						atr.addAttribute("", "name", "", "", "name");
+						wr.startElement("", "userdata", "", atr);
+						wr.characters(name);
+						wr.endElement("userdata");
+	
+						atr = new AttributesImpl();
+						atr.addAttribute("", "name", "", "", "Col_I_Comment");
+						wr.startElement("", "userdata", "", atr);
+						wr.characters(name + "\n" + experienceAndCurrentEmployer);
+						wr.endElement("userdata");
+	
+						String flags = data.getFlags();
+						if (Utils.isBlankOrNull(flags)) {
+							flags = new String();
+						}
+						atr = new AttributesImpl();
+						atr.addAttribute("", "name", "", "", "flags");
+						wr.startElement("", "userdata", "", atr);
+						wr.characters(flags);
+						wr.endElement("userdata");
+	
+						String mobile = data.getApplicantCellPhone();
+						if (Utils.isBlankOrNull(mobile)) {
+							mobile = new String();
+						}
+						atr = new AttributesImpl();
+						atr.addAttribute("", "name", "", "", "mobile");
+						wr.startElement("", "userdata", "", atr);
+						wr.characters(mobile);
+						wr.endElement("userdata");
+	
+						if (name.length() > 22) {
+							name = name.substring(0, 19) + "...";
+						}
+						if (experienceAndCurrentEmployer.length() > 22) {
+							experienceAndCurrentEmployer = experienceAndCurrentEmployer.substring(0, 19) + "...";
+						}
+	
+						String[] flagArray = flags.split(",");
+						String image = new String();
+						String flagText = new String();
+	
+						if (!Utils.isBlankOrNull(flags) && flagArray.length > 0) {					
+							for (int i = 0; i < SelectionProcessConstants.MAX_FLAGS_TO_SHOW && i < flagArray.length; i++) {
+								if (i > 0) {
+									image += "<br/>";
+									flagText += "\n";
+								}
+								image += "<a href=\"#\" style=\"cursor:default;\"><img src=\"" + CommonUtils.getFlagImage(flagArray[i]) + "\" border=0></a>";
+								flagText += CommonUtils.getFlagText(flagArray[i]);
+							}
+							if (flagArray.length < SelectionProcessConstants.MAX_FLAGS_TO_SHOW) {
+								for (int i = flagArray.length; i < SelectionProcessConstants.MAX_FLAGS_TO_SHOW; i++) {
+									image += "<br/>&nbsp;";
+								}
+							}
+						} else {
+							image = "<br/><br/>";
+						}
+						wr.startElement("cell");
+						wr.characters(image);
+						wr.endElement("cell");
+	
+						atr = new AttributesImpl();
+						atr.addAttribute("", "name", "", "", "Col_0_Comment");
+						wr.startElement("", "userdata", "", atr);
+						wr.characters(flagText);
+						wr.endElement("userdata");
+	
+						String applicantLink = "<a href=\"#\" onclick=\"onClickApplicant('" +  data.getApplicantId() + "');\" onmouseover=\"showAjaxTip(event,'" + data.getApplicantId() + "')\" onmouseout=\"hideToolTip()\" >" + wr.doubleEscape(name) + "</a>";
+						
+						wr.startElement("cell");
+						//wr.characters("<a href=\"#\" onclick=\"onClickApplicant(" + data.getApplicantId() + ");\">" + wr.doubleEscape(name) + "</a><br/>" + wr.doubleEscape(experienceAndCurrentEmployer));
+						wr.characters(applicantLink);
+						wr.endElement("cell");
+	
+						String department = (data.getApplicantPositionDepartment() == null) ? "" : data.getApplicantPositionDepartment();
+						String position = (data.getApplicantPosition() == null) ? "" : data.getApplicantPosition();
+						String positionid = (data.getApplicantPositionId() == null) ? "" : data.getApplicantPositionId();
+						
+						atr = new AttributesImpl();
+						atr.addAttribute("", "name", "", "", "stepRank");
+						wr.startElement("", "userdata", "", atr);
+						wr.characters(data.getStepRank());
+						wr.endElement("userdata");
+						
+						atr = new AttributesImpl();
+						atr.addAttribute("", "name", "", "", "positionId");
+						wr.startElement("", "userdata", "", atr);
+						wr.characters(positionid);
+						wr.endElement("userdata");
+						
+						atr = new AttributesImpl();
+						atr.addAttribute("", "name", "", "", "position");
+						wr.startElement("", "userdata", "", atr);
+						wr.characters(position);
+						wr.endElement("userdata");
+	
+						atr = new AttributesImpl();
+						atr.addAttribute("", "name", "", "", "Col_II_Comment");
+						wr.startElement("", "userdata", "", atr);
+						wr.characters(department + "\n" + position);
+						wr.endElement("userdata");
+	
+						if (department.length() > 17) {
+							department = department.substring(0, 14) + "...";
+						}
+						if (position.length() > 17) {
+							position = position.substring(0, 14) + "...";
+						}
+	
+						String positionLink = "<a href=\"#\" onclick=\"onClickPosition('" +  positionid + "');\" >" + wr.doubleEscape(position) + "</a>";
+						wr.startElement("cell");
+						wr.characters(wr.doubleEscape(department) + "<br/>" + positionLink);
+						wr.endElement("cell");
+	
+						String stage = (data.getApplicantStep() == null) ? "" : data.getApplicantStep();
+						String status = (data.getApplicantStatus() == null) ? "" : data.getApplicantStatus();
+	
+						atr = new AttributesImpl();
+						atr.addAttribute("", "name", "", "", "stage");
+						wr.startElement("", "userdata", "", atr);
+						wr.characters(stage);
+						wr.endElement("userdata");
+	
+						atr = new AttributesImpl();
+						atr.addAttribute("", "name", "", "", "Col_III_Comment");
+						wr.startElement("", "userdata", "", atr);
+						wr.characters(stage + "\n" + status);
+						wr.endElement("userdata");
+	
+						if (stage.length() > 27) {
+							stage = stage.substring(0, 24) + "...";
+						}
+						if (status.length() > 27) {
+							status = status.substring(0, 24) + "...";
+						}
+	
+						if (Utils.isBlankOrNull(status)) {
+							status = "&nbsp;";
+						}
+						wr.startElement("cell");
+						wr.characters(wr.doubleEscape(stage) + "<br/>" + wr.doubleEscape(status));
+						wr.endElement("cell");
+	
+						String users = data.getResponsibleUsers();
+		
+						atr = new AttributesImpl();
+						atr.addAttribute("", "name", "", "", "Col_IV_Comment");
+						wr.startElement("", "userdata", "", atr);
+						if (!Utils.isBlankOrNull(users) && actionType!=DashboardConstants.ACTION_ON_HOLD) {
+							wr.characters(users + " to\n" + actionRequired);
+						} else {
+							wr.characters(actionRequired);
+						}
+	
+						wr.endElement("userdata");
+	
+						users+=" to";
+						
+						if (!Utils.isBlankOrNull(users) && users.length() > 32) {
+							users = users.substring(0, 29) + "...";
+						}
+						
+						if (actionRequired.length() > 32) {
+							actionRequired = actionRequired.substring(0, 29) + "...";
+						}
+	
+						wr.startElement("cell");
+						if (!Utils.isBlankOrNull(users) && actionType!=DashboardConstants.ACTION_ON_HOLD) {
+							wr.characters(wr.doubleEscape(users) + " <br/>" + wr.doubleEscape(actionRequired));
+						} else {
+							wr.characters(wr.doubleEscape(actionRequired));
+						}
+						wr.endElement("cell");
+						wr.endElement("row");
+					}
+				}
+			}
+			wr.endElement("rows");
+			wr.endDocument();
+
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return sWr.toString();
+	}
+
+	public String getXMLForHireStageApplicants(List<SelectionProcessData> applicants) {
+		StringWriter sWr = new StringWriter();
+		XMLWriter wr = new XMLWriter(sWr);
+		try {
+			wr.startDocument();
+
+			AttributesImpl atr = new AttributesImpl();
+//			atr.addAttribute("", "total_count", "", "", totalCount);
+//			atr.addAttribute("", "pos", "", "", posStart);
+			wr.startElement("","rows","",atr);
+			
+			if (applicants != null && applicants.size() > 0) {
+				for (int indx = 0; indx < applicants.size(); indx++) {
+					SelectionProcessData data = (SelectionProcessData) applicants.get(indx);
+					atr = new AttributesImpl();
+					atr.addAttribute("", "id", "", "", String.valueOf(data.getApplicantId()));
+					wr.startElement("", "row", "", atr);
+
+					String name = (data.getApplicantName() == null) ? "" : data.getApplicantName();
+					String experience = (data.getApplicantExperience() == null) ? "" : data.getApplicantExperience();
+					String currentEmployer = (data.getApplicantCurrentEmployer() == null) ? "" : data.getApplicantCurrentEmployer();
+					String experienceAndCurrentEmployer = null;
+					if (!Utils.isBlankOrNull(currentEmployer)) {
+						experienceAndCurrentEmployer = experience + " - " + currentEmployer;
+					} else {
+						experienceAndCurrentEmployer = experience;
+					}
+
+					atr = new AttributesImpl();
+					atr.addAttribute("", "name", "", "", "name");
+					wr.startElement("", "userdata", "", atr);
+					wr.characters(name);
+					wr.endElement("userdata");
+
+					atr = new AttributesImpl();
+					atr.addAttribute("", "name", "", "", "Col_I_Comment");
+					wr.startElement("", "userdata", "", atr);
+					wr.characters(name + "\n" + experienceAndCurrentEmployer);
+					wr.endElement("userdata");
+
+					String flags = data.getFlags();
+					if (Utils.isBlankOrNull(flags)) {
+						flags = new String();
+					}
+					atr = new AttributesImpl();
+					atr.addAttribute("", "name", "", "", "flags");
+					wr.startElement("", "userdata", "", atr);
+					wr.characters(flags);
+					wr.endElement("userdata");
+
+					String mobile = data.getApplicantCellPhone();
+					if (Utils.isBlankOrNull(mobile)) {
+						mobile = new String();
+					}
+					atr = new AttributesImpl();
+					atr.addAttribute("", "name", "", "", "mobile");
+					wr.startElement("", "userdata", "", atr);
+					wr.characters(mobile);
+					wr.endElement("userdata");
+
+					if (name.length() > 22) {
+						name = name.substring(0, 19) + "...";
+					}
+					if (experienceAndCurrentEmployer.length() > 22) {
+						experienceAndCurrentEmployer = experienceAndCurrentEmployer.substring(0, 19) + "...";
+					}
+
+					String[] flagArray = flags.split(",");
+					String image = new String();
+					String flagText = new String();
+
+					if (!Utils.isBlankOrNull(flags) && flagArray.length > 0) {
+						for (int i = 0; i < SelectionProcessConstants.MAX_FLAGS_TO_SHOW && i < flagArray.length; i++) {
+							if (i > 0) {
+								image += "<br/>";
+								flagText += "\n";
+							}
+							image += "<a href=\"#\" style=\"cursor:default;\"><img src=\"" + CommonUtils.getFlagImage(flagArray[i]) + "\" border=0></a>";
+							flagText += CommonUtils.getFlagText(flagArray[i]);
+						}
+						if (flagArray.length < SelectionProcessConstants.MAX_FLAGS_TO_SHOW) {
+							for (int i = flagArray.length; i < SelectionProcessConstants.MAX_FLAGS_TO_SHOW; i++) {
+								image += "<br/>&nbsp;";
+							}
+						}
+					} else {
+						image = "<br/><br/>";
+					}
+					wr.startElement("cell");
+					wr.characters(image);
+					wr.endElement("cell");
+
+					atr = new AttributesImpl();
+					atr.addAttribute("", "name", "", "", "Col_0_Comment");
+					wr.startElement("", "userdata", "", atr);
+					wr.characters(flagText);
+					wr.endElement("userdata");
+
+					String applicantLink = "<a href=\"#\" onclick=\"onClickApplicant('" +  data.getApplicantId() + "');\" onmouseover=\"showAjaxTip(event,'" + data.getApplicantId() + "')\" onmouseout=\"hideToolTip()\" >" + wr.doubleEscape(name) + "</a>";
+					wr.startElement("cell");
+					wr.characters(applicantLink);
+					wr.endElement("cell");
+
+					String department = (data.getApplicantPositionDepartment() == null) ? "" : data.getApplicantPositionDepartment();
+					String position = (data.getApplicantPosition() == null) ? "" : data.getApplicantPosition();
+					String positionId = (data.getApplicantPositionId() == null) ? "" : data.getApplicantPositionId();
+
+					atr = new AttributesImpl();
+					atr.addAttribute("", "name", "", "", "stepRank");
+					wr.startElement("", "userdata", "", atr);
+					wr.characters(data.getStepRank());
+					wr.endElement("userdata");
+					
+					atr = new AttributesImpl();
+					atr.addAttribute("", "name", "", "", "Col_II_Comment");
+					wr.startElement("", "userdata", "", atr);
+					wr.characters(department + "\n" + position);
+					wr.endElement("userdata");
+					
+					atr = new AttributesImpl();
+					atr.addAttribute("", "name", "", "", "positionId");
+					wr.startElement("", "userdata", "", atr);
+					wr.characters(positionId);
+					wr.endElement("userdata");
+
+					atr = new AttributesImpl();
+					atr.addAttribute("", "name", "", "", "position");
+					wr.startElement("", "userdata", "", atr);
+					wr.characters(position);
+					wr.endElement("userdata");
+
+					if (department.length() > 27) {
+						department = department.substring(0, 24) + "...";
+					}
+					if (position.length() > 27) {
+						position = position.substring(0, 24) + "...";
+					}
+
+					String positionLink = "<a href=\"#\" onclick=\"onClickPosition('" +  positionId + "');\" >" + wr.doubleEscape(position) + "</a>";
+					wr.startElement("cell");
+					wr.characters(wr.doubleEscape(department) + "<br/>" + positionLink);
+					wr.endElement("cell");
+
+					String stage = (data.getApplicantStep() == null) ? "" : data.getApplicantStep();
+					String status = (data.getApplicantStatus() == null) ? "" : data.getApplicantStatus();
+
+					atr = new AttributesImpl();
+					atr.addAttribute("", "name", "", "", "stage");
+					wr.startElement("", "userdata", "", atr);
+					wr.characters(stage);
+					wr.endElement("userdata");
+
+					atr = new AttributesImpl();
+					atr.addAttribute("", "name", "", "", "Col_III_Comment");
+					wr.startElement("", "userdata", "", atr);
+					wr.characters(stage + "\n" + status);
+					wr.endElement("userdata");
+
+					if (stage.length() > 36) {
+						stage = stage.substring(0, 33) + "...";
+					}
+					if (status.length() > 36) {
+						status = status.substring(0, 33) + "...";
+					}
+
+					if (Utils.isBlankOrNull(status)) {
+						status = "&nbsp;";
+					}
+					wr.startElement("cell");
+					wr.characters(wr.doubleEscape(stage) + "<br/>" + wr.doubleEscape(status));
+					wr.endElement("cell");
+
+					String joiningDate = (data.getApplicantJoiningDate() == null) ? "Not Available" : data.getApplicantJoiningDate();
+					String date = DateUtils.getSystemDateFormat(data.getDate("applicantJoiningDate"));
+					date = Utils.isBlankOrNull(date)?"Not Available":date;
+
+					atr = new AttributesImpl();
+					atr.addAttribute("", "name", "", "", "date");
+					wr.startElement("", "userdata", "", atr);
+					wr.characters(joiningDate);
+					wr.endElement("userdata");
+
+					atr = new AttributesImpl();
+					atr.addAttribute("", "name", "", "", "Col_IV_Comment");
+					wr.startElement("", "userdata", "", atr);
+					wr.characters(date);
+					wr.endElement("userdata");
+
+					wr.startElement("cell");
+					wr.characters("<a href=\"#\" onclick=\"onClickJoiningDate(" + data.getApplicantId() + ");\">" + wr.doubleEscape(date) + "</a><br/>" + "&nbsp;");
+					wr.endElement("cell");
+
+					wr.endElement("row");
+				}
+			}
+			wr.endElement("rows");
+			wr.endDocument();
+
+		} catch (SAXException e) {
+			TPLogger.getLogger().error("Error while creating xml file for applicants in process", e);
+		}
+		return sWr.toString();
+	}
+
+	public List getStepTitles(String userId, String stepLevel, PermissionSet permissionSet) {
+		List stepTitles = null;
+		DBPreparedQuery dq = null;
+		try {
+			String[] dynaParam = new String[1];
+			dynaParam[0] = " ";
+			ArrayList<String> dynamicContent = new ArrayList<String>();
+
+			if (stepLevel.equals(PositionConstants.STEP_LEVEL_SELECT)) {
+				dynaParam[0] += " AND ( tps.position_step_level=? OR tps.position_step_level=?) ";
+				dynamicContent.add(PositionConstants.STEP_LEVEL_SHORTLIST);
+				dynamicContent.add(PositionConstants.STEP_LEVEL_SELECT);
+			} else {
+				dynaParam[0] += " AND tps.position_step_level=?  ";
+				dynamicContent.add(stepLevel);
+			}
+
+			if (permissionSet.isSHOW_POSITIONS_WITH_RIGHTS()) {
+				dynaParam[0] += " AND tps.position_id in (select su.position_id from tp_position_step_users su, tp_position_steps ps where su.position_step_id = ps.position_step_id and ps.position_step_status = ? and su.user_id = ? "
+						+ " UNION SELECT position_id from tp_positions where position_requested_by = ? " + " UNION SELECT distinct traf.position_id FROM tp_requisition_approval_feedback traf WHERE traf.by_user_id=? OR traf.to_user_id=? ) ";
+				dynamicContent.add(PositionConstants.STEP_ACTIVE);
+				dynamicContent.add(userId);
+				dynamicContent.add(userId);
+				dynamicContent.add(userId);
+				dynamicContent.add(userId);
+			}
+
+			dq = new DBPreparedQuery("dSelectionProcessManager_GetDistinctStepTitles", dynaParam);
+			dq.setString(1, PositionConstants.POSITION_STATUS_OPENED);
+			dq.setString(2, PositionConstants.STEP_ACTIVE);
+			int cnt = 3;
+			for (int i = 0; i < dynamicContent.size(); i++) {
+				dq.setString(cnt++, dynamicContent.get(i));
+			}
+
+			stepTitles = dq.getResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting step titles", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return stepTitles;
+	}
+
+	public String getXmlForJoinedApplicants(String userId, String filterByName, String filterByPosition, String filterByDuration, PermissionSet permissionSet) {
+		StringWriter sWr = new StringWriter();
+		XMLWriter wr = new XMLWriter(sWr);
+		try {
+			wr.startDocument();
+			wr.startElement("rows");
+			List<SimpleDataObject> latestActivities = getJoinedApplicants(userId, permissionSet, filterByName, filterByPosition, filterByDuration);
+			if (latestActivities != null && latestActivities.size() > 0) {
+				for (int indx = 0; indx < latestActivities.size(); indx++) {
+					SimpleDataObject data = (SimpleDataObject) latestActivities.get(indx);
+					AttributesImpl atr = new AttributesImpl();
+					atr.addAttribute("", "id", "", "", data.getString("applicantId"));
+					wr.startElement("", "row", "", atr);
+
+					String applicantName = (data.getString("applicantName") == null) ? "" : data.getString("applicantName");
+					atr = new AttributesImpl();
+					atr.addAttribute("", "name", "", "", "name");
+					wr.startElement("", "userdata", "", atr);
+					wr.characters(applicantName);
+					wr.endElement("userdata");
+
+					String applicantLink = "<a href=\"#\" onclick=\"onClickApplicant('" +  data.getString("applicantId") + "');\" onmouseover=\"showAjaxTip(event,'" + data.getString("applicantId") + "')\" onmouseout=\"hideToolTip()\" >" + wr.doubleEscape(applicantName) + "</a>";
+					wr.startElement("cell");
+					if (applicantName.length() > 25) {
+						applicantName = applicantName.substring(0, 22) + "...";
+					}
+					wr.characters(applicantLink);
+					wr.endElement("cell");
+
+					String department = (data.getString("applicantPositionDepartment") == null) ? "" : data.getString("applicantPositionDepartment");
+					String position = (data.getString("applicantPositionTitle") == null) ? "" : data.getString("applicantPositionTitle");
+					String deptPos = department + " - " + position;
+
+					atr = new AttributesImpl();
+					atr.addAttribute("", "name", "", "", "position");
+					wr.startElement("", "userdata", "", atr);
+					wr.characters(deptPos);
+					wr.endElement("userdata");
+
+					if (deptPos.length() > 55) {
+						deptPos = deptPos.substring(0, 52) + "...";
+					}
+
+					wr.startElement("cell");
+					wr.characters(wr.doubleEscape(deptPos));
+					wr.endElement("cell");
+
+					String joiningDate = DateUtils.getSystemDateFormat(data.getDate("applicantDateJoined"));
+
+					atr = new AttributesImpl();
+					atr.addAttribute("", "name", "", "", "date");
+					wr.startElement("", "userdata", "", atr);
+					wr.characters(Utils.getBlankIfNull(data.getString("applicantDateJoined")));
+					wr.endElement("userdata");
+
+					wr.startElement("cell");
+					wr.characters(wr.doubleEscape(joiningDate));
+					wr.endElement("cell");
+
+					wr.endElement("row");
+				}
+			}
+			wr.endElement("rows");
+			wr.endDocument();
+
+		} catch (SAXException e) {
+			TPLogger.getLogger().error("Error while creating xml file for applicants in process", e);
+		}
+		return sWr.toString();
+	}
+
+	public List getJoinedApplicants(String userId, PermissionSet permissionSet, String filterByName, String filterByPosition, String filterByDuration) {
+		List joinedApplicants = null;
+		DBPreparedQuery dq = null;
+		try {
+			String[] dynaParam = new String[2];
+			if(GlobalConstants.ENABLED.equals(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_SHOW_POSITION_CODE))) {
+				dynaParam[0] = " tp.position_code ";
+			} else {
+				dynaParam[0] = " tp.position_title ";
+			}
+			dynaParam[1] = " ";
+			ArrayList<String> dynamicContent = new ArrayList<String>();
+			
+			if (permissionSet.isDO_NOT_SHOW_CONFIDENTIAL_PROFILE()) {
+				dynaParam[1] += " AND ta.is_confidential = ? ";
+				dynamicContent.add(ApplicantConstants.APPLICANT_NOT_CONFIDENTIAL);
+			}
+			
+			if (permissionSet.isSHOW_POSITIONS_WITH_RIGHTS()) {
+				dynaParam[1] += " AND tajh.position_id in (select su.position_id from tp_position_step_users su, tp_position_steps ps where su.position_step_id = ps.position_step_id and ps.position_step_status = ? and su.user_id = ? "
+						+ " UNION SELECT position_id from tp_positions where position_requested_by = ? " + " UNION SELECT distinct traf.position_id FROM tp_requisition_approval_feedback traf WHERE traf.by_user_id=? OR traf.to_user_id=? ) ";
+				dynamicContent.add(PositionConstants.STEP_ACTIVE);
+				dynamicContent.add(userId);
+				dynamicContent.add(userId);
+				dynamicContent.add(userId);
+				dynamicContent.add(userId);
+			}
+			if (filterByPosition != null && filterByPosition.length() > 0) {
+				String qMarks = Utils.setDynamicParamsAndReturnQmarks(filterByPosition, dynamicContent);
+				dynaParam[1] += " and tajh.position_id in (" + qMarks + ") ";
+			}
+			if (filterByName != null && filterByName.length() > 0) {
+				dynaParam[1] += " and substring(ta.applicant_name, 1, ?) = ? ";
+				dynamicContent.add("" + filterByName.length());
+				dynamicContent.add(filterByName);
+			}
+			if (filterByDuration != null && filterByDuration.length() > 0) {
+				dynaParam[1] += " and datediff(now(), tajh.joining_date) <= ? ";
+				dynamicContent.add(filterByDuration);
+			}
+			dq = new DBPreparedQuery("dSelectionProcessManager_GetJoinedApplicants", dynaParam);
+			int cnt = 1;
+			for (int i = 0; i < dynamicContent.size(); i++) {
+				dq.setString(cnt++, dynamicContent.get(i));
+			}
+
+			joinedApplicants = dq.getResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting step titles", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return joinedApplicants;
+	}
+
+	public final boolean isUserAuthorizedToMakeDecision(String userId, int stepId) {
+		DBPreparedQuery dq = null;
+		boolean isUserAuthorizedToMove = false;
+		try {
+			dq = new DBPreparedQuery("dSelectionProcessManager_GetPositionStepUsers");
+			dq.setInt(1, stepId);
+			dq.setInt(2, PositionConstants.NOT_RESPONSIBLE_FOR_SCHEDULING);
+			dq.setInt(3, PositionConstants.AUTHORIZED_TO_MOVE);
+			List<SimpleDataObject> resuleSet = dq.getResult();
+			if (resuleSet != null && resuleSet.size() > 0) {
+				for (int i = 0; i < resuleSet.size(); i++) {
+					SimpleDataObject obj = resuleSet.get(i);
+					if (userId.equalsIgnoreCase(obj.getString("userId"))) {
+						isUserAuthorizedToMove = true;
+						break;
+					}
+				}
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while determining whether user is authorized to move or not", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return isUserAuthorizedToMove;
+	}
+
+	// public String getSystemGeneratedTraitForStep(String stepId) {
+	// DBPreparedQuery dq = null;
+	// String traitId = null;
+	// try {
+	// dq = new DBPreparedQuery("dGetSystemGeneratedTraitForStep");
+	// dq.setInt(1, PositionConstants.STEP_TRAIT_SYSTEM_GENERATED);
+	// dq.setString(2, stepId);
+	// SimpleDataObject rs = (SimpleDataObject) dq.getSingleObjectResult();
+	// if (rs != null) {
+	// traitId = rs.getString("traitId");
+	// }
+	// } catch (SQLException e) {
+	// TPLogger.getLogger().error("Error while getting the system generated
+	// trait id for step", e);
+	// } finally {
+	// if (dq != null) {
+	// dq.releaseConnection();
+	// }
+	// }
+	// return traitId;
+	// }
+
+	public boolean isUserAuthorizedToScheduleOrConfirmAttendance(String userId, String applicantId, PermissionSet permissionSet) {
+		DBPreparedQuery dq = null;
+		boolean isUserAuthorizedToScheduleOrConfirmAttendance = false;
+		try {
+			if (permissionSet.isSHOW_ALL_POSITIONS()) {
+				isUserAuthorizedToScheduleOrConfirmAttendance = true;
+			} else {
+				dq = new DBPreparedQuery("dIsUserDecisionMakerOrResponsibleForScheduling");
+				dq.setString(1, applicantId);
+				dq.setInt(2, PositionConstants.RESPONSIBLE_FOR_SCHEDULING);
+				dq.setInt(3, PositionConstants.NOT_AUTHORIZED_TO_MOVE);
+				dq.setInt(4, PositionConstants.NOT_RESPONSIBLE_FOR_SCHEDULING);
+				dq.setInt(5, PositionConstants.AUTHORIZED_TO_MOVE);
+				dq.setInt(6, PositionConstants.NOT_RESPONSIBLE_FOR_SCHEDULING);
+				dq.setInt(7, PositionConstants.NOT_AUTHORIZED_TO_MOVE);
+				dq.setInt(8, PositionConstants.STEP_INTERVIEWER_CAN_CONFIRM);
+				dq.setString(9, userId);
+				SimpleDataObject sDo = (SimpleDataObject) dq.getSingleObjectResult();
+				int count = sDo.getInt("count");
+				if (count > 0) {
+					isUserAuthorizedToScheduleOrConfirmAttendance = true;
+				}
+			}
+		} catch (SQLException e) {
+			TPLogger.getLogger().error("Error while getting the system generated trait id for step", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return isUserAuthorizedToScheduleOrConfirmAttendance;
+	}
+
+	private SimpleDataObject getCommunicationIdForFeedbackOfCurrentStep(String applicantId, String stepIdFrom, String positionId, DBTransaction tran) {
+		DBPreparedQuery dq = null;
+		SimpleDataObject sDo = null;
+		try {
+			if (tran == null) {
+				dq = new DBPreparedQuery("dSelectionProcessManager_GetProcessId");
+			} else {
+				dq = new DBPreparedQuery("dSelectionProcessManager_GetProcessId", tran);
+			}
+			dq.setString(1, applicantId);
+			dq.setString(2, stepIdFrom);
+			dq.setString(3, applicantId);
+			dq.setString(4, SelectionProcessConstants.STEP_REJECT);
+			dq.setString(5, positionId);
+			sDo = (SimpleDataObject) dq.getSingleObjectResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error encountered while getting communicationId for feedback of current step", e);
+		} finally {
+			if (dq != null) {
+				if (tran == null) {
+					dq.releaseConnection();
+				} else {
+					dq.closeOpenCursors();
+				}
+			}
+		}
+		return sDo;
+	}
+
+	/**
+	 * @param processId
+	 * @return the existing last appointment for feedback entered
+	 */
+	public AppointmentData getAppointmentDataForFeedback(String processId) {
+		AppointmentData data = null;
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dSelectionProcessManager_GetAppointmentForFeedback");
+			dq.setString(1, processId);
+			// added to remove no show appointments  
+			dq.setInt(2, CalendarConstants.APPOINTMENT_STATUS_NOSHOW);
+			dq.setInt(3, CalendarConstants.APPOINTMENT_STATUS_HAPPENED);
+			data = (AppointmentData) dq.getSingleObjectResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting appointment data", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return data;
+	}
+
+	public boolean isUserAtUpperLevelInFunnel(String positionId, String stepId, String userId) {
+		boolean isUserAtUpperLevelInFunnel = false;
+		List<SimpleDataObject> stepUsers = null;
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dSelectionProcessManager_GetUsersAtUpperLevelInFunnel");
+			// dq.setInt(1, PositionConstants.NOT_RESPONSIBLE_FOR_SCHEDULING);
+			// dq.setInt(2, PositionConstants.AUTHORIZED_TO_MOVE);
+			dq.setString(1, positionId);
+			dq.setString(2, stepId);
+			dq.setString(3, PositionConstants.STEP_ACTIVE);
+			stepUsers = dq.getResult();
+			if (stepUsers != null && stepUsers.size() > 0) {
+				for (int i = 0; i < stepUsers.size(); i++) {
+					SimpleDataObject obj = (SimpleDataObject) stepUsers.get(i);
+					if (userId.equalsIgnoreCase(obj.getString("userId"))) {
+						isUserAtUpperLevelInFunnel = true;
+						break;
+					}
+				}
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting users at upper level in funnel", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return isUserAtUpperLevelInFunnel;
+	}
+
+	public boolean isFeedbackLive(String communicationId, String applicantId) {
+		boolean isFeedbackLive = false;
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dSelectionProcessManager_GetFeedbackEntry");
+			dq.setString(1, SelectionProcessConstants.STEP_REJECT);
+			dq.setString(2, applicantId);
+			dq.setString(3, communicationId);
+			SimpleDataObject sDo = (SimpleDataObject) dq.getSingleObjectResult();
+			if (sDo == null) {
+				isFeedbackLive = true;
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while determining whether feedback is live or not", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return isFeedbackLive;
+	}
+
+	private FeedbackFormView getNewFeedbackFormViewData(String feedbackFormTitle, String feedbackFormDesc, String candidateName, String sourceName, String positionName, String positionStepName, String feedbackResult, String interviewDate, String feedbackDate, String feedbackBy, PermissionSet permissionSet) {
+		FeedbackFormView feedbackFormView = new FeedbackFormView();
+		feedbackFormView.setFeedbackFormTitle(feedbackFormTitle);
+		feedbackFormView.setFeedbackFormDesc(feedbackFormDesc);
+
+		feedbackFormView.setApplicantName(candidateName);
+		if (ImportConfigurationManager.isApplicantFieldViewable(ImportConfigurationConstants.FIELD_SOURCE ,permissionSet.isSHOW_CONFIDENTIAL_DATA()) ){  
+			feedbackFormView.setSourceName(sourceName);
+		}		
+		
+		feedbackFormView.setPositionName(positionName);
+		feedbackFormView.setPositionStepName(positionStepName);
+		feedbackFormView.setFeedbackResult(feedbackResult);
+		feedbackFormView.setInterviewDate(interviewDate);
+		feedbackFormView.setFeedbackDate(feedbackDate);
+		feedbackFormView.setFeedbackBy(feedbackBy);
+		
+		return feedbackFormView;
+	}
+
+	public ArrayList<FeedbackFormView> getFeedbackFormViewList(ArrayList<UserData> interviewers, FeedbackData feedbackData, Map traitData, ApplicantData applicantData, AppointmentData appointmentData, String reportFormat, String reportType,String feedbackType, boolean showIfExist, PermissionSet permissionSet) {
+		ArrayList<FeedbackFormView> reportData = new ArrayList<FeedbackFormView>();
+
+		String feedbackFormTitle = feedbackData.getFeedbackFormTitle();
+		String feedbackFormDesc = feedbackData.getFeedbackFormHeader();
+		String candidateName = applicantData.getApplicantName();
+		String sourceName = applicantData.getApplicantSourceTitle();
+		String positionName = feedbackData.getPositionTitle();
+		StepData fromStepData = feedbackData.getFromStepData();
+		String positionStepName = "";
+		if (fromStepData != null) {
+			positionStepName = fromStepData.getStepTitle();
+		}
+		String feedbackResult = feedbackData.getFeedbackResultInStringFormat();
+		String interviewDate = "";
+		if (appointmentData != null) {
+			Date appointmentDate = appointmentData.getAppointmentFrom();
+			interviewDate = DateUtils.getSystemDateTimeFormat(appointmentDate);
+		}
+		String feedbackDate = "";
+		Date fDate = feedbackData.getProcessMovedDate();
+		if (fDate != null) {
+			feedbackDate = DateUtils.getSystemDateFormat(fDate);
+		}
+		RatingsManager ratingsManager = new RatingsManager();
+		ArrayList<RatingsData> ratings = ratingsManager.getAllRatingsWithFields();
+		
+		MultipleSelectsManager multipleSelectsManager = new MultipleSelectsManager();
+		ArrayList<MultipleSelectsData> multipleSelects = multipleSelectsManager.getAllMultipleSelectsWithFields();
+		
+		ArrayList<TraitData> traits = null;
+		if (fromStepData != null && fromStepData.getTraits() != null) {
+			traits = fromStepData.getTraits();
+		}	
+		if(SelectionProcessConstants.REPORT_TYPE_CONSOLIDATED.equals(reportType)) {
+			String categoryName = "";
+			for (int k = 0; traits != null && k < traits.size(); k++) {				
+				TraitData tData = traits.get(k);				
+				if (tData.getFeedbackFormFieldType().equals(FeedbackFormConstants.FIELD_TYPE_CATEGORY)) {
+					categoryName = tData.getFeedbackFieldTitle();
+				} else {
+					for (int i = 0; interviewers != null && i < interviewers.size(); i++) {
+						UserData userData = interviewers.get(i);					
+						FeedbackFormView feedbackFormView = getFeedbackFormViewConstructed(userData, tData, traitData, 
+								feedbackFormTitle, feedbackFormDesc, candidateName, sourceName, positionName, positionStepName,
+								feedbackResult, interviewDate, feedbackDate, feedbackData.getLastFeedbackBy(), categoryName, ratings, multipleSelects, reportFormat, feedbackType, permissionSet);												
+						
+						if(!showIfExist){
+							reportData.add(feedbackFormView);
+						}else{
+							if(FeedbackFormConstants.GENERALISED.equalsIgnoreCase(tData.getFeedbackFormFieldDisplayType())) {
+								if(!Utils.isBlankOrNull(feedbackFormView.getFieldComment())|| feedbackFormView.getRating().contains("[x]")){
+									reportData.add(feedbackFormView);
+								}	
+							}else{
+								if(!Utils.isBlankOrNull(feedbackFormView.getCompactFieldComment())|| (!Utils.isBlankOrNull(feedbackFormView.getCompactRating()) && feedbackFormView.getCompactRating().contains("[x]"))){
+									reportData.add(feedbackFormView);
+								}	
+							}
+						}
+					}
+				}
+			}
+		} else {
+			for (int i = 0; interviewers != null && i < interviewers.size(); i++) {
+				UserData userData = interviewers.get(i);			
+				String categoryName = "";
+				for (int k = 0; traits != null && k < traits.size(); k++) {
+					TraitData tData = traits.get(k);
+					if (tData.getFeedbackFormFieldType().equals(FeedbackFormConstants.FIELD_TYPE_CATEGORY)) {
+						categoryName = tData.getFeedbackFieldTitle();
+					} else {
+						FeedbackFormView feedbackFormView = getFeedbackFormViewConstructed(userData, tData, traitData, 
+								feedbackFormTitle, feedbackFormDesc, candidateName, sourceName, positionName, positionStepName,
+								feedbackResult, interviewDate, feedbackDate, feedbackData.getLastFeedbackBy(), categoryName, ratings, multipleSelects, reportFormat, feedbackType, permissionSet);												
+						if(!showIfExist){
+							reportData.add(feedbackFormView);
+						}else{
+							if(FeedbackFormConstants.GENERALISED.equalsIgnoreCase(tData.getFeedbackFormFieldDisplayType())) {
+								if(!Utils.isBlankOrNull(feedbackFormView.getFieldComment())|| feedbackFormView.getRating().contains("[x]")){
+									reportData.add(feedbackFormView);
+								}	
+							}else{
+								if(!Utils.isBlankOrNull(feedbackFormView.getCompactFieldComment())|| feedbackFormView.getCompactRating().contains("[x]")){
+									reportData.add(feedbackFormView);
+								}	
+							}
+						}
+					}
+				}
+			}
+		}		
+		return reportData;
+	}
+
+	private FeedbackFormView getFeedbackFormViewConstructed(UserData userData, TraitData tData, Map traitData, 
+			String feedbackFormTitle, String feedbackFormDesc, String candidateName, String sourceName, String positionName, 
+			String positionStepName, String feedbackResult, String interviewDate, String feedbackDate, String feedbackBy,
+			String categoryName, ArrayList<RatingsData> ratings, ArrayList<MultipleSelectsData> multipleSelects, String reportFormat, String feedbackType, PermissionSet permissionSet) {
+		String fieldTitle = tData.getFeedbackFieldTitle();
+		String fieldComment = (String) traitData.get(tData.getFeedbackFormFieldId() + SelectionProcessConstants.UNDERSCORE + userData.getUserId());
+		fieldComment = (fieldComment == null) ? "" : fieldComment.trim();
+		
+		FeedbackFormView feedbackFormView = getNewFeedbackFormViewData(feedbackFormTitle, feedbackFormDesc, candidateName, sourceName, positionName, positionStepName, feedbackResult, interviewDate, feedbackDate,  feedbackBy, permissionSet);
+		feedbackFormView.setInterviewerName(userData.getUserName());
+		feedbackFormView.setCategoryName(categoryName);	
+		
+		if(!Utils.isBlankOrNull(candidateName) && !Utils.isBlankOrNull(positionName)){
+			String feedbackReportDesc = getFeedbackReportDesc(feedbackType,positionName);
+			feedbackFormView.setFeedbackReportDesc(feedbackReportDesc);
+		}else {
+			feedbackFormView.setFeedbackReportDesc("");
+		}
+		
+		String rating = "";
+		String ratingsId = tData.getRatingId();		
+		String ratingFieldId = (String) traitData.get(SelectionProcessConstants.RATING_ + tData.getFeedbackFormFieldId() + SelectionProcessConstants.UNDERSCORE + userData.getUserId());						
+		
+		String multipleSelect = "";
+		String multipleSelectId = tData.getMultipleSelectId();
+		String multipleSelectFieldId = (String) traitData.get(SelectionProcessConstants.MULTIPLE_SELECT_ + tData.getFeedbackFormFieldId() + SelectionProcessConstants.UNDERSCORE + userData.getUserId());						
+		
+		if(FeedbackFormConstants.GENERALISED.equalsIgnoreCase(tData.getFeedbackFormFieldDisplayType())) {	
+			if (!Utils.isBlankOrNull(ratingsId)) {
+				rating = FeedbackFormUtils.getRatingsCommentConstructed(ratings, ratingsId, ratingFieldId);
+			}
+			if(!Utils.isBlankOrNull(multipleSelectId)){
+				multipleSelect = FeedbackFormUtils.getMultipleSelectsCommentConstructed(multipleSelects, multipleSelectId, multipleSelectFieldId);
+			}
+			FeedbackFormUtils.setFeedbackFormViewAttributes(fieldTitle, fieldComment, rating, "", "", "", "", multipleSelect, feedbackFormView);				
+		} else {
+			String[] retRatingVal = new String[2];
+			if (!Utils.isBlankOrNull(ratingsId)) {
+				retRatingVal = FeedbackFormUtils.getCompactRatingsDataConstructed(ratings, ratingsId, ratingFieldId, reportFormat);
+		
+			}
+			else if(!Utils.isBlankOrNull(multipleSelectId)){
+				retRatingVal = FeedbackFormUtils.getCompactMultipleSelectsDataConstructed(multipleSelects, multipleSelectId, multipleSelectFieldId, reportFormat);
+			}
+			FeedbackFormUtils.setFeedbackFormViewAttributes(fieldTitle, "", "", retRatingVal[0], retRatingVal[1], fieldComment, fieldTitle, "", feedbackFormView);
+		}
+		return feedbackFormView;
+	}
+
+	public void changeEmailHideInteraction(String emailId) {
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dUpdateEmailHideInteraction");
+			dq.setString(1, SelectionProcessConstants.INTERACTION_UNHIDE);
+			dq.setString(2, SelectionProcessConstants.INTERACTION_HIDE);
+			dq.setString(3, SelectionProcessConstants.INTERACTION_UNHIDE);
+			dq.setId(4, emailId);
+			dq.execute();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while updating Email Hide Interaction", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+	}
+
+	public void changeSelectionProcessHideInteraction(String processId) {
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dUpdateSelectionProcessHideInteraction");
+			dq.setString(1, SelectionProcessConstants.INTERACTION_UNHIDE);
+			dq.setString(2, SelectionProcessConstants.INTERACTION_HIDE);
+			dq.setString(3, SelectionProcessConstants.INTERACTION_UNHIDE);
+			dq.setId(4, processId);
+			dq.execute();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while updating appointment status data", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+	}
+
+	public void changeCommunicationHideInteraction(String communicationId) {
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dUpdateCommunicationHideInteraction");
+			dq.setString(1, SelectionProcessConstants.INTERACTION_UNHIDE);
+			dq.setString(2, SelectionProcessConstants.INTERACTION_HIDE);
+			dq.setString(3, SelectionProcessConstants.INTERACTION_UNHIDE);
+			dq.setId(4, communicationId);
+			dq.execute();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while updating communication hide data", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+	}
+
+	public void changeMessageHideInteraction(String messadeId) {
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dUpdateMessageHideInteraction");
+			dq.setString(1, SelectionProcessConstants.INTERACTION_UNHIDE);
+			dq.setString(2, SelectionProcessConstants.INTERACTION_HIDE);
+			dq.setString(3, SelectionProcessConstants.INTERACTION_UNHIDE);
+			dq.setId(4, messadeId);
+			dq.execute();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while updating message hide data", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+	}
+
+	public void changeStatusMessageHideInteraction(String statusMessageId) {
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dUpdateStatusMessageHideInteraction");
+			dq.setString(1, SelectionProcessConstants.INTERACTION_UNHIDE);
+			dq.setString(2, SelectionProcessConstants.INTERACTION_HIDE);
+			dq.setString(3, SelectionProcessConstants.INTERACTION_UNHIDE);
+			dq.setId(4, statusMessageId);
+			dq.execute();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while updating appointment status data", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+	}
+	
+	public void changeOfferDetailsModifiedHideInteraction(String interactionId) {
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dUpdateOfferDetailsModifiedHideInteraction");
+			dq.setString(1, SelectionProcessConstants.INTERACTION_UNHIDE);
+			dq.setString(2, SelectionProcessConstants.INTERACTION_HIDE);
+			dq.setString(3, SelectionProcessConstants.INTERACTION_UNHIDE);
+			dq.setId(4, interactionId);
+			dq.execute();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while updating appointment status data", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+	}
+	
+	public ArrayList<SelectionProcessData> getApplicantUserIdAndPositionStatus(String applicantId) {
+		ArrayList<SelectionProcessData> applicantUserIdAndProcessStatus = null;
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dSelectionProcessManager_GetApplicantsUserIdAndPositionStatus");
+			dq.setId(1, applicantId);
+			applicantUserIdAndProcessStatus = dq.getResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while fetching Applicants User And Process Id", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return applicantUserIdAndProcessStatus;
+	}
+
+	public void undolastFeedback(String applicantId) throws AppointmentExistsException, Exception {
+
+		DBTransaction tran = null;
+		try {
+			tran = new DBTransaction();
+
+			SimpleDataObject sDo = getLastStepFromApplicantsSelectionProcess(applicantId, tran);
+			String processId = sDo.getString("processId");
+			String positionStepIdFrom = sDo.getString("positionStepIdFrom");
+			String positionStepIdTo = sDo.getString("positionStepIdTo");
+			String userId = sDo.getString("userId");
+			String positionId = sDo.getString("positionId");
+			String processDateCreated = sDo.getString("processDateCreated");
+			String appointmentDate = "";
+			boolean appointmentPresent = false;
+
+			//delete todos for undo feedback
+			ToDoManager toDoManager = new ToDoManager();
+			toDoManager.deleteToDo(positionId, applicantId, tran);
+			
+			if (positionStepIdFrom.equals(SelectionProcessConstants.STEP_REJECT)) { // Shortlist
+				appointmentDate = getApplicantsAppointmentDate(applicantId, positionId, positionStepIdTo);
+				// check if Appointments Present
+				appointmentPresent = checkIfAppointmentPresent(processDateCreated, appointmentDate); 
+				if (appointmentPresent) {
+					// put Error for appointment present
+					throw new AppointmentExistsException("appointmentPresent"); 
+				} else {
+					deleteApplicantSelectionProcessStep(processId, tran);
+					// update Applicants step With positionId=null and stepId=null
+					updateApplicantStepWithNull(applicantId, tran); 
+				}
+			} else {
+				if (positionStepIdTo.equals(SelectionProcessConstants.STEP_REJECT) || positionStepIdTo.equals(SelectionProcessConstants.STEP_NOT_INTERESTED_REJECT) || positionStepIdTo.equals(SelectionProcessConstants.STEP_NOT_ATTENDED)) { // Reject
+					if (positionStepIdTo.equals(SelectionProcessConstants.STEP_REJECT)) {
+						undoLastStep(applicantId, processId, positionStepIdFrom, positionStepIdTo, userId, tran);
+					}
+					if (positionStepIdTo.equals(SelectionProcessConstants.STEP_NOT_INTERESTED_REJECT)) {
+						deleteApplicantSelectionProcessStep(processId, tran);
+						// updateApplicantsSelectionProcessStep(userId,
+						// SelectionProcessConstants.STEP_ATTENDED, processId,
+						// applicantId,tran);
+					}
+					if (positionStepIdTo.equals(SelectionProcessConstants.STEP_NOT_ATTENDED)) {
+						deleteApplicantSelectionProcessStep(processId, tran);
+					}
+					updateApplicantStepWithOldStepId(applicantId, tran); 
+					// update Applicants step
+				}
+				if (positionStepIdTo.equals(SelectionProcessConstants.STEP_REPEAT) || 
+						positionStepIdTo.equals(SelectionProcessConstants.STEP_ATTENDED)) { // Not
+					// Attended-Reschedule
+					deleteApplicantSelectionProcessStep(processId, tran);
+					String appointmentId = getApplicantsAppointmentId(applicantId, positionId, positionStepIdFrom);
+					// change appointment status to 1
+					updateApplicantsAppointmentStatus(appointmentId, tran);
+				}
+				if (positionStepIdTo.equals(SelectionProcessConstants.STEP_JOIN)) { // Join
+					undoLastStep(applicantId, processId, positionStepIdFrom, positionStepIdTo, userId, tran);
+					// update Applicants step
+					updateApplicantStepWithOldStepId(applicantId, tran); 
+					// set joining status to Zero
+					updateApplicantsJoiningStatus(applicantId, tran);					
+					removeIfExistApplicantLatestJoiningHistory(applicantId, tran);
+				}
+				if (positionStepIdTo.equals(SelectionProcessConstants.STEP_ON_HOLD)) {
+					appointmentDate = getApplicantsAppointmentDate(applicantId, positionId, positionStepIdTo);
+					// check if Appointments Present
+					appointmentPresent = checkIfAppointmentPresent(processDateCreated, appointmentDate);					
+					if (appointmentPresent) {
+						throw new AppointmentExistsException("appointmentPresent"); 
+						// put Error for appointment present
+					} else {
+						undoLastStep(applicantId, processId, positionStepIdFrom, positionStepIdTo, userId, tran);
+						// update Applicants step
+						updateApplicantStepWithOldStepId(applicantId, tran);						
+					}
+				}
+				if (Integer.parseInt(positionStepIdTo) > 0) { 
+					// Upgrade to next level
+					appointmentDate = getApplicantsAppointmentDate(applicantId, positionId, positionStepIdTo);
+					// check if Appointments Present
+					appointmentPresent = checkIfAppointmentPresent(processDateCreated, appointmentDate); 
+					
+					if (appointmentPresent) {
+						// put Error for appointment present
+						throw new AppointmentExistsException("appointmentPresent"); 
+					} else {
+						undoLastStep(applicantId, processId, positionStepIdFrom, positionStepIdTo, userId, tran);
+						// update Applicants step
+						updateApplicantStepWithOldStepId(applicantId, tran); 
+					}
+				}
+			}
+			
+			toDoManager.regenerateToDo(positionId, applicantId, tran);
+			
+			TPIndexEventQueue.push(new TPIndexEvent(TPIndexEvent.TYPE_UPDATE_APPLICANT, applicantId, TPIndexEvent.PRIORITY_HIGH));
+			tran.commit();
+		} catch (SQLException e) {
+			TPLogger.getLogger().error("Error while undo last feedback", e);
+			tran.rollback();
+			throw e;
+		} finally {
+			tran.release();
+		}
+	}
+
+	public void undoLastStep(String applicantId, String processId, String positionStepIdFrom, String positionStepIdTo, String userId, DBTransaction tran) throws Exception {
+		String lastUserId = "";
+		deleteSelectionProcessTraits(processId, userId, tran); // delete traits		
+		// with userId=?
+		// processId=?
+		lastUserId = getLastUserIdFromSelectionProcessTraits(processId, tran); // select
+		// lastUserId
+		// from traits
+		if (!Utils.isBlankOrNull(lastUserId)) {
+			updateApplicantsSelectionProcessStep(lastUserId, SelectionProcessConstants.STEP_ON_HOLD, processId, applicantId, tran);// update
+			// SP
+			// with
+			// lastUserId
+			// and
+			// position_step_id_to=-1
+		} else {
+			String isSchedulable = isStepSchedulable(positionStepIdFrom);
+			if (isSchedulable.equals("1")) {
+				updateApplicantsSelectionProcessStep(userId, SelectionProcessConstants.STEP_ATTENDED, processId, applicantId, tran);// update
+				// SP
+				// with
+				// userId=?
+				// position_step_id_to=-5
+			} else {
+				deleteApplicantSelectionProcessStep(processId, tran);
+			}
+		}
+	}
+
+	public SimpleDataObject getLastStepFromApplicantsSelectionProcess(String applicantId, DBTransaction tran) throws Exception {
+		DBPreparedQuery dq = null;
+		SimpleDataObject sDo = null;
+		try {
+			dq = new DBPreparedQuery("dSelectionProcessManager_GetLastStepFromApplicantsSelectionProcess", tran);
+			dq.setString(1, applicantId);
+			sDo = (SimpleDataObject) dq.getSingleObjectResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while fetching last step from applicant selection process", e);
+		} finally {
+			if (dq != null) {
+				if (tran == null) {
+					dq.releaseConnection();
+				} else {
+					dq.closeOpenCursors();
+				}
+			}
+		}
+		return sDo;
+	}
+
+	public void deleteSelectionProcessTraits(String processId, String userId, DBTransaction tran) throws Exception {
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dDeleteApplicantProcessStepTraits", tran);
+			dq.setString(1, processId);
+			dq.setString(2, userId);
+			dq.execute();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while deleting Applicant Selection Process Traits", e);
+			throw e;
+		} finally {
+			if (dq != null) {
+				if (tran == null) {
+					dq.releaseConnection();
+				} else {
+					dq.closeOpenCursors();
+				}
+			}
+		}
+	}
+
+	public String getLastUserIdFromSelectionProcessTraits(String processId, DBTransaction tran) throws Exception {
+		DBPreparedQuery dq = null;
+		String lastUserId = "";
+		try {
+			dq = new DBPreparedQuery("dSelectionProcessManager_GetLastUserIdFromSelectionProcessTraits", tran);
+			dq.setString(1, processId);
+			lastUserId = dq.getIdResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while fetching last userId from applicant selection process traits", e);
+			throw e;
+		} finally {
+			if (dq != null) {
+				if (tran == null) {
+					dq.releaseConnection();
+				} else {
+					dq.closeOpenCursors();
+				}
+			}
+		}
+		return lastUserId;
+	}
+
+	public String isStepSchedulable(String positionStepId) {
+		DBPreparedQuery dq = null;
+		String isSchedulable = "";
+		try {
+			dq = new DBPreparedQuery("dSelectionProcessManager_GetIsStepSchedulable");
+			dq.setString(1, positionStepId);
+			SimpleDataObject sDo = (SimpleDataObject) dq.getSingleObjectResult();
+			if(sDo!=null){
+				isSchedulable = sDo.getString("stepIsScheduled");
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while fetching IsStepSchedulable", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return isSchedulable;
+	}
+
+	public void updateApplicantsSelectionProcessStep(String userId, String processStepIdTo, String processId, String applicantId, DBTransaction tran) throws Exception {
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dSelectionProcessManager_UpdateApplicantsSelectionProcess", tran);
+			dq.setString(1, userId);
+			dq.setString(2, processStepIdTo);
+			dq.setString(3, processId);
+			dq.setString(4, applicantId);
+			dq.execute();
+		} catch (SQLException e) {
+			TPLogger.getLogger().error("Error while Updating ApplicantsSelectionProcess", e);
+			throw e;
+		} finally {
+			if (dq != null) {
+				if (tran == null) {
+					dq.releaseConnection();
+				} else {
+					dq.closeOpenCursors();
+				}
+			}
+		}
+	}
+
+	public void deleteApplicantSelectionProcessStep(String processId, DBTransaction tran) throws Exception {
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dSelectionProcessManager_DeleteApplicantSelectionProcessStep", tran);
+			dq.setString(1, processId);
+			dq.execute();
+		} catch (SQLException e) {
+			TPLogger.getLogger().error("Error while deleting ApplicantsSelectionProcess Step", e);
+			throw e;
+		} finally {
+			if (dq != null) {
+				if (tran == null) {
+					dq.releaseConnection();
+				} else {
+					dq.closeOpenCursors();
+				}
+			}
+		}
+	}
+
+	public void updateApplicantStepWithOldStepId(String applicantId, DBTransaction tran) throws Exception {
+		DBPreparedQuery dq = null;
+		try {
+			// get last setp of ASP
+			SimpleDataObject sDo = getLastStepFromApplicantsSelectionProcess(applicantId, tran);
+			String positionStepIdFrom = sDo.getString("positionStepIdFrom");
+			String positionStepIdTo = sDo.getString("positionStepIdTo");
+			String positionId = sDo.getString("positionId");
+			String stepId = "";
+			if (Integer.parseInt(positionStepIdTo) >= 0) {
+				stepId = positionStepIdTo;
+			} else {
+				stepId = positionStepIdFrom;
+			}
+			if (!Utils.isBlankOrNull(stepId)) {
+				// update last step
+				dq = new DBPreparedQuery("dSelectionProcessManager_updateApplicantStepWithOldStepId", tran);
+				dq.setString(1, positionId);
+				dq.setString(2, stepId);
+				dq.setString(3, applicantId);
+				dq.execute();
+			}
+		} catch (SQLException e) {
+			TPLogger.getLogger().error("Error while Updating Applicants table", e);
+			throw e;
+		} finally {
+			if (dq != null) {
+				if (tran == null) {
+					dq.releaseConnection();
+				} else {
+					dq.closeOpenCursors();
+				}
+			}
+		}
+	}
+
+	public void updateApplicantStepWithNull(String applicantId, DBTransaction tran) throws Exception {
+		DBPreparedQuery dq = null;
+		try {
+			String positionId = null;
+			String stepId = null;
+			dq = new DBPreparedQuery("dSelectionProcessManager_updateApplicantStepWithOldStepId", tran);
+			dq.setString(1, positionId);
+			dq.setString(2, stepId);
+			dq.setString(3, applicantId);
+			dq.execute();
+		} catch (SQLException e) {
+			TPLogger.getLogger().error("Error while Updating Applicants table", e);
+			throw e;
+		} finally {
+			if (dq != null) {
+				if (tran == null) {
+					dq.releaseConnection();
+				} else {
+					dq.closeOpenCursors();
+				}
+			}
+		}
+	}
+
+	public void updateApplicantsJoiningStatus(String applicantId, DBTransaction tran) throws Exception {
+		DBPreparedQuery dq = null;
+		try {
+			String applicantJoined = SelectionProcessConstants.APPLICANT_NOT_JOINED;
+			String applicantDateJoined = null;
+			dq = new DBPreparedQuery("dSelectionProcessManager_updateApplicantsJoiningStatus", tran);
+			dq.setString(1, applicantJoined);
+			dq.setString(2, applicantDateJoined);
+			dq.setString(3, applicantId);
+			dq.execute();
+		} catch (SQLException e) {
+			TPLogger.getLogger().error("Error while Updating Applicants table", e);
+			throw e;
+		} finally {
+			if (dq != null) {
+				if (tran == null) {
+					dq.releaseConnection();
+				} else {
+					dq.closeOpenCursors();
+				}
+			}
+		}
+	}
+	
+	public void removeIfExistApplicantLatestJoiningHistory(String applicantId, DBTransaction tran) throws Exception {
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dSelectionProcessManager_UndoJoiningHistory", tran);			
+			dq.setString(1, applicantId);
+			dq.execute();
+		} catch (SQLException e) {
+			TPLogger.getLogger().error("Error while Updating Applicants joining history table", e);
+			throw e;
+		} finally {
+			if (dq != null) {
+				if (tran == null) {
+					dq.releaseConnection();
+				} else {
+					dq.closeOpenCursors();
+				}
+			}
+		}
+	}
+
+	public String getApplicantsAppointmentId(String applicantId, String positionId, String positionStepIdFrom) {
+		DBPreparedQuery dq = null;
+		String appointmentId = "";
+		try {
+			dq = new DBPreparedQuery("dSelectionProcessManager_GetApplicantsAppointmentId");
+			dq.setString(1, applicantId);
+			dq.setString(2, positionId);
+			dq.setString(3, positionStepIdFrom);
+			appointmentId = dq.getIdResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while fetching Applicants Appointment Id", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return appointmentId;
+	}
+
+	public void updateApplicantsAppointmentStatus(String appointmentId, DBTransaction tran) throws Exception {
+		DBPreparedQuery dq = null;
+		try {
+			int appointmentStatusId = CalendarConstants.APPOINTMENT_STATUS_TENTATIVE; // value
+			// 1
+			dq = new DBPreparedQuery("dSelectionProcessManager_updateApplicantsAppointmentStatus", tran);
+			dq.setInt(1, appointmentStatusId);
+			dq.setString(2, appointmentId);
+			dq.execute();
+		} catch (SQLException e) {
+			TPLogger.getLogger().error("Error while Updating Applicants appointment Status", e);
+			throw e;
+		} finally {
+			if (dq != null) {
+				if (tran == null) {
+					dq.releaseConnection();
+				} else {
+					dq.closeOpenCursors();
+				}
+			}
+		}
+	}
+
+	public String getApplicantsAppointmentDate(String applicantId, String positionId, String positionStepIdTo) {
+		DBPreparedQuery dq = null;
+		String appointmentDate = "";
+		try {
+			dq = new DBPreparedQuery("dSelectionProcessManager_GetApplicantsAppointmentDate");
+			dq.setString(1, applicantId);
+			dq.setString(2, positionId);
+			dq.setString(3, positionStepIdTo);
+			appointmentDate = dq.getIdResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while fetching Applicants Appointment Date", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return appointmentDate;
+	}
+
+	public boolean checkIfAppointmentPresent(String processDateCreated, String appointmentDate) {
+		boolean appointmentpresent = false;
+		String dateFormat = "yyyy-MM-dd HH:mm:ss"; // date fromat yyyy-MM-dd
+		// HH:mm:ss
+		if (!Utils.isBlankOrNull(appointmentDate) && !Utils.isBlankOrNull(processDateCreated)) {
+			Date processCreatedDate = Utils.convertToDate(processDateCreated, dateFormat);
+			Date appointmntDate = Utils.convertToDate(appointmentDate, dateFormat);
+			int chk = appointmntDate.compareTo(processCreatedDate);
+			if (chk > 0) {
+				appointmentpresent = true;
+			}
+		}
+		return appointmentpresent;
+	}
+
+	public void saveAndUpdateReminder(String userId, String applicantId, String reminderId, Date dateTime, String description) throws SQLException {
+		DBPreparedQuery dq = null;
+		try {
+			if (Utils.isBlankOrNull(reminderId)) {
+				// insert
+				dq = new DBPreparedQuery("dSelectionProcessManager_InsertReminder");
+				if(Utils.isBlankOrNull(applicantId)) {
+					dq.setInt(1, Types.NULL);
+				} else {
+					dq.setInt(1, Integer.parseInt(applicantId));
+				}				
+				dq.setString(2, userId);
+				dq.setTimestamp(3, new Timestamp(dateTime.getTime()));
+				dq.setString(4, description);
+				dq.execute();
+			} else {
+				// update
+				dq = new DBPreparedQuery("dSelectionProcessManager_UpdateReminder");
+				dq.setTimestamp(1, new Timestamp(dateTime.getTime()));
+				dq.setString(2, description);
+				if(Utils.isBlankOrNull(applicantId)) {
+					dq.setInt(3, Types.NULL);
+				} else {
+					dq.setInt(3, Integer.parseInt(applicantId));
+				}
+				dq.setId(4, userId);
+				dq.setId(5, reminderId);
+				dq.execute();
+			}
+		} catch (SQLException e) {
+			TPLogger.getLogger().error("Error in updating reminder", e);
+			throw e;
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+	}
+
+	public SelectionProcessData getReminderData(String reminderId) {
+		DBPreparedQuery dq = null;
+		SelectionProcessData sData = null;
+		try {
+			dq = new DBPreparedQuery("dSelectionProcessManager_GetApplicantReminder");
+			dq.setId(1, reminderId);
+			sData = (SelectionProcessData) dq.getSingleObjectResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting applicant reminder", e);
+
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return sData;
+	}
+	
+	public ArrayList searchCandidate(String searchName) {
+		ArrayList applicants = null;
+		DBPreparedQuery dq = null;
+		try {
+			String[] dynParam = new String[1];
+			dynParam[0] = " AND (applicant_name like ? OR applicant_name like ? )";
+			dq = new DBPreparedQuery("dGetSearchedApplicant", dynParam);
+			
+			dq.setString(1, ApplicantConstants.APPLICANT_NOT_JOINED);
+			dq.setString(2, searchName+"%");
+			dq.setString(3, "% " + searchName + "%");
+			applicants = dq.getResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting attachments from tmperory table", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return applicants;
+	}
+
+	public String getApplicantXML(ArrayList<ApplicantData> applicants) {
+		StringWriter sWr = new StringWriter();
+		XMLWriter wr = new XMLWriter(sWr);
+		try {
+			wr.startDocument();
+			wr.startElement("rows");
+			if (applicants != null) {
+				for (int i = 0; i < applicants.size(); i++) {
+					ApplicantData aData = applicants.get(i);
+					
+					AttributesImpl atr = new AttributesImpl();
+					atr.addAttribute("", "id", "", "", aData.getApplicantId());
+					wr.startElement("", "row", "", atr);
+					
+					wr.startElement("cell");
+					wr.characters(aData.getApplicantName());
+					wr.endElement("cell");
+					
+					wr.endElement("row");
+				}
+			}
+			wr.endElement("rows");
+			wr.endDocument();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting XML content for email header", e);
+		}
+		return sWr.getBuffer().toString();
+	}
+	
+	public ArrayList<SimpleDataObject> getFlagsWithApplicantCount(String applicantIds, String userId) {
+		ArrayList<SimpleDataObject> result = null;
+		DBPreparedQuery dq = null;
+		try {
+			String[] dynParams = new String[1];
+			dynParams[0] = applicantIds;
+
+			dq = new DBPreparedQuery("dSelection_GetFlagsWithNoOfApplicants", dynParams);
+			dq.setString(1, MastersConstants.FLAG_TYPE_PUBLIC);
+			dq.setId(2, userId);			
+			result = dq.getResult();
+
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error getting categories and no of applicants map", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return result;
+	}
+	
+	public List<SimpleDataObject> getAllFlags(String userId) {
+		List<SimpleDataObject> flags = null;
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dSelection_GetAllFlags");
+			dq.setString(1, MastersConstants.FLAG_TYPE_PUBLIC);
+			dq.setString(2, userId);
+			flags = dq.getResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting flags", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return flags;
+	}
+	
+	
+	
+	
+	public void draftOrSendEmail(String templateTypeId, String applicantId, 
+			String applicantPositionId, String applicantStepId, String userId){
+		try{
+			TemplateManager templateManager = new TemplateManager();
+			TemplateData templateData = templateManager.getTemplateDataByTemplateTypeId(templateTypeId);
+			String contentVM = templateData.getTemplateContentFile();
+			String subjectVM = templateData.getTemplateSubjectFile();
+			String keyMap = templateData.getTemplateVariables();
+		
+
+		LoginManager loginManager = new LoginManager();
+		LoginData userData = loginManager.getUser(userId);		
+		String contentStr = TemplateUtils.getConvertedUserData(userData);
+		String employeeStr = "";
+		String globalVar = "";
+		
+		ApplicantManager applicantManager = new ApplicantManager();
+		ApplicantData applicantData = applicantManager.getApplicantData(applicantId);
+		String lastFeedback = applicantManager.getCandidateInterviewFeedback(applicantData.getApplicantId(), applicantPositionId, applicantStepId);
+		String candidateStr = TemplateUtils.getConvertedApplicantData(applicantData, lastFeedback);
+		contentStr = TemplateUtils.appndToToken(contentStr, candidateStr);
+		
+		
+		
+
+		
+		PositionManager positionManager = new PositionManager();
+		PositionData pData = positionManager.getPositionSummary(applicantPositionId);
+		String positionTitle = TemplateUtils.getConstructedToken("POSITION_NAME", pData.getPositionTitle());
+		contentStr = TemplateUtils.appndToToken(contentStr, positionTitle);
+
+		if (!Utils.isBlankOrNull(applicantStepId)) {
+			String positionStepName="";
+			if(applicantStepId.equals("-2")){
+				positionStepName=TemplateUtils.getConstructedToken("POSITION_STEP_NAME","Joined");
+			}
+			else if(applicantStepId.equals("0")||applicantStepId.equals("-4")){
+				positionStepName=TemplateUtils.getConstructedToken("POSITION_STEP_NAME","Rejected");
+			}
+			else if(applicantStepId.equals("-6")){
+				positionStepName=TemplateUtils.getConstructedToken("POSITION_STEP_NAME","Step Not Attended");
+			}
+			else{
+			positionStepName= TemplateUtils.getConstructedToken("POSITION_STEP_NAME", positionManager.getPositionStepName(Integer.parseInt(applicantStepId)));
+			}
+			contentStr = TemplateUtils.appndToToken(contentStr, positionStepName);
+		}
+		
+		
+		
+		
+		
+		MastersManager mastersManager = new MastersManager();
+		SourceData sourceData = mastersManager.getSource(String.valueOf(applicantData.getApplicantSourceId()));
+		
+		if(sourceData!=null){
+			employeeStr = TemplateUtils.getConvertedEmployeeData(sourceData);
+			contentStr = TemplateUtils.appndToToken(contentStr, employeeStr);
+		}
+		
+		InboxManager inboxManager = new InboxManager();
+		InboxData inboxData = inboxManager.getCurrentInboxSettings();
+		
+		if(inboxData!=null && !Utils.isBlankOrNull(inboxData.getInboxDisplayName()) ){
+			globalVar = TemplateUtils.getConvertedGlobalVars(inboxData);
+			contentStr = TemplateUtils.appndToToken(contentStr, globalVar);
+		}
+
+		HashMap<String, String> keyValMap = TemplateUtils.getKeyValueMap(keyMap, contentStr);
+		VelocityManager velocityManager = new VelocityManager();
+		String subject = velocityManager.handle(subjectVM, keyValMap);
+		String content = velocityManager.handle(contentVM, keyValMap);
+
+		
+		MessageData messageData = new MessageData();
+		messageData.setFrom(inboxData.getInboxDisplayName() + " <" + inboxData.getInboxEmail() + ">");
+		messageData.setReadStatus(InboxConstants.INBOX_EMAIL_STATUS_UNREAD);
+		messageData.setHtmlBody(content);
+		messageData.setSubject(subject);
+		//added for Recruiter to notify for current position
+		SelectionProcessUtils selectionProcessUtils=new SelectionProcessUtils();
+		String recuiterEmailForPosition=selectionProcessUtils.getRecruiterEmailForPosition(applicantPositionId);
+	
+		
+		if(TemplateConstants.TEMPLATE_TYPE_REJECTION_EMAIL_TO_CANDIDATE.equals(templateTypeId)) {
+			messageData.setTo(applicantData.getApplicantEmail1());
+			messageData.setCc(applicantData.getApplicantEmail2());
+		/*	if(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_SEND_MAIL_TO_RECRUITER_FOR_REJECTED_CANDIDATE).equals(GlobalConstants.ENABLED)){
+				messageData.setCc(recuiterEmailForPosition);
+			}*/
+		
+		}
+		else if(TemplateConstants.TEMPLATE_TYPE_ON_HOLD_EMAIL_TO_RECRUITER.equals(templateTypeId)){
+			
+			messageData.setTo(recuiterEmailForPosition);
+			
+		}
+		else if(TemplateConstants.TEMPLATE_TYPE_CANDIDATE_PROGRESS_TO_RECRUITER.equals(templateTypeId)){
+			
+			messageData.setTo(recuiterEmailForPosition);
+			
+		}
+		else {
+			//userData = loginManager.getUser(applicantData.getVendorId());
+			messageData.setTo(sourceData.getSourceEmail());
+			if(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_SEND_MAIL_TO_RECRUITER_FOR_REJECTED_CANDIDATE).equals(GlobalConstants.ENABLED)){
+				messageData.setCc(recuiterEmailForPosition);
+			}
+		}		
+		if(TemplateConstants.TEMPLATE_SAVE_AS_DRAFT.equals(templateData.getIsTemplateSaveAsDraft())) {			
+			int folderId = inboxManager.getFolderIdForSystemFolderDrafts();
+			messageData.setFolderId(folderId);
+			messageData.setApplicantId(applicantId);
+			messageData.setPositionId(applicantPositionId);
+			messageData.setStepId(applicantStepId);
+			Calendar cal = new GregorianCalendar();
+			messageData.setSendDate(new java.sql.Date(new Timestamp(cal.getTime().getTime()).getTime()));
+			inboxManager.saveMessage(messageData, ""+folderId, userId);
+		} else {
+			try{
+			TPMailSender sender = new TPMailSender();
+			sender.send(messageData, InboxConstants.EMAIL_BODY_HTML, null);
+			}
+			catch(Exception e){
+				TPLogger.getLogger("mail could not be sent");
+			}
+		}
+		}catch(Exception e){
+			TPLogger.getLogger().error(e);
+		}
+		
+	}
+	
+	public void sendEmailForAppliedPositions(String templateTypeId, String applicantId, 
+			String applicantPositionId, String applicantStepId, String userId, String positionId) throws Exception {
+		TemplateManager templateManager = new TemplateManager();
+		TemplateData templateData = templateManager.getTemplateDataByTemplateTypeId(templateTypeId);
+		String contentVM = templateData.getTemplateContentFile();
+		String subjectVM = templateData.getTemplateSubjectFile();
+		String keyMap = templateData.getTemplateVariables();
+
+		LoginManager loginManager = new LoginManager();
+		LoginData userData = loginManager.getUser(userId);		
+		String contentStr = TemplateUtils.getConvertedUserData(userData);
+		String employeeStr = "";
+		String globalVar = "";
+		
+		ApplicantManager applicantManager = new ApplicantManager();
+		ApplicantData applicantData = applicantManager.getApplicantData(applicantId);
+		String lastFeedback = applicantManager.getCandidateInterviewFeedback(applicantData.getApplicantId(), applicantPositionId, applicantStepId);
+		String candidateStr = TemplateUtils.getConvertedApplicantData(applicantData, lastFeedback);
+		contentStr = TemplateUtils.appndToToken(contentStr, candidateStr);
+		
+		PositionManager positionManager = new PositionManager();
+		PositionData pData = positionManager.getPositionSummary(applicantPositionId);
+		String positionTitle = TemplateUtils.getConstructedToken("POSITION_NAME", pData.getPositionTitle());
+		contentStr = TemplateUtils.appndToToken(contentStr, positionTitle);
+
+		if (!Utils.isBlankOrNull(applicantStepId)) {
+			String positionStepName = TemplateUtils.getConstructedToken("POSITION_STEP_NAME", positionManager.getPositionStepName(Integer.parseInt(applicantStepId)));
+			contentStr = TemplateUtils.appndToToken(contentStr, positionStepName);
+		}
+		
+		MastersManager mastersManager = new MastersManager();
+		SourceData sourceData = mastersManager.getSource(String.valueOf(applicantData.getApplicantSourceId()));
+		
+		if(sourceData!=null){
+			employeeStr = TemplateUtils.getConvertedEmployeeData(sourceData);
+			contentStr = TemplateUtils.appndToToken(contentStr, employeeStr);
+		}
+		
+		InboxManager inboxManager = new InboxManager();
+		InboxData inboxData = inboxManager.getCurrentInboxSettings();
+		
+		if(inboxData!=null && !Utils.isBlankOrNull(inboxData.getInboxDisplayName()) ){
+			globalVar = TemplateUtils.getConvertedGlobalVars(inboxData);
+			contentStr = TemplateUtils.appndToToken(contentStr, globalVar);
+		}
+
+		HashMap<String, String> keyValMap = TemplateUtils.getKeyValueMap(keyMap, contentStr);
+		VelocityManager velocityManager = new VelocityManager();
+		String subject = velocityManager.handle(subjectVM, keyValMap);
+		String content = velocityManager.handle(contentVM, keyValMap);
+
+		
+		MessageData messageData = new MessageData();
+		messageData.setFrom(inboxData.getInboxDisplayName() + " <" + inboxData.getInboxEmail() + ">");
+		messageData.setReadStatus(InboxConstants.INBOX_EMAIL_STATUS_UNREAD);
+		messageData.setHtmlBody(content);
+		messageData.setSubject(subject);
+		TPMailSender sender = new TPMailSender();
+		
+		String[] roles = new String[1];
+		roles[0] = "" + UserConstants.ROLE_RECRUITER;
+		
+		ArrayList<com.talentPool.positions.dataobject.UserData> users = positionManager.getRecruiterForPosition(positionId, roles);
+		for (com.talentPool.positions.dataobject.UserData userData2 : users) {
+				messageData.setTo(userData2.getUserEmail());
+				try{
+					sender.send(messageData, InboxConstants.EMAIL_BODY_HTML, null);
+				}catch(Exception e){
+					TPLogger.getLogger().error("Failed to send position dropped notification email to "+userData2.getUserEmail(), e);
+				}							
+			}
+	}
+	
+	public ArrayList<SelectionProcessData> getLastProcessDataForBulkFeedback(String[] applicantIds, PermissionSet permissionSet) {
+		ArrayList<SelectionProcessData> applicants = null;
+		DBPreparedQuery dq = null;
+		try {
+			String[] dynParams = new String[2];
+			if(applicantIds.length >0){
+			  dynParams[0]="(";
+			}else{
+			  dynParams[1] = " ";
+			}
+			dynParams[1] = " ";
+			ArrayList<String> dynamicContent = new ArrayList<String>();
+			for (int i = 0; i < applicantIds.length; i++) {
+				if (i > 0) {
+					dynParams[1] += " OR ";
+					dynParams[0] += " , ";
+				}
+				dynParams[1] += " tasp.applicant_id=? ";
+				dynamicContent.add(applicantIds[i]);
+				dynParams[0] += ""+applicantIds[i];
+			}
+			
+			if(applicantIds.length >0){
+				dynParams[0] += ")";
+			}
+
+			dq = new DBPreparedQuery("dSelectionProcessManager_GetLastProcessDataForBulkFeedback", dynParams);
+			int cnt = 1;
+			dq.setString(cnt++, SelectionProcessConstants.STEP_REJECT);
+			dq.setString(cnt++, SelectionProcessConstants.STEP_REJECT);
+			for (int i = 0; i < dynamicContent.size(); i++) {
+				dq.setId(cnt++, dynamicContent.get(i));
+			}
+			applicants = dq.getResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return applicants;
+	}
+
+	public boolean isAutorisedUserForPositionStep(PermissionSet permissionSet, String positionStepId, String userId) {
+		boolean isAuthorised = false;
+		DBPreparedQuery dq = null;
+		try {
+			if (permissionSet.isSHOW_ALL_POSITIONS()) {
+				isAuthorised = true;
+			} else {
+				dq = new DBPreparedQuery("dSelectionProcessManager_GetPositionStepForUser");
+				dq.setId(1, userId);
+				dq.setId(2, positionStepId);
+				int noOfUsers = dq.getIntResult();
+				if (noOfUsers > 0) {
+					isAuthorised = true;
+				}
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return isAuthorised;
+	}
+
+	public ArrayList<StepData> getAllNextStepsForPosition(String positionId, String fromStepId, String stepLevel, String excludeStepLevel) {
+		ArrayList<StepData> steps = null;
+		DBPreparedQuery dq = null;
+		try {
+			String[] dynParams = new String[1];
+			dynParams[0] = "";
+			ArrayList<String> dynamicContent = new ArrayList<String>();
+			if (!Utils.isBlankOrNull(excludeStepLevel)) {
+				String qMarks = Utils.setDynamicParamsAndReturnQmarks(excludeStepLevel, dynamicContent);
+				dynParams[0] += " AND position_step_level NOT IN (" + qMarks + ") ";
+			}
+			if (Integer.parseInt(fromStepId) > Integer.parseInt(SelectionProcessConstants.STEP_REJECT)) {
+				dynParams[0] += " AND position_step_rank > (SELECT position_step_rank FROM tp_position_steps WHERE position_step_id = ?)";
+				dynamicContent.add(fromStepId);
+			}
+			if (!Utils.isBlankOrNull(stepLevel)) {
+				String qMarks = Utils.setDynamicParamsAndReturnQmarks(stepLevel, dynamicContent);
+				dynParams[0] += " AND position_step_level IN (" + qMarks + ") ";
+			}
+			dq = new DBPreparedQuery("dSelectionProcessManager_GetNextStepsForPosition", dynParams);
+			dq.setId(1, positionId);
+			dq.setString(2, PositionConstants.STEP_ACTIVE);
+			int cnt = 3;
+			for (int i = 0; i < dynamicContent.size(); i++) {
+				dq.setString(cnt++, dynamicContent.get(i));
+			}
+			steps = dq.getResult();
+
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return steps;
+	}
+	
+	public ArrayList<StepData> getStepsTillNextMandatory(ArrayList<StepData> result) {
+		ArrayList<StepData> steps = null;
+		try {
+			if (result != null) {
+				steps = new ArrayList<StepData>();
+				for (int i = 0; i < result.size(); i++) {
+					StepData stepData = result.get(i);
+					steps.add(stepData);
+					if (stepData.getStepOptional() == PositionConstants.STEP_MANDATORY) {
+						break;
+					}
+				}
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return steps;
+	}
+
+	public void addTempTraits(String sessionId, String applicantId, String userId, Map feedback, HashMap<String,String> ratingsIdValues){
+		DBPreparedQuery dbq = null;
+		try {	
+			if (feedback != null && feedback.size() > 0) {
+				dbq = new DBPreparedQuery("dSelectionProcessManager_DeleteTempTraits");
+				dbq.setString(1, sessionId);
+				dbq.setString(2, applicantId);
+				dbq.setString(3, userId);
+				dbq.execute();
+				
+				Iterator<String> itr = feedback.keySet().iterator();
+				while (itr.hasNext()) {
+					String key = itr.next();
+					String[] parts = key.split(SelectionProcessConstants.UNDERSCORE);
+					String value = (String) feedback.get(key);
+					value = (value == null) ? "" : value;
+					String ratingFieldId = (ratingsIdValues.get(key) == null) ? "" : ratingsIdValues.get(key);
+	
+					ratingFieldId = Utils.isBlankOrNull(ratingFieldId) ? null : ratingFieldId;
+
+					dbq = new DBPreparedQuery("dSelectionProcessManager_AddTempTraits");
+					dbq.setString(1, sessionId);
+					dbq.setString(2, applicantId);
+					dbq.setString(3, parts[0]);
+					dbq.setString(4, value);
+					dbq.setString(5, parts[1]);
+					if (ratingFieldId == null) {
+						dbq.setNull(6, Types.NUMERIC);
+					} else {
+						dbq.setString(6, ratingFieldId);
+					}
+					dbq.execute();
+				}
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if(dbq != null) {
+				dbq.releaseConnection();
+			}
+		}
+	}
+	
+	public ArrayList<TraitData> getTempTrait(String sessionId, String applicantId, String userId){
+		DBPreparedQuery db = null;
+		ArrayList<TraitData> traitList = new ArrayList<TraitData>();
+		try {
+			db = new DBPreparedQuery("dSelectionProcessManager_GetTempTraits");
+			db.setString(1, sessionId);
+			db.setString(2, applicantId);
+			db.setString(3, userId);
+			traitList = db.getResult();
+			
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}finally {
+			if(db != null) {
+				db.releaseConnection();
+			}
+		}
+		return traitList;
+	}
+
+	public List<SelectionProcessData> getInProcessApplicants(PermissionSet permissionSet, String userRole, 
+			String userId, String departmentId, String positionId, String applicantName, String stepName, 
+			String stepLevel, String locationTitle, String positionTypeExtInt, String selectedUserId,String sourceId,String selectedView) {
+		return getInProcessApplicants(permissionSet, userRole, userId, departmentId, positionId, 
+				applicantName, stepName, stepLevel, locationTitle, positionTypeExtInt, selectedUserId, 
+				sourceId, selectedView, false);
+	}
+	
+	public List<SelectionProcessData> getInProcessApplicants(PermissionSet permissionSet, String userRole, 
+			String userId, String departmentId, String positionId, String applicantName, String stepName, 
+			String stepLevel, String locationTitle, String positionTypeExtInt, String selectedUserId,
+			String sourceId,String selectedView, boolean fetchAll) {
+		DBPreparedQuery dq = null;
+		List<SelectionProcessData> applicants = null;
+		String showPOsitionCode = GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_SHOW_POSITION_CODE);
+		int noOFRecord = 0;
+		String record = GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_GRID_RESULT_PAGE_SIZE);
+		noOFRecord = Integer.parseInt(record)+1;
+		try {
+			ArrayList<String> dynamicContent = new ArrayList<String>();
+			String[] dynParam = new String[3];
+		
+			dynParam[0] = " tpos.position_title ";
+			dynParam[1] = " ";
+			dynParam[2] = (fetchAll) ? " " : " LIMIT 0, "+ noOFRecord;
+			
+			if(showPOsitionCode.equals(GlobalConstants.ENABLED)){
+				dynParam[0] = " tpos.position_code ";
+			}
+			
+			if (permissionSet.isDO_NOT_SHOW_CONFIDENTIAL_PROFILE()) {
+				dynParam[1] = " AND ta.is_confidential = ?";
+				dynamicContent.add(ApplicantConstants.APPLICANT_NOT_CONFIDENTIAL);
+			}
+			
+			dynParam[1] += PositionWithRightsClause.getClauseForStepUserAndRequestedByAndRequisitionApproval(userId, "ta.applicant_position_id", dynamicContent, permissionSet);
+			
+			if(!Utils.isBlankOrNull(stepLevel)) {
+				if(NavigationConstants.T_SELECT.equals(selectedView)) {
+					String qMarks = Utils.setDynamicParamsAndReturnQmarks(stepLevel, dynamicContent);
+					dynParam[1] += " AND tps.position_step_level in ("+qMarks+")  ";
+				}else if(NavigationConstants.T_HIRE.equals(selectedView)) {
+					dynParam[1] += " AND tps.position_step_level = ? ";
+					dynamicContent.add(stepLevel);
+				}else if(NavigationConstants.T_POSITIONS.equals(selectedView)) {
+					String qMarks = Utils.setDynamicParamsAndReturnQmarks(stepLevel, dynamicContent);
+					dynParam[1] += " AND tps.position_step_level in ("+qMarks+")  ";
+				}
+			}else {
+				dynParam[1] += " AND tps.position_step_level = ? ";
+				dynamicContent.add(PositionConstants.STEP_LEVEL_NONE);
+			}
+			
+			if (!Utils.isBlankOrNull(departmentId)) {
+				dynParam[1] += " AND tpos.dept_id = ? ";
+				dynamicContent.add(departmentId);
+			}
+			if (!Utils.isBlankOrNull(positionId)) {
+				dynParam[1] += " AND tpos.position_id=? ";
+				dynamicContent.add(positionId);
+			}
+			if (!Utils.isBlankOrNull(applicantName)) {
+				dynParam[1] += " AND ta.applicant_name LIKE ? ";
+				dynamicContent.add("%" + applicantName + "%");
+			}
+			if (!Utils.isBlankOrNull(stepName)) {
+				dynParam[1] += " AND tps.position_step_title = ? ";
+				dynamicContent.add(stepName.trim());
+			}
+			if (!Utils.isBlankOrNull(locationTitle)) {
+				dynParam[1] += " AND ta.applicant_city LIKE ? ";
+				dynamicContent.add(locationTitle + "%" );
+			}					
+			if (!Utils.isBlankOrNull(positionTypeExtInt)) {
+				dynParam[1] += " AND tpos.position_type_ext_int=? ";
+				dynamicContent.add(positionTypeExtInt);
+			}
+			
+			
+			if(!Utils.isBlankOrNull(selectedUserId)) {
+				if(selectedUserId.indexOf(",")!=-1){
+					String qMarks = Utils.setDynamicParamsAndReturnQmarks(selectedUserId, dynamicContent);
+					dynParam[1] += " AND todo.user_id in ("+qMarks+")  AND todo.feedback_present=? ";
+					dynamicContent.add(ToDoConstants.FEEDBACK_NOT_PRESENT);
+				}else{
+					dynParam[1] += " AND todo.user_id=?  AND todo.feedback_present=? ";
+					dynamicContent.add(selectedUserId);
+					dynamicContent.add(ToDoConstants.FEEDBACK_NOT_PRESENT);
+				}
+		
+			}	
+			if (!Utils.isBlankOrNull(positionId)) {
+				dynParam[1]+=" AND todo.position_id="+positionId;
+			}
+			
+			if (!Utils.isBlankOrNull(sourceId)) {
+				dynParam[1] += " AND ts.source_id=? ";
+				dynamicContent.add(sourceId);
+			}
+			
+			dq = new DBPreparedQuery("dSelectionProcessManager_GetInProcessApplicants", dynParam);						
+			int cnt = 1;
+			dq.setString(cnt++, userId);
+			dq.setString(cnt++, MastersConstants.FLAG_TYPE_PUBLIC);
+			
+			dq.setInt(cnt++, PositionConstants.STEP_SCHEDULED);
+			dq.setInt(cnt++, PositionConstants.RESPONSIBLE_FOR_SCHEDULING);
+			
+			dq.setInt(cnt++, CalendarConstants.APPOINTMENT_STATUS_NOSHOW);
+			dq.setInt(cnt++, CalendarConstants.APPOINTMENT_STATUS_HAPPENED);
+			dq.setInt(cnt++, PositionConstants.STEP_INTERVIEWER_CAN_CONFIRM);
+			dq.setInt(cnt++, PositionConstants.RESPONSIBLE_FOR_INTERVIEW);
+			dq.setInt(cnt++, PositionConstants.RESPONSIBLE_FOR_SCHEDULING);
+			dq.setInt(cnt++, PositionConstants.RESPONSIBLE_FOR_SCHEDULING);
+			
+			dq.setInt(cnt++, PositionConstants.RESPONSIBLE_FOR_INTERVIEW);
+			dq.setInt(cnt++, PositionConstants.RESPONSIBLE_FOR_DECISION);	
+			dq.setInt(cnt++, PositionConstants.RESPONSIBLE_FOR_INTERVIEW);
+	
+			dq.setString(cnt++, ToDoConstants.FEEDBACK_NOT_PRESENT);
+			dq.setString(cnt++, ToDoConstants.TODO_TYPE_SELECTION);
+			dq.setString(cnt++, PositionConstants.POSITION_STATUS_OPENED);
+			
+			for (int i = 0; i < dynamicContent.size(); i++) {
+				dq.setString(cnt++, dynamicContent.get(i));
+			}
+			applicants = dq.getResult();
+			
+		}catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return applicants;
+	}
+	
+	public SimpleDataObject getLatestAppointmentsForApplicant(String applicantId) {
+		DBPreparedQuery dq = null;
+		SimpleDataObject sDo = null;
+		try {
+			dq = new DBPreparedQuery("dSelectionProcessManager_GetLatestAppointmentsForApplicant");
+			dq.setId(1, applicantId);
+			sDo = (SimpleDataObject) dq.getSingleObjectResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return sDo;
+	}
+	
+	public boolean isSourceEmployee(String srcId) {
+		DBPreparedQuery dq = null;
+		String email = null;
+		try {
+			dq = new DBPreparedQuery("dSelectionProcessManager_GetSourceType");
+			dq.setId(1, srcId);
+			email = dq.getIdResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return true;
+	}
+	
+	public String getEmployeeEmailAddress(String srcId) {
+		DBPreparedQuery dq = null;
+		String email = null;
+		try {
+			dq = new DBPreparedQuery("dSelectionProcessManager_GetEmployeeEmailAddress");
+			dq.setId(1, srcId);
+			email = dq.getIdResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return email;
+	}
+	
+	private SourceData getSourceMailandType(String applicantId) {
+		DBPreparedQuery dq = null;
+		SourceData sourceData = null;
+		try {
+			dq = new DBPreparedQuery("dSelectionProcessManager_GetSourceMailandType");
+			dq.setId(1, applicantId);
+			sourceData = (SourceData) dq.getSingleObjectResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return sourceData;
+	}
+	
+	/**
+	 * Fetches processId's for a given applicant and position.
+	 * If positionId is null the fetches all processId's for the given applicant 
+	 * @param applicantId
+	 * @param positionId
+	 * @return Comma delimited processId's String
+	 */
+	public String getApplicantProcessIds(String applicantId,String positionId) {
+		DBPreparedQuery dq = null;
+		String processIds = null;
+		String[] dynaParam = {""};
+		ArrayList<String> dynamicContent = new ArrayList<String>();
+		int cnt =1;
+		try {
+			if(!Utils.isBlankOrNull(positionId)){
+				dynaParam[0] = "AND tasp.position_id=? ";
+				dynamicContent.add(positionId);
+			}
+			dq = new DBPreparedQuery("dSelectionProcessManager_GetApplicantProcessIds",dynaParam);
+			dq.setId(cnt++, applicantId);
+			dq.setId(cnt++, SelectionProcessConstants.STEP_REJECT);
+			for (String parameterVal : dynamicContent) {
+				dq.setString(cnt++, parameterVal);
+			}
+			processIds = dq.getStringResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return processIds;
+	}
+	
+	public List getUsersPresentInSelectionProcessStep(String stepId) {
+		DBPreparedQuery dq = null;
+		List resuleSet = null;
+		try {
+			dq = new DBPreparedQuery("dSelectionProcessManager_GetPositionStepUsersOfAllTypes");
+			dq.setString(1, stepId);
+			resuleSet = dq.getResult();
+			
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while determining whether user is present in selection process step or not", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return resuleSet;
+	}
+	
+	public String getStepToShortlist(String positionId) {
+		DBPreparedQuery dq = null;
+		String stepId = null;
+		try {
+			dq = new DBPreparedQuery("dSelection_GetStepToShortlist");
+			dq.setId(1, positionId);
+			dq.setId(2, PositionConstants.STEP_ACTIVE);
+			stepId = dq.getIdResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return stepId;
+	}
+	
+	public FeedbackData getApplicantOfferDetails(String applicantId){
+		DBPreparedQuery dq = null;
+		FeedbackData feedbackData = null;
+		try {
+			dq = new DBPreparedQuery("dSelection_GetApplicantOfferDetails");
+			dq.setId(1, applicantId);
+			feedbackData =(FeedbackData) dq.getSingleObjectResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return feedbackData;
+	}
+	
+	public void saveOfferDetails(String applicantId, ApplicantOfferDetails applicantOfferDetails, DBTransaction tran) throws SQLException, NumberFormatException   {
+		DBPreparedQuery dq = null;
+		int cnt = 1;
+		try {
+			if(tran!=null){
+				dq = new DBPreparedQuery("dSelection_SaveApplicantOfferDetails", tran);				
+			}else {
+				dq = new DBPreparedQuery("dSelection_SaveApplicantOfferDetails");				
+			}
+			dq.setString(cnt++, applicantOfferDetails.getOfferedCTC());
+			dq.setString(cnt++, applicantOfferDetails.getOfferedBasic());
+			dq.setString(cnt++, applicantOfferDetails.getOfferedLevel());
+			dq.setString(cnt++, applicantOfferDetails.getOfferedDesignation());
+			if(!Utils.isBlankOrNull(applicantOfferDetails.getInputSalaryVariable())) {
+				dq.setInt(cnt++, Integer.parseInt(applicantOfferDetails.getInputSalaryVariable()));
+			} else {
+				dq.setNull(cnt++, Types.INTEGER);
+			}
+			dq.setId(cnt++, applicantId);
+			dq.execute();
+		}  finally {
+			if (dq != null) {
+				if (tran == null) {
+					dq.releaseConnection();
+				} else {
+					dq.closeOpenCursors();
+				}
+			}
+		}
+	}
+	
+	
+	public void saveOfferDetails(String applicantId, String offeredCTC, String offeredBasic, String desginationOffered, String levelOffered, DBTransaction tran) throws SQLException {
+		DBPreparedQuery dq = null;
+		int cnt = 1;
+		try {
+			if(tran!=null){
+				dq = new DBPreparedQuery("dSelection_SaveApplicantOfferDetails", tran);				
+			}else {
+				dq = new DBPreparedQuery("dSelection_SaveApplicantOfferDetails");				
+			}
+			dq.setString(cnt++, offeredCTC);
+			dq.setString(cnt++, offeredBasic);
+			dq.setString(cnt++, levelOffered);
+			dq.setString(cnt++, desginationOffered);
+			dq.setId(cnt++, applicantId);
+			dq.execute();
+		}  finally {
+			if (dq != null) {
+				if (tran == null) {
+					dq.releaseConnection();
+				} else {
+					dq.closeOpenCursors();
+				}
+			}
+		}
+	}
+	
+	public void rejectApplicant(SimpleDataObject sdo,String userId, String clientIpAddr) throws Exception {
+		boolean isConflictingConcurrentResult = saveSelectionProcessResult(sdo.getAttribute("applicantId").toString(),sdo.getAttribute("positionId").toString(),
+					sdo.getAttribute("positionStepFrom").toString(), SelectionProcessConstants.STEP_REJECT, userId, null, null, null, 
+					false,null, null, null, null, null, null, (String)sdo.getAttribute("communicationId"),
+					Boolean.TRUE.toString(), "", "", null, null, null,null,null, clientIpAddr,null,null);
+		if(!isConflictingConcurrentResult){
+			sendRejectEmails(userId, sdo.getAttribute("applicantId").toString(), sdo.getAttribute("positionStepFrom").toString(), sdo.getAttribute("positionId").toString());
+		}
+	}
+	
+	public SimpleDataObject getApplicantSelectionProcessData(String applicantId,DBTransaction tran) throws SQLException{
+		SimpleDataObject sDo = null;
+		DBPreparedQuery dq = null;
+		String communicationId = null;
+		try {
+			dq = new DBPreparedQuery("dApplicantManager_getApplicantSelectionProcessData",tran);
+			dq.setString(1, applicantId);
+			sDo = (SimpleDataObject) dq.getSingleObjectResult();
+			communicationId = getCommunicationId(applicantId);
+			sDo.setAttribute("communicationId", communicationId);
+		} finally {
+			if (dq != null) {
+				if (tran == null) {
+					dq.releaseConnection();
+				} else {
+					dq.closeOpenCursors();
+				}
+			}
+		}
+		return sDo;
+	}
+	
+	public void sendRejectEmails(String userId,String applicantId, String currentStep, String positionId) throws Exception {
+		ApplicantManager applicantManager = new ApplicantManager();
+		if(GlobalConstants.ENABLED.equals(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_REJECTION_EMAIL_TO_CANDIDATE))) {
+			// Send mail or save draft
+			draftOrSendEmail(TemplateConstants.TEMPLATE_TYPE_REJECTION_EMAIL_TO_CANDIDATE, applicantId, positionId, currentStep, userId);
+		}
+		boolean doSendCandidateRejectEmailToVendor = GlobalConstants.ENABLED.equals(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_REJECTION_EMAIL_TO_VENDOR));
+		boolean doSendCandidateRejectEmailToEmployee = GlobalConstants.ENABLED.equals(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_REJECTION_EMAIL_TO_EMPLOYEE));
+		if(doSendCandidateRejectEmailToVendor || doSendCandidateRejectEmailToEmployee) {
+			
+			ApplicantData applicantData = applicantManager.getApplicantSummaryData(applicantId);
+			if(!Utils.isBlankOrNull(applicantData.getVendorId())) {
+				LoginManager loginManager = new LoginManager();
+				LoginData data = loginManager.getUser(applicantData.getVendorId());
+				if((""+UserConstants.ROLE_VENDOR).equals(data.getRoleId())) {
+					if(doSendCandidateRejectEmailToVendor) {
+						draftOrSendEmail(TemplateConstants.TEMPLATE_TYPE_REJECTION_EMAIL_TO_VENDOR, applicantId, positionId, currentStep, userId);
+					}
+				} else {
+					if(doSendCandidateRejectEmailToEmployee) {
+						// commented by as this mail was already sent while saving the selection process through scheduler.
+					//	draftOrSendEmail(TemplateConstants.TEMPLATE_TYPE_REJECTION_EMAIL_TO_EMPLOYEE, applicantId, positionId, currentStep, userId);
+					}
+				}
+			}						
+		}
+		ArrayList<PositionData> positions =applicantManager.getPositionsAndResumesAppliedByCandidate(applicantId,false);
+		if (positions!=null && positions.size()>0){
+			for (PositionData position:positions){
+				sendEmailForAppliedPositions(TemplateConstants.TEMPLATE_TYPE_REJECTION_EMAIL_TO_VENDOR, applicantId, positionId, currentStep, userId, position.getPositionId());
+			}
+		}
+	}
+	
+	/**
+	 * Method to retrieve all users for whom enter feedback action is pending for given process.
+	 * <p>If processId is null then action is fetched using applicantId and currentStepId.</p>
+	 * <p>Method excluded userId passed, as we need other user action pending for a process.</p>  
+	 * @param processId
+	 * @param applicantId
+	 * @param currentStepId
+	 * @return List of users
+	 */
+	public String getUsersWithPendingAction(String processId,String applicantId,String currentStepId,String userId){
+		String pendingActionUser = null;
+		DBPreparedQuery dq = null;
+		String[] dynParam = {""};
+		List<String> dynamicContent = new ArrayList<String>();
+		int cnt = 1;
+		try {
+			if(!Utils.isBlankOrNull(processId)){
+				dynParam[0] = "AND todo.process_id=? ";
+				dynamicContent.add(processId);
+			}else {
+				dynParam[0] = "AND tasp.applicant_id=? AND tasp.position_step_id_to = ? ";
+				dynamicContent.add(applicantId);
+				dynamicContent.add(currentStepId);
+			}
+				
+			dq = new DBPreparedQuery("dSelectionProcess_GetUsersWithPendngAction",dynParam);
+			for (String paramVal : dynamicContent) {
+				dq.setString(cnt++, paramVal);
+			}
+			dq.setString(cnt++, userId);
+			dq.setString(cnt++, ToDoConstants.FEEDBACK_NOT_PRESENT);
+			dq.setInt(cnt++, PositionConstants.RESPONSIBLE_FOR_SCHEDULING);
+			
+			pendingActionUser = dq.getStringResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {				
+				dq.releaseConnection();
+			}
+		}
+		return pendingActionUser;
+	}
+	
+	public ArrayList<FeedbackFormView> validateFinalReportData(String applicantId, ArrayList<FeedbackFormView> finalReportData,String feedbackType, PermissionSet permissionSet){
+		if(finalReportData==null || finalReportData.isEmpty()){
+			FeedbackData fData = getApplicantSummaryData(applicantId);
+			FeedbackFormView feedbackFormView = getNewFeedbackFormViewData("", 
+					"", fData.getApplicantName(), fData.getApplicantSourceTitle(), fData.getPositionTitle(), 
+					"", "", "", "", "", permissionSet);
+			
+			if(!Utils.isBlankOrNull(fData.getPositionTitle())){
+				String feedbackReportDesc = getFeedbackReportDesc(feedbackType, fData.getPositionTitle());
+				feedbackFormView.setFeedbackReportDesc(feedbackReportDesc);
+			}else {
+				feedbackFormView.setFeedbackReportDesc("");
+			}
+			
+			if(SelectionProcessConstants.SUMMARY_FEEDBACK.equals(feedbackType)){
+				feedbackFormView.setNoDataMessage(TPLabels.getLabel("feedback_form_report.message.summary_no_data"));
+			}else {
+				feedbackFormView.setNoDataMessage(TPLabels.getLabel("feedback_form_report.message.detail_no_data"));	
+			}
+			
+			finalReportData = new ArrayList<FeedbackFormView>();
+			finalReportData.add(feedbackFormView);
+		}
+		return finalReportData;
+	}
+	
+	private String getFeedbackReportDesc(String feedbackType, String positionName){
+		String feedbackReportDesc = "";
+		Object[] args = {TPLabels.getLabel("common.position"),positionName};
+		if(SelectionProcessConstants.SUMMARY_FEEDBACK.equals(feedbackType)){
+			feedbackReportDesc = TPLabels.getLabel("feedback_form_report.description.summary_feedbackReportDesc",args);
+		}else if(SelectionProcessConstants.DETAILED_FEEDBACK.equals(feedbackType)){
+			feedbackReportDesc = TPLabels.getLabel("feedback_form_report.description.detail_feedbackReportDesc",args);
+		}else{
+			feedbackReportDesc = TPLabels.getLabel("feedback_form_report.description.feedbackReportDesc",args);
+		}
+		return feedbackReportDesc;
+	}
+	
+	/**
+	 * This method will return true if any applicant is moved to accept/hire step level from any 
+	 * step level like shortlist/select 
+	 * @param positionStepIdFrom
+	 * @param positionStepIdTo
+	 * @return
+	 */
+	private boolean isMoveToAccept(String positionStepIdFrom,String positionStepIdTo){
+		DBPreparedQuery dq = null;
+		boolean isMoveToAccept = false;
+		String stepLevelStepIdFrom = null;
+		String stepLevelStepIdTo = null;		
+		try {			
+			String[] dynParam = new String[1];
+			dynParam[0] = positionStepIdFrom+","+positionStepIdTo;
+			dq = new DBPreparedQuery("dSelectionProcessManager_GetStepLevel", dynParam);
+			List resultSet = dq.getResult();
+			
+			for(int i=0; i<resultSet.size();i++){
+				SimpleDataObject sdo = (SimpleDataObject)resultSet.get(i);
+				if(i==0){
+					stepLevelStepIdFrom  = sdo.getId("positionStepLevel");
+				}else if(i==1){
+					stepLevelStepIdTo = sdo.getId("positionStepLevel");
+				}
+			}
+			
+			if(stepLevelStepIdTo.equalsIgnoreCase(PositionConstants.STEP_LEVEL_ACCEPT) 
+					& (stepLevelStepIdFrom.equalsIgnoreCase(PositionConstants.STEP_LEVEL_SELECT) 
+							|| (stepLevelStepIdFrom.equalsIgnoreCase(PositionConstants.STEP_LEVEL_SHORTLIST)))){
+				isMoveToAccept = true;
+			}else{
+				isMoveToAccept = false;
+			}
+			
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return isMoveToAccept;
+	}
+	
+	public void updateApplicantAttribute(String attributeValue, String applicantId, String applicantAttribute){
+		DBPreparedQuery dq = null;
+		try{
+			String[] dynParam = new String[1];
+			dynParam[0] = applicantAttribute+" = ?";
+			dq = new DBPreparedQuery("dSelectionProcessManager_UpdateApplicantAttribute",dynParam);
+			dq.setString(1, attributeValue);
+			dq.setString(2, applicantId);
+			dq.execute();
+		}catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR,e);
+		}finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+	}
+
+	
+
+	/**
+	 * Checks whether Applicant is in hire stage or not. 
+	 * @param applicantId
+	 * @return "0" if not in hire stage.
+	 * <BR> "1" if in hire stage
+	 * @throws Exception
+	 */
+	public boolean isApplicantInHireStage(String applicantId) throws Exception {
+		DBPreparedQuery dq = null;
+		try{
+			dq = new DBPreparedQuery("dSelectionProcess_IsApplicantInHireStage");
+			dq.setString(1, SelectionProcessConstants.APPLICANT_JOINED);
+			dq.setString(2, StepConstants.STEP_STAGE_HIRE);
+			dq.setString(3, applicantId);
+			int flag = dq.getIntResult();
+			if(flag==1) {
+				return true;
+			} else {
+				return false;
+			}
+		}catch (SQLException | NoResultFoundException e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR,e);
+			throw e;
+		}finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+	}
+
+	
+	public String getFeedbackFormIdForUserProcessApplicant(String userId, String processId){
+		String feedbackFormId="";
+		DBPreparedQuery dq = null;
+		try{
+			dq = new DBPreparedQuery("dSelectionProcessManager_GetFeedbackFormIdForUserProcessApplicant");
+			dq.setId(1, userId);
+			dq.setId(2, processId);			
+			feedbackFormId=dq.getIntResult()+"";
+		}catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR,e);
+		}
+		return feedbackFormId;
+	}	
+	
+	
+	/**
+	 * Method to fetch List of Rejected Candidates with applied filters 
+	 * @param positionId
+	 * @return List of rejectedCandidates. 
+	 * <BR>Null if any exception
+	 * <BR>Empty List if resultset is empty 
+	 * @throws SQLException
+	 */
+	public List<RejectedCandidateData> getRejectedCandidatesData(String positionId, PermissionSet permissionSet, String stepName,String rejectedBy, String applicantName) throws SQLException {
+		List<RejectedCandidateData> rcdLst = null;
+		DBPreparedQuery dq = null;
+		String[] dynParam = {""};
+		ArrayList<String> dynamicContent = new ArrayList<String>();
+		int cnt=1;
+		try {
+			if (permissionSet.isDO_NOT_SHOW_CONFIDENTIAL_PROFILE()) {
+				dynParam[0] += " AND ta.is_confidential=? ";
+				dynamicContent.add(ApplicantConstants.APPLICANT_NOT_CONFIDENTIAL);
+			}
+						
+			if(!Utils.isBlankOrNull(stepName)){
+				dynParam[0] += " AND tps.position_step_title =?  ";
+				dynamicContent.add(stepName);
+			}
+			
+			if(!Utils.isBlankOrNull(rejectedBy)){
+				dynParam[0] += " AND CONCAT(tu.user_fname,' ',tu.user_lname) =?  ";
+				dynamicContent.add(rejectedBy);
+			}
+			
+			if (!Utils.isBlankOrNull(applicantName)) {
+				dynParam[0] += " AND applicant_name like ? ";
+				dynamicContent.add(applicantName + "%");
+			}
+			
+			dq = new DBPreparedQuery("dSelectionProcess_GetRejectedCandidates", dynParam);
+			// following constants injected to represent rejection state
+			dq.setString(cnt++, SelectionProcessConstants.STEP_REJECT);
+			dq.setString(cnt++, SelectionProcessConstants.STEP_NOT_INTERESTED_REJECT);
+			dq.setString(cnt++, SelectionProcessConstants.STEP_NOT_ATTENDED);
+			dq.setString(cnt++, SelectionProcessConstants.STEP_POSITION_CLOSED_REJECT);
+			dq.setString(cnt++, positionId);
+			for (String dynParamVal : dynamicContent) {
+				dq.setString(cnt++, dynParamVal);
+			} 
+			
+			rcdLst = (List<RejectedCandidateData>) dq.getResult();
+			TPLogger.getLogger().debug("Total rejected candidates fetched " + (Utils.isListEmptyOrNull(rcdLst)? 0 : rcdLst.size()));
+		} catch(SQLException e){
+			TPLogger.getLogger().error("Error while fetching rejected candidates ", e);
+			throw e;
+		}
+		finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return rcdLst;
+	}
+
+	public boolean isSelectionProcessHidden(String interactionId) {
+		String isHidden = "";
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dSelectionProcessManager_IsSelectionProcessHidden");
+			dq.setId(1, interactionId);
+			isHidden = dq.getStringResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR,e);
+		}  finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return (isHidden.equals(SelectionProcessConstants.INTERACTION_HIDE));
+	}
+
+	/**
+	 * @param positionId
+	 * @return if the position vacancy and joined candidate count are equal
+	 */
+	public boolean isPositionVacancyFilled(String positionId) {
+		String isVacancyFull = "";
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dSelectionProcessManager_isPositionVacancyFilled");
+			dq.setId(1, positionId);
+			isVacancyFull = dq.getStringResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR,e);
+		}  finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return (CommonConstants.YES.equals(isVacancyFull)); 
+	}
+	
+	public SelectionProcessData getApplicantPositionStatus(String applicantId, String positionId) {
+		DBPreparedQuery dq = null;
+		SelectionProcessData sData = null;
+		try {
+			dq = new DBPreparedQuery("dSelectionProcessManager_GetApplicantPositionStatus");
+			dq.setString(1, applicantId);
+			dq.setString(2, positionId);
+			sData = (SelectionProcessData) dq.getSingleObjectResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting applicant reminder", e);
+
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return sData;
+	}
+	
+	public Long getPositionId(String applicantId) {
+		DBPreparedQuery dq = null;
+		Long positionId=null;
+		try {
+			dq = new DBPreparedQuery("dSelectionProcessManager_getSelectedPositionIdForApplicantId");
+			dq.setString(1, applicantId);
+			positionId = dq.getLongResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting position id", e);
+
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return positionId;
+	}
+	
+	public List getApplicantsForMassEmail(PermissionSet permissionSet, String userRole, String userId, String departmentId, String positionId, 
+			String candidateName, String stepName, String stepLevel, String locationTitle, 
+			String actionRequired, String selectedUserIds, String toDoType, String sortOrder, String sortByColumn,String selectedIds){	
+		DBPreparedQuery dq = null;
+		List applicants = null;
+		try {
+			ArrayList<String> dynamicContent = new ArrayList<String>();
+			String[] dynParam = new String[23];
+			boolean isGetAggregateResult = false;
+			if(!Utils.isBlankOrNull(toDoType) && !DashboardConstants.TODO_LIST_TYPE_LIST.equals(toDoType) 
+					&& Utils.isBlankOrNull(positionId) && Utils.isBlankOrNull(actionRequired) && Utils.isBlankOrNull(stepName)) {
+				isGetAggregateResult = true;
+			}
+			if(isGetAggregateResult) {
+				dynParam[0] = " SELECT TBL4.action_required AS action_required, COUNT(*) AS count, " + 
+								" '' AS applicant_id, '' AS applicant_name, '' AS applicant_working_since, '' AS current_employer, " +
+								" '' AS applicant_date_joined, '' AS date, '' AS dept_name, TBL4.position_title AS position_title, " +
+								" TBL4.position_step_title AS position_step_title, TBL4.position_id AS position_id, '' AS position_step_id, '' AS position_step_rank, " +
+								" '' AS selected_message, '' AS flags, '' AS applicant_cell_phone, " +
+								" '' AS users_responsible, action_type, CAST(v_process_moved_date AS DATETIME) AS v_process_moved_date, v_process_date_created, '' AS email_id FROM ( ";
+			} else {
+				dynParam[0] = "";
+			}
+			
+			dynamicContent.add(""+PositionConstants.STEP_NOT_SCHEDULED);
+			dynamicContent.add(TPLabels.getLabel("dashboard.label.todo.onhold"));
+			dynamicContent.add(TPLabels.getLabel("dashboard.label.todo.feedback"));
+			dynamicContent.add(TPLabels.getLabel("dashboard.label.todo.schedule"));
+			dynamicContent.add(TPLabels.getLabel("dashboard.label.todo.conduct"));			
+			dynamicContent.add(TPLabels.getLabel("dashboard.label.todo.confirm"));			
+			dynamicContent.add(TPLabels.getLabel("dashboard.label.todo.onhold"));
+			dynamicContent.add(TPLabels.getLabel("dashboard.label.todo.feedback"));
+			dynamicContent.add(""+PositionConstants.STEP_NOT_SCHEDULED);
+			dynamicContent.add(""+DashboardConstants.ACTION_ON_HOLD);
+			dynamicContent.add(""+DashboardConstants.ACTION_REQUIRED_FEEDBACK);
+			dynamicContent.add(""+DashboardConstants.ACTION_REQUIRED_SCHEDULE);
+			dynamicContent.add(""+DashboardConstants.ACTION_ON_CONDUCT);
+			dynamicContent.add(""+DashboardConstants.ACTION_REQUIRED_CONFIRM_ATTENDANCE);
+			dynamicContent.add(""+DashboardConstants.ACTION_ON_HOLD);
+			dynamicContent.add(""+DashboardConstants.ACTION_REQUIRED_FEEDBACK);
+			dynamicContent.add(""+PositionConstants.STEP_NOT_SCHEDULED);
+			
+			if(!Utils.isBlankOrNull(selectedUserIds)) {
+				dynParam[1] = " DISTINCT(CONCAT(iu.USER_FNAME, '_', iu.USER_ID))";
+				dynParam[2] = " AND iu.user_id = ? GROUP BY iu.USER_ID ";								
+				dynParam[3] = " DISTINCT(CONCAT(iu.USER_FNAME, '_', iu.USER_ID))";
+				dynParam[4] = " AND iu.user_id = ? GROUP BY iu.USER_ID ";
+				dynParam[5] = " DISTINCT(CONCAT(iu.USER_FNAME, '_', iu.USER_ID))";
+				dynParam[6] = " AND iu.user_id = ? GROUP BY iu.USER_ID ";
+				dynParam[7] = " DISTINCT(CONCAT(iu.USER_FNAME, '_', iu.USER_ID))";
+				dynParam[8] = " AND iu.user_id = ? GROUP BY iu.USER_ID ";
+				dynParam[9] = " DISTINCT(CONCAT(iu.USER_FNAME, '_', iu.USER_ID))";
+				dynParam[10] = " AND iu.user_id = ? GROUP BY iu.USER_ID ";
+				dynParam[11] = " DISTINCT(CONCAT(iu.USER_FNAME, '_', iu.USER_ID))";
+				dynParam[12] = " AND iu.user_id = ? GROUP BY iu.USER_ID ";
+				
+				dynamicContent.add(""+PositionConstants.NOT_RESPONSIBLE_FOR_SCHEDULING);
+				dynamicContent.add(""+PositionConstants.AUTHORIZED_TO_MOVE);				
+				dynamicContent.add(selectedUserIds);
+				
+				dynamicContent.add(""+PositionConstants.RESPONSIBLE_FOR_SCHEDULING);
+				dynamicContent.add(selectedUserIds);
+				
+				dynamicContent.add(""+PositionConstants.NOT_RESPONSIBLE_FOR_SCHEDULING);
+				dynamicContent.add(""+PositionConstants.AUTHORIZED_TO_MOVE);				
+				dynamicContent.add(selectedUserIds);
+				
+				dynamicContent.add(""+PositionConstants.RESPONSIBLE_FOR_SCHEDULING);
+				dynamicContent.add(""+PositionConstants.STEP_INTERVIEWER_CAN_CONFIRM);
+				dynamicContent.add(""+PositionConstants.NOT_RESPONSIBLE_FOR_SCHEDULING);
+				dynamicContent.add(selectedUserIds);
+				
+				dynamicContent.add(""+PositionConstants.NOT_RESPONSIBLE_FOR_SCHEDULING);
+				dynamicContent.add(""+PositionConstants.AUTHORIZED_TO_MOVE);	
+				dynamicContent.add(selectedUserIds);
+				
+				dynamicContent.add(""+PositionConstants.NOT_RESPONSIBLE_FOR_SCHEDULING);
+				dynamicContent.add(selectedUserIds);
+			} else {
+				dynParam[1] = " DISTINCT(iu.USER_FNAME) ";
+				dynParam[2] = "";
+				dynParam[3] = " DISTINCT(iu.USER_FNAME) ";
+				dynParam[4] = "";
+				dynParam[5] = " DISTINCT(iu.USER_FNAME) ";
+				dynParam[6] = "";
+				dynParam[7] = " DISTINCT(iu.USER_FNAME) ";
+				dynParam[8] = "";
+				dynParam[9] = " DISTINCT(iu.USER_FNAME) ";
+				dynParam[10] = "";
+				dynParam[11] = " DISTINCT(iu.USER_FNAME) ";
+				dynParam[12] = "";
+				
+				dynamicContent.add(""+PositionConstants.NOT_RESPONSIBLE_FOR_SCHEDULING);
+				dynamicContent.add(""+PositionConstants.AUTHORIZED_TO_MOVE);
+				
+				dynamicContent.add(""+PositionConstants.RESPONSIBLE_FOR_SCHEDULING);
+				
+				dynamicContent.add(""+PositionConstants.NOT_RESPONSIBLE_FOR_SCHEDULING);
+				dynamicContent.add(""+PositionConstants.AUTHORIZED_TO_MOVE);		
+				
+				dynamicContent.add(""+PositionConstants.RESPONSIBLE_FOR_SCHEDULING);
+				dynamicContent.add(""+PositionConstants.STEP_INTERVIEWER_CAN_CONFIRM);
+				dynamicContent.add(""+PositionConstants.NOT_RESPONSIBLE_FOR_SCHEDULING);
+				
+				dynamicContent.add(""+PositionConstants.NOT_RESPONSIBLE_FOR_SCHEDULING);
+				dynamicContent.add(""+PositionConstants.AUTHORIZED_TO_MOVE);	
+				
+				dynamicContent.add(""+PositionConstants.NOT_RESPONSIBLE_FOR_SCHEDULING);
+			}
+			
+			dynamicContent.add(userId);
+			dynamicContent.add(MastersConstants.FLAG_TYPE_PUBLIC);
+			dynamicContent.add(SelectionProcessConstants.STEP_REPEAT);
+			dynamicContent.add(""+CalendarConstants.APPOINTMENT_STATUS_NOSHOW);
+			dynamicContent.add(""+PositionConstants.AUTHORIZED_TO_MOVE);
+			dynamicContent.add(PositionConstants.POSITION_STATUS_OPENED);			
+			
+			
+			
+			if(GlobalConstants.ENABLED.equals(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_SHOW_POSITION_CODE))) {
+				dynParam[13] = " tpos.position_code ";
+			} else {
+				dynParam[13] = " tpos.position_title ";
+			}
+			
+			dynParam[14] = " ";
+			if (permissionSet.isDO_NOT_SHOW_CONFIDENTIAL_PROFILE()) {
+				dynParam[14] = " AND ta.is_confidential = ?";
+				dynamicContent.add(ApplicantConstants.APPLICANT_NOT_CONFIDENTIAL);
+			}
+			
+			dynParam[15] = " ";
+			
+			if (permissionSet.isSHOW_POSITIONS_WITH_RIGHTS()) {
+				dynParam[15] += " AND ta.applicant_position_id in (select su.position_id from tp_position_step_users su, tp_position_steps ps where su.position_step_id = ps.position_step_id and ps.position_step_status = ? and su.user_id = ? "
+						+ " UNION SELECT position_id from tp_positions where position_requested_by = ? " + " UNION SELECT distinct traf.position_id FROM tp_requisition_approval_feedback traf WHERE traf.by_user_id=? OR traf.to_user_id=? ) ";
+				dynamicContent.add(PositionConstants.STEP_ACTIVE);
+				dynamicContent.add(userId);
+				dynamicContent.add(userId);
+				dynamicContent.add(userId);
+				dynamicContent.add(userId);
+			}
+			if(!Utils.isBlankOrNull(selectedIds)) {
+				String qMarks = Utils.setDynamicParamsAndReturnQmarks(selectedIds, dynamicContent);
+				dynParam[15] += " AND ta.applicant_id  in ("+qMarks+")  ";
+			}
+			if(!Utils.isBlankOrNull(stepLevel)) {
+				String qMarks = Utils.setDynamicParamsAndReturnQmarks(stepLevel, dynamicContent);
+				dynParam[15] += " AND tps.position_step_level in ("+qMarks+")  ";
+			}
+			if (!Utils.isBlankOrNull(departmentId)) {
+				dynParam[15] += " AND tpos.dept_id = ? ";
+				dynamicContent.add(departmentId);
+			}
+			if (!Utils.isBlankOrNull(positionId)) {
+				dynParam[15] += " AND tpos.position_id=? ";
+				dynamicContent.add(positionId);
+			}
+			if (!Utils.isBlankOrNull(candidateName)) {
+				dynParam[15] += " AND ta.applicant_name LIKE ? ";
+				dynamicContent.add(candidateName + "%");
+			}
+			if (!Utils.isBlankOrNull(stepName)) {
+				dynParam[15] += " AND tps.position_step_title = ? ";
+				dynamicContent.add(stepName.trim());
+			}
+			if (!Utils.isBlankOrNull(locationTitle)) {
+				dynParam[15] += " AND ta.applicant_city LIKE ? ";
+				dynamicContent.add(locationTitle + "%" );
+			}		
+			
+			if(!Utils.isBlankOrNull(selectedUserIds)) {
+				dynParam[16] = " WHERE SUBSTRING(TBL2.users_responsible FROM (LOCATE('_', TBL2.users_responsible) + 1)) = ? ";
+				dynamicContent.add(selectedUserIds);
+			} else {
+				dynParam[16] = "";
+			}		
+			
+			if(!Utils.isBlankOrNull(actionRequired)) {
+				dynParam[17] = " WHERE v_action_type = ? ";
+				dynamicContent.add(actionRequired);
+			} else {
+				dynParam[17] = "";
+			}
+			
+			if(isGetAggregateResult) {
+				dynParam[17] = " WHERE v_action_type != ? ";
+				dynamicContent.add(""+DashboardConstants.ACTION_ON_CONDUCT);
+			}
+			if(Utils.isBlankOrNull(toDoType)) {
+				dynParam[17] += " ORDER BY applicant_name ";
+			}
+
+			dynParam[18] = "";
+			dynamicContent.add(""+DashboardConstants.ACTION_REQUIRED_REQUISITION_APPROVAL);
+			dynamicContent.add(PositionConstants.POSITION_STATUS_INPROCESS);
+			dynamicContent.add(selectedUserIds);
+			if((!Utils.isBlankOrNull(toDoType))) {			
+				if(!Utils.isBlankOrNull(actionRequired)) {
+					dynParam[18] += " AND ? = ? ";
+					dynamicContent.add(""+DashboardConstants.ACTION_REQUIRED_REQUISITION_APPROVAL);
+					dynamicContent.add(actionRequired);
+				}
+				if(!Utils.isBlankOrNull(stepName)) {
+					dynParam[18] += " AND tras.requisition_approval_step_name = ? ";
+					dynamicContent.add(stepName);
+				}
+				if(!Utils.isBlankOrNull(positionId)) {					
+					dynParam[18] += " AND tp.position_id = ? ";
+					dynamicContent.add(positionId);
+				}				
+			} else {
+				dynParam[18] += " AND ?  ";
+				dynamicContent.add("0");
+			}
+			
+			dynParam[19] = "";			
+			dynamicContent.add(""+DashboardConstants.ACTION_CLEAR_DRAFT);
+			dynamicContent.add(MastersConstants.DRAFT);	
+			if(permissionSet.isSHOW_POSITIONS_WITH_RIGHTS()) {
+				dynParam[19] = " AND tie.position_id in (select su.position_id from tp_position_step_users su, tp_position_steps ps where su.position_step_id = ps.position_step_id and ps.position_step_status = ? and su.user_id = ? "
+					+ " UNION SELECT position_id from tp_positions where position_requested_by = ? " + " UNION SELECT distinct traf.position_id FROM tp_requisition_approval_feedback traf WHERE traf.by_user_id=? OR traf.to_user_id=? ) ";
+				dynamicContent.add(PositionConstants.STEP_ACTIVE);
+				dynamicContent.add(userId);
+				dynamicContent.add(userId);
+				dynamicContent.add(userId);
+				dynamicContent.add(userId);				
+			} 					
+			dynParam[20] = " ? ";
+			if((UserConstants.ROLE_HR_MANAGER == Integer.parseInt(userRole) 
+					|| UserConstants.ROLE_RECRUITER == Integer.parseInt(userRole)) 
+				&& !Utils.isBlankOrNull(toDoType)) {				
+				dynamicContent.add("1");
+				if(!Utils.isBlankOrNull(actionRequired)) {
+					dynParam[20] += " AND ? = ? ";
+					dynamicContent.add(""+DashboardConstants.ACTION_CLEAR_DRAFT);
+					dynamicContent.add(actionRequired);
+				}
+				if(!Utils.isBlankOrNull(stepName)) {
+					dynParam[20] += " AND tpps.position_step_title = ? ";
+					dynamicContent.add(stepName);
+				}
+				if(!Utils.isBlankOrNull(positionId)) {					
+					dynParam[20] += " AND tpp.position_id = ? ";
+					dynamicContent.add(positionId);
+				}		
+			} else {
+				dynamicContent.add("0");
+			}			
+			
+			dynParam[21] = "";
+			if(!Utils.isBlankOrNull(toDoType)) {
+				dynParam[21] += " ORDER BY ";
+				if(DashboardConstants.SORT_BY_CANDIDATE.equals(sortByColumn)) {
+					dynParam[21] += " applicant_name ";
+				} else if(DashboardConstants.SORT_BY_POSITION.equals(sortByColumn)) {
+					dynParam[21] += " position_title ";
+				} else if(DashboardConstants.SORT_BY_TODO.equals(sortByColumn)) {
+					dynParam[21] += " action_required ";
+				} else {
+					dynParam[21] += " v_process_date_created ";
+				}
+				
+				if(DashboardConstants.SORT_ORDER_ASC.equals(sortOrder)) {
+					dynParam[21] += " ASC ";
+				} else  {
+					dynParam[21] += " DESC ";
+				}
+			}
+        	if(isGetAggregateResult) {
+        		if(DashboardConstants.TODO_LIST_TYPE_ACTION.equals(toDoType)) {
+        			dynParam[22] = " ) AS TBL4 GROUP BY TBL4.action_type ORDER BY TBL4.action_required ";
+        		} else if(DashboardConstants.TODO_LIST_TYPE_STEP.equals(toDoType)) {
+        			dynParam[22] = " ) AS TBL4 GROUP BY TBL4.position_step_title ORDER BY TBL4.position_step_title ";
+        		} else if(DashboardConstants.TODO_LIST_TYPE_POSITION.equals(toDoType)) {
+        			dynParam[22] = " ) AS TBL4 GROUP BY TBL4.position_title ORDER BY TBL4.position_title ";
+        		}
+			} else {
+				dynParam[22] = "";
+			}
+			dq = new DBPreparedQuery("dSelectionProcessManager_GetApplicants_MassEmail", dynParam);						
+			int cnt = 1;
+			for (int i = 0; i < dynamicContent.size(); i++) {
+				dq.setString(cnt++, dynamicContent.get(i));
+			}
+			
+			applicants = dq.getResult();
+		} catch (SQLException e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}		
+		return applicants;
+	}
+	
+	public List<SelectionProcessData> getInProcessApplicantsXml(PermissionSet permissionSet, String userRole, 
+			String userId, String departmentId, String positionId, String applicantName, String stepName, 
+			String stepLevel, String locationTitle, String positionTypeExtInt, String selectedUserId,String sourceId,String selectedView,
+			String tenthMarksFilter,String tenthMarks,String twelvethMarksFilter,String twelvethMarks,String gradeMarksFilter,String gradeMarks,
+			 String postGradeMarksFilter, String postGradeMarks,String ageFilter,String age,String yearOfExperienceFilter,String yearOfExperience,
+			 String gapInAcademics,String gender) {
+		
+		return getInProcessApplicantsXml(permissionSet, userRole, userId, departmentId, positionId, 
+				applicantName, stepName, stepLevel, locationTitle, positionTypeExtInt, selectedUserId, 
+				sourceId, selectedView, false, tenthMarksFilter, tenthMarks, twelvethMarksFilter, twelvethMarks, gradeMarksFilter, gradeMarks,
+				  postGradeMarksFilter,  postGradeMarks, ageFilter, age, yearOfExperienceFilter, yearOfExperience,gapInAcademics,gender);
+	}
+	
+	public List<SelectionProcessData> getInProcessApplicantsXml(PermissionSet permissionSet, String userRole, 
+			String userId, String departmentId, String positionId, String applicantName, String stepName, 
+			String stepLevel, String locationTitle, String positionTypeExtInt, String selectedUserId,
+			String sourceId,String selectedView, boolean fetchAll,String tenthMarksFilter,String tenthMarks,String twelvethMarksFilter,String twelvethMarks,String gradeMarksFilter,String gradeMarks,
+			 String postGradeMarksFilter, String postGradeMarks,String ageFilter,String age,String yearOfExperienceFilter,String yearOfExperience,
+			 String gapInAcademics,String gender) {
+		DBPreparedQuery dq = null;
+		List<SelectionProcessData> applicants = null;
+		String showPOsitionCode = GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_SHOW_POSITION_CODE);
+		int noOFRecord = 0;
+		String record = GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_GRID_RESULT_PAGE_SIZE);
+		noOFRecord = Integer.parseInt(record)+1;
+		try {
+			ArrayList<String> dynamicContent = new ArrayList<String>();
+			String[] dynParam = new String[3];
+		
+			dynParam[0] = " tpos.position_title ";
+			dynParam[1] = " ";
+			dynParam[2] = (fetchAll) ? " " : " LIMIT 0, "+ noOFRecord;
+			
+			if(showPOsitionCode.equals(GlobalConstants.ENABLED)){
+				dynParam[0] = " tpos.position_code ";
+			}
+			
+			if (permissionSet.isDO_NOT_SHOW_CONFIDENTIAL_PROFILE()) {
+				dynParam[1] = " AND ta.is_confidential = ?";
+				dynamicContent.add(ApplicantConstants.APPLICANT_NOT_CONFIDENTIAL);
+			}
+			
+			dynParam[1] += PositionWithRightsClause.getClauseForStepUserAndRequestedByAndRequisitionApproval(userId, "ta.applicant_position_id", dynamicContent, permissionSet);
+			
+			if(!Utils.isBlankOrNull(stepLevel)) {
+				if(NavigationConstants.T_SELECT.equals(selectedView)) {
+					String qMarks = Utils.setDynamicParamsAndReturnQmarks(stepLevel, dynamicContent);
+					dynParam[1] += " AND tps.position_step_level in ("+qMarks+")  ";
+				}else if(NavigationConstants.T_HIRE.equals(selectedView)) {
+					dynParam[1] += " AND tps.position_step_level = ? ";
+					dynamicContent.add(stepLevel);
+				}else if(NavigationConstants.T_POSITIONS.equals(selectedView)) {
+					String qMarks = Utils.setDynamicParamsAndReturnQmarks(stepLevel, dynamicContent);
+					dynParam[1] += " AND tps.position_step_level in ("+qMarks+")  ";
+				}
+			}else {
+				dynParam[1] += " AND tps.position_step_level = ? ";
+				dynamicContent.add(PositionConstants.STEP_LEVEL_NONE);
+			}
+			
+			if (!Utils.isBlankOrNull(departmentId)) {
+				dynParam[1] += " AND tpos.dept_id = ? ";
+				dynamicContent.add(departmentId);
+			}
+			if (!Utils.isBlankOrNull(positionId)) {
+				dynParam[1] += " AND tpos.position_id=? ";
+				dynamicContent.add(positionId);
+			}
+			if (!Utils.isBlankOrNull(applicantName)) {
+				dynParam[1] += " AND ta.applicant_name LIKE ? ";
+				dynamicContent.add("%" + applicantName + "%");
+			}
+			if (!Utils.isBlankOrNull(stepName)) {
+				dynParam[1] += " AND tps.position_step_title = ? ";
+				dynamicContent.add(stepName.trim());
+			}
+			if (!Utils.isBlankOrNull(locationTitle)) {
+				dynParam[1] += " AND ta.applicant_city LIKE ? ";
+				dynamicContent.add(locationTitle + "%" );
+			}					
+			if (!Utils.isBlankOrNull(positionTypeExtInt)) {
+				dynParam[1] += " AND tpos.position_type_ext_int=? ";
+				dynamicContent.add(positionTypeExtInt);
+			}
+			
+			
+			if(!Utils.isBlankOrNull(selectedUserId)) {
+				if(selectedUserId.indexOf(",")!=-1){
+					String qMarks = Utils.setDynamicParamsAndReturnQmarks(selectedUserId, dynamicContent);
+					dynParam[1] += " AND todo.user_id in ("+qMarks+")  AND todo.feedback_present=? ";
+					dynamicContent.add(ToDoConstants.FEEDBACK_NOT_PRESENT);
+				}else{
+					dynParam[1] += " AND todo.user_id=?  AND todo.feedback_present=? ";
+					dynamicContent.add(selectedUserId);
+					dynamicContent.add(ToDoConstants.FEEDBACK_NOT_PRESENT);
+				}
+		
+			}	
+			if (!Utils.isBlankOrNull(positionId)) {
+				dynParam[1]+=" AND todo.position_id="+positionId;
+			}
+			
+			if (!Utils.isBlankOrNull(sourceId)) {
+				dynParam[1] += " AND ts.source_id=? ";
+				dynamicContent.add(sourceId);
+			}
+			if (!Utils.isBlankOrNull(tenthMarksFilter)) {
+				if(tenthMarksFilter.equalsIgnoreCase(ApplicantConstants.APPLICANT_MARKS_GREATER_THAN)){
+					dynParam[1] += " AND( tei.educational_info_grade > ? and tpd.degree_type=4) ";
+					
+				}
+				if(tenthMarksFilter.equalsIgnoreCase(ApplicantConstants.APPLICANT_MARKS_EQUAL_TO)){
+					dynParam[1] += " AND (tei.educational_info_grade = ? and tpd.degree_type=4) ";
+				}
+				if(tenthMarksFilter.equalsIgnoreCase(ApplicantConstants.APPLICANT_MARKS_LESS_THAN)){
+					dynParam[1] += " AND (tei.educational_info_grade < ? and tpd.degree_type=4) ";
+				}
+				
+				dynamicContent.add(tenthMarks);
+			}
+			if (!Utils.isBlankOrNull(twelvethMarksFilter)) {
+				if(twelvethMarksFilter.equalsIgnoreCase(ApplicantConstants.APPLICANT_MARKS_GREATER_THAN)){
+					dynParam[1] += " AND (tei1.educational_info_grade > ? and tpd1.degree_type=5) ";
+					
+				}
+				if(twelvethMarksFilter.equalsIgnoreCase(ApplicantConstants.APPLICANT_MARKS_EQUAL_TO)){
+					dynParam[1] += " AND (tei1.educational_info_grade = ? and tpd1.degree_type=5) ";
+				}
+				if(twelvethMarksFilter.equalsIgnoreCase(ApplicantConstants.APPLICANT_MARKS_LESS_THAN)){
+					dynParam[1] += " AND( tei1.educational_info_grade < ? and tpd1.degree_type=5 )";
+				}
+				
+				dynamicContent.add(twelvethMarks);
+			}
+			if (!Utils.isBlankOrNull(gradeMarksFilter)) {
+				if(gradeMarksFilter.equalsIgnoreCase(ApplicantConstants.APPLICANT_MARKS_GREATER_THAN)){
+					dynParam[1] += " AND (tei2.educational_info_grade > ? and tpd2.degree_type=1) ";
+					
+				}
+				if(gradeMarksFilter.equalsIgnoreCase(ApplicantConstants.APPLICANT_MARKS_EQUAL_TO)){
+					dynParam[1] += " AND (tei2.educational_info_grade = ? and tpd2.degree_type=1 )";
+				}
+				if(gradeMarksFilter.equalsIgnoreCase(ApplicantConstants.APPLICANT_MARKS_LESS_THAN)){
+					dynParam[1] += " AND (tei2.educational_info_grade < ? and tpd2.degree_type=1 )";
+				}
+				
+				dynamicContent.add(gradeMarks);
+			}
+			if (!Utils.isBlankOrNull(postGradeMarksFilter)) {
+				if(postGradeMarksFilter.equalsIgnoreCase(ApplicantConstants.APPLICANT_MARKS_GREATER_THAN)){
+					dynParam[1] += " AND (tei3.educational_info_grade > ? and tpd3.degree_type=2 )";
+					
+				}
+				if(postGradeMarksFilter.equalsIgnoreCase(ApplicantConstants.APPLICANT_MARKS_EQUAL_TO)){
+					dynParam[1] += " AND (tei3.educational_info_grade = ? and tpd3.degree_type=2) ";
+				}
+				if(postGradeMarksFilter.equalsIgnoreCase(ApplicantConstants.APPLICANT_MARKS_LESS_THAN)){
+					dynParam[1] += " AND (tei3.educational_info_grade < ? and tpd3.degree_type=2) ";
+				}
+				
+				dynamicContent.add(postGradeMarks);
+			} 
+			if (!Utils.isBlankOrNull(yearOfExperienceFilter)) {
+				if(yearOfExperienceFilter.equalsIgnoreCase(ApplicantConstants.GREATER_THAN)){
+					dynParam[1] += " AND ta.applicant_working_since<? ";
+					
+				}
+				if(yearOfExperienceFilter.equalsIgnoreCase(ApplicantConstants.EQUAL_TO)){
+					dynParam[1] += " AND ta.applicant_working_since=? ";
+				}
+				if(yearOfExperienceFilter.equalsIgnoreCase(ApplicantConstants.LESS_THAN)){
+					dynParam[1] += " AND ta.applicant_working_since>? ";
+				}
+				String workExperience=Utils.getDateForAge( Integer.parseInt(yearOfExperience));
+				dynamicContent.add(workExperience);
+			}
+			if (!Utils.isBlankOrNull(gapInAcademics)) {
+				if(gapInAcademics.equalsIgnoreCase("1")){
+					dynParam[1] += " AND tcfv.string_value=? AND tcf.custom_field_name=? ";
+					dynamicContent.add("Yes");
+					dynamicContent.add("app_academic_gap");
+				}
+				if(gapInAcademics.equalsIgnoreCase("2")){
+					dynParam[1] += " AND tcfv.string_value=? AND tcf.custom_field_name=? ";
+					dynamicContent.add("No");
+					dynamicContent.add("app_academic_gap");
+				}
+			}
+			
+			if (!Utils.isBlankOrNull(gender)) {
+				if(gender.equalsIgnoreCase("1")){
+					dynParam[1] += " AND tcfv1.string_value=? AND tcf1.custom_field_name=? ";
+					dynamicContent.add("M");
+					dynamicContent.add("app_gender");
+				}
+				if(gender.equalsIgnoreCase("2")){
+					dynParam[1] += " AND tcfv1.string_value=? AND tcf1.custom_field_name=? ";
+					dynamicContent.add("F");
+					dynamicContent.add("app_gender");
+				}
+				if(gender.equalsIgnoreCase("3")){
+					dynParam[1] += " AND tcfv1.string_value=? AND tcf1.custom_field_name=? ";
+					dynamicContent.add("Not Disclosed");
+					dynamicContent.add("app_gender");
+				}
+			}
+			dq = new DBPreparedQuery("dSelectionProcessManager_GetInProcessApplicants", dynParam);						
+			int cnt = 1;
+			dq.setString(cnt++, userId);
+			dq.setString(cnt++, MastersConstants.FLAG_TYPE_PUBLIC);
+			
+			dq.setInt(cnt++, PositionConstants.STEP_SCHEDULED);
+			dq.setInt(cnt++, PositionConstants.RESPONSIBLE_FOR_SCHEDULING);
+			
+			dq.setInt(cnt++, CalendarConstants.APPOINTMENT_STATUS_NOSHOW);
+			dq.setInt(cnt++, CalendarConstants.APPOINTMENT_STATUS_HAPPENED);
+			dq.setInt(cnt++, PositionConstants.STEP_INTERVIEWER_CAN_CONFIRM);
+			dq.setInt(cnt++, PositionConstants.RESPONSIBLE_FOR_INTERVIEW);
+			dq.setInt(cnt++, PositionConstants.RESPONSIBLE_FOR_SCHEDULING);
+			dq.setInt(cnt++, PositionConstants.RESPONSIBLE_FOR_SCHEDULING);
+			
+			dq.setInt(cnt++, PositionConstants.RESPONSIBLE_FOR_INTERVIEW);
+			dq.setInt(cnt++, PositionConstants.RESPONSIBLE_FOR_DECISION);	
+			dq.setInt(cnt++, PositionConstants.RESPONSIBLE_FOR_INTERVIEW);
+	
+			dq.setString(cnt++, ToDoConstants.FEEDBACK_NOT_PRESENT);
+			dq.setString(cnt++, ToDoConstants.TODO_TYPE_SELECTION);
+			dq.setString(cnt++, PositionConstants.POSITION_STATUS_OPENED);
+			
+			for (int i = 0; i < dynamicContent.size(); i++) {
+				dq.setString(cnt++, dynamicContent.get(i));
+			}
+			applicants = dq.getResult();
+			
+		}catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		if(!Utils.isBlankOrNull(ageFilter)&&!Utils.isBlankOrNull(age)){
+			applicants= filterDataOnDob(applicants,ageFilter,age);
+		}
+		return applicants;
+	}
+	
+	public List<SelectionProcessData> filterDataOnDob(List<SelectionProcessData> applicants,String ageFilter,String age){
+		List<SelectionProcessData> applicantsFiltered=new ArrayList<>();
+		String dob=Utils.getDateForAge( Integer.parseInt(age));
+		Date d=DateUtils.convertToDate(dob, Utils.redYYYYMMDDFormat);
+		
+		for(SelectionProcessData applicant:applicants){
+			if(ageFilter.equalsIgnoreCase(ApplicantConstants.GREATER_THAN)){
+				if(applicant.getDateOfBirth()!=null&&applicant.getDateOfBirth().before(d)){
+					applicantsFiltered.add(applicant);
+				}
+			}
+			if(ageFilter.equalsIgnoreCase(ApplicantConstants.EQUAL_TO)){
+				if(applicant.getDateOfBirth()!=null&&applicant.getDateOfBirth().equals(d)){
+					applicantsFiltered.add(applicant);
+				}
+			}
+			if(ageFilter.equalsIgnoreCase(ApplicantConstants.LESS_THAN)){
+				if(applicant.getDateOfBirth()!=null&&applicant.getDateOfBirth().after(d)){
+					applicantsFiltered.add(applicant);
+				}
+			}
+		}
+		return applicantsFiltered;
+	}
+}

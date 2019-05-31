@@ -1,0 +1,1025 @@
+<%@ taglib uri="/WEB-INF/tld/struts-html.tld" prefix="html"%>
+<%@ taglib uri="/WEB-INF/tld/struts-bean.tld" prefix="bean"%>
+<%@ taglib uri="/WEB-INF/tld/struts-logic.tld" prefix="logic"%>
+<%@ page import="org.apache.struts.Globals"%>
+<%@ page import="java.util.ArrayList" %>
+<%@ page import="java.util.List" %>
+<%@ page import="java.lang.String" %>
+<%@ page import="com.talentPool.custom.dataobject.CustomFieldData" %>
+<%@page import="com.talentPool.custom.constants.CustomFieldConstants"%>
+<%@page import="com.talentPool.custom.utils.CustomFieldUtils"%>
+<%@page import="com.talentPool.custom.utils.CustomFieldDataProcessor"%>
+<%@ page import="com.talentPool.custom.manager.CustomFieldManager" %>
+<%@page import="com.talentPool.custom.dataobject.CustomFieldCell"%>
+<%@page import="com.talentPool.custom.dataobject.CustomFieldRow"%>
+<%@page import="com.talentPool.custom.dataobject.CustomFieldTable"%>
+<%@ page import="com.talentPool.common.utils.CommonUtils" %>
+<%@ page import="com.talentPool.common.db.SimpleDataObject" %>
+<%@ page import="com.talentPool.common.utils.Utils"%>
+<%@page import="com.talentPool.applicant.manager.ImportConfigurationManager"%>
+<%@page import="com.talentPool.applicant.dataobject.ImportFieldData"%>
+<%@page import="com.talentPool.applicant.constants.ImportConfigurationConstants"%>
+<link rel="stylesheet" type="text/css" href="themes/default/calender.css">
+<script language="JavaScript" src="js/calender/CalendarPopup.js" type="text/javascript"></script>	
+<script language="JavaScript" src="js/scripta/lib/prototype.js" type="text/javascript"></script>	
+<script language="JavaScript" src="js/scripta/src/effects.js" type="text/javascript"></script>
+<script language="JavaScript" src="js/scripta/src/controls.js" type="text/javascript"></script>
+<script language="JavaScript" src="js/ajaxfunctions.js" type="text/javascript"></script>
+<script language="JavaScript" src="js/calender/dateFormatter.js" type="text/javascript"></script>
+<script language="JavaScript" src="js/selectoption.js" type="text/javascript"></script>
+<script language="JavaScript" src="js/selectbox/selectbox.js" type="text/javascript"></script>
+<script language="JavaScript" src="js/commonFunctions.js" type="text/javascript"></script>
+<script language="JavaScript" src="js/calender/dateFormatter.js" type="text/javascript"></script>
+<script language="JavaScript" src="js/calender/monthYearCalender.js" type="text/javascript"></script>
+<script language="JavaScript" src="js/customfields/customfield.js"></script>
+<script language="JavaScript" src="js/customfields/customfieldvalidator.js"></script>
+<script src="js/submodal/common.js"></script>
+<script src="js/submodal/subModal.js"></script>
+<% ArrayList customFields = (ArrayList)request.getAttribute("customFields"); %>
+<% ArrayList customTables = (ArrayList)request.getAttribute("customTables"); %>
+
+<%
+ArrayList skills = CommonUtils.getSkills(); 
+%>
+<script>
+<%=CustomFieldUtils.getArrayForCustomFields(customFields)%>
+</script>
+<style>
+.educationT {border:1px solid #99CC33;border-left:0px; border-collapse: collapse;}
+.educationT TD{padding-left:3px; padding-right:4px;background:#FFFFFF; padding-top: 3px; padding-bottom: 2px;}
+.educationT TD.header{border-bottom:1px solid #F9FCF3;color: #666666;background:#D0E4A3;}
+.educationT TD.headerBottom{background:#99CC33;height:2px;}
+</style>
+
+
+<table cellspacing="0" cellpadding="0" border="0">
+		<tr>
+			<td>
+<html:form action="/applicantRegistration">
+<input type="hidden" name="mode" value="defaultStep2" />
+<input type="hidden" name="eduRowIds" value='<%=request.getParameter("eduRowIds")%>'/>
+<input type="hidden" name="positionId" value='<%=request.getParameter("positionId")%>'/>
+
+<script language="JavaScript">
+var sourceTypeFilters = null;
+var sources = null;
+</script>
+
+<div style="margin-left:200px; text-align:left;">
+	<%
+		if(request.getAttribute(Globals.ERROR_KEY)!=null){
+	%>
+	<table  id="m_errortable" >
+		<tr>
+	    <td class="header">
+	    	<b><label class="star"><bean:message key="errors.following_errors"/></b>
+	    </td>
+		</tr>
+    <tr>
+    	<td class="message"><label class="star"><html:errors/></label></td>
+    </tr>
+	</table>
+	<br>
+	<% } %>	
+	<div id="divCalender" class="myCalender"></div>
+	<table border="0" cellspacing="0" cellpadding="0">
+		<tr>
+			<td>
+				<div style="width:140px;" class="boxTab"><span class="rightC"></span><span class="leftC"></span>&nbsp;<strong><bean:message key="applicant_registration.label.registration_form" /></strong></div>
+			</td>			
+		</tr>
+	</table>
+
+				<div class="bottomDiv">
+				<div class="outerDiv" style="width:850px;height:850px; overflow: auto; ">
+				<br />
+				<table class="tabinput" cellspacing="0" cellpadding="5" border="0" style="width:562px">
+					<tr>
+						<td class="label"><bean:message key="add_applicant.label.name" /><span class="star">*</span>:</td>						
+						<td><input type="text" name="name" maxlength="100" size="25" class="Grey" value='<%=request.getParameter("name")%>' /></td>
+					</tr>
+					<br/>
+					<tr>
+						<td class="label"><bean:message key="add_applicant.label.source_type" />:</td>
+						<td><input type="hidden" name="sourceType" />
+							<script language="JavaScript">
+								var opts = <%=(String)request.getAttribute("jsArraySourceTypes")%>;
+						        var m = [new SelectOption('-1','<bean:message key="common.selectlist.select" />')];
+							    opts = m.concat(opts);
+								sourceTypeFilters = new SelectBox(opts,'<%=request.getParameter("sourceType")%>','images/btn_dropdown.gif',{namesonly:false, width:'167px', size:20, textboxclass:'Grey'});
+								sourceTypeFilters.setOnChangeHandler('onChangeSourceType');
+								document.write(sourceTypeFilters.getHtml());
+								sourceTypeFilters.init();
+								
+							</script>
+						</td>
+						<td class="vGap"></td>
+					</tr>
+					<tr>
+						<td class="label"><bean:message key="add_applicant.label.source" /><span class="star">*</span>:</td>						
+						<td>
+							<input type="hidden" name="source" />
+							<script language="JavaScript">								
+						        var n = [new SelectOption('-1','<bean:message key="common.selectlist.select" />')];
+								sources = new SelectBox(n,'-1','images/btn_dropdown.gif',{namesonly:false, width:'167px', size:20, textboxclass:'Grey'});
+								sources.setOnChangeHandler('onChangeSource');
+								document.write(sources.getHtml());
+								sources.init();
+							</script>
+						</td>
+					</tr>
+					<tr>
+						<td class="label"><bean:message key="add_applicant.label.current_location" />:</td>
+						<td class="label"><input type="text" name="currentLocation" maxlength="50" size="25" class="Grey" value='<%=request.getParameter("currentLocation")%>' /></td>
+					</tr>
+					<tr>
+						 <td class="label"><bean:message key="add_applicant.label.phone1" />:</td>
+						 <td class="label"><input type="text" name="phone1" size="25" maxlength="25" class="Grey" value='<%=request.getParameter("phone1")%>' /></td>
+					</tr>
+					<tr>
+						 <td class="label"><bean:message key="add_applicant.label.phone2" />:</td>
+					     <td class="label"><input type="text" name="phone2" size="25" maxlength="25" class="Grey" value='<%=request.getParameter("phone2")%>' /></td>
+					</tr>
+					<tr>
+						 <td class="label"><bean:message key="add_applicant.label.mobile" />:</td>
+						 <td><input type="text" name="mobile" size="25" maxlength="25" class="Grey" value='<%=request.getParameter("mobile")%>' /></td>
+					</tr>
+					<tr>
+						<td class="label"><bean:message key="add_applicant.label.email1" />:</td>
+						<td class="label"><input type="text" name="email1" size="35" maxlength="50" class="Grey" value='<%=request.getParameter("email1")%>' /></td>
+					</tr>
+					<tr>
+						<td class="label"><bean:message key="add_applicant.label.email2" />:</td>
+						<td class="label"><input type="text" name="email2" size="35" maxlength="50" class="Grey" value='<%=request.getParameter("email2")%>' /></td>
+					</tr>					
+				</table>
+
+				<br />
+				<span class="heading"><bean:message key="add_applicant.label.skills" /></span>
+				<table class="outerDiv">
+					<tr class="boxTab">
+						<input type="hidden" name="skillIds" value='<%=request.getParameter("skillIds")%>' />
+						<td class="label" style="width:200px;">
+							<select name="skills" size="5" style="width:200px;border:none;">
+								<% for(int i = 0; i < skills.size(); i++) { %>
+									<% SimpleDataObject skill = (SimpleDataObject) skills.get(i); %>
+									<option value='<%=skill.getString("skillId")%>'><%=skill.getString("skillName")%></option>
+								<% } %>
+							</select>
+						</td>
+						<td class="label" style="width:35px;">																												
+							<div class="navBtn" style="margin:2px;">
+								<a href="#" style="width:30px;" class="active" onclick="javascript: add(document.forms[0].skills, document.forms[0].selectedSkills);return false;" title="Add" ><span class="rightC"></span><span class="leftC"></span><img src="images/ico_rightarrow.gif"  border="0" /></a> 
+								<a href="#" style="width:30px;margin-top:3px;" class="active" onclick="javascript: remove(document.forms[0].skills, document.forms[0].selectedSkills);return false;" title="Remove" ><span class="rightC"></span><span class="leftC"></span><img src="images/ico_leftarrow.gif" border="0" /></a> 
+							</div>									
+						</td>
+						<td class="label" style="width:200px;">
+							<select name="selectedSkills" size="5" style="width:200px;border:none;">
+								
+							</select>
+						</td>
+					</tr>
+				</table>
+				<br />
+				
+		
+				<span class="heading"><bean:message key="add_applicant.label.education" /> </span>
+				<table class="educationT" id="eduTable" width="850">
+					<tbody>
+						<tr>
+							<td class="header"></td>
+							<td class="header"><bean:message key="add_applicant.label.start_date" /></td>
+							<td class="header"><bean:message key="add_applicant.label.end_date" /></td>
+							<td class="header"><bean:message key="add_applicant.label.institute" /></td>
+							<td class="header"><bean:message key="add_applicant.label.degree" /></td>
+							<td class="header"><bean:message key="add_applicant.label.university" /></td>
+							<td class="header"><bean:message key="add_applicant.label.specialization" /></td>
+							<td class="header"><bean:message key="add_applicant.label.type_of_program" /></td>
+							<td class="header"><bean:message key="add_applicant.label.marks" /></td>
+						</tr>
+						<tr>
+							<td colspan="9" class="headerBottom"></td>
+						</tr>
+						<tr id="0">
+							<td class="label"><img src="images/checkedradiobutton.gif" id="radio0" onclick="javascript: selectEdu(this);"/></td>			
+							<td class="label"><input type="text" name="startDate0" value='<%=request.getParameter("startDate0")%>' size="4" onblur="getFormattedYear(this);" class="Grey" />
+								<img src="images/ico_cal.gif" onclick="cal.showCalender('startDate0','startDate0');" class="CalImg" />
+							</td>
+							<td class="label"><input type="text" name="endDate0" value='<%=request.getParameter("endDate0")%>' size="4" onblur="getFormattedYear(this);" class="Grey" />
+								<img src="images/ico_cal.gif" onclick="cal.showCalender('endDate0','endDate0');" class="CalImg" />
+							</td>
+							<td class="label"><input type="text" name="institute0" value='<%=request.getParameter("institute0")%>' size="17" maxlength="150" class="Grey" /></td>
+							
+							<td class="label">
+								<input type="hidden" name="degree0" id="degree0" value='<%=request.getParameter("degree0")%>'/>
+								<script language="JavaScript">						
+									var degreeControls=new Array();
+							        var n = [new SelectOption('-1','<bean:message key="common.selectlist.select" />')];
+							        var opts = <%=CommonUtils.getListJavaScriptArrayWithProperties(CommonUtils.getDegrees(), "degreeId", "title")%>;
+							        var degreeOptions = n.concat(opts);
+									degrees = new SelectBox(degreeOptions,'<%=request.getParameter("degree0")%>','images/btn_dropdown.gif',{namesonly:false, width:'120px', size:15, textboxclass:'Grey'});
+									document.write(degrees.getHtml());
+									degrees.init();
+									degreeControls[degreeControls.length]=degrees;
+								</script>
+							</td>
+							<td class="label"><input type="text" name="university0" value='<%=request.getParameter("university0")%>' size="17" maxlength="150" class="Grey" /></td>
+							<td class="label">
+								<input type="hidden" name="branch0" id="branch0" value='<%=request.getParameter("branch0")%>'/>
+								<script language="JavaScript">		
+									var branchControls=new Array();						
+							        var n = [new SelectOption('-1','<bean:message key="common.selectlist.select" />')];
+							        var opts = <%=CommonUtils.getListJavaScriptArrayWithProperties(CommonUtils.getBranches(), "branchId", "branchName")%>;
+							        var branchOptions = n.concat(opts);
+									branches = new SelectBox(branchOptions,'<%=request.getParameter("branch0")%>','images/btn_dropdown.gif',{namesonly:false, width:'120px', size:10, textboxclass:'Grey'});
+									document.write(branches.getHtml());
+									branches.init();
+									branchControls[branchControls.length]=branches;
+								</script>
+							</td>
+							<td class="label"><input type="text" name="typeOfProgram0" value='<%=request.getParameter("typeOfProgram0")%>' size="10" maxlength="100" class="Grey" /></td>
+							<td class="label"><input type="text" name="grade0" value='<%=request.getParameter("grade0")%>' size="6" maxlength="100" class="Grey" /></td>
+						</tr>
+
+					</tbody>
+				</table>
+				
+				<table class="tabinput" width=850>
+				<tr>
+					<td style="text-align: right;">
+						<a href="#"	onclick="deleteEducation();"class="green"><bean:message key="common.delete" /> <bean:message key="common.selected" /></a>&nbsp;|&nbsp;
+						<a href="#" onclick="addEducation();"class="green"><b><bean:message key="common.more" />>></b></a>
+					</td>
+				</tr>
+				</table>
+				
+				
+				<br />
+				<span class="heading"><bean:message key="add_applicant.label.work_exp" /></span>
+				<table class="tabinput">
+					<tr>
+						<td class="label"><bean:message key="add_applicant.label.working_since"/><span class="star">*</span>:&nbsp;<bean:message key="add_applicant.content.working_since" /></td>
+						<td class="hGap"></td>
+						<td class="label">
+						<bean:message key="applicant_registration.label.current_employer" />:
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<input type="text" id="workingSince" name="workingSince" value='<%=request.getParameter("workingSince")%>' size="10" maxlength="25" onblur="getFormattedDate(this);" class="Grey" />
+							<img src="images/ico_cal.gif" onclick="cal.showCalender('workingSince','workingSince');" class="CalImg" />
+							&nbsp;&nbsp;&nbsp;
+							<img src="images/checkboxunchecked.gif" id="cboFresher" onclick="toggleFresher()" style="margin-bottom: -2px;" />
+							&nbsp;Fresher<input type="hidden" name="fresher" value="0"/>
+						</td>
+						<td class="hGap"></td>
+						<td><input type="text" name="currentEmp" value='<%=request.getParameter("currentEmp")%>' maxlength="250" size="40" class="Grey" /></td>
+					</tr>
+				</table>
+				<br/>
+				<table class="tabinput" cellspacing="0" cellpadding="5" border="0">
+					<tr>
+						<td class="label"><bean:message key="add_applicant.label.current_ctc" /></td>
+						<td><input type="text" name="currentCTC" value='<%=request.getParameter("currentCTC")%>' maxlength="10" size="25" class="Grey" /></td>
+					</tr>
+					<tr>
+						<td class="label"><bean:message key="add_applicant.label.expected_ctc" /></td>
+						<td><input type="text" name="expectedCTC" value='<%=request.getParameter("expectedCTC")%>' maxlength="10" size="25" class="Grey" /></td>
+					</tr>
+					<tr>
+						<td class="label"><bean:message key="add_applicant.label.notice_period" /></td>
+						<td><input type="text" name="noticePeriod" value='<%=request.getParameter("noticePeriod")%>' maxlength="25" size="25" class="Grey" /></td>
+					</tr>
+				</table>
+				<br/>
+				<br/>
+				<br/>
+				<table>
+				</table>
+				
+								<% 	
+								ArrayList importFields = ImportConfigurationManager.getImportFields();
+								for(int j=0; j<importFields.size();j++){
+									ImportFieldData fieldData = (ImportFieldData)importFields.get(j);
+									String fieldId = fieldData.getFieldId();
+									String fieldType = fieldData.getFieldType();
+									String showValue = fieldData.getFieldWebsiteShow();
+									String isMandatory = fieldData.getFieldWebsiteMandatory();
+									
+									if(showValue.equals(ImportConfigurationConstants.FIELD_SHOW)){													
+																		
+						if(customFields!=null && customFields.size()>0){ 
+							for(int i=0; i<customFields.size();i++){
+							CustomFieldData data = (CustomFieldData)customFields.get(i);
+							String customFieldId = data.getFieldName();
+								if(fieldId.equals(customFieldId)){%>					
+									<table>
+									<tr>
+										<td style="width: 200px;"class="heading"><%=Utils.escapeHTML(data.getFieldDisplayName())%>
+										<%if(isMandatory.equalsIgnoreCase(ImportConfigurationConstants.FIELD_MANDATORY)){ %>
+										<span class="star">*</span>
+										<%} %>:</td>
+										<td><%=data.getUI()%></td>
+									</tr>
+									</table>
+								<%
+								}
+							} 
+					 	} 
+									}
+								}
+								%>
+								
+								<%
+								if(customTables!=null && customTables.size()>0){ 
+									for(int i=0; i<customTables.size();i++){
+									CustomFieldTable data = (CustomFieldTable)customTables.get(i);
+									String customFieldId = data.getTableId();
+									 CustomFieldRow row = data.getRows().get(0);
+									 String tableColumns = "";
+									 String tableColumnNames = "";
+									 StringBuffer sb= new StringBuffer();
+									 String attribs = "";
+									 /* for (CustomFieldCell cell:row.getCells()){
+									 	if (!tableColumns.equals("")){
+										 tableColumns = tableColumns + ","+ cell.getValue();
+										 }else{
+										 tableColumns =cell.getValue();
+										 }
+									 	if (!tableColumnNames.equals("")){
+									 		tableColumnNames = tableColumnNames + ","+ cell.getData().getFieldName();
+										}else{
+											tableColumnNames =cell.getData().getFieldName();
+										}
+									 	if (cell.getData().getFieldType().equalsIgnoreCase(CustomFieldConstants.TYPE_DATE)) {
+									 		if (!attribs.equals("")){
+									 			attribs = attribs + CustomFieldConstants.TYPE_DATE;
+									 		}else{
+									 			attribs = CustomFieldConstants.TYPE_DATE;
+									 		}
+									 	}else{
+									 		//ArrayList<String> fieldAtt = cell.getData().getAttributesList(cell.getData().getFieldAttributes());
+											//for (int j = 0; j < fieldAtt.size(); j++) {
+												//sb.append(fieldAtt.get(j) + " ");
+											//}
+											//sb.append("|");
+											//System.out.println(sb.toString());
+									 		if (!attribs.equals("")){
+									 			attribs = attribs + CustomFieldConstants.TYPE_TEXT;
+									 		}else{
+									 			attribs = CustomFieldConstants.TYPE_TEXT;
+									 		}
+											
+									 	}
+									 } */
+									%>									
+											<table class="tabinput">
+											<tr id="<%= data.getTableName() %>rowdiv" style="display:none"><%=data.getRowUI()%></tr>
+											</table>
+											<table id = "<%= data.getTableName() %>" class="tabinput">
+											<tr>
+												<td class="header" style="width: 130px;"><span class="heading"><%=Utils.escapeHTML(data.getTableName())%></span>
+												</td>
+											</tr>
+											<%= data.getUI() %>
+											</table>
+											<table class="tabinput" width="850">
+													<tr>
+														<td style="text-align: right;" class="Grey">
+															<a href="#"	onclick="deleteTableFields('<%= data.getTableName() %>');" class="green"><bean:message key="common.delete" /> <bean:message key="common.selected" /></a>&nbsp;|&nbsp;
+															<a href="#" onclick="addTableFields('<%= data.getTableName() %>');" class="green"><b><bean:message key="common.more" />>></b></a>
+														</td>
+													</tr>
+											</table>
+									
+										<%
+									}
+									}
+										%>	
+										<br/>
+										<table cellpadding="2" cellspacing="2" >
+		<tr>
+			<td>
+				<div class="navBtn" id=upload style="float: none;display: block;">
+					<a href="#" style="width:120px;" class="active" onclick="javascript:uploadDocument();"><span class="rightC"></span><span class="leftC"></span><bean:message key="inbox.button.label.upload_resume"/></a>
+				</div>
+			</td>
+		</tr>
+		<tr>
+			<td class="Grey">
+			<bean:message key="inbox.label.or_import_text"/>
+			</td>
+		</tr>	
+	</table>
+									   
+				<div class="navBtn" style="float: left;">
+		<a href="#" style="width:60px;margin-top:5px;margin-left: 5px;" class="active" onclick="javascript:submitForm();"><span class="rightC"></span><span class="leftC"></span><bean:message key="common.submit" /></a>
+	</div>
+	<br/><br/><br/><br/><br/>
+</div>	
+</div>
+				</html:form>
+			</td>
+		</tr>
+	</table>
+	
+</div>
+<DIV id="calDiv" style="position:absolute;background:#FFFFFF;z-index:1000;" ></DIV>
+
+<script language="JavaScript">
+var popUpCal = new CalendarPopup("calDiv"); 
+popUpCal.showNavigationDropdowns();
+
+function showInPopUp(url,width,height,returnFun, close){
+	showPopWin(url, width, height, returnFun,close);
+}
+function uploadDocument() {  
+	var url="importResume.do?mode=addDocument&option="+0;
+	showInPopUp(url,500,160,null);
+}
+
+
+
+function addTableFields(tableId){
+	var tBody = document.getElementById(tableId);
+	//var rowArray = tableColumnNames.split(",");
+	//var attribsArray = attribs.split("|");
+	var rows = tBody.rows.length;
+	var row = tBody.insertRow(rows);
+	var rowName = tableId+'rowdiv';
+	rowUI = document.getElementById(rowName).innerHTML;
+	var ui = rowUI.replace(/@@/g, (parseInt(rows)-1));
+	row.innerHTML = ui;
+	/*for (var i=0; i<rowArray.length; i++){
+		var cell1 = row.insertCell(i);
+		var html = "";
+		if (attribsArray[i] == date){
+			html = "<td><input type=\"text\" name=\"" + rowArray[i] + (parseInt(rows)-1) + "\" value=\"" + "" + "\" id=\"" + rowArray[i] + (parseInt(rows)-1) "maxlength=\"15\" size=\"13\" class=\"Grey\"" " onblur=\"getFDate(this,'" + format + "');\" " "&nbsp;<img src=\"images/ico_cal.gif\" style=\"height:16px;margin-bottom:-3px;cursor:hand;\" onclick=\"popUpCal.select($('" + rowArray[i] + (parseInt(rows)-1) + "'),'" + rowArray[i]+(parseInt(rows)-1) + "','" + dateformat="dd/MM/yyyy" + "'); return false;\" />"+"\"</td> ";
+			
+		}
+		}else{
+			html = "<td><input type=\"text\" name=\"" + rowArray[i] + (parseInt(rows)-1) + "\" value=\"" + "" + "\" id=\"" + rowArray[i] + (parseInt(rows)-1) + "maxlength=\"10\" size=\"15\" class=\"Grey\"" +"\"</td> ";
+		}
+		alert(html);
+		cell1.innerHTML = html;
+	}*/
+	
+}
+
+function deleteTableFields(tableId){
+	var tBody = document.getElementById(tableId);
+	var rows = tBody.rows.length;
+	tBody.deleteRow(parseInt(rows)-1);
+}
+
+function onChangeSource() {
+	document.forms[0].source.value=sources.getSelectedId();
+}
+var chkedRadio='images/checkedradiobutton.gif';
+var unchkedRadio='images/radiobutton.gif';
+function selectEdu(obj) {
+	obj.src = chkedRadio;
+	obj_id = obj.id;
+	for(var i = 0; i < eduIndices.length; i++) {
+		radioBtn = $("radio"+i);		
+		if(radioBtn != null && radioBtn.id != obj_id) {
+			radioBtn.src=unchkedRadio;
+		}
+	}
+}
+function getSelectedEducation() {
+	var edu_id = '';
+	for(var i = 0; i <= eduIndices.length; i++) {
+		radioBtn = $("radio"+i);		
+		if(radioBtn != null && radioBtn.src.indexOf(chkedRadio) != -1) {
+			eduIndices[i] = -1;
+			edu_id=i;
+			break;
+		}
+	}
+	return edu_id;
+}
+function deleteRow(table,rowId){
+	for(var i=0;i<table.rows.length;i++){
+		if(table.rows[i].id !=""){
+			if(table.rows[i].id == rowId){
+				Element.remove(table.rows[i]);				
+			}
+		}
+	}
+}
+function deleteEducation() {
+	var row_id = getSelectedEducation();	
+	deleteRow(eduTable,row_id);
+}
+function addListener(row){
+	Event.observe(row, "click", onRowClick.bindAsEventListener(this));
+	Event.observe(row, "keydown", onRowKeyDown.bindAsEventListener(this));
+	Event.observe(row, "keyup", onRowKeyUp.bindAsEventListener(this));
+}
+function onRowClick(event){
+	var row = Event.findElement(event, 'tr');
+	selectEdu($("radio" + row.id));
+}
+function onRowKeyDown(event){
+	onRowClick(event);
+}
+function onRowKeyUp(event){
+	onRowClick(event);
+}
+function addEducation() {
+	var tBody = eduTable.getElementsByTagName('tbody')[0];
+	var myRow = document.createElement("tr");
+	var lastElm = updateEduIndicesArray();
+	myRow.id=lastElm;
+	addListener(myRow);
+	var myCell = document.createElement("td");
+	var elm = document.createElement("img");
+	elm.src='images/radiobutton.gif';
+	elm.id="radio"+lastElm;
+	Event.observe(elm, "click", onEduOptClick.bindAsEventListener(this));
+	elm.onclick="javascript: selectEdu(this);"
+	myCell.appendChild(elm);
+	myRow.appendChild(myCell);
+	
+	myCell = document.createElement("td");
+	var el;
+	if(strtDat[lastElm]) {
+		el = createFormElement("input","text","startDate"+lastElm,strtDat[lastElm],"Grey");
+	} else {
+		el = createFormElement("input","text","startDate"+lastElm,"","Grey");
+	}	
+	el.id="startDate"+lastElm;
+	el.size="4";
+	myCell.appendChild(el);	
+	myRow.appendChild(myCell);
+	
+	myCell = document.createElement("td");
+	var el;
+	if(endDat[lastElm]) {
+		el = createFormElement("input","text","endDate"+lastElm,endDat[lastElm],"Grey");
+	} else {
+		el = createFormElement("input","text","endDate"+lastElm,"","Grey");
+	}	
+	el.id="endDate"+lastElm;
+	el.size="4";
+	myCell.appendChild(el);	
+	myRow.appendChild(myCell);	
+
+	myCell = document.createElement("td");
+	var el;
+	if(insti[lastElm]) {
+		el = createFormElement("input","text","institute"+lastElm,insti[lastElm],"Grey");
+	} else {
+		el = createFormElement("input","text","institute"+lastElm,"","Grey");
+	}	
+	el.id="institute"+lastElm;
+	el.size="17";
+	el.maxlength="150";
+	myCell.appendChild(el);	
+	myRow.appendChild(myCell);	
+
+	myCell = document.createElement("td");
+	var selectBoxDegree = null;
+	if(deg[lastElm]) {
+		selectBoxDegree = new SelectBox(degreeOptions,deg[lastElm],'images/btn_dropdown.gif',{namesonly:false, width:'120px', size:15, textboxclass:'Grey'});
+	} else {
+		selectBoxDegree = new SelectBox(degreeOptions,'-1','images/btn_dropdown.gif',{namesonly:false, width:'120px', size:15, textboxclass:'Grey'});
+	}	
+	myCell.innerHTML = selectBoxDegree.getHtml();
+	myCell.innerHTML = myCell.innerHTML + '<input type="hidden" name="degree'+ lastElm +'" id="degree'+ lastElm +'"/>';
+	myRow.appendChild(myCell);
+	
+	myCell = document.createElement("td");
+	var el;
+	if(univrsty[lastElm]) {
+		el = createFormElement("input","text","university"+lastElm,univrsty[lastElm],"Grey");
+	} else {
+		el = createFormElement("input","text","university"+lastElm,"","Grey");
+	}	
+	el.id="university"+lastElm;
+	el.size="17";
+	el.maxlength="150";
+	myCell.appendChild(el);	
+	myRow.appendChild(myCell);
+	 
+	myCell = document.createElement("td");
+	var selectBoxBranch = null;
+	if(brnch[lastElm]) {
+		selectBoxBranch = new SelectBox(branchOptions,brnch[lastElm],'images/btn_dropdown.gif',{namesonly:false, width:'120px', size:10, textboxclass:'Grey'});
+	} else {
+		selectBoxBranch = new SelectBox(branchOptions,'-1','images/btn_dropdown.gif',{namesonly:false, width:'120px', size:10, textboxclass:'Grey'});
+	}	
+	myCell.innerHTML = selectBoxBranch.getHtml();
+	myCell.innerHTML = myCell.innerHTML + '<input type="hidden" name="branch'+lastElm+'" id="branch'+lastElm+'"/>';	
+	myRow.appendChild(myCell);
+	
+	myCell = document.createElement("td");
+	var el;
+	if(typOfPrgm[lastElm]) {
+		el = createFormElement("input","text","typeOfProgram"+lastElm,typOfPrgm[lastElm],"Grey");
+	} else {
+		el = createFormElement("input","text","typeOfProgram"+lastElm,"","Grey");
+	}	
+	el.id="typeOfProgram"+lastElm;
+	el.size="10";
+	el.maxlength="100";
+	myCell.appendChild(el);	
+	myRow.appendChild(myCell);	
+	
+	tBody.appendChild(myRow);
+	
+	myCell = document.createElement("td");
+	var el;
+	if(grad[lastElm]) {
+		el = createFormElement("input","text","grade"+lastElm,grad[lastElm],"Grey");
+	} else {
+		el = createFormElement("input","text","grade"+lastElm,"","Grey");
+	}	
+	el.id="grade"+lastElm;
+	el.size="6";
+	el.maxlength="100";
+	myCell.appendChild(el);	
+	myRow.appendChild(myCell);	
+	
+	tBody.appendChild(myRow);
+
+	selectBoxDegree.init();
+	selectBoxBranch.init();
+	degreeControls[degreeControls.length]=selectBoxDegree;
+	branchControls[branchControls.length]=selectBoxBranch;	
+	selectEdu($("radio"+lastElm));
+	if(document.forms[0].eduRowIds.value=='' || document.forms[0].eduRowIds.value=='null') {		
+		$("startDate"+lastElm).value='';
+		$("endDate"+lastElm).value='';		
+		$("institute"+lastElm).value='';
+		$("university"+lastElm).value='';
+		$("typeOfProgram"+lastElm).value='';
+		$("grade"+lastElm).value='';
+	}
+}
+function onEduOptClick(event) {
+	var el =Event.element(event); 
+	selectEdu($(el.id));
+}
+var eduTable = $('eduTable');
+var eduIndices = new Array();
+window.onload=doOnLoad;
+//var yop = new Array();
+var strtDat = new Array();
+var endDat = new Array();
+var insti = new Array();
+var deg = new Array();
+var univrsty = new Array();
+var brnch = new Array();
+var typOfPrgm = new Array();
+var grad = new Array();
+
+<% if(!Utils.isBlankOrNull(request.getParameter("eduRowIds"))) { %>
+<% String[] temp = request.getParameter("eduRowIds").split(","); %>
+<% for(int i = 0; i < temp.length; i++) { %>
+strtDat[<%=temp[i]%>]='<%=request.getParameter("startDate"+temp[i])%>';
+endDat[<%=temp[i]%>]='<%=request.getParameter("endDate"+temp[i])%>';
+insti[<%=temp[i]%>]='<%=request.getParameter("institute"+temp[i])%>';
+deg[<%=temp[i]%>]='<%=request.getParameter("degree"+temp[i])%>';
+univrsty[<%=temp[i]%>]='<%=request.getParameter("university"+temp[i])%>';
+brnch[<%=temp[i]%>]='<%=request.getParameter("branch"+temp[i])%>';
+typOfPrgm[<%=temp[i]%>]='<%=request.getParameter("typeOfProgram"+temp[i])%>';
+grad[<%=temp[i]%>]='<%=request.getParameter("grade"+temp[i])%>';			
+<% } %>
+<% } %>
+function doOnLoad() {
+	updateEduIndicesArray();
+	addListener($("0"));
+	if('<%=request.getParameter("fresher")%>' == '1') {
+		toggleFresher();
+	}	
+	onChangeSourceType();
+	frm = document.forms[0];
+	<% if(Utils.isBlankOrNull(request.getParameter("showDuplicatePage"))) {	%>			
+		frm.name.value='';
+		frm.currentLocation.value='';
+		frm.phone1.value='';
+		frm.phone2.value='';
+		frm.mobile.value='';
+		frm.email1.value='';
+		frm.email2.value='';
+		frm.workingSince.value='';
+		frm.currentEmp.value='';
+		frm.currentCTC.value='';
+		frm.expectedCTC.value='';
+		frm.noticePeriod.value='';
+		frm.startDate0.value='';
+		frm.endDate0.value='';
+		frm.institute0.value='';
+		frm.university0.value='';
+		frm.degree0.value='';
+		frm.branch0.value='';
+		frm.typeOfProgram0.value='';
+		frm.grade0.value='';
+	<% } %>
+	var temp = '<%=request.getParameter("eduRowIds")%>';
+	if(temp != '' && temp != 'null') {
+		parts = temp.split(',');
+		var val = '-1';
+		for(var k = 0; k < parts.length; k++) {
+			if(parts[k] > val) {
+				val = parts[k];
+			}
+		}
+		if(val != -1) {
+			for(var k = 1; k <= val; k++) {
+				addEducation();
+			}
+		}
+		for(var k = 0; k < parts.length; k++) {
+			if(parts[k] != k) {
+				eduIndices[k] = -1;
+				deleteRow(eduTable,k);
+			}
+		}
+	}	
+	var skills = '<%=request.getParameter("skillIds")%>';
+	if(skills != '' && skills != 'null') {
+		setSelectedItems(frm.skills, frm.selectedSkills, skills);
+	}
+}
+
+function setSelectedItems(masterList, selectedList, selectedItems) {
+	if(selectedItems != null && selectedItems.length > 0) {
+		parts = selectedItems.split(',');		
+		for (var indx = 0; indx < parts.length; indx++) {
+			for (var indx2 = 0; indx2 < masterList.length; indx2++) {
+				if (masterList[indx2].value == parts[indx]) {
+					val = masterList[indx2].value;
+				    dispval = masterList[indx2].text;			    
+					selectedList[selectedList.length] = new Option(dispval, val);
+			        masterList[indx2] = null;
+					break;
+				}
+			}
+		}
+	}
+}
+function updateEduIndicesArray() {
+	var len = eduIndices.length;	
+	eduIndices[len] = len;	
+	return len
+}
+
+function onChangeSourceType() {	
+	document.forms[0].sourceType.value=sourceTypeFilters.getSelectedId();
+	var selectedSourceType = sourceTypeFilters.getSelectedId();
+	var pars = "mode=getSourcesInJSArrayOfSourceType&sourceTypeId=" + selectedSourceType;
+	var myAjax = ajaxCall("applicantRegistration.do",'get',pars,populateSources, reportError);
+}
+
+function populateSources(request) {	
+	xmlFile = request.responseXML;
+	if(!isErrorXml(xmlFile)){		
+		var op = request.responseText;
+		var opts = eval(op);		
+        opt = [new SelectOption('-1','<bean:message key="common.selectlist.select" />')];
+		m = opt.concat(opts);		
+		sources.reInitialize(m, '<%=request.getParameter("source")%>');
+		document.forms[0].source.value='<%=request.getParameter("source")%>';
+	}else {
+		alert('<bean:message key="applicant_registration.error.populate_sources" />');
+	}
+}
+function emptyDropDown() {
+	for(var j = document.forms[0].source.length; j > 1; j--) {
+		document.forms[0].source[j-1] = null;
+	}
+}
+
+var dtfo = new DateFormatter();
+function getFDate(obj,format){
+	dtfo.setDisplayFormat(format);
+	if(obj.value.trim()!=''){
+	if(!dtfo.checkDate(obj)){
+		obj.select();
+		//alert("Please enter date in " + format + " format");
+		alert('<bean:message key="applicant_registration.error.enter_date_in" />' + format + ' <bean:message key="applicant_registration.error.format" />');
+		obj.focus();
+		return false;
+	}else {
+		return true;
+	}
+	}
+	return true;
+}
+
+function submitForm() {
+	errors = validateForm();
+	if(errors.length > 0) {
+		alert(errors);
+		return false;
+	} else {
+		for(var i = 0; i < degreeControls.length; i++) {
+			var control = $('degree'+i);
+			if(control) {
+				control.value = degreeControls[i].getSelectedId();
+			}
+		}
+		for(var i = 0; i < branchControls.length; i++) {
+			var control = $('branch'+i);
+			if(control) {
+				control.value = branchControls[i].getSelectedId();
+			}
+		}
+		var eduRows = '';
+		for(var i = 0; i < eduIndices.length; i++) {
+			if(eduIndices[i] != -1) {
+				if(eduRows.length > 0) {
+					eduRows += ',';
+				}
+				eduRows += eduIndices[i];
+			}
+		}
+		setSelectedSkills();
+		document.forms[0].eduRowIds.value=eduRows;
+		document.forms[0].submit();
+		return true;
+	}	
+}
+function validateForm() {
+	var TYPE_10TH = "4";
+    var TYPE_12TH = "5";
+    var TYPE_UG = "1";
+    var is_10th_EducationDetails_Filled = false;
+    var is_12th_EducationDetails_Filled = false;
+    var is_UG_EducationDetails_Filled = false;
+    
+	errors = '';
+	frm = document.forms[0];
+	if(frm.name.value.strip() == '') {
+		errors = addError(errors, '- name');
+	}
+	if(frm.email1.value.strip() != '') {
+		if(!validateEmailAddress(frm.email1.value)) {
+			errors = addError(errors, '- valid email1');
+		}
+	}
+	if(frm.email2.value.strip() != '') {
+		if(!validateEmailAddress(frm.email2.value)) {
+			errors = addError(errors, '- valid email2');
+		}
+	}
+	if(frm.source.value.strip() == '' || frm.source.value == 'null') {
+		errors = addError(errors, '- source');
+	}
+	if(frm.fresher.value=="0") {
+		if(frm.workingSince.value.strip() == '') {
+			errors = addError(errors, '- working since date');
+		}
+	}
+	
+	var degreesType = [];
+	degreesType = <%=CommonUtils.getListJavaScriptArrayWithProperties(CommonUtils.getDegrees(), "degreeId", "degreeType")%>;	
+	for(var i = 0; i < degreeControls.length; i++) {
+		var selectedDegreeId = degreeControls[i].getSelectedId();
+			for (var j = 0; j < degreesType.length; j++) {
+				if ( selectedDegreeId == degreesType[j].oId){
+					if ( TYPE_UG == degreesType[j].oText){
+						is_UG_EducationDetails_Filled = true;
+					} else if ( TYPE_10TH == degreesType[j].oText){
+						is_10th_EducationDetails_Filled = true;
+					} else if ( TYPE_12TH == degreesType[j].oText){
+						is_12th_EducationDetails_Filled = true;
+					}
+				}
+			}
+		}
+	
+	if (!is_10th_EducationDetails_Filled) {
+		errors = addError(errors, '- 10th details in Education Details');
+    }
+    if (!is_12th_EducationDetails_Filled) {
+    	errors = addError(errors, '- 12th details in Education Details');
+    }
+
+    if (!is_UG_EducationDetails_Filled) {
+    	errors = addError(errors, '- UG details in Education Details');
+    }
+	
+	if(errors != '') {
+		errors = addError('Following data is required/missing:', errors);
+	}
+	return errors;
+}
+function validateEmailAddress(email_address) {
+	var pattern=/^([a-zA-Z0-9_.-])+@([a-zA-Z0-9_.-])+\.([a-zA-Z])+([a-zA-Z])+/;
+    if(pattern.test(email_address)){         
+		return true;
+    }else{   
+		return false;
+    }
+}
+function addError(errors, error) {
+	if(errors.length > 0) {
+		errors += '\n';
+	}
+	errors += error;
+	return errors;
+}
+
+function add(masterList, selectedList) {
+  var j;
+  for (var i = 0; i < masterList.length; i++) {
+    if (masterList[i].selected) {
+      val = masterList[i].value;
+      dispval = masterList[i].text;
+      for (j = 0; j < selectedList.length; j++) {
+        if (selectedList[j].value == val) {
+          break;
+        }
+      }
+      if (j == selectedList.length) {
+        selectedList[selectedList.length] = new Option(dispval, val);
+        masterList[i] = null;
+        break;
+      }
+    }
+  }
+}
+
+function remove(masterList, selectedList) {
+  var j;
+  for (var i = 0; i < selectedList.length; i++) {
+    if (selectedList[i].selected) {
+      val = selectedList[i].value;
+      dispval = selectedList[i].text;
+      for (j = 0; j < masterList.length; j++) {
+        if (masterList[j].value == val) {
+          break;
+        }
+      }
+      if (j == masterList.length) {
+        masterList[masterList.length] = new Option(dispval, val);
+        selectedList[i] = null;
+        break;
+      }
+    }
+  }
+}
+function setSelectedSkills() {
+	var skillsStr = '';
+	for (var j = 0; j < document.forms[0].selectedSkills.length; j++) {
+        if(skillsStr.length > 0) {
+        	skillsStr += ',';
+        }
+        skillsStr += document.forms[0].selectedSkills[j].value
+    }
+    document.forms[0].skillIds.value=skillsStr;
+}
+var dtf = new DateFormatter();
+dtf.setDisplayFormat('MMM-YYYY');
+function getFormattedDate(obj){
+	if(obj.value.trim()!=''){
+	if(!dtf.checkDate(obj)){
+		obj.select();
+		alert("<bean:message key="add_applicant.errors.working_since_invalid_format"/>");
+		obj.focus();
+		return false;
+	}else {
+		return true;
+	}
+	}
+	return true;
+}
+
+var yrf= new DateFormatter();
+yrf.setDisplayFormat('MMM-YYYY');
+
+function getFormattedYear(obj){
+	if(obj.value.trim()!=''){
+		if(yrf.getDateObject(obj.value)){
+			obj.value=yrf.getDateObject(obj.value).getFullYear();
+		}else if(yrf.getDateObject('01-'+obj.value)){
+			obj.value=yrf.getDateObject('01-'+obj.value).getFullYear();
+		}else{
+			alert('<bean:message key="add_applicant.errors.yearofoassing_invalid_format"/>');
+			obj.focus();
+			return false;
+		}
+	}
+	return true;
+}
+var chkedChkBox="images/checkboxchecked.gif";
+var unchkedChkBox="images/checkboxunchecked.gif";
+function toggleFresher() {
+	var cbo = $('cboFresher');
+	if(cbo.src.indexOf(chkedChkBox) != -1) {
+		document.forms[0].fresher.value=0;
+		cbo.src=unchkedChkBox;
+	} else {
+		document.forms[0].fresher.value=1;
+		cbo.src=chkedChkBox;
+	}
+}
+var cal = new MonthYearCalender('divCalender');
+cal.setDisplayFormat('MMM-YYYY');
+cal.setDateStyle('EU');
+</script>
+  

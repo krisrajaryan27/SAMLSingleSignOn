@@ -1,0 +1,89 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+   <dbqueries>
+	   <dbquery name="qMultipleSelectsManager_GetAllActiveMultipleSelects">
+			SELECT select_id, select_title FROM tp_multiple_selects WHERE select_status=? ORDER BY select_title
+       </dbquery>
+	   <dbquery name="qMultipleSelectsManager_GetAllMultipleSelects">
+			SELECT select_id, select_title FROM tp_multiple_selects ORDER BY select_title
+       </dbquery>       
+	   <dbquery name="qMultipleSelectsManager_GetMultipleSelectData">
+			SELECT select_id, select_title, user_id, select_status FROM tp_multiple_selects 
+			WHERE select_id=?
+       </dbquery>
+	   <dbquery name="qMultipleSelectsManager_GetMultipleSelectFields">
+			SELECT select_field_id, select_id, select_field_desc, select_field_status, select_field_rank 
+			FROM tp_multiple_select_fields
+			WHERE select_id=? AND select_field_status=?
+			ORDER BY select_field_rank
+       </dbquery>
+	   <dbquery name="qMultipleSelectsManager_AddMultipleSelect">
+			INSERT INTO tp_multiple_selects (select_title,date_created,user_id,select_status) VALUES(?,now(),?,?)
+       </dbquery>
+	   <dbquery name="qMultipleSelectsManager_AddMultipleSelectField">
+			INSERT INTO tp_multiple_select_fields (select_id, select_field_desc, select_field_status, select_field_rank) VALUES(?,?,?,?)
+       </dbquery>
+	   <dbquery name="qMultipleSelectsManager_UpdateMultipleSelectField">
+			UPDATE tp_multiple_select_fields SET select_field_desc=? , select_field_rank=? WHERE select_field_id=?
+       </dbquery>
+       
+	   <dbquery name="qMultipleSelectsManager_UpdateMultipleSelect">
+			UPDATE tp_multiple_selects SET select_title=? WHERE select_id=?
+       </dbquery>
+       
+	   <dbquery name="qMultipleSelectsManager_DeleteFieldsNotIn">
+			DELETE FROM tp_multiple_select_fields WHERE select_id=? AND select_field_id not in (@@)
+       </dbquery>
+	   <dbquery name="qMultipleSelectsManager_CountActiveFormForMultipleSelect">
+			SELECT count(*) FROM tp_feedback_forms tf, tp_feedback_form_fields tff
+			WHERE tf.feedback_form_id= tff.feedback_form_id
+			AND tf.feedback_form_status=?
+			AND tff.select_id=?
+       </dbquery>
+	   <dbquery name="qMultipleSelectsManager_ChangeMultipleSelectstatus">
+       		UPDATE tp_multiple_selects SET select_status=? WHERE select_id=?
+       </dbquery>
+       <dbquery name="qMultipleSelectsManager_GetMultipleSelectFieldDesc">
+			SELECT CAST(GROUP_CONCAT(select_field_desc) AS CHAR) 
+			FROM tp_multiple_select_fields 
+			WHERE 1 = 1 @@
+       </dbquery> 
+   </dbqueries>
+   <dataqueries>
+      <dataquery name="dMultipleSelectsManager_GetAllActiveMultipleSelects" dbquery="qMultipleSelectsManager_GetAllActiveMultipleSelects" object="com.talentPool.masters.dataobject.MultipleSelectsData">
+         <attribute name="selectId"  column="select_id" type="STRING" />
+         <attribute name="selectTitle"  column="select_title" type="STRING" />
+      </dataquery>
+      <dataquery name="dMultipleSelectsManager_GetAllMultipleSelects" dbquery="qMultipleSelectsManager_GetAllMultipleSelects" object="com.talentPool.masters.dataobject.MultipleSelectsData">
+         <attribute name="selectId"  column="select_id" type="STRING" />
+         <attribute name="selectTitle"  column="select_title" type="STRING" />
+      </dataquery>
+      
+      <dataquery name="dMultipleSelectsManager_GetMultipleSelectData" dbquery="qMultipleSelectsManager_GetMultipleSelectData" object="com.talentPool.masters.dataobject.MultipleSelectsData">
+         <attribute name="selectId"  column="select_id" type="STRING" />
+         <attribute name="selectTitle"  column="select_title" type="STRING" />
+         <attribute name="userId"  column="user_id" type="STRING" />
+         <attribute name="selectStatus"  column="select_status" type="STRING" />
+      </dataquery>
+      <dataquery name="dMultipleSelectsManager_GetMultipleSelectFields" dbquery="qMultipleSelectsManager_GetMultipleSelectFields" object="com.talentPool.masters.dataobject.MultipleSelectFieldsData">
+         <attribute name="selectId"  column="select_id" type="STRING" />
+         <attribute name="selectFieldId"  column="select_field_id" type="STRING" />
+         <attribute name="selectFieldDesc"  column="select_field_desc" type="STRING" />
+         <attribute name="selectFieldStatus"  column="select_field_status" type="STRING" />
+         <attribute name="selectFieldRank"  column="select_field_rank" type="STRING" />
+      </dataquery>
+      <dataquery name="dMultipleSelectsManager_AddMultipleSelect" dbquery="qMultipleSelectsManager_AddMultipleSelect" />
+      <dataquery name="dMultipleSelectsManager_AddMultipleSelectField" dbquery="qMultipleSelectsManager_AddMultipleSelectField" />
+      <dataquery name="dMultipleSelectsManager_UpdateMultipleSelectField" dbquery="qMultipleSelectsManager_UpdateMultipleSelectField" />
+      <dataquery name="dMultipleSelectsManager_UpdateMultipleSelect" dbquery="qMultipleSelectsManager_UpdateMultipleSelect" />
+      <dataquery name="dMultipleSelectsManager_DeleteFieldsNotIn" dbquery="qMultipleSelectsManager_DeleteFieldsNotIn" />
+      <dataquery name="dMultipleSelectsManager_CountActiveFormForMultipleSelect" dbquery="qMultipleSelectsManager_CountActiveFormForMultipleSelect" />
+      <dataquery name="dMultipleSelectsManager_ChangeMultipleSelectstatus" dbquery="qMultipleSelectsManager_ChangeMultipleSelectstatus" />
+      <dataquery name="dMultipleSelectsManager_GetMultipleSelectFieldDesc" dbquery="qMultipleSelectsManager_GetMultipleSelectFieldDesc" />
+      
+      
+   </dataqueries>   
+</dbmap>

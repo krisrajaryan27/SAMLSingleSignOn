@@ -1,0 +1,67 @@
+.divTpMnu{
+	background-color: #F3F9DC; 
+	padding: 0px; 
+	position:absolute;
+	border-top:1px solid #D0E4A3;
+	border-right:1px solid #99CC33;
+	border-bottom:1px solid #99CC33;
+	border-left:1px solid #D0E4A3;
+	z-index:100; /*This property is important as submenus have zindex greater than parent*/
+	
+		
+}
+.tblTpMnu{
+	border:1px;
+	cursor: pointer;
+	border:1px solid #F3F9DC; /*this color same as BG*/
+	border-bottom:1px solid #D0E4A3;
+}
+.tblTpMnu td{
+	font-family:Verdana, Arial, Helvetica, sans-serif;
+	font-size:10px;
+	padding-left:3px;
+	height:18px;
+}
+.tblTpMnu td.imgtd
+{
+    CLEAR: left;
+    VERTICAL-ALIGN: top;
+    OVERFLOW: hidden;
+    CURSOR: hand;
+    WIDTH: 20px;
+    HEIGHT: 16px;
+    TEXT-ALIGN: center;
+    SPACING: 0px;
+	border:0px solid #F3F9DC;
+	padding-top:2px;
+}
+.tblTpMnu td.imgtdToggle{
+	border:1px solid #696;
+}
+
+.tblTpMnu td.imgarrow
+{
+    CLEAR: left;
+    VERTICAL-ALIGN: middle;
+    OVERFLOW: hidden;
+    CURSOR: hand;
+    WIDTH: 20px;
+    HEIGHT: 16px;
+    TEXT-ALIGN: center;
+    SPACING: 0px;
+}
+
+.selectedTpMenu {
+	background-color:#99CC33; /*#D0E4A3;*/
+	font-weight:bold;
+	border:1px solid #D0E4A3;
+}
+.selectedTpMenu td{
+	color:#fff;
+}
+.icondimensions{
+	
+}
+.arrowdimensions{
+	
+}

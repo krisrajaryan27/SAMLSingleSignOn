@@ -1,0 +1,235 @@
+<%@ taglib uri="/WEB-INF/tld/struts-html.tld" prefix="html"%>
+<%@ taglib uri="/WEB-INF/tld/struts-bean.tld" prefix="bean"%>
+<%@ taglib uri="/WEB-INF/tld/struts-logic.tld" prefix="logic"%>
+<%@page import="com.talentPool.applicant.form.ApplicantForm,
+							com.talentPool.common.properties.GlobalApplicationProperties,
+							com.talentPool.common.properties.GlobalConstants"%>
+<%@page import="java.util.ArrayList"%>
+<%@page import="com.talentPool.custom.dataobject.CustomFieldData"%>
+
+<%@page import="com.talentPool.applicant.ApplicantConstants"%><div class="contentDiv" style="margin: 20px 0px 0px 10px;">
+<div style="width:140px;" class="boxTab"><span class="rightC"></span><span
+	class="leftC"></span>&nbsp;<strong><bean:message
+	key="add_applicant.label.import" /></strong></div>
+<div class="outerDiv"
+	style="width:900px;padding:10px;height:520px; overflow: auto;"><html:form
+	action="/importResume">
+	<html:hidden property="mode" value="addApplicant" />
+	<html:hidden property="ignoreDuplicate" value="" />
+	<html:hidden property="duplicateString" name="applicantForm" />
+	<html:hidden property="duplicateApplicantId" value="" />
+	<html:hidden property="duplicateApplicantOriginalResumePath" value="" />
+	<html:hidden property="duplicateApplicantStatus" name="applicantForm" />
+	
+
+	<html:hidden property="applicantName" name="applicantForm" />
+	<html:hidden property="applicantCity" name="applicantForm" />
+	<html:hidden property="applicantHomePhone" name="applicantForm" />
+	<html:hidden property="applicantWorkPhone" name="applicantForm" />
+	<html:hidden property="applicantCellPhone" name="applicantForm" />
+	<html:hidden property="applicantEmail1" name="applicantForm" />
+	<html:hidden property="applicantEmail2" name="applicantForm" />
+	<html:hidden property="rawPrimarySkills" name="applicantForm" />
+	<html:hidden property="applicantWorkingSince" name="applicantForm" />
+	<html:hidden property="applicantCurrentEmployer" name="applicantForm" />
+
+	<html:hidden property="currentCTC" name="applicantForm" />
+	<html:hidden property="expectedCTC" name="applicantForm" />
+	<html:hidden property="applicantNote" name="applicantForm" />
+
+	<html:hidden property="selAttachment" name="applicantForm" />
+	<html:hidden property="emailId" name="applicantForm" />
+	<html:hidden property="applicantId" name="applicantForm" />
+	<html:hidden property="cancelled" name="applicantForm" />
+	<html:hidden property="sourceId" name="applicantForm" />
+	<html:hidden property="primarySkillIds" name="applicantForm" />
+	<html:hidden property="primarySkills" name="applicantForm" />
+	<html:hidden property="originalResumePath" name="applicantForm" />
+	<html:hidden property="fresher" name="applicantForm" />
+	<html:hidden property="subMode" name="applicantForm" />
+	<html:hidden property="saveNcontinue" name="applicantForm" />
+	<html:hidden property="uploadedFilePath" name="applicantForm" />
+	<html:hidden property="applicantTextResume" name="applicantForm" />
+	<html:hidden property="vendorId" name="applicantForm" />
+	<html:hidden property="isEmployeeSource" name="applicantForm" />
+	<html:hidden property="requestSource" name="applicantForm"/>
+	<html:hidden property="resultId" name="applicantForm"/>
+	<html:hidden property="sessionId" name="applicantForm"/>
+	<html:hidden property="ieImport" name="applicantForm"/>
+	<html:hidden property="employeeCode" name="applicantForm"/>
+	<html:hidden property="dateOfBirth" name="applicantForm"/>
+	<html:hidden property="noticePeriod" name="applicantForm"/>
+	<html:hidden property="passportNumber" name="applicantForm"/>
+	<%
+		ApplicantForm applicantForm = (ApplicantForm) request.getAttribute("applicantForm");
+		String[] educationYearOfPassing = applicantForm.getEducationYearOfPassing();
+		String[] educationInstitute = applicantForm.getEducationInstitute();
+		String[] educationDegreeId = applicantForm.getEducationDegreeId();
+		String[] educationMajorId = applicantForm.getEducationMajorId();
+		String[] educationalGrade = applicantForm.getEducationalGrade();
+		for (int i = 0; educationYearOfPassing != null && i < educationYearOfPassing.length; i++) {
+	%>
+	<input type="hidden" name="educationYearOfPassing"
+		value="<%=educationYearOfPassing[i] %>" />
+	<input type="hidden" name="educationInstitute"
+		value="<%=educationInstitute[i] %>" />
+	<input type="hidden" name="educationDegreeId"
+		value="<%=educationDegreeId[i] %>" />
+	<input type="hidden" name="educationMajorId"
+		value="<%=educationMajorId[i] %>" />
+	<input type="hidden" name="educationalGrade"
+		value="<%=educationalGrade[i] %>" />
+	<%
+		}
+		String[] employmentFromDate = applicantForm.getEmploymentFromDate();
+		String[] employmentToDate = applicantForm.getEmploymentToDate();
+		String[] employmentEmployerId = applicantForm.getEmploymentEmployerId();
+		String[] employmentDesignationId = applicantForm.getEmploymentDesignationId();
+		String[] employmentExperience = applicantForm.getEmploymentExperience();
+		for (int i = 0; employmentEmployerId != null && i < employmentEmployerId.length; i++) {
+	%>
+	<input type="hidden" name="employmentFromDate" value="<%=employmentFromDate[i] %>" />
+	<input type="hidden" name="employmentToDate" value="<%=employmentToDate[i] %>" />
+	<input type="hidden" name="employmentEmployerId" value="<%=employmentEmployerId[i] %>" />
+	<input type="hidden" name="employmentDesignationId" value="<%=employmentDesignationId[i] %>" />
+	<input type="hidden" name="employmentExperience" value="<%=employmentExperience[i] %>" />
+	<%
+		}
+		ArrayList customFields = (ArrayList) request.getAttribute("customFields");
+		for (int i = 0; customFields != null && i < customFields.size(); i++) {
+			CustomFieldData customFieldData = (CustomFieldData) customFields.get(i);
+			String[] vals = customFieldData.getFieldValues();
+			for (int k = 0; k < vals.length; k++) {
+	%>
+			<input type="hidden" name="<%=customFieldData.getFieldName() %>"
+			value="<%=vals[k] %>" />
+	<%
+			}
+		}
+	%>
+</html:form>
+<table cellspacing="0" cellpading="0">
+	<tr>
+		<td class="Grey" style="padding-bottom: 15px;">
+		<bean:message key="duplicate_applicant.label.check_for_duplication" />		
+		</td>
+	</tr>
+</table>
+
+<table class="boxHeader" cellspacing="0" cellpading="0">
+	<tr>
+		<td width="18px"></td>
+		<td style="width:250px; height: 18px; font-weight: bold;">
+		<bean:message key="duplicate_applicant.label.applicant_name"/>		
+		</td>
+		<td	style="width:250px; height: 18px; font-weight: bold;padding-left:0px;">
+			<bean:message key="duplicate_applicant.label.fields_matched"/>
+			</td>
+		<td	style="width:150px; height: 18px; font-weight: bold;padding-left:0px;">
+			<bean:message key="duplicate_applicant.label.resume_updated_date"/>
+		</td>
+		<td	style="width:200px; height: 18px; font-weight: bold;padding-left:0px;">
+			<bean:message key="common.status"/>
+		</td>
+	</tr>
+</table>
+<table border="0" cellspacing="0" cellpadding="0" class="posinput">
+	<logic:iterate id="data" scope="request" name="duplicates">
+		<tr>
+			<td class="row2"><img style="cursor:pointer;"  title="compare" src="images/image_compare.jpg" id="img_0" width="18px" onclick="compare('<bean:write name="data"	property="applicantId" />','<bean:write name="data"	property="originalResumePath" />','<bean:write name="data" property="applicantStatus" />'); return false;" />
+			</td>
+			<td style="width:250px;" class="row2">
+			<logic:equal value="true" name="permissionSet" scope="session" property="SHOW_CONFIDENTIAL_PROFILE">
+				<a href="#"
+					onclick="onClickApplicant('<bean:write name="data"	property="applicantId" />')">
+				<bean:write name="data" property="applicantName" /></a></td>
+			</logic:equal>
+			
+			<logic:equal value="false" name="permissionSet" scope="session" property="SHOW_CONFIDENTIAL_PROFILE">
+				<logic:equal value="<%=ApplicantConstants.APPLICANT_CONFIDENTIAL%>" name="data" property="isConfidential">
+					<bean:write name="data"	property="applicantName" />
+				</logic:equal>
+				<logic:equal value="<%=ApplicantConstants.APPLICANT_NOT_CONFIDENTIAL%>" name="data" property="isConfidential">
+					<a href="#" onclick="onClickApplicant('<bean:write name="data"	property="applicantId" />')">
+					<bean:write name="data"	property="applicantName" /></a>
+				</logic:equal>				
+			</logic:equal>
+			</td>
+			
+			<td style="width:250px;" class="row2"><logic:iterate
+				id="matchedField" name="data" property="matchedFields" indexId="idx">
+				<logic:notEqual value="0" name="idx">,&nbsp;</logic:notEqual>
+				<bean:write name="matchedField" />
+			</logic:iterate></td>
+			<td style="width:150px;" class="row2"><bean:write name="data"
+				property="resumeDateUpdated" format="dd-MMM-yy" /></td>
+				
+			<td style="width:200px;" class="row2">
+				<logic:equal value="<%=ApplicantConstants.APPLICANT_STATUS_BLACKLISTED%>" name="data" property="applicantStatus">
+					<bean:message key="black_list.label.blackListed" />
+				</logic:equal>
+				<logic:equal value="<%=ApplicantConstants.APPLICANT_STATUS_NORMAL%>" name="data" property="applicantStatus">
+					<%if(GlobalConstants.ENABLED.equals(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_SHOW_POSITION_CODE))) {%>
+					<bean:write name="data"	property="positionCode" />
+					<%}else{ %>
+					<bean:write name="data"	property="positionTitle" />
+					<%} %>
+					
+					
+					<br/><bean:write name="data"	property="processStatus" /><br/>
+					<bean:write name="data"	property="processMovedDate"  format="dd-MMM-yy" />
+				</logic:equal>
+			</td>	
+		</tr>
+	</logic:iterate>
+</table>
+</div>
+
+<div class="navBtn" style="float: left;margin-top:10px; ">
+	<a	href="#" style="width:60px; margin-right: 5px;" class="active"	onclick="javascript:goBack();return false;" id="ignore"><span
+	class="rightC"></span><span class="leftC"></span>
+	<bean:message key="common.back"/>
+	</a> 
+	<logic:empty property="applicantId" name="applicantForm">
+	<a href="#"	style="width:310px; margin-right: 5px;" class="active"	onclick="javascript:createNew();return false;" id="ignore"><span
+	class="rightC"></span><span class="leftC"></span>
+	<bean:message key="duplicate_applicant.label.create_new_ignoring_duplicate"/>	
+	</a>
+	</logic:empty>
+	<logic:notEmpty property="applicantId" name="applicantForm">
+	<a href="#"	style="width:210px; margin-right: 5px;" class="active"	onclick="javascript:createNew();return false;" id="ignore"><span
+	class="rightC"></span><span class="leftC"></span>
+	<bean:message key="duplicate_applicant.label.update_ignoring_duplicates"/>
+	</a>
+	</logic:notEmpty>
+</div>
+</div>
+<script language="JavaScript">
+function compare(aId,rPath,aStatus){
+	document.applicantForm.mode.value="compareResume";
+	document.applicantForm.duplicateApplicantId.value=aId;
+	document.applicantForm.duplicateApplicantOriginalResumePath.value=rPath;
+	document.applicantForm.duplicateApplicantStatus.value=aStatus;
+	submitForm();
+}
+function goBack(){
+	document.applicantForm.mode.value="importResume";
+	submitForm();
+}
+
+function onClickApplicant(aId){	
+	url = "selectionProcess.do?mode=viewOriginalResume&applicantId=" + aId;
+	window.open(url,aId,'width=1024,height=768,left=0,top=0,scrollbars=yes,resizable=yes,status=no');
+	return false;
+
+}
+
+function createNew(){
+	document.applicantForm.mode.value="addApplicant";
+	document.applicantForm.ignoreDuplicate.value="1";
+	submitForm();
+}
+function submitForm(){
+	document.applicantForm.submit();
+}
+</script>

@@ -1,0 +1,567 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>
+		<dbquery name="qBulkImportManager_InsertEmail">
+			INSERT INTO tp_bulk_import_session_emails
+			(email_from, email_to, email_cc, email_bcc, email_subject, email_date_send, email_date_received,
+			email_textbody, email_htmlbody, email_size, entry_id, session_id, import_status, date_created)
+			VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,now())
+		</dbquery>
+		<dbquery name="qBulkImportManager_InsertAttachments">
+			INSERT INTO tp_bulk_import_session_email_attachments
+			(email_id, attachment_file_path, attachment_original_file_name, attachment_content_type, 
+			attachment_content_id, attachment_type, attachment_size, import_status)
+			VALUES(?,?,?,?,?,?,?,?)
+		</dbquery>
+		<dbquery name="qBulkImportManager_InsertDocument">
+			INSERT INTO tp_bulk_import_session_documents
+			(session_id, document_path, file_name, import_status, date_created)
+			VALUES(?,?,?,?,now())
+		</dbquery>
+		<dbquery name="qBulkImportManager_GetSessionData">
+			SELECT tbis.session_id, tbis.source_id, tbis.applicant_city, 
+			tbis.applicant_working_since, tbis.session_status, tbis.user_id, 
+			tbis.session_type, tbis.current_employer, tbis.current_ctc, tbis.expected_ctc, tbis.time_to_join,
+			tbis.note, CAST(group_concat(tbiss.skill_id SEPARATOR ', ') AS CHAR) as skillIds
+			FROM tp_bulk_import_sessions tbis 
+			LEFT JOIN tp_bulk_import_session_skills tbiss ON(tbis.session_id=tbiss.session_id)
+			WHERE  tbis.session_id=?
+			GROUP BY tbis.session_id
+		</dbquery>
+		<dbquery name="qBulkImportManager_InsertBulkImportParameters">
+			INSERT INTO tp_bulk_import_sessions (session_id,source_id,applicant_city,
+			applicant_working_since,current_employer,current_ctc,expected_ctc,time_to_join,
+			note,session_status,session_type,user_id,date_created)
+			VALUES (?,?,?,?,?,?,?,?,?,?,?,?,now())
+			ON DUPLICATE KEY UPDATE 
+			source_id=?,applicant_city=?,
+			applicant_working_since=?,current_employer=?,current_ctc=?,expected_ctc=?,time_to_join=?,
+			note=?,user_id=?
+		</dbquery>		
+		<dbquery name="qBulkImportManager_InsertBrowserBulkImportParameters">
+			INSERT INTO tp_bulk_import_sessions
+			(session_id, date_created, session_type, session_status)
+			VALUES
+			(?, now(), ?, ?)
+		</dbquery>
+		<dbquery name="qBulkImportManager_InsertBulkImportSkills">
+			INSERT INTO tp_bulk_import_session_skills (session_id,skill_id)
+			VALUES (?,?)
+		</dbquery>
+		<dbquery name="qBulkImportManager_GetEmailBulkImportProcessData">
+			SELECT tbir.result_id, tbir.session_id, tbir.email_id, tbir.date_created,
+			tbir.parsed_name, tbir.parsed_email1, tbir.parsed_email2,
+			tbir.parsed_cell_phone, tbir.parsed_work_phone, tbir.parsed_home_phone, 
+			tbir.parsed_original_resume_path, tbir.parsed_original_doc_path, tbir.parsed_text_resume,
+			CAST(GROUP_CONCAT(ts.skill ORDER BY ts.skill SEPARATOR ',') AS CHAR) AS parsedSkills,
+			tbie.email_from, tbie.email_subject
+			FROM tp_bulk_import_session_results tbir 
+			LEFT JOIN tp_bulk_import_session_result_skills tbis ON(tbir.result_id=tbis.result_id)
+			LEFT JOIN tp_skills ts ON (ts.skill_id=tbis.skill_id),
+			tp_bulk_import_session_emails tbie
+			WHERE tbir.session_id= ?
+			AND tbie.email_id=tbir.email_id
+			AND tbir.is_imported=?
+			@@
+			GROUP BY tbir.result_id
+			ORDER BY tbir.result_id
+		</dbquery>
+		<dbquery name="qBulkImportManager_GetDocumentBulkImportProcessData">
+			SELECT tbir.result_id, tbir.session_id, tbir.email_id, tbir.date_created,
+			tbir.parsed_name, tbir.parsed_email1, tbir.parsed_email2,
+			tbir.parsed_cell_phone, tbir.parsed_work_phone, tbir.parsed_home_phone,
+			tbir.parsed_original_resume_path, tbir.parsed_original_doc_path, tbir.parsed_text_resume,
+			GROUP_CONCAT(ts.skill ORDER BY ts.skill SEPARATOR ',') AS parsedSkills,
+			tbid.file_name
+			FROM tp_bulk_import_session_results tbir 
+			LEFT JOIN tp_bulk_import_session_result_skills tbis ON(tbir.result_id=tbis.result_id)
+			LEFT JOIN tp_skills ts ON (ts.skill_id=tbis.skill_id),
+			tp_bulk_import_session_documents tbid
+			WHERE tbir.session_id= ?
+			AND tbid.document_id=tbir.document_id
+			AND tbir.is_imported=?
+			@@
+			GROUP BY tbir.result_id
+			ORDER BY tbir.result_id
+		</dbquery>
+		
+		<dbquery name="qBulkImportManager_GetBulkImportEmails">
+			SELECT email_id, email_from, email_to, email_cc, email_bcc, email_subject, email_date_send, 
+			email_date_received, email_textbody, email_htmlbody, email_size, entry_id, session_id, 
+			import_status, date_created
+			FROM tp_bulk_import_session_emails
+			WHERE import_status=?
+			AND session_id=?
+			ORDER BY email_id
+			LIMIT 0,100
+		</dbquery>
+		<dbquery name="qBulkImportManager_GetBulkImportAttachments">
+			SELECT attachment_id, email_id, attachment_file_path, attachment_original_file_name, 
+			attachment_content_type, attachment_content_id, attachment_type, attachment_size, import_status
+			FROM tp_bulk_import_session_email_attachments
+			WHERE email_id=?
+		</dbquery>
+		<dbquery name="qBulkImportManager_GetBulkImportDocuments">
+			SELECT document_id, session_id, document_path, file_name,
+			import_status, date_created
+			FROM tp_bulk_import_session_documents
+			WHERE import_status=? AND session_id=?
+			ORDER BY document_id
+			LIMIT 0,300
+		</dbquery>
+		<dbquery name="qBulkImportManager_InsertParseResult">
+			INSERT INTO tp_bulk_import_session_results(
+			session_id, email_id, document_id, date_created, parsed_name, parsed_email1,
+			parsed_email2, parsed_cell_phone, parsed_work_phone, parsed_home_phone, 
+			parsed_original_resume_path, parsed_original_doc_path,
+			parsed_text_resume,parsed_city, parsed_working_since, parsed_ctc, 
+			parsed_current_employer, parsed_source_id)
+			VALUES(?,?,?,now(),?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+		</dbquery>
+		<dbquery name="qBulkImportManager_InsertParseResultSkills">
+			INSERT INTO tp_bulk_import_session_result_skills(result_id,skill_id) VALUES(?,?)
+		</dbquery>
+		<dbquery name="qBulkImportManager_GetParsedData">
+			SELECT tbir.result_id, tbir.session_id, tbir.email_id, 
+			tbir.date_created, tbir.parsed_name, tbir.parsed_email1, tbir.parsed_email2,
+			tbir.parsed_cell_phone, tbir.parsed_work_phone, tbir.parsed_home_phone,
+			tbir.parsed_original_resume_path, tbir.parsed_original_doc_path, tbir.parsed_text_resume,
+			(SELECT CAST(GROUP_CONCAT(ts.skill ORDER BY ts.skill SEPARATOR ', ') AS CHAR)
+				FROM tp_skills ts, tp_bulk_import_session_result_skills tbis 
+				WHERE ts.skill_id=tbis.skill_id AND tbis.result_id = tbir.result_id
+			)AS parsedSkills,
+			(SELECT CAST(GROUP_CONCAT(tbis.skill_id ORDER BY tbis.skill_id SEPARATOR ',') AS CHAR)
+				FROM tp_bulk_import_session_result_skills tbis 
+				WHERE tbis.result_id = tbir.result_id
+			)AS parsedSkillIds, tbise.entry_id
+			FROM tp_bulk_import_session_results tbir
+			LEFT JOIN tp_bulk_import_session_emails tbise ON (tbise.email_id = tbir.email_id)
+			WHERE tbir.result_id= ?
+		</dbquery>
+		<dbquery name="qBulkImportManager_DeleteParsedResult">
+			DELETE FROM tp_bulk_import_session_results WHERE result_id = ?
+		</dbquery>
+		<dbquery name="qBulkImportManager_DeleteParsedResultSkill">
+			DELETE FROM tp_bulk_import_session_result_skills WHERE result_id = ?
+		</dbquery>
+		<dbquery name="qBulkImportManager_UpdateParsedResultData">
+			UPDATE tp_bulk_import_session_results SET
+			 	parsed_name=?,
+				parsed_cell_phone=?,
+				parsed_work_phone=?,
+				parsed_email1=?
+			WHERE result_id=?
+		</dbquery>
+		<dbquery name="qBulkImportManager_CheckForSessionComplete">
+			SELECT session_status FROM tp_bulk_import_sessions WHERE session_id =?
+		</dbquery>		
+		<dbquery name="qBulkImportManager_UpdateEmailImportStatus">
+			UPDATE tp_bulk_import_session_emails SET import_status=? WHERE email_id=?
+		</dbquery>
+		<dbquery name="qBulkImportManager_UpdateDocumentImportStatus">
+			UPDATE tp_bulk_import_session_documents SET import_status=? WHERE document_id=?
+		</dbquery>
+		<dbquery name="qBulkImportManager_UpdateSessionImportStatus">
+			UPDATE tp_bulk_import_sessions SET session_status=? WHERE session_id=?
+		</dbquery>
+		<dbquery name="qBulkImportManager_GetBulkImportResultsToImport">
+			SELECT tbir.result_id, tbir.session_id, tbir.email_id, tbir.date_created,
+			tbir.parsed_name, tbir.parsed_email1, tbir.parsed_email2,
+			tbir.parsed_cell_phone, tbir.parsed_work_phone, tbir.parsed_home_phone,
+			tbir.parsed_original_resume_path, tbir.parsed_original_doc_path, tbir.parsed_text_resume,
+			CAST(GROUP_CONCAT(tbirs.skill_id SEPARATOR ',') AS CHAR) AS parsedSkillIds,
+			tbir.parsed_ctc,tbir.parsed_current_employer,tbir.parsed_source_id,tbir.parsed_working_since,
+			tbir.parsed_city, tbis.expected_ctc, tbis.time_to_join, tbis.note, 
+			tbise.entry_id
+			FROM tp_bulk_import_session_results tbir LEFT JOIN 
+			tp_bulk_import_session_result_skills tbirs ON (tbir.result_id = tbirs.result_id)
+			LEFT JOIN tp_bulk_import_session_emails tbise ON (tbise.email_id = tbir.email_id),
+			tp_bulk_import_sessions tbis
+			WHERE tbir.session_id= ?
+			AND tbir.is_imported=?
+			AND tbis.session_id=tbir.session_id
+			GROUP BY tbir.result_id
+			ORDER BY tbir.result_id
+		</dbquery>
+		<dbquery name="qBulkImportManager_GetEmailData">
+			SELECT email_id, email_from, email_to, email_cc, email_bcc, email_subject, email_date_send, 
+			email_date_received, email_textbody, email_htmlbody, email_size, entry_id, session_id, 
+			import_status, date_created
+			FROM tp_bulk_import_session_emails
+			WHERE email_id=?
+		</dbquery>
+		<dbquery name="qBulkImportManager_GetImportStatusResultCount">
+			SELECT COUNT(*) FROM tp_bulk_import_session_results 
+			WHERE session_id=? AND is_imported=?
+		</dbquery>
+		<dbquery name="qBulkImportManager_UpdateResultImportStatus">
+			UPDATE tp_bulk_import_session_results SET is_imported=?, applicant_id=? WHERE result_id=?
+		</dbquery>
+		<dbquery name="qBulkImportManager_GetEmailEntryIdsNamesForImported">
+			SELECT DISTINCT tbise.entry_id AS entry_id,
+			GROUP_CONCAT(tbisr.parsed_name) as applicants
+			FROM tp_bulk_import_session_results tbisr, tp_bulk_import_session_emails tbise
+			WHERE tbisr.session_id=tbise.session_id AND tbisr.email_id=tbise.email_id
+			AND tbisr.session_id=?
+			AND tbisr.is_imported=?
+			GROUP BY tbise.entry_id
+		</dbquery>		
+		<dbquery name="qBulkImportManager_updateApplicantWithNewResume">
+			UPDATE tp_applicants 
+			SET applicant_original_resume_path = ?,
+			applicant_original_doc_path = ?,
+			applicant_text_resume = ?,
+			resume_updated_date = now()
+			WHERE applicant_id=?
+		</dbquery>
+		<dbquery name="qBulkImportManager_DeleteParsedSkills">
+			DELETE FROM tp_bulk_import_session_result_skills WHERE result_id=?
+		</dbquery>
+		<dbquery name="qBulkImportManager_InsertBulkImportResultSkills">
+			INSERT INTO tp_bulk_import_session_result_skills (result_id,skill_id)
+			VALUES (?,?)
+		</dbquery>
+		<dbquery name="qBulkImportManager_GetNumberOfParsedResume">
+			SELECT
+			CONCAT(
+			( 
+				SELECT count(*) FROM tp_bulk_import_session_results WHERE is_imported=0 AND session_id =?
+			),' of ',
+			( 
+				SELECT count(*) FROM tp_bulk_import_session_email_attachments ta,
+				tp_bulk_import_session_emails te WHERE te.session_id =?
+				AND ta.email_id=te.email_id AND attachment_type!=?
+			)+( 
+				SELECT count(*) FROM tp_bulk_import_session_emails te 
+				WHERE te.session_id =?
+				AND te.email_id NOT IN (SELECT distinct(te.email_id) FROM tp_bulk_import_session_email_attachments ta,
+				tp_bulk_import_session_emails te WHERE te.session_id =?
+				AND ta.email_id=te.email_id)
+			)
+			) AS parsed
+		</dbquery>
+		<dbquery name="qBulkImportManager_GetNumberOfParsedResumeForDocuments">
+			SELECT CONCAT(
+			(
+				SELECT count(*) FROM tp_bulk_import_session_documents 
+				WHERE import_status !=? AND import_status =? AND session_id=?
+			),' of ',
+			(
+				SELECT count(*)FROM tp_bulk_import_session_documents 
+				WHERE (import_status = ? OR  import_status =? )AND session_id=?
+			))AS parsed
+		</dbquery>
+		<dbquery name="qBulkImportManager_AddEducationInfo">
+			INSERT INTO tp_bulk_import_session_educational_info (session_id , degree_id , branch_id , 
+			institute_id , educational_info_year_of_passing, educational_info_grade ) 
+			VALUES (?,?,?,?,?,?)
+		</dbquery>
+		<dbquery name="qBulkImportManager_GetSingleImportData">
+			SELECT email_id, parsed_original_doc_path 
+			FROM tp_bulk_import_session_results
+			WHERE result_id=?
+		</dbquery>
+		<dbquery name="qBulkImportManager_InsertEmailToInboxEmail">
+			INSERT INTO tp_inbox_emails
+			(email_from, email_to, email_cc, email_bcc, email_subject, email_date_send, 
+			email_date_received, email_textbody, email_htmlbody, email_size, 
+			auto_import_tried,user_id, entry_id)
+			(SELECT tbe.email_from, tbe.email_to, tbe.email_cc, tbe.email_bcc, tbe.email_subject, 
+			tbe.email_date_send, tbe.email_date_received, tbe.email_textbody, tbe.email_htmlbody, 
+			tbe.email_size,?, ts.user_id, tbe.entry_id 
+			FROM tp_bulk_import_session_emails tbe
+			LEFT JOIN tp_bulk_import_sessions ts ON (ts.session_id=tbe.session_id)
+			WHERE tbe.email_id=?)
+		</dbquery>
+		<dbquery name="qBulkImportManager_InsertAttachmentsToInboxAttachments">
+			INSERT INTO tp_inbox_email_attachments 
+			(email_id, attachment_file_path, attachment_original_file_name, attachment_content_type, 
+			attachment_content_id, attachment_type,attachment_size)
+			SELECT ?, attachment_file_path,attachment_original_file_name,
+			attachment_content_type, attachment_content_id, attachment_type, attachment_size 
+			FROM tp_bulk_import_session_email_attachments WHERE email_id=?	
+		</dbquery>
+		<dbquery name="qBulkImportManager_GetAttachmentId">
+			SELECT attachment_id FROM tp_inbox_email_attachments 
+			WHERE email_id = ? AND attachment_file_path like ?
+		</dbquery>
+		<dbquery name="qBulkImportManager_GetEducationalInfo">
+			SELECT tei.educational_info_id, tei.session_id, tei.degree_id, tei.branch_id, tei.institute_id,
+			tei.educational_info_year_of_passing, tei.educational_info_grade, 
+			td.degree_title, tb.branch_name, ti.institute_name
+			FROM tp_bulk_import_session_educational_info tei 
+			LEFT JOIN tp_degrees td ON (tei.degree_id=td.degree_id)
+			LEFT JOIN tp_branches  tb ON (tei.branch_id=tb.branch_id)
+			LEFT JOIN tp_institutes ti ON ( tei.institute_id= ti.institute_id)
+			WHERE tei.session_id=?
+			ORDER BY tei.educational_info_year_of_passing desc
+		</dbquery>		
+		<dbquery name="qBulkImportManager_GetParsedEducationalInfo">
+			SELECT tei.educational_info_id, tei.result_id, tei.degree_id, tei.branch_id, tei.institute_id,
+			tei.educational_info_year_of_passing, tei.educational_info_grade, 
+			td.degree_title, tb.branch_name, ti.institute_name
+			FROM tp_bulk_import_session_result_educational_info tei 
+			LEFT JOIN tp_degrees td ON (tei.degree_id=td.degree_id)
+			LEFT JOIN tp_branches  tb ON (tei.branch_id=tb.branch_id)
+			LEFT JOIN tp_institutes ti ON ( tei.institute_id= ti.institute_id)
+			WHERE tei.result_id=?
+			ORDER BY tei.educational_info_year_of_passing desc
+		</dbquery>
+		<dbquery name="qBulkImportManager_GetApplicantIdsForImportedResume">
+			SELECT group_concat(applicant_id ORDER BY applicant_id SEPARATOR ',') as applicantIds
+			FROM tp_bulk_import_session_results 
+			WHERE is_imported=?
+			AND session_id=?
+			AND applicant_id IS NOT NULL
+		</dbquery>		
+		<dbquery name="qBulkImportManager_GetCommentUrlsForImportedResume">
+			SELECT CONCAT(REPLACE(tbise.comment_url, ';', '&amp;'), ?, " ", ?, " on ", date_format(ta.applicant_date_created, '%d-%b-%y'), " at ", date_format(ta.applicant_date_created, '%h:%i %p')) as commentUrl
+			FROM tp_bulk_import_session_results tbisr
+			LEFT JOIN tp_bulk_import_session_emails tbise ON (tbisr.session_id = tbise.session_id AND tbisr.email_id = tbise.email_id)
+			LEFT JOIN tp_applicants ta ON (tbisr.applicant_id = ta.applicant_id)
+			WHERE is_imported=?
+			AND tbisr.session_id=?
+			AND tbisr.applicant_id IS NOT NULL
+			AND tbise.comment_url IS NOT NULL AND tbise.comment_url != ''
+		</dbquery>
+		<dbquery name="qBulkImportManager_AddParsedEducationInfo">
+			INSERT INTO tp_bulk_import_session_result_educational_info (result_id , degree_id , branch_id , 
+			institute_id , educational_info_year_of_passing, educational_info_grade ) 
+			VALUES (?,?,?,?,?,?)
+		</dbquery>
+		<dbquery name="qBulkImportManager_GetParsedEducationalInfo">
+			SELECT tei.educational_info_id, tei.result_id, tei.degree_id, tei.branch_id, tei.institute_id,
+			tei.educational_info_year_of_passing, tei.educational_info_grade, 
+			td.degree_title, tb.branch_name, ti.institute_name
+			FROM tp_bulk_import_session_result_educational_info tei 
+			LEFT JOIN tp_degrees td ON (tei.degree_id=td.degree_id)
+			LEFT JOIN tp_branches  tb ON (tei.branch_id=tb.branch_id)
+			LEFT JOIN tp_institutes ti ON ( tei.institute_id= ti.institute_id)
+			WHERE tei.result_id=?
+			ORDER BY tei.educational_info_year_of_passing desc
+		</dbquery>		
+	</dbqueries>
+	<dataqueries>
+		<dataquery name="dBulkImportManager_InsertEmail" dbquery="qBulkImportManager_InsertEmail"/>
+		<dataquery name="dBulkImportManager_InsertAttachments" dbquery="qBulkImportManager_InsertAttachments"/>
+		<dataquery name="dBulkImportManager_InsertDocument" dbquery="qBulkImportManager_InsertDocument"/>
+		<dataquery name="dBulkImportManager_GetSessionData" dbquery="qBulkImportManager_GetSessionData" object="com.talentPool.desktop.dataobjects.BulkImportSessionData">
+	        <attribute name= "sessionId" column="session_id" type ="STRING" />
+	        <attribute name= "sourceId" column="source_id" type ="INT" />
+	        <attribute name= "applicantCity" column="applicant_city" type ="STRING" />
+	        <attribute name= "applicantWorkingSince" column="applicant_working_since" type ="STRING" />
+	        <attribute name= "sessionStatus" column="session_status" type ="STRING" />
+	        <attribute name= "userId" column="user_id" type ="INT" />
+	        <attribute name= "sessionType" column="session_type" type ="STRING" />	     	           
+	        <attribute name= "currentEmployer" column="current_employer" type ="STRING" />	        
+	        <attribute name= "currentCtc" column="current_ctc" type ="STRING" />
+	        <attribute name= "expectedCtc" column="expected_ctc" type ="STRING" />
+	        <attribute name= "timeToJoin" column="time_to_join" type ="STRING" />
+	        <attribute name= "note" column="note" type ="STRING" />	        
+	        <attribute name= "skillIds" column="skillIds" type ="STRING" />
+	    </dataquery>
+	    <dataquery name="dBulkImportManager_InsertBulkImportParameters" dbquery="qBulkImportManager_InsertBulkImportParameters" />
+	    <dataquery name="dBulkImportManager_InsertBrowserBulkImportParameters" dbquery="qBulkImportManager_InsertBrowserBulkImportParameters" />	    
+	    <dataquery name="dBulkImportManager_InsertBulkImportSkills" dbquery="qBulkImportManager_InsertBulkImportSkills" />
+	    <dataquery name="dBulkImportManager_GetEmailBulkImportProcessData" dbquery="qBulkImportManager_GetEmailBulkImportProcessData" object="com.talentPool.desktop.dataobjects.BulkImportResultData">
+   			<attribute name= "resultId" column="result_id" type ="STRING" />
+   			<attribute name= "sessionId" column="session_id" type ="STRING" />
+	        <attribute name= "emailId" column="email_id" type ="STRING" />
+	        <attribute name= "dateCreated" column="date_created" type ="DATE" />	        
+	        <attribute name= "parsedName" column="parsed_name" type ="STRING" />
+	        <attribute name= "parsedEmail1" column="parsed_email1" type ="STRING" />
+	        <attribute name= "parsedEmail2" column="parsed_email2" type ="STRING" />
+	        <attribute name= "parsedCellPhone" column="parsed_cell_phone" type ="STRING" />
+	        <attribute name= "parsedWorkPhone" column="parsed_work_phone" type ="STRING" />
+	        <attribute name= "parsedHomePhone" column="parsed_home_phone" type ="STRING" />
+	        <attribute name= "parsedOriginalResumePath" column="parsed_original_resume_path" type ="STRING" />
+	        <attribute name= "parsedOriginalDocPath" column="parsed_original_doc_path" type ="STRING" />
+	        <attribute name= "parsedTextResume" column="parsed_text_resume" type ="STRING" />
+	        <attribute name= "parsedSkills" column="parsedSkills" type ="STRING" />
+	        <attribute name= "emailFrom" column="email_from" type ="STRING" />
+	        <attribute name= "emailSubject" column="email_subject" type ="STRING" />
+	    </dataquery>
+	    <dataquery name="dBulkImportManager_GetDocumentBulkImportProcessData" dbquery="qBulkImportManager_GetDocumentBulkImportProcessData" object="com.talentPool.desktop.dataobjects.BulkImportResultData">
+   			<attribute name= "resultId" column="result_id" type ="STRING" />
+   			<attribute name= "sessionId" column="session_id" type ="STRING" />
+	        <attribute name= "emailId" column="email_id" type ="STRING" />
+	        <attribute name= "dateCreated" column="date_created" type ="DATE" />	        
+	        <attribute name= "parsedName" column="parsed_name" type ="STRING" />
+	        <attribute name= "parsedEmail1" column="parsed_email1" type ="STRING" />
+	        <attribute name= "parsedEmail2" column="parsed_email2" type ="STRING" />
+	        <attribute name= "parsedCellPhone" column="parsed_cell_phone" type ="STRING" />
+	        <attribute name= "parsedWorkPhone" column="parsed_work_phone" type ="STRING" />
+	        <attribute name= "parsedHomePhone" column="parsed_home_phone" type ="STRING" />
+	        <attribute name= "parsedOriginalResumePath" column="parsed_original_resume_path" type ="STRING" />
+	        <attribute name= "parsedOriginalDocPath" column="parsed_original_doc_path" type ="STRING" />
+	        <attribute name= "parsedTextResume" column="parsed_text_resume" type ="STRING" />
+	        <attribute name= "parsedSkills" column="parsedSkills" type ="STRING" />
+	        <attribute name= "fileName" column="file_name" type ="STRING" />
+	    </dataquery>
+	    <dataquery name="dBulkImportManager_GetBulkImportEmails" dbquery="qBulkImportManager_GetBulkImportEmails" object="com.talentPool.inbox.dataobject.MessageData">
+			<attribute name="messageId" column="email_id" type="INT"/>
+			<attribute name="from" column="email_from" type="STRING"/>
+			<attribute name="to" column="email_to" type="STRING"/>
+			<attribute name="cc" column="email_cc" type="STRING"/>
+			<attribute name="bcc" column="email_bcc" type="STRING"/>
+			<attribute name="subject" column="email_subject" type="STRING"/>
+			<attribute name="sendDate" column="email_date_send" type="STRING"/>
+			<attribute name="receivedDate" column="email_date_received" type="STRING"/>
+			<attribute name="textBody" column="email_textbody" type="STRING"/>
+			<attribute name="htmlBody" column="email_htmlbody" type="STRING"/>
+			<attribute name="size" column="email_size" type="INT"/>
+			<attribute name="entryId" column="entry_id" type="STRING"/>
+			<attribute name="sessionId" column="session_id" type="STRING"/>
+			<attribute name="importStatus" column="import_status" type="STRING"/>
+	    </dataquery>
+	    <dataquery name="dBulkImportManager_GetBulkImportAttachments" dbquery="qBulkImportManager_GetBulkImportAttachments" object="com.talentPool.inbox.dataobject.AttachmentData">
+			<attribute name="attachmentId" column="attachment_id" type="INT"/>
+			<attribute name="attachmentFilePath" column="attachment_file_path" type="STRING"/>
+			<attribute name="originalFileName" column="attachment_original_file_name" type="STRING"/>
+			<attribute name="contentType" column="attachment_content_type" type="STRING"/>
+			<attribute name="contentId" column="attachment_content_id" type="STRING"/>
+			<attribute name="attachmentType" column="attachment_type" type="STRING"/>
+			<attribute name="attachmentSize" column="attachment_size" type="INT"/>
+			<attribute name="importStatus" column="import_status" type="STRING"/>
+	    </dataquery>
+	    <dataquery name="dBulkImportManager_GetBulkImportDocuments" dbquery="qBulkImportManager_GetBulkImportDocuments" object="com.talentPool.documents.dataobject.DocumentData">
+	    	<attribute name= "documentId" column="document_id" type ="STRING" />
+			<attribute name="sessionId" column="session_id" type="STRING"/>
+	    	<attribute name= "relativeFilePath" column="document_path" type ="STRING" />
+	    	<attribute name= "originalFileName" column="file_name" type ="STRING" />	    	
+			<attribute name="importStatus" column="import_status" type="STRING"/>
+	    </dataquery>
+	    
+	    <dataquery name="dBulkImportManager_InsertParseResult" dbquery="qBulkImportManager_InsertParseResult"/>
+	    <dataquery name="dBulkImportManager_InsertParseResultSkills" dbquery="qBulkImportManager_InsertParseResultSkills"/>
+	    <dataquery name="dBulkImportManager_GetParsedData" dbquery="qBulkImportManager_GetParsedData" object="com.talentPool.desktop.dataobjects.BulkImportResultData">
+			<attribute name= "resultId" column="result_id" type ="STRING" />
+			<attribute name= "sessionId" column="session_id" type ="STRING" />
+			<attribute name= "emailId" column="email_id" type ="STRING" />
+	    	<attribute name= "parsedName" column="parsed_name" type ="STRING" />
+	        <attribute name= "parsedEmail1" column="parsed_email1" type ="STRING" />
+	        <attribute name= "parsedEmail2" column="parsed_email2" type ="STRING" />
+	        <attribute name= "parsedCellPhone" column="parsed_cell_phone" type ="STRING" />
+	        <attribute name= "parsedWorkPhone" column="parsed_work_phone" type ="STRING" />
+	        <attribute name= "parsedSkills" column="parsedSkills" type ="STRING" />
+	        <attribute name= "dateCreated" column="date_created" type ="DATE" />
+	        <attribute name= "parsedHomePhone" column="parsed_home_phone" type ="STRING" />
+	        <attribute name= "parsedOriginalResumePath" column="parsed_original_resume_path" type ="STRING" />
+	        <attribute name= "parsedOriginalDocPath" column="parsed_original_doc_path" type ="STRING" />
+	        <attribute name= "parsedTextResume" column="parsed_text_resume" type ="STRING" />
+	        <attribute name= "parsedSkillIds" column="parsedSkillIds" type ="STRING" /> 
+	        <attribute name= "entryId" column="entry_id" type ="STRING" /> 	        
+	    </dataquery>
+	    <dataquery name="dBulkImportManager_DeleteParsedResult" dbquery="qBulkImportManager_DeleteParsedResult" />
+	    <dataquery name="dBulkImportManager_DeleteParsedResultSkill" dbquery="qBulkImportManager_DeleteParsedResultSkill"/>
+	    <dataquery name="dBulkImportManager_UpdateParsedResultData" dbquery="qBulkImportManager_UpdateParsedResultData" />
+
+	    <dataquery name="dBulkImportManager_CheckForSessionComplete" dbquery="qBulkImportManager_CheckForSessionComplete" />
+	    <dataquery name="dBulkImportManager_UpdateEmailImportStatus" dbquery="qBulkImportManager_UpdateEmailImportStatus"/>
+	    <dataquery name="dBulkImportManager_UpdateDocumentImportStatus" dbquery="qBulkImportManager_UpdateDocumentImportStatus"/>
+	    <dataquery name="dBulkImportManager_UpdateSessionImportStatus" dbquery="qBulkImportManager_UpdateSessionImportStatus"/>
+	    
+	    <dataquery name="dBulkImportManager_GetBulkImportResultsToImport" dbquery="qBulkImportManager_GetBulkImportResultsToImport" object="com.talentPool.desktop.dataobjects.BulkImportResultData">
+   			<attribute name= "resultId" column="result_id" type ="STRING" />
+   			<attribute name= "sessionId" column="session_id" type ="STRING" />
+	        <attribute name= "emailId" column="email_id" type ="STRING" />
+	        <attribute name= "dateCreated" column="date_created" type ="DATE" />	        
+	        <attribute name= "parsedName" column="parsed_name" type ="STRING" />
+	        <attribute name= "parsedEmail1" column="parsed_email1" type ="STRING" />
+	        <attribute name= "parsedEmail2" column="parsed_email2" type ="STRING" />
+	        <attribute name= "parsedCellPhone" column="parsed_cell_phone" type ="STRING" />
+	        <attribute name= "parsedWorkPhone" column="parsed_work_phone" type ="STRING" />
+	        <attribute name= "parsedHomePhone" column="parsed_home_phone" type ="STRING" />
+	        <attribute name= "parsedOriginalResumePath" column="parsed_original_resume_path" type ="STRING" />
+	        <attribute name= "parsedOriginalDocPath" column="parsed_original_doc_path" type ="STRING" />
+	        <attribute name= "parsedTextResume" column="parsed_text_resume" type ="STRING" />
+	        <attribute name= "parsedSkillIds" column="parsedSkillIds" type ="STRING" />
+	        <attribute name= "sourceId" column="parsed_source_id" type ="STRING" />
+	        <attribute name= "applicantCity" column="parsed_city" type ="STRING" />
+	        <attribute name= "applicantWorkingSince" column="parsed_working_since" type ="STRING" />
+	        <attribute name= "currentEmployer" column="parsed_current_employer" type ="STRING" />
+	        <attribute name= "currentCtc" column="parsed_ctc" type ="STRING" />
+	        <attribute name= "expectedCtc" column="expected_ctc" type ="STRING" />
+	        <attribute name= "timeToJoin" column="time_to_join" type ="STRING" />
+	        <attribute name= "note" column="note" type ="STRING" />	    
+	        <attribute name= "entryId" column="entry_id" type ="STRING" />  
+	    </dataquery>
+	    <dataquery name="dBulkImportManager_GetEmailData" dbquery="qBulkImportManager_GetEmailData" object="com.talentPool.inbox.dataobject.MessageData">
+			<attribute name="messageId" column="email_id" type="INT"/>
+			<attribute name="from" column="email_from" type="STRING"/>
+			<attribute name="to" column="email_to" type="STRING"/>
+			<attribute name="cc" column="email_cc" type="STRING"/>
+			<attribute name="bcc" column="email_bcc" type="STRING"/>
+			<attribute name="subject" column="email_subject" type="STRING"/>
+			<attribute name="sendDate" column="email_date_send" type="STRING"/>
+			<attribute name="receivedDate" column="email_date_received" type="STRING"/>
+			<attribute name="textBody" column="email_textbody" type="STRING"/>
+			<attribute name="htmlBody" column="email_htmlbody" type="STRING"/>
+			<attribute name="size" column="email_size" type="INT"/>
+			<attribute name="entryId" column="entry_id" type="STRING"/>
+			<attribute name="sessionId" column="session_id" type="STRING"/>
+			<attribute name="importStatus" column="import_status" type="STRING"/>
+	    </dataquery>
+	    <dataquery name="dBulkImportManager_GetImportStatusResultCount" dbquery="qBulkImportManager_GetImportStatusResultCount"/>
+	    <dataquery name="dBulkImportManager_UpdateResultImportStatus" dbquery="qBulkImportManager_UpdateResultImportStatus"/>
+	    <dataquery name="dBulkImportManager_GetEmailEntryIdsNamesForImported" dbquery="qBulkImportManager_GetEmailEntryIdsNamesForImported" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name="entryId" column="entry_id" type="STRING"/>
+	    	<attribute name="applicants" column="applicants" type="STRING"/>
+	    </dataquery>
+	    <dataquery name="dBulkImportManager_updateApplicantWithNewResume" dbquery="qBulkImportManager_updateApplicantWithNewResume" />
+	    <dataquery name="dBulkImportManager_DeleteParsedSkills" dbquery="qBulkImportManager_DeleteParsedSkills" />	    
+	    <dataquery name="dBulkImportManager_InsertBulkImportResultSkills" dbquery="qBulkImportManager_InsertBulkImportResultSkills" />
+	    <dataquery name="dBulkImportManager_GetNumberOfParsedResume" dbquery="qBulkImportManager_GetNumberOfParsedResume" />
+   	    <dataquery name="dBulkImportManager_GetNumberOfParsedResumeForDocuments" dbquery="qBulkImportManager_GetNumberOfParsedResumeForDocuments" />
+	    <dataquery name="dBulkImportManager_AddEducationInfo" dbquery="qBulkImportManager_AddEducationInfo" />
+	    <dataquery name="dBulkImportManager_GetSingleImportData" dbquery="qBulkImportManager_GetSingleImportData" object="com.talentPool.desktop.dataobjects.BulkImportResultData">
+	    	<attribute name= "emailId" column="email_id" type ="STRING" />
+	    	<attribute name= "parsedOriginalDocPath" column="parsed_original_doc_path" type ="STRING" />
+	    </dataquery>
+	    <dataquery name="dBulkImportManager_InsertEmailToInboxEmail" dbquery="qBulkImportManager_InsertEmailToInboxEmail" />
+	    <dataquery name="dBulkImportManager_InsertAttachmentsToInboxAttachments" dbquery="qBulkImportManager_InsertAttachmentsToInboxAttachments" />
+	    <dataquery name="dBulkImportManager_GetAttachmentId" dbquery="qBulkImportManager_GetAttachmentId" />
+	    <dataquery name="dBulkImportManager_GetEducationalInfo" dbquery="qBulkImportManager_GetEducationalInfo" object="com.talentPool.applicant.dataobject.EducationalData">
+	        <attribute name= "educationalInfoId" column="educational_info_id" type ="INT" />
+	        <attribute name= "sessionId" column="session_id" type ="INT" />
+	        <attribute name= "degreeId" column="degree_id" type ="INT" />
+	        <attribute name= "degreeTitle" column="degree_title" type ="STRING" />
+	        <attribute name = "major" column="branch_name" type ="STRING" />
+	        <attribute name= "majorId" column="branch_id" type ="INT" />
+	        <attribute name = "institute" column="institute_name" type ="STRING" />
+	        <attribute name= "instituteId" column="institute_id" type ="INT" />
+	        <attribute name = "yearOfPassing" column="educational_info_year_of_passing" type ="STRING" />
+			<attribute name = "grade" column="educational_info_grade" type ="STRING" />
+	    </dataquery>	    
+	    <dataquery name="dBulkImportManager_GetParsedEducationalInfo" dbquery="qBulkImportManager_GetParsedEducationalInfo" object="com.talentPool.applicant.dataobject.EducationalData">
+	        <attribute name= "educationalInfoId" column="educational_info_id" type ="INT" />
+	        <attribute name= "degreeId" column="degree_id" type ="INT" />
+	        <attribute name= "degreeTitle" column="degree_title" type ="STRING" />
+	        <attribute name = "major" column="branch_name" type ="STRING" />
+	        <attribute name= "majorId" column="branch_id" type ="INT" />
+	        <attribute name = "institute" column="institute_name" type ="STRING" />
+	        <attribute name= "instituteId" column="institute_id" type ="INT" />
+	        <attribute name = "yearOfPassing" column="educational_info_year_of_passing" type ="STRING" />
+			<attribute name = "grade" column="educational_info_grade" type ="STRING" />
+	    </dataquery>
+	    <dataquery name="dBulkImportManager_GetApplicantIdsForImportedResume" dbquery="qBulkImportManager_GetApplicantIdsForImportedResume" />
+	    <dataquery name="dBulkImportManager_GetCommentUrlsForImportedResume" dbquery="qBulkImportManager_GetCommentUrlsForImportedResume" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name="commentUrl" column="commentUrl" type="STRING"/>
+	    </dataquery>
+	    <dataquery name="dBulkImportManager_AddParsedEducationInfo" dbquery="qBulkImportManager_AddParsedEducationInfo" />
+	    <dataquery name="dBulkImportManager_GetParsedEducationalInfo" dbquery="qBulkImportManager_GetParsedEducationalInfo" object="com.talentPool.applicant.dataobject.EducationalData">
+	        <attribute name= "educationalInfoId" column="educational_info_id" type ="INT" />
+	        <attribute name= "degreeId" column="degree_id" type ="INT" />
+	        <attribute name= "degreeTitle" column="degree_title" type ="STRING" />
+	        <attribute name = "major" column="branch_name" type ="STRING" />
+	        <attribute name= "majorId" column="branch_id" type ="INT" />
+	        <attribute name = "institute" column="institute_name" type ="STRING" />
+	        <attribute name= "instituteId" column="institute_id" type ="INT" />
+	        <attribute name = "yearOfPassing" column="educational_info_year_of_passing" type ="STRING" />
+			<attribute name = "grade" column="educational_info_grade" type ="STRING" />
+	    </dataquery>
+	</dataqueries>   
+</dbmap>

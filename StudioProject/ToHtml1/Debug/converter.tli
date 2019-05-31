@@ -1,0 +1,25 @@
+// Created by Microsoft (R) C/C++ Compiler Version 13.10.3077 (5ccdd854).
+//
+// c:\tempo\tohtml1\debug\converter.tli
+//
+// Wrapper implementations for Win32 type library C:\\tempo\\ToHtml1\\Converter.dll
+// compiler-generated file created 01/09/07 at 13:56:33 - DO NOT EDIT!
+
+#pragma once
+
+//
+// interface _clsConverter wrapper method implementations
+//
+
+inline _bstr_t _clsConverter::convertWordToHtml ( _bstr_t infile, _bstr_t outfile ) {
+    BSTR _result = 0;
+    HRESULT _hr = raw_convertWordToHtml(infile, outfile, &_result);
+    if (FAILED(_hr)) _com_issue_errorex(_hr, this, __uuidof(this));
+    return _bstr_t(_result, false);
+}
+
+inline HRESULT _clsConverter::Class_Initialize ( ) {
+    HRESULT _hr = raw_Class_Initialize();
+    if (FAILED(_hr)) _com_issue_errorex(_hr, this, __uuidof(this));
+    return _hr;
+}

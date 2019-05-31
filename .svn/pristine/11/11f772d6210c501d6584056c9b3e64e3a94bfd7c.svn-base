@@ -1,0 +1,14 @@
+/**
+ * 
+ */
+package com.talentPool.applicant.form;
+
+import com.talentPool.common.base.TPActionForm;
+
+/**
+ * @author shivprasad
+ *
+ */
+public class ApplicantRegistrationForm extends TPActionForm {
+
+}

@@ -1,0 +1,549 @@
+<!DOCTYPE struts-config PUBLIC "-//Apache Software Foundation//DTD Struts Configuration 1.1//EN" "http://jakarta.apache.org/struts/dtds/struts-config_1_1.dtd">
+<struts-config>
+<!-- ======================================== Form Bean Definitions -->
+    <form-beans>
+       <form-bean name="loginForm" type="com.talentPool.user.form.LoginForm" />
+       <form-bean name="dashboardForm" type="com.talentPool.dashboard.form.DashboardForm" />
+       <form-bean name="adminForm" type="com.talentPool.admin.form.AdminForm" />
+       <form-bean name="ldapForm" type="com.talentPool.ldap.form.LDAPForm" />
+       <form-bean name="applicantForm" type="com.talentPool.applicant.form.ApplicantForm" />
+       <form-bean name="inboxForm" type="com.talentPool.inbox.form.InboxForm" />
+       <form-bean name="positionForm" type="com.talentPool.positions.form.PositionForm" />
+       <form-bean name="createPositionForm" type="com.talentPool.positions.form.CreatePositionForm" />
+       <form-bean name="selectionProcessForm" type="com.talentPool.selectionProcess.form.SelectionProcessForm" />
+	   <form-bean name="calendarForm" type="com.talentPool.calendar.form.CalendarForm" />
+	   <form-bean name="userForm" type="com.talentPool.user.form.UserForm" />
+	   <form-bean name="reportForm" type="com.talentPool.reports.form.ReportForm" />
+	   <form-bean name="searchForm" type="com.talentPool.search.form.SearchForm"/>
+	   <form-bean name="applicationForm" type="com.talentPool.application.form.ApplicationForm"/>
+	   <form-bean name="documentForm" type="com.talentPool.documents.form.DocumentForm"/>
+	   <form-bean name="bulkToolForm" type="com.talentPool.bulktools.form.BulkToolForm"/>
+	   <form-bean name="costForm" type="com.talentPool.costs.form.CostForm"/>
+	   <form-bean name="costTypeForm" type="com.talentPool.costs.form.CostTypeForm"/>
+	   <form-bean name="requisitionForm" type="com.talentPool.requisition.form.RequisitionForm"/>
+	   <form-bean name="requisitionFeedbackForm" type="com.talentPool.requisition.form.RequisitionFeedbackForm"/>
+	   <form-bean name="mastersForm" type="com.talentPool.masters.form.MastersForm"/>
+	   <form-bean name="feedbackForm" type="com.talentPool.masters.form.FeedbackForm"/>
+	   <form-bean name="miscUtilsForm" type="com.talentPool.miscutils.form.MiscUtilsForm"/>
+	   <form-bean name="applicantRegistrationForm" type="com.talentPool.applicant.form.ApplicantRegistrationForm"/>
+   	   <form-bean name="desktopSearchForm" type="com.talentPool.desktop.form.DesktopSearchForm" />
+   	   <form-bean name="customFieldForm" type="com.talentPool.custom.form.CustomFieldForm"></form-bean>
+   	   <form-bean name="salaryStructureForm" type="com.talentPool.salaryStructure.form.SalaryStructureForm"></form-bean>
+   	   <form-bean name="userConfigurationForm" type="com.talentPool.userConfiguration.form.UserConfigurationForm" />
+   	   <form-bean name="applicantFromWebForm" type="com.talentPool.applicant.form.ApplicantFromWebForm"/>
+   	   <form-bean name="positionDraftForm" type="com.talentPool.positions.form.PositionDraftForm"/>
+   	   <form-bean name="offerSheetForm" type="com.talentPool.offerSheet.form.OfferSheetForm"/>
+   	   <form-bean name="reportDesignForm" type="com.talentPool.reportDesign.form.ReportDesignForm"/>
+   	   <form-bean name="todoForm" type="com.talentPool.todo.form.ToDoForm"/>
+   	   <form-bean name="exportForm" type="com.talentPool.export.form.ExportForm"/>   
+   	   <form-bean name="budgetForm" type="com.talentPool.budget.form.BudgetForm"/>
+   	   <form-bean name="departmentForm" type="com.talentPool.department.form.DepartmentForm"/>	   
+   	   <form-bean name="importForm" type="com.talentPool.porting.form.ImportForm"/>
+   	   <form-bean name="reportTemplatesForm" type="com.talentPool.dynamicReports.form.ReportTemplatesForm" />   
+    </form-beans>
+<!-- ================================= Global Exception Definitions -->
+    <global-exceptions>
+    </global-exceptions>
+<!-- =================================== Global Forward Definitions -->
+    <global-forwards>
+        <forward name="permissionDenied" path="/common/permissionDenied.jsp" />
+        <forward name="error" path="/common/error.jsp" />
+        <forward name="commonError" path="/common/commonError.jsp" />
+        <forward name="modalError" path="/common/modalError.jsp" />
+        <forward name="xmlFile" path="/common/xmlFile.jsp" />
+        <forward name="fileDownload" path="/common/fileDownload.jsp" />
+        <forward name="uploadSuccess" path="/common/uploadSuccess.jsp" />
+        <forward name="getDocument" path="/documents/getDocument.jsp" />
+        <forward name="closeModalCall" path="/common/closeModalCall.jsp" />
+        <forward name="authorizationFailure" path="/common/authorizationFailure.jsp" /> 
+        <forward name="viewFile" path="/common/viewFile.jsp" />
+    </global-forwards>
+<!-- =================================== Action Mapping Definitions -->
+    <action-mappings>
+  		 <action path="/login" type="com.talentPool.user.action.LoginAction" name="loginForm" scope="request" parameter="loginmode">
+            <forward name="loginpage" path="/common/login.jsp" />
+            <forward name="dashboard" path="/dashboard.do?mode=dashboard" />
+			<forward name="viewFeedback" path="/selectionProcess.do?mode=showfeedback" />
+			<forward name="postLogin" path="/common/postLogin.jsp" />
+			<forward name="confirmSingleSignOn" path="/common/confirmSingleSignOn.jsp" />
+			<forward name="forgotPassword" path="/user/forgotPassword.jsp" />
+			<forward name="setPassword" path="/user.do?mode=setPassword" />
+			<forward name="showTimeZone" path="/user/showTimeZone.jsp" />
+			<forward name="spinitiator" path="/SPInitiator" redirect="true"/>
+        </action>
+        <action path="/dashboard" type="com.talentPool.dashboard.action.DashboardAction" name="dashboardForm" scope="request" parameter="mode">
+        	<forward name="dashboard" path="/dashboard/dashboard.jsp" />
+        </action>
+	    <action path="/adminHome" type="com.talentPool.admin.action.AdminAction" name="adminForm" scope="request" parameter="mode">
+	    	<forward name="manageUsers" path="/admin/manageUsers.jsp" />
+	    	<forward name="addUser" path="/admin/addUser.jsp" />
+	    	<forward name="inboxSettings" path="/admin/inboxSettings.jsp" /> 
+	    	<forward name="admin" path="/admin/admin.jsp" /> 
+	    	<forward name="applicationSettings" path="/admin/applicationSettings.jsp" /> 
+	    	<forward name="smsSettings" path="/admin/smsSettings.jsp" />
+	    	<forward name="duplicateDetectionSettings" path="/admin/duplicateDetectionSettings.jsp" /> 	 
+	    	<forward name="duplicatePositionDetectionSettings" path="/admin/duplicatePositionDetectionSettings.jsp" />    	
+	    	<forward name="manageRoleAccess" path="/admin/manageRoleAccess.jsp" />	
+	        <forward name="roleAccessSettings" path="/admin/roleAccessSettings.jsp" />
+	        <forward name="validateAccessSettings" path="/admin/validateAccessSettings.jsp" />	 
+	        <forward name="reportLevelSettings" path="/admin/reportLevelSettings.jsp"/>
+	    	<forward name="addLevel" path="/admin/addLevel.jsp" />  
+	    	<forward name="manageMessages" path="/admin/manageMessages.jsp" />  	
+	    	<forward name="editMessage" path="/admin/editMessage.jsp" />  	
+	    	<forward name="xmlFile" path="/common/xmlFile.jsp" />
+	    	<forward name="importScreenConfiguration" path="/admin/importScreenConfiguration.jsp" />
+	    	<forward name="positionScreenConfiguration" path="/admin/positionScreenConfiguration.jsp" />
+	    	<forward name="positionScreen" path="/admin/positionScreen.jsp" />
+	    	<forward name="websitePositionHome" path="/admin/websitePositionHome.jsp" />
+	    	<forward name="timeZoneSettings" path="/admin/timeZoneSettings.jsp" />
+	    	<forward name="resetWebsiteCache" path="/admin/resetWebsiteCache.jsp"/>
+	    	<forward name="resetPositionFieldMapCache" path="/admin/resetWebsiteCache.jsp"/>
+        </action>
+        <action path="/hierarchyHome" type="com.talentPool.admin.action.HierarchyAction" name="adminForm" scope="request" parameter="mode">
+	    	<forward name="manageUserHierarchy" path="/admin/manageUserHierarchy.jsp" />
+	    	<forward name="addUserToHierarchy" path="/admin/addUserToHierarchy.jsp" />
+	    	<forward name="moveUserInHierarchy" path="/admin/moveUserInHierarchy.jsp" />
+	    	<forward name="removeUserFromHierarchy" path="/admin/removeUserFromHierarchy.jsp" />
+        </action>
+	    <action path="/masters" type="com.talentPool.masters.action.MastersAction" name="mastersForm" scope="request" parameter="mode">
+			<forward name="masters" path="/masters/masters.jsp" />
+	    	<forward name="manageBranchesMaster" path="/masters/manageBranchesMaster.jsp" />
+	    	<forward name="addBranch" path="/masters/addBranch.jsp" /> 
+	    	<forward name="manageDegreeAliasesMaster" path="/masters/manageDegreeAliasesMaster.jsp" /> 
+	    	<forward name="addDegree" path="/masters/addDegree.jsp" /> 
+	    	<forward name="manageInstitutesMaster" path="/masters/manageInstitutesMaster.jsp" /> 
+	    	<forward name="addInstitute" path="/masters/addInstitute.jsp" /> 
+	    	<forward name="manageDepartmentMaster" path="/masters/manageDepartmentMaster.jsp" /> 
+	    	<forward name="addDeptName" path="/masters/addDeptName.jsp" /> 
+	    	<forward name="manageSkillCategoriesMaster" path="/masters/manageSkillCategoriesMaster.jsp" /> 
+	    	<forward name="addSkillCategory" path="/masters/addSkillCategory.jsp" /> 
+	    	<forward name="manageSourceTypesMaster" path="/masters/manageSourceTypesMaster.jsp" /> 
+	    	<forward name="addSourceTypes" path="/masters/addSourceTypes.jsp" /> 
+	    	<forward name="manageTemplateMaster" path="/masters/manageTemplateMaster.jsp" />
+	    	<forward name="showTemplatePopup" path="/masters/showTemplatePopup.jsp" />	    	 
+	    	<forward name="manageFlagMaster" path="/masters/manageFlagMaster.jsp" />
+	    	<forward name="editFlag" path="/masters/editFlag.jsp" /> 
+	    	<forward name="manageSkillsMaster" path="/masters/manageSkillsMaster.jsp" /> 
+	    	<forward name="addSkills" path="/masters/addSkills.jsp" /> 
+	    	<forward name="manageSourcesMaster" path="/masters/manageSourcesMaster.jsp" /> 
+	    	<forward name="addSources" path="/masters/addSources.jsp" />
+	    	<forward name="manageRatingMaster" path="/masters/manageRatingMaster.jsp" />	    	
+	    	<forward name="addRating" path="/masters/addRating.jsp" />
+	    	<forward name="manageFeedbackFieldsCategoriesMaster" path="/masters/manageFeedbackFieldsCategoriesMaster.jsp" /> 
+	    	<forward name="addFeedbackFieldCategory" path="/masters/addFeedbackFieldCategory.jsp" /> 
+	    	<forward name="manageFeedbackFieldsMaster" path="/masters/manageFeedbackFieldsMaster.jsp" /> 
+	    	<forward name="addFeedbackFields" path="/masters/addFeedbackFields.jsp" /> 
+	    	<forward name="manageInboxFoldersMaster" path="/masters/manageInboxFoldersMaster.jsp" />
+	    	<forward name="addInboxFolder" path="/masters/addInboxFolder.jsp" />	  
+	    	<forward name="manageBudgetGradeMaster" path="/masters/manageBudgetGradeMaster.jsp" />	   
+	    	<forward name="addBudgetGrade" path="/masters/addBudgetGrade.jsp" /> 
+	    	<forward name="manageBudgetBandMaster" path="/masters/manageBudgetBandMaster.jsp" />	     	
+	    	<forward name="addBudgetBand" path="/masters/addBudgetBand.jsp" /> 		    	   	
+	    	<forward name="manageMultipleSelectMaster" path="/masters/manageMultipleSelectMaster.jsp" />	    	
+	    	<forward name="addMultipleSelect" path="/masters/addMultipleSelect.jsp" />
+	    	<forward name="manageBusinessUnitMaster" path="/masters/manageBusinessUnit.jsp" />
+	    	<forward name="addBusinessUnit" path="/masters/addBusinessUnit.jsp" />
+	    	<forward name="manageCostCenterMaster" path="/masters/manageCostCenter.jsp" />	     	
+	    	<forward name="addCostCenter" path="/masters/addCostCenter.jsp" />
+		</action>
+	    <action path="/feedbackform" type="com.talentPool.masters.action.FeedbackFormAction" name="feedbackForm" scope="request" parameter="mode">
+			<forward name="feedbackFormHome" path="/feedbackform/feedbackFormHome.jsp" />
+			<forward name="createTemplate" path="/feedbackform/createTemplate.jsp" />
+			<forward name="addForm" path="/feedbackform/addForm.jsp" />
+			<forward name="editFormTitle" path="/feedbackform/editFormTitle.jsp" />
+			<forward name="editFormDesc" path="/feedbackform/editFormDesc.jsp" />
+			<forward name="addField" path="/feedbackform/addField.jsp" />
+			<forward name="viewreport" path="/reports/viewreport.jsp" />
+		</action>
+	    <action path="/requisition" type="com.talentPool.requisition.action.RequisitionAction" name="requisitionForm" scope="request" parameter="mode">
+	    	<forward name="addRequisitionStep" path="/requisition/addRequisitionStep.jsp"/>
+	    	<forward name="manageRequisitionApprovalTemplates" path="/requisition/manageRequisitionApprovalTemplates.jsp" />		    	   	    	 		    		    	
+	    	<forward name="requisitionApprovalTemplate" path="/requisition/requisitionApprovalTemplate.jsp" />		    	   	    	 		    		    	
+        </action>
+	    <action path="/requisitionfeedback" type="com.talentPool.requisition.action.RequisitionFeedbackAction" name="requisitionFeedbackForm" scope="request" parameter="mode">
+	    	<forward name="feedback" path="/requisition/feedback.jsp"/>
+	    	<forward name="viewFeedback" path="/requisition/viewFeedback.jsp"/>
+	    	<forward name="openNotification" path="/requisition/openNotification.jsp"/>
+	    	<forward name="bulkRequisitionApproval" path = "/requisition/bulkRequisitionApproval.jsp"/>
+        </action>
+	    <action path="/ldapHome" type="com.talentPool.ldap.action.LDAPAction" name="ldapForm" scope="request" parameter="mode">
+	    	<forward name="ldapSettings" path="/ldap/ldapSettings.jsp" />
+	    	<forward name="addLdapServer" path="/ldap/addLdapServer.jsp" />
+	    	<forward name="setAdminUserName" path="/ldap/setAdminUserName.jsp" />
+        </action>
+        <action path="/importResume" type="com.talentPool.applicant.action.ApplicantAction" name="applicantForm" scope="request" parameter="mode">
+			<forward name="createApplicant" path="/applicants/createApplicant.jsp" />
+			<forward name="showDuplicates" path="/applicants/showDuplicates.jsp" />
+			<forward name="compareResume" path="/applicants/compareResume.jsp" />
+			<forward name="updateConfirm" path="/applicants/updateConfirm.jsp" />
+			<forward name="applicantSaved" path="/applicants/applicantSaved.jsp" />     
+			<forward name="resumeToImport" path="/applicants/resumeToImport.jsp" />
+			<forward name="viewOriginalResume" path="/applicants/viewOriginalResume.jsp" />
+			<forward name="addDocument" path="/applicants/addDocument.jsp" />
+			<forward name="desktopResult" path="/applicants/desktopResult.jsp" />
+			<forward name="showSocialRelations" path="/applicants/showSocialRelations.jsp"></forward>
+        </action>
+	    <action path="/inbox" type="com.talentPool.inbox.action.InboxAction" name="inboxForm" scope="request" parameter="mode">
+	    	<forward name="inbox" path="/inbox/inbox.jsp" />
+	    	<forward name="forwardToCandidate" path="/inbox/forwardToCandidate.jsp" />
+	    	<forward name="messageBody" path="/inbox/messageBody.jsp" />
+	    	<forward name="viewEmail" path="/inbox/viewEmail.jsp" />
+	    	<forward name="newEmail" path="/inbox/newEmail.jsp" />
+	    	<forward name="addAttachments" path="/inbox/addAttachments.jsp" />
+	    	<forward name="attachResumes" path="/inbox/attachResumes.jsp" />
+	    	<forward name="showFieldMappings" path="/inbox/showFieldMappings.jsp" />
+	    	<forward name="showCSVImportData" path="/inbox/showCSVImportData.jsp" />
+	    	<forward name="viewCSVImportProcess" path="/inbox/viewCSVImportProcess.jsp" />
+        </action>
+	    <action path="/massEmail" type="com.talentPool.inbox.action.MassEmailAction" name="inboxForm" scope="request" parameter="mode">
+	    	<forward name="showScreened" path="/massEmail/showScreened.jsp" />
+	    	<forward name="showSelect" path="/massEmail/showSelect.jsp" />
+	    	<forward name="massEmailNotify" path="/massEmail/massEmailNotify.jsp" />
+	    	<forward name="showPositionVendorNotify" path = "/massEmail/showPositionVendorNotify.jsp"/>            
+        </action>
+        <action path="/position" type="com.talentPool.positions.action.PositionAction" name="positionForm" scope="request" parameter="mode">
+            <forward name="positionsHome" path = "/positions/positionsHome.jsp"/>
+            <forward name="description" path="/positions/description.jsp" />
+            <forward name="requirements" path="/positions/requirements.jsp" />
+            <forward name="approval" path="/positions/approval.jsp" />
+            <forward name="hiringProcess" path="/positions/hiringProcess.jsp" />
+            <forward name="showStepPopup" path="/positions/showStepPopup.jsp"></forward>
+            <forward name="publishPosition" path="/positions/publishPosition.jsp" />
+            <forward name="approvalHistory" path="/positions/approvalHistory.jsp" />
+            <forward name="positionPriority" path="/positions/positionPriority.jsp" />
+            <forward name="positionStatus" path="/positions/positionStatus.jsp" />
+            <forward name="positionsToPublishForWalkIn" path="/positions/positionsToPublishForWalkIn.jsp" />
+             <forward name="positionsToPublishForEmployees" path="/positions/positionsToPublishForEmployees.jsp" />
+             <forward name="positionsToPublishForSocialMedia" path="/positions/positionsToPublishForSocialMedia.jsp" />
+            <forward name="publishPositionToSite" path="/positions/publishPositionToSite.jsp" />                        
+            <forward name="publishPositionsToVendors" path="/positions/publishPositionsToVendors.jsp" />                                    
+            <forward name="positionsToPublishForWebsite" path="/positions/positionsToPublishForWebsite.jsp" />      
+            <forward name="uploadIndent" path = "/positions/uploadIndent.jsp"/>
+            <forward name="successUploadIndent" path = "/positions/successUploadIndent.jsp"/>
+            <forward name="savePositionAsDraft" path="/positions/savePositionAsDraft.jsp" />
+            <forward name="positionsToPublishForWalkInPopUp" path="/positions/positionsToPublishForWalkInPopUp.jsp" />
+            <forward name="printPosition" path="/positions/printPosition.jsp" />
+            <forward name="positionSummary" path="/positions/positionSummary.jsp" />
+            <forward name="positionDocuments" path="/positions/positionDocuments.jsp" />
+            <forward name="positionTemplatesHome" path = "/positionTemplate.do?mode=positionTemplatesHome"/>
+            <forward name="employeeAnnouncements" path = "/positions/employeeAnnouncements.jsp"/>
+            <forward name="bulkRequisitionApproval" path = "/positions/bulkRequisitionApproval.jsp"/>
+            <forward name="positionSelectBox" path = "/positions/positionSelectBox.jsp"/>
+            <forward name="positionsToPublishForNaukri" path="/positions/positionsToPublishForNaukri.jsp" />
+            <forward name="publishPositionToNaukri" path="/positions/publishPositionToNaukri.jsp" /> 
+       </action>
+       <action path="/positionTemplate" type="com.talentPool.positions.action.PositionTemplateAction" name="positionForm" scope="request" parameter="mode">
+       		<forward name="positionTemplatesHome" path = "/positions/positionTemplatesHome.jsp"/>
+       </action>
+        <action path="/selectionProcess" type="com.talentPool.selectionProcess.action.SelectionProcessAction" name="selectionProcessForm" scope="request" parameter="mode">
+			<forward name="xmlFile" path="/common/xmlFile.jsp" />
+			<forward name="moveApplicantUpOrDown" path="/selectionProcess/moveApplicantUpOrDown.jsp" />
+			<forward name="addPhoneLog" path="/selectionProcess/addPhoneLog.jsp" />
+			<forward name="viewPhoneLog" path="/selectionProcess/viewPhoneLog.jsp" />
+			<forward name="viewStatusMessage" path="/selectionProcess/viewStatusMessage.jsp" />			
+			<forward name="viewInterviewLog" path="/selectionProcess/viewInterviewLog.jsp" />
+			<forward name="viewAppointment" path="/selectionProcess/viewAppointment.jsp" />
+			<forward name="viewMessage" path="/selectionProcess/viewMessage.jsp" />
+			<forward name="viewCallListReport" path="/selectionProcess/viewReport.jsp" />
+			<forward name="viewreport" path="/reports/viewreport.jsp" />
+			<forward name="viewOriginalResume" path="/selectionProcess/viewOriginalResume.jsp" />
+			<forward name="select" path="/selectionProcess/select.jsp" />
+			<forward name="shortlist" path="/selectionProcess/shortlist.jsp" />
+			<forward name="accept" path="/selectionProcess/accept.jsp" />
+			<forward name="addMessage" path="/selectionProcess/addMessage.jsp" />
+			<forward name="changeStatus" path="/selectionProcess/changeStatus.jsp" />
+			<forward name="viewOfferDetailsModifiedInteraction" path="/selectionProcess/viewOfferDetailsModifiedInteraction.jsp" />
+			<forward name="notInterestedReject" path="/selectionProcess/notInterestedReject.jsp" />
+			<forward name="confirmAttendance" path="/selectionProcess/confirmAttendance.jsp" />			
+	    	<forward name="massEmailSelect" path="/massEmail.do?mode=showSelect" />
+	    	<forward name="callListFilter" path="/selectionProcess/callListFilter.jsp" />
+	    	<forward name="setJoiningDate" path="/selectionProcess/setJoiningDate.jsp" />
+	    	<forward name="sendSMS" path="/selectionProcess/sendSMS.jsp" />
+	    	<forward name="viewSMS" path="/selectionProcess/viewSMS.jsp" />
+	    	<forward name="addReminder" path="/selectionProcess/addReminder.jsp" />
+	    	<forward name="setFlag" path="/selectionProcess/setFlag.jsp" />	   
+	    	<forward name="bulkMoveApplicantUpOrDown" path="/selectionProcess/bulkMoveApplicantUpOrDown.jsp" /> 
+	    	<forward name="applicantSingleFeedback" path="/selectionProcess/applicantSingleFeedback.jsp" />
+	    	<forward name="selectBulkAction" path="/selectionProcess/selectBulkAction.jsp" />
+	    	<forward name="blackListApplicant" path="/selectionProcess/blackListApplicant.jsp" />
+	    	<forward name="viewBlacklistReason" path="/selectionProcess/viewBlacklistReason.jsp" />
+        </action>
+		<action path="/calendar" type="com.talentPool.calendar.action.CalendarAction" name="calendarForm" scope="request" parameter="mode">
+	    	<forward name="calendarHome" path="/calendar/calendarHome.jsp" />
+			<forward name="xmlFile" path="/common/xmlFile.jsp" />
+			<forward name="printableView" path="/calendar/printableView.jsp" />
+        </action>
+        <!--End of mapping for add position wizard -->
+        <!--Mapping for Change Password-->
+		<action path="/user" type="com.talentPool.user.action.UserAction" name="userForm" scope="request" parameter="mode" input="/user/changePassword.jsp">
+			<forward name="changePassword" path="/user/changePassword.jsp" />
+			<forward name="tokenExpired" path="/user/tokenExpired.jsp" />			
+			<forward name="savePassword" path="/login.do?loginmode=getUserDashBoard" />
+			<forward name="accountSettings" path="/user/accountSettings.jsp" />
+			<forward name="saveAccountSettings" path="/login.do?loginmode=getUserDashBoard" />
+			<forward name="myAccount" path="/user/myAccount.jsp" />
+			<forward name="userConfiguration" path="/user/userConfiguration.jsp" />
+			<forward name="userDataViewConfiguration" path="/user/userDataViewConfiguration.jsp" />
+			<forward name="passwordSaved" path="/user/passwordSaved.jsp" />
+			<forward name="forgotPassword" path="/user/forgotPassword.jsp" />
+			<forward name="loginpage" path="/common/login.jsp" />
+			<forward name="setPassword" path="/user/setPassword.jsp" />
+			<forward name="changePasswordOnAge" path="/user/changePasswordOnAge.jsp" />
+			<forward name="socialProfile" path="/user/socialProfile.jsp" />
+			<forward name="showTimeZone" path="/user/showTimeZone.jsp" />
+		</action>
+		<!--End Mapping for Change Password-->
+		
+		<!--mapping for reports-->
+        <action path="/reports" type="com.talentPool.reports.action.ReportAction" name="reportForm" scope="request" parameter="mode" >
+	        <forward name="hiringStatusFilter" path="/reports/hiringStatusFilter.jsp" />
+	        <forward name="callListReport" path="/reports/callListReport.jsp" />
+			<forward name="xmlFile" path="/common/xmlFile.jsp" />
+			<forward name="viewreport" path="/reports/viewreport.jsp" />
+			<forward name="importReportFilter" path="/reports/importReportFilter.jsp" />
+			<forward name="hiringEfficiencyReportFilter" path="/reports/hiringEfficiencyReport.jsp" />
+			<forward name="sourceWiseHiringChart" path="/reports/sourceWiseHiringChart.jsp" />
+			<forward name="monthlyJoiningReport" path="/reports/monthlyJoinReport.jsp" />			
+			<forward name="hiringFunnelFilter" path="/reports/hiringFunnelFilter.jsp" />
+			<forward name="interviewList" path="/reports/interviewList.jsp" />
+			<forward name="userActivity" path="/reports/userActivity.jsp" />			
+			<forward name="positionActivity" path="/reports/positionActivity.jsp" />			
+			<forward name="sourcewiseImportReport" path="/reports/sourcewiseImportReport.jsp" />
+			<forward name="applicantDetailsReport" path="/reports/applicantDetailsReport.jsp" />
+			<forward name="reportHome" path="/reports/reportHome.jsp" />
+			<forward name="offerToJoinedReport" path="/reports/offerToJoinedReport.jsp" />
+			<forward name="offerCTCReport" path="/reports/offerCTCReport.jsp" />	
+			<forward name="offerToJoinedDetailedReport" path="/reports/offerToJoinedDetailedReport.jsp" />	
+			<forward name="positionSummary" path="/reports/positionSummaryReport.jsp" />			
+			<forward name="candidateComparisonReport" path="/reports/candidateComparisonReport.jsp" />
+			<forward name="interviewListFilter" path="/reports/interviewListFilter.jsp" />
+			<forward name="pendingActions" path="/reports/pendingActions.jsp" />
+			<forward name="recruitmentCostFilter" path="/reports/recruitmentCostFilter.jsp" />
+			<forward name="candidateStatusReport" path="/reports/candidateStatusReport.jsp" />
+			<forward name="masterReport" path="/reports/masterReport.jsp" />
+			<forward name="candidateOffersReport" path="/reports/candidateOffersReport.jsp" />
+			<forward name="customReport" path="/reportDesign/customReport.jsp" />
+			<forward name="runReport" path="/reports/viewMasterReport.jsp" />
+			<forward name="pendingOffersReport" path="/reports/pendingOffersReport.jsp" />
+			<forward name="rejectedCandidatesReport" path="/reports/rejectedCandidatesReport.jsp" />
+			<forward name="timeToHire" path="/reports/timeToHire.jsp" />
+			<forward name="hiringActivity" path="/reports/hiringActivity.jsp" />
+			<forward name="hiringActivityDetails" path="/reports/hiringActivityDetails.jsp" />
+			<forward name="datewiseHiringReport" path="/reports/datewiseHiringReport.jsp" />
+			<forward name="poolReports" path="/poolReports/poolReports.jsp" />
+			<forward name="interviewListStatus" path="/reports/interviewListStatus.jsp"/>
+			<forward name="joinerReport" path="/reports/joinerReport.jsp"/>
+			<forward name="joinedReport" path="/reports/joinedReport.jsp"/>
+			<forward name="closedPositionTAT" path="/reports/closedPositionTAT.jsp" />
+			<forward name="blacklistedReport" path="/reports/blacklistedReport.jsp"/>
+			<forward name="masterDataReport" path="/reports/masterDataReport.jsp" />
+			<forward name="auditLogReport" path="/reports/auditLogReport.jsp"/>
+			<forward name="allCandidatesReport" path="/reports/allCandidatesReport.jsp" />
+			<forward name="oneStopFileReport" path="/reports/oneStopFileReport.jsp"/>
+			<forward name="financeCostSheetReport" path="/reports/financeCostSheetReport.jsp"/>
+			<forward name="joinerDataFinanceReport" path="/reports/joinerDataFinanceReport.jsp"/>
+			<forward name="indiaHiringReqReport" path="/reports/indiaHiringReqReport.jsp"/>
+			<forward name="indiaHiringSummaryReport" path="/reports/indiaHiringSummaryReport.jsp"/>
+        </action>
+        <!--End mapping for reports-->        
+        <!--mapping for reportScheduler-->
+        <action path="/reportScheduler" type="com.talentPool.reports.action.ReportSchedulerAction" name="reportForm" scope="request" parameter="mode" >
+			<forward name="xmlFile" path="/common/xmlFile.jsp" />
+	    	<forward name="addReportScheduler" path="/reports/addReportScheduler.jsp" />  	
+	    	<forward name="validateAddReportScheduler" path="/reports/validateAddReportScheduler.jsp" />
+        </action>
+        <!--End mapping for reportScheduler-->
+        
+		<!--mapping for search-->
+		<action path="/doSearch" type="com.talentPool.search.action.SearchAction" name="searchForm" scope="request" parameter="mode">
+	    	<forward name="search" path="/search/search.jsp" />
+	    	<forward name="saveSearch" path="/search/saveSearch.jsp" />
+	    	<forward name="showSavedSearches" path="/search/showSavedSearches.jsp" />
+	    	<forward name="xmlFile" path="/common/xmlFile.jsp" />
+	    	<forward name="massEmail" path="/massEmail.do?mode=showScreened" />
+	    	<forward name="selectPositionForSearch" path="/search/selectPositionForSearch.jsp" />
+	    </action>
+        <!--End mapping for search-->
+		<action path="/application" type="com.talentPool.application.action.ApplicationAction" name="applicationForm" scope="request" parameter="mode">
+	    	<forward name="about" path="/application/about.jsp" />
+	    	<forward name="showAbout" path="/application/showAbout.jsp" />
+	    </action>
+		<action path="/docs" type="com.talentPool.documents.action.DocumentAction" name="documentForm" scope="request" parameter="mode">
+	    	<forward name="uploadDocument" path="/documents/uploadDocument.jsp" />
+	    	<forward name="uploadPositionDocument" path="/documents/uploadPositionDocument.jsp" />
+	    </action>
+		<action path="/bulktools" type="com.talentPool.bulktools.action.BulkToolAction" name="bulkToolForm" scope="request" parameter="mode">
+	    	
+	    </action>
+		<action path="/costs" type="com.talentPool.costs.action.CostAction" name="costForm" scope="request" parameter="mode">
+	    	<forward name="costsHome" path="/costs/costsHome.jsp" />
+	    	<forward name="addCost" path="/costs/addCost.jsp" />
+	    </action>
+		<action path="/costType" type="com.talentPool.costs.action.CostTypeAction" name="costTypeForm" scope="request" parameter="mode">
+	    	<forward name="costTypes" path="/costs/costTypes.jsp" />
+	    	<forward name="addCostType" path="/costs/addCostType.jsp" />
+	    </action>
+		<action path="/miscutils" type="com.talentPool.miscutils.action.MiscUtilsAction" name="miscUtilsForm" scope="request" parameter="mode">
+	    	<forward name="login" path="/login.do?loginmode=login" />
+	    	<forward name="demoDB" path="/common/createDemoDB.jsp"/>
+	    </action>
+	    <action path="/masterReport" type="com.talentPool.reports.action.MasterReportAction" name="reportForm" scope="request" parameter="mode" >
+	        <forward name="viewMasterReport" path="/reports/viewMasterReport.jsp" />
+        </action>
+	    <action path="/applicantRegistration" type="com.talentPool.applicant.action.ApplicantRegistrationAction" name="applicantRegistrationForm" scope="request" parameter="mode" >
+	    	<forward name="defaultStep0" path="/applicantRegistration/defaultStep0.jsp" />
+	    	<forward name="defaultStep1" path="/applicantRegistration/defaultStep1.jsp" />
+	    	<forward name="defaultStep2" path="/applicantRegistration/defaultStep2.jsp" />
+	    	<forward name="defaultDuplicateDetected" path="/applicantRegistration/defaultDuplicateDetected.jsp" />	    	
+	        <forward name="capitaStep1" path="/applicantRegistration/capitaStep1.jsp" />
+	        <forward name="capitaStep2" path="/applicantRegistration/capitaStep2.jsp" />	        
+	        <forward name="capitaStep3" path="/applicantRegistration/capitaStep3.jsp" />	 
+	        <forward name="duplicateDetected" path="/applicantRegistration/duplicateDetected.jsp" />	 	        
+        </action>
+         <action path="/desktop" type="com.talentPool.desktop.action.DesktopSearchAction" name="desktopSearchForm" scope="request" parameter="mode" >
+        	<forward name="searchToAttach" path="/desktop/searchToAttach.jsp" />
+        	<forward name="attachEmail" path="/desktop/attachEmail.jsp" />
+        	<forward name="autologin" path="/desktop/autologin.jsp" />
+        	<forward name="selectBulkImportParameters" path="/desktop/selectBulkImportParameters.jsp" />
+        	<forward name="success" path="/desktop/success.jsp" />
+        	<forward name="showBulkImportProgress" path="/desktop/showBulkImportProgress.jsp" />
+        	<forward name="showBrowserBulkImportProgress" path="/desktop/showBulkImportProgress.jsp" />
+        	<forward name="showDuplicates" path="/desktop/showBulkImportDuplicates.jsp" />
+        	<forward name="compareResume" path="/desktop/compareResume.jsp" />
+        	<forward name="updateConfirm" path="/desktop/updateConfirm.jsp" />
+        	<forward name="finishBulkImport" path="/desktop/finishBulkImport.jsp" />
+        	<forward name="importSuccess" path="/desktop/importSuccess.jsp" />
+        	<forward name="addSkills" path="/desktop/addSkills.jsp" />
+	    </action>
+        <action path="/customFieldScreen" type="com.talentPool.custom.action.CustomFieldScreenAction" name="customFieldForm" scope="request" parameter="mode">
+	    	<forward name="manageCustomFields" path="/custom/manageCustomFields.jsp" />
+	    	<forward name="addCustomField" path="/custom/addCustomField.jsp" />
+	    	<forward name="customFieldMapping" path="/custom/customFieldReportMapping.jsp" />
+        </action>
+        <action path="/userConf" type="com.talentPool.userConfiguration.action.UserConfigurationAction" name="userConfigurationForm" scope="request" parameter="mode">
+        </action>
+        <action path="/viewPositions" type="com.talentPool.positions.action.PublishPositionToSiteAction" name="positionForm" scope="request" parameter="mode">
+        	<forward name="positionsOnSite" path="/positions/positionsOnSite.jsp" />
+        	<forward name="positionDescription" path="/positions/positionDescription.jsp" />
+        </action>
+        <action path="/applicantRegistrationFromWeb" type="com.talentPool.applicant.action.ApplicantRegistrationFromWebAction" name="applicantFromWebForm" scope="request" parameter="mode" >
+        	<forward name="applicantRegistrationFromSite" path="/applicantRegistration/applicantRegistrationFromSite.jsp" />
+        	<forward name="applicantAdded" path="/applicantRegistration/applicantAdded.jsp" />
+        	<forward name="successPage" path="/applicantRegistration/successPage.jsp" />
+        </action>
+        <action path="/drafts" type="com.talentPool.positions.action.PositionDraftsAction" name="positionDraftForm" scope="request" parameter="mode" >
+        	<forward name="draftsHome" path = "/positions/draftsHome.jsp"/>
+        	<forward name="positionDraftStatus" path = "/positions/positionDraftStatus.jsp"/>
+        	<forward name="positionDraftName" path = "/positions/positionDraftName.jsp"/>
+        	<forward name="uploadFileToImportPosition" path="/positions/uploadFileToImportPosition.jsp" />
+            <forward name="uploadPositionSuccess" path="/positions/uploadPositionSuccess.jsp" />
+            <forward name="startPositionImport" path="/positions/startPositionImport.jsp" />            
+        </action>
+        <action path="/offerSheet" type="com.talentPool.offerSheet.acion.OfferSheetAction" name="offerSheetForm" scope="request" parameter="mode" >
+        	<forward name="manageOfferSheetTemplates" path = "/offerSheet/manageOfferSheetTemplates.jsp"/>
+        	<forward name="addOfferSheetTemplate" path = "/offerSheet/addOfferSheetTemplate.jsp"/>        	        	         
+        </action>
+        <action path="/reportDesigner" type="com.talentPool.reportDesign.action.ReportDesignAction" name="reportDesignForm" scope="request" parameter="mode" >
+        	<forward name="selectReportType" path="/reportDesign/selectReportType.jsp" />
+        	<forward name="selectReportFormat" path="/reportDesign/selectReportFormat.jsp"/>
+        	<forward name="selectColumns" path="/reportDesign/selectColumns.jsp" />
+        	<forward name="orderColumns" path="/reportDesign/orderColumns.jsp" />
+        	<forward name="selectSortByColumn" path="/reportDesign/selectSortByColumn.jsp" />
+        	<forward name="selectFilters" path="/reportDesign/selectFilters.jsp" />   
+        	<forward name="reportDescription" path="/reportDesign/reportDescription.jsp" />
+        	<forward name="showReports" path="/reports.do?mode=reportFilter"/>    
+        	<forward name="uploadReport" path="/reportDesign/uploadReport.jsp"/>	
+        	<forward name="selectReportSheet" path="/reportDesign/selectReportSheet.jsp"/>
+        	<forward name="columnMapping" path="/reportDesign/columnMapping.jsp"/>
+        </action>
+         <action path="/select" type="com.talentPool.select.action.SelectAction" name="selectionProcessForm" scope="request" parameter="mode">
+			<forward name="select" path="/selectionProcess/select.jsp" />
+		</action>
+		<action path="/hire" type="com.talentPool.hire.action.HireAction" name="selectionProcessForm" scope="request" parameter="mode">
+			<forward name="accept" path="/selectionProcess/accept.jsp" />
+		</action>
+		<action path="/todo" type="com.talentPool.todo.action.ToDoAction" name="todoForm" scope="request" parameter="mode">
+			<forward name="regenerateAllToDos" path="/todo/regenerateAllToDos.jsp" />
+		</action>
+		<action path="/export" type="com.talentPool.export.action.ExportAction" name="exportForm" scope="request" parameter="mode">
+            <forward name="selectFields" path="/export/selectFields.jsp" />
+        </action>
+        <action path="/import" type="com.talentPool.porting.action.ImportAction" name="importForm" scope="request" parameter="mode">
+            <forward name="selectFields" path="/export/selectFields.jsp" />
+            <forward name="addDocument" path="/import/addDocument.jsp" />
+            <forward name="showFieldMappings" path="/import/showFieldMappings.jsp" />
+             <forward name="viewCSVImportStatus" path="/import/viewCSVImportStatus.jsp" />
+        </action>
+        <action path="/budgets" type="com.talentPool.budget.action.BudgetAction" name="budgetForm" scope="request" parameter="mode">
+	    	<forward name="budgetHome" path ="/budget/budgetHome.jsp"/>
+	    	<forward name="manageBudgetItem" path="/budget/manageBudgetItem.jsp"/>
+	    	<forward name="transferBudget" path ="/budget/transferBudget.jsp"/>
+        </action>
+         <action path="/budgetApproval" type="com.talentPool.budget.action.BudgetApprovalAction" name="budgetForm" scope="request" parameter="mode">
+	    	<forward name="feedback" path="/budget/feedback.jsp"/>
+        </action>
+        <action path="/positionSummary" type="com.talentPool.positions.action.PositionSummaryAction" name="selectionProcessForm" scope="request" parameter="mode">
+			<forward name="positionSummary" path="/positions/positionSummary.jsp" />
+		</action>
+		<action path="/selectionProcessFilters" type="com.talentPool.selectionProcessFilters.action.SelectionProcessFiltersAction" name="selectionProcessForm" scope="request" parameter="mode">
+			<forward name="stageFilterScreen" path="/selectionProcess/stageFilterScreen.jsp" />
+			<forward name="userFilterScreen" path="/selectionProcess/userFilterScreen.jsp" />
+		</action>
+		 <action path="/department" type="com.talentPool.department.action.DepartmentAction" name="departmentForm" scope="request" parameter="mode">
+		</action>	
+		<action path="/location" type="com.talentPool.masters.action.LocationAction" name="mastersForm" scope="request" parameter="mode">
+			<forward name="manageLocationsMaster" path="/masters/manageLocationsMaster.jsp" />
+	    	<forward name="addLocation" path="/masters/addLocation.jsp" />
+	    	<forward name="manageOffices" path="/masters/manageOffices.jsp" />
+	    	<forward name="addOffice" path="/masters/addOffice.jsp" />
+		</action>
+		<action path="/step" type="com.talentPool.masters.action.StepAction" name="mastersForm" scope="request" parameter="mode">
+			<forward name="managePositionStepMaster" path="/masters/managePositionStepMaster.jsp" />
+			<forward name="addStep" path="/masters/addStep.jsp" />
+			<forward name="manageStageMaster" path="/masters/manageStageMaster.jsp" />
+			<forward name="editStage" path="/masters/editStage.jsp" />
+		</action>
+		<action path="/customFieldFilters" type="com.talentPool.custom.action.CustomFieldsFilterAction" name="customFieldForm" scope="request" parameter="mode">
+			<forward name="openCustomFieldFilterScreen" path="/custom/openCustomFieldFilterScreen.jsp" />
+		</action>		
+		<action path="/salaryStructure" type="com.talentPool.salaryStructure.action.SalaryStructureAction" name="salaryStructureForm" scope="request" parameter="mode">
+			<forward name="manageSalaryComponents" path="/salaryStructure/manageSalaryComponents.jsp" />
+			<forward name="addEditSalaryComponent" path="/salaryStructure/addEditSalaryComponent.jsp" />
+			<forward name="manageSalaryFormulaTemplates" path="/salaryStructure/manageSalaryFormulaTemplates.jsp" />
+			<forward name="addEditSalaryFormula" path="/salaryStructure/addEditSalaryFormula.jsp" />
+			<forward name="changeCTCRounding" path="/salaryStructure/changeCTCRounding.jsp" />
+		</action>
+		<!--mapping for Template Reports-->
+        <action path="/reportTemplates" type="com.talentPool.masters.action.ReportTemplatesAction" name="reportTemplatesForm" scope="request" parameter="mode" >
+	        <forward name="manageReportTemplates" path="/reportTemplates/manageReportTemplates.jsp" />
+			<forward name="addReportTemplate" path="/reportTemplates/addReportTemplate.jsp" />
+			<forward name="reportTemplateColumnMapping" path="/reportTemplates/reportTemplateColumnMapping.jsp" />
+			<forward name="addDocument" path="/reportTemplates/addDocument.jsp" />
+        </action>
+    </action-mappings>
+<!-- ===================================== Controller Configuration -->
+    <!--controller processorClass="org.apache.struts.tiles.TilesRequestProcessor" /-->
+
+<!-- ================================ Message Resources Definitions -->
+    <message-resources parameter="resources.application" factory="com.talentPool.common.properties.TPPropertyMessageResourcesFactory"/>
+
+<!-- ======================================= Plug Ins Configuration -->
+  <!-- comment following if struts1.0.x -->
+  <!-- commented by shiv 
+  <plug-in className="org.apache.struts.tiles.TilesPlugin">
+    <set-property property="definitions-config" value="/WEB-INF/tiles-defs.xml" />
+    <set-property property="moduleAware" value="true" /> -->
+    <!--<set-property property="definitions-debug" value="2" />
+    <set-property property="definitions-parser-details" value="2" />
+    <set-property property="definitions-parser-validate" value="true" />-->
+  <!--/plug-in>-->
+
+  <!-- end comment if struts1.0.x -->
+
+  <!-- Commented by shiv 
+  <plug-in className="org.apache.struts.validator.ValidatorPlugIn">
+    <set-property property="pathnames" value="/WEB-INF/validator-rules.xml,/WEB-INF/validation.xml" />
+  </plug-in>
+   -->
+
+</struts-config>

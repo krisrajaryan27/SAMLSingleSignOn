@@ -1,0 +1,131 @@
+package com.talentPool.parser;
+
+import java.util.ArrayList;
+
+import com.talentPool.applicant.dataobject.ApplicantData;
+import com.talentPool.applicant.dataobject.EducationalData;
+import com.talentPool.applicant.form.ApplicantForm;
+import com.talentPool.common.Logger.TPLogger;
+import com.talentPool.common.utils.Utils;
+import com.talentPool.parser.exception.EduExpParserException;
+
+
+public class NLPParser implements Parser {
+
+	private String docPath;
+	private String txtContent;
+	private String htmlContent;
+	private boolean parseBasicInfo;
+	private boolean parseAllField;
+	public NLPParser(String _docPath, String _htmlContent, String _txtContent, boolean _parseBasicInfo, boolean _parseAllField) {
+		this.docPath = _docPath;
+		this.htmlContent = _htmlContent;
+		this.txtContent = _txtContent;
+		this.parseBasicInfo = _parseBasicInfo;
+		this.parseAllField = _parseAllField;
+	}
+
+	@Override
+	public void parse() {
+	}
+
+	public void setApplicantData(ApplicantData applicantData) throws EduExpParserException {
+		try {
+			TPLogger.getLogger().debug("NLP setApplicantData Start....");
+			GateApp gateApp = GateApp.get();
+			TPLogger.getLogger().debug("Got GateApp");
+			
+			if(this.parseAllField){
+				TPLogger.getLogger().debug("Processing EducationExperience...");
+				gateApp.setParsedInfo(applicantData, htmlContent, txtContent);
+				TPLogger.getLogger().debug("Done EducationExperience Processing");
+			}
+			TPLogger.getLogger().debug("NLP setApplicantData Start....");
+//			printApplicationData(applicantData);
+		}catch(EduExpParserException e){
+			throw e;
+		} catch (Exception ex) {
+			TPLogger.getLogger().debug(ex.toString(), ex);
+		}
+	}
+	private void printApplicationData(ApplicantData applicantData){
+		TPLogger.getLogger().debug("Printing cand info");
+		TPLogger.getLogger().debug("Name:" + applicantData.getApplicantName());
+		TPLogger.getLogger().debug("Phone1:" + applicantData.getApplicantHomePhone());
+		TPLogger.getLogger().debug("Phone2" + applicantData.getApplicantCellPhone());
+		TPLogger.getLogger().debug("Phone3:" + applicantData.getApplicantWorkPhone());
+		TPLogger.getLogger().debug("Email1:" + applicantData.getApplicantEmail1());
+		TPLogger.getLogger().debug("Email2:" + applicantData.getApplicantEmail2());
+	}
+	public void setApplicantForm(ApplicantForm applicantForm, String userId) throws EduExpParserException {
+		try {
+			ApplicantData applicantData = new ApplicantData();
+			setApplicantData(applicantData);
+			
+			applicantForm.setApplicantName(applicantData.getApplicantName());
+			applicantForm.setApplicantCellPhone(applicantData.getApplicantCellPhone());
+			applicantForm.setApplicantWorkPhone(applicantData.getApplicantWorkPhone());
+			applicantForm.setApplicantHomePhone(applicantData.getApplicantHomePhone());
+			applicantForm.setApplicantEmail1(applicantData.getApplicantEmail1());
+			applicantForm.setApplicantEmail2(applicantData.getApplicantEmail2());
+			applicantForm.setApplicantCity(applicantData.getApplicantCity());
+			applicantForm.setApplicantCurrentEmployer(applicantData.getApplicantCurrentEmployer());
+			if(applicantData.getApplicantWorkingSince()!=null){
+				//applicantForm.setApplicantWorkingSince(Utils.getDateConvertedToString(applicantData.getApplicantWorkingSince(), Utils.regMMMYYYYFormat));
+			Utils utils=new Utils();
+			Double expinNumber=utils.getExperienceInNumber(applicantData.getApplicantWorkingSince());
+			String exp=String.valueOf(expinNumber);
+			applicantForm.setApplicantWorkingSince(exp);
+			}
+			else{
+				applicantForm.setApplicantWorkingSince("");
+			}
+			applicantForm.setCurrentCTC(applicantData.getCurrentCTC());
+			applicantForm.setExpectedCTC(applicantData.getExpectedCTC());
+			
+			ArrayList<EducationalData> educationalDetails = applicantData.getEducationalDetails();
+			if (educationalDetails != null && educationalDetails.size() > 0) {
+				int sz = educationalDetails.size();
+				String[] fromYear = new String[sz];
+				String[] eduYop = new String[sz];
+				String[] eduInstitute = new String[sz];
+				String[] eduDegree = new String[sz];
+				String[] eduMajor = new String[sz];
+				String[] eduGrades = new String[sz];
+				String[] remarks = new String[sz];
+				for (int i = 0; i < sz; i++) {
+					EducationalData eData = (EducationalData) educationalDetails.get(i);
+					fromYear[i] = eData.getFromYear()==null?"":Utils.getDateConvertedToString(eData.getFromYear(), Utils.regYYYYFormat);
+					eduYop[i] = eData.getYearOfPassing() == null ? "" : Utils.getDateConvertedToString(eData.getYearOfPassing(), Utils.regYYYYFormat);
+					eduInstitute[i] = eData.getInstitute();
+					eduDegree[i] = "" + eData.getDegreeId();
+					eduMajor[i] = "" + eData.getMajorId();
+					eduGrades[i] = eData.getGrade();
+					remarks[i]=Utils.isBlankOrNull(eData.getRemarks())?"":eData.getRemarks();
+				}
+				applicantForm.setEducationYearOfPassing(eduYop);
+				applicantForm.setEducationInstitute(eduInstitute);
+				applicantForm.setEducationDegreeId(eduDegree);
+				applicantForm.setEducationMajorId(eduMajor);
+				applicantForm.setEducationalGrade(eduGrades);
+				applicantForm.setRemarks(remarks);
+				applicantForm.setFromYear(fromYear);
+			}
+
+			ArrayList<String> skills = applicantData.getApplicantSkills();
+			if (skills != null && skills.size() > 0) {
+				applicantForm.setPrimarySkillIds((String) skills.get(0));
+			}
+			if (skills != null && skills.size() > 1) {
+				applicantForm.setPrimarySkills((String) skills.get(1));
+			}
+//			applicantForm.setApplicantNote("Parsed using NLP Parser");
+			
+		}catch(EduExpParserException e){
+			throw e;
+		} catch (Exception ex) {
+			TPLogger.getLogger().debug(ex.toString(), ex);
+		}
+
+	}
+}

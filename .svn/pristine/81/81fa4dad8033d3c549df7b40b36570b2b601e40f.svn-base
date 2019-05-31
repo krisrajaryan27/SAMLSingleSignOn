@@ -1,0 +1,15 @@
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true" evaluationTime="Now" hyperlinkType="None"  hyperlinkTarget="Self" >
+					<reportElement
+						style="column_header"
+						x="0"
+						y="0"
+						width="120"
+						height="20"
+						key="textField-14"
+						stretchType="RelativeToTallestObject"/>
+					
+					<textElement>
+						<font/>
+					</textElement>
+				<textFieldExpression   class="java.lang.String"><![CDATA[$P{CH_0}]]></textFieldExpression>
+				</textField>

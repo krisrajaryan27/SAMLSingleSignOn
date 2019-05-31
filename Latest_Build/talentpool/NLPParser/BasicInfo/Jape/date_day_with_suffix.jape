@@ -1,0 +1,22 @@
+/*
+*  date_day_with_suffix.jape
+*
+*/
+
+
+Phase:	date_day_with_suffix
+Input:  Token Lookup Date
+
+Rule:date_day_with_suffix
+(
+({Token.string == "1st"}|{Token.string == "2nd"}|{Token.string == "3rd"}|{Token.string == "4th"}|{Token.string == "5th"}|
+{Token.string == "6th"}|{Token.string == "7th"}|{Token.string == "8th"}|{Token.string == "9th"}|{Token.string == "10th"}|
+{Token.string == "11th"}|{Token.string == "12th"}|{Token.string == "13th"}|{Token.string == "14th"}|{Token.string == "15th"}|
+{Token.string == "16th"}|{Token.string == "17th"}|{Token.string == "18th"}|{Token.string == "19th"}|{Token.string == "20th"}|
+{Token.string == "21st"}|{Token.string == "22nd"}|{Token.string == "23rd"}|{Token.string == "24th"}|{Token.string == "25th"}|
+{Token.string == "26th"}|{Token.string == "27th"}|{Token.string == "28th"}|{Token.string == "29th"}|{Token.string == "30th"}|
+{Token.string == "31st"})
+{Date.kind == date}
+)
+:date_day_with_suffix -->
+ :date_day_with_suffix.Date = {kind = "date", rule = "date_day_with_suffix"}

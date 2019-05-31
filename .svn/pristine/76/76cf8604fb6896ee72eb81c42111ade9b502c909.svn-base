@@ -1,0 +1,276 @@
+/*
+*  experiance_date_range.jape
+*
+*/
+
+Phase: experience_date_range
+Input: Lookup Token CustomSpaceToken ExpJobTitleToken TempExperienceToken
+Options: control = all
+
+Macro: JOB_TITLE
+(
+	{Lookup.majorType == experience, Lookup.minorType == job_title}
+)
+Macro: CompanyTokenWithoutNumber
+(
+	{Token.category == PRP, !ExpJobTitleToken}|
+	{Token.category == NN, !ExpJobTitleToken, Token.kind != punctuation}|
+	{Token.category == NNP, !ExpJobTitleToken}|
+	{Token.category == NNPS, !ExpJobTitleToken}|
+	{Token.category == NNS, !ExpJobTitleToken}|
+	{Token.category == RP, !ExpJobTitleToken}|
+	{Token.category == DT, Token.orth == upperInitial, !ExpJobTitleToken}|
+	{Token.category == JJ, Token.orth == upperInitial, !ExpJobTitleToken}|
+	{Token.category == JJR, Token.orth == upperInitial, !ExpJobTitleToken}|
+	{Token.category == JJS, Token.orth == upperInitial, !ExpJobTitleToken}
+)
+Macro: CompanyTokenStart
+(
+	(CompanyTokenWithoutNumber)|
+	({Token.category == CD, !ExpJobTitleToken}(CompanyTokenWithoutNumber))
+)
+Macro: CompanyTokenWithoutPunctuation
+(
+	{Token.category == CD, !ExpJobTitleToken}|
+	{Token.category == JJ, !ExpJobTitleToken}|
+	{Token.category == JJR, !ExpJobTitleToken}|
+	{Token.category == JJS, !ExpJobTitleToken}|
+	{Token.category == RP, !ExpJobTitleToken}|
+	{Token.category == RB, !ExpJobTitleToken}|
+	{Token.category == RBR, !ExpJobTitleToken}|
+	{Token.category == RBS, !ExpJobTitleToken}|
+	{Token.category == PART, !ExpJobTitleToken}|
+	{Token.category == NN, !ExpJobTitleToken}|
+	{Token.category == NNS, !ExpJobTitleToken}|
+	{Token.category == NNP, !ExpJobTitleToken}|
+	{Token.category == NNPS, !ExpJobTitleToken}|
+	{Token.category == POS, !ExpJobTitleToken}|
+	{Token.category == VBZ, !ExpJobTitleToken}|
+	{Token.string ==~ "[Oo][Ff]"}|
+	{Token.string ==~ "[Aa][Nn][Dd]"}|
+	({Token.category == ","}{Token.category == JJ, !ExpJobTitleToken})|
+	({Token.string == "("}(CompanyTokenStart)[1,6]{Token.string == ")"})
+)
+Macro: CompanyTokenSecond
+(
+	(CompanyTokenWithoutPunctuation)|
+	(
+		({Token.category == "\""}|{Token.string == "&"}|{Token.string == "."}|{Token.string == "-"})
+		(CompanyTokenWithoutPunctuation)
+	)
+)
+
+Macro: CompanyToken
+(
+	{Token.category == CD, !ExpJobTitleToken}|
+	{Token.category == JJ, !ExpJobTitleToken}|
+	{Token.category == JJR, !ExpJobTitleToken}|
+	{Token.category == JJS, !ExpJobTitleToken}|
+	{Token.category == RP, !ExpJobTitleToken}|
+	{Token.category == RB, !ExpJobTitleToken}|
+	{Token.category == RBR, !ExpJobTitleToken}|
+	{Token.category == RBS, !ExpJobTitleToken}|
+	{Token.category == PART, !ExpJobTitleToken}|
+	{Token.category == NN, !ExpJobTitleToken}|
+	{Token.category == NNS, !ExpJobTitleToken}|
+	{Token.category == NNP, !ExpJobTitleToken}|
+	{Token.category == NNPS, !ExpJobTitleToken}|
+	{Token.category == POS, !ExpJobTitleToken}|
+	{Token.category == VBZ, !ExpJobTitleToken}|
+	{Token.string ==~ "[Oo][Ff]"}|
+	{Token.string ==~ "[Aa][Nn][Dd]"}|
+	({Token.category == ","}{Token.category == JJ, !ExpJobTitleToken})|
+	{Token.category == "\""}|
+	{Token.string == "&"}|
+	{Token.string == "."}|
+	{Token.string == "-"}|
+	({Token.string == "("}(CompanyTokenStart)[1,6]{Token.string == ")"})
+)
+
+Macro: ORG_NLP
+(
+	{Lookup.majorType == experience, Lookup.minorType == company_name}
+)
+Macro: ORG_ANNIE
+(
+	{Lookup.majorType == experience, Lookup.minorType == org_key}
+)
+Macro: WITH_IN_AT
+(
+	{Token.string ==~ "[Ww][Ii][Tt][Hh]"}|
+	{Token.string ==~ "[Aa][Tt]"}	
+)
+Macro: WITH_IN_AT_SPACE
+(
+	{Token.string ==~ "[Ww][Ii][Tt][Hh]"}|
+	{Token.string ==~ "[Aa][Tt]"}|	
+	{Token.kind == space}
+)
+Rule: experience_company_lookup_ANNIE
+(
+((CompanyTokenStart)(CompanyToken)[0,8](ORG_ANNIE)(CompanyToken)[0,8]):company
+)
+-->
+:company.TempExperienceToken = {kind = "company_name", rule = "experience_company_lookup_ANNIE"}
+
+Rule: experience_company_lookup_NLP
+(
+(({CustomSpaceToken}({Token.kind == punctuation}|{Token.kind == number})[0,2])|{Token.kind == space}|{Token.kind == punctuation, Token.subkind == dashpunct})
+((CompanyTokenStart)(CompanyToken)[0,8](ORG_NLP)(CompanyToken)[0,8]):company
+)
+-->
+:company.TempExperienceToken = {kind = "company_name", rule = "experience_company_lookup_NLP"}
+
+Rule: experience_company_lookup_NLP_Start
+(
+(({CustomSpaceToken}({Token.kind == punctuation}|{Token.kind == number})[0,2])|{Token.kind == space}|{Token.kind == punctuation, Token.subkind == dashpunct})
+({Token})[0,5]
+((ORG_NLP)(CompanyToken)[0,12]):company
+)
+-->
+:company.TempExperienceToken = {kind = "company_name", rule = "experience_company_lookup_NLP_Start"}
+
+Rule: experience_company_prefix
+(
+ {Lookup.majorType == experience, Lookup.minorType == company_name_prefix}
+ (({Token.kind == space})?({CustomSpaceToken})?({Token.kind == space})?)
+ ({Token.string == ":"}|{Token.string == "-"})
+(({Token.kind == space})?({CustomSpaceToken})?({Token.kind == space})?)
+((CompanyTokenStart)(CompanyTokenSecond)(CompanyToken)[0,15]):company
+)
+-->
+:company.TempExperienceToken = {kind = "company_name", rule = "experience_company_prefix"}
+
+Rule: experience_company_start_WITH_IN_AT
+(
+ (WITH_IN_AT)
+((CompanyTokenStart)(CompanyTokenSecond)(CompanyToken)[0,15]):company
+ ({Token})[0,20]
+ ({TempExperienceToken.kind == date_range}|{TempExperienceToken.kind == job_title})
+)
+-->
+{
+	gate.AnnotationSet companySet = (gate.AnnotationSet)bindings.get("company");
+	long start = companySet.firstNode().getOffset();
+	long end = companySet.lastNode().getOffset();
+	gate.FeatureMap fm = Factory.newFeatureMap();
+	fm.put("kind", "date_range");
+	AnnotationSet tempExpSet = inputAS.get("TempExperienceToken", fm).get(start,end);
+    if(tempExpSet == null || tempExpSet.isEmpty())
+    {
+    	gate.FeatureMap features = Factory.newFeatureMap();
+		features.put("kind", "company_name");
+		features.put("rule", "experience_company_start_WITH_IN_AT");
+		outputAS.add(companySet.firstNode(),
+		companySet.lastNode(), "TempExperienceToken", features);
+	}
+}
+
+Rule: experience_company_end_WITH_IN_AT_SPACE
+(
+ ({TempExperienceToken.kind == date_range}|{TempExperienceToken.kind == job_title})
+ ({Token})[0,20]
+ (WITH_IN_AT_SPACE)
+((CompanyTokenStart)(CompanyTokenSecond)(CompanyToken)[0,15]):company
+)
+-->
+{
+	gate.AnnotationSet companySet = (gate.AnnotationSet)bindings.get("company");
+	long start = companySet.firstNode().getOffset();
+	long end = companySet.lastNode().getOffset();
+	gate.FeatureMap fm = Factory.newFeatureMap();
+	fm.put("kind", "date_range");
+	AnnotationSet tempExpSet = inputAS.get("TempExperienceToken", fm).get(start,end);
+    if(tempExpSet == null || tempExpSet.isEmpty())
+    {
+    	gate.FeatureMap features = Factory.newFeatureMap();
+		features.put("kind", "company_name");
+		features.put("rule", "experience_company_end_WITH_IN_AT_SPACE");
+		outputAS.add(companySet.firstNode(),
+		companySet.lastNode(), "TempExperienceToken", features);
+	}
+}
+Rule: experience_company_start_SPACE
+(
+((CompanyTokenStart)(CompanyTokenSecond)(CompanyToken)[0,15]):company
+({Token.kind == punctuation, Token.string != ":"})[0,2]({Token.kind == space})[1,8]({Token.kind == punctuation, Token.string != ":"})[0,2]
+({TempExperienceToken.kind == date_range}|{TempExperienceToken.kind == job_title})
+)
+-->
+{
+	gate.AnnotationSet companySet = (gate.AnnotationSet)bindings.get("company");
+	long start = companySet.firstNode().getOffset();
+	long end = companySet.lastNode().getOffset();
+	gate.FeatureMap fm = Factory.newFeatureMap();
+	fm.put("kind", "date_range");
+	AnnotationSet tempExpSet = inputAS.get("TempExperienceToken", fm).get(start,end);
+    if(tempExpSet == null || tempExpSet.isEmpty())
+    {
+	    	gate.FeatureMap features = Factory.newFeatureMap();
+			features.put("kind", "company_name");
+			features.put("rule", "experience_company_start_SPACE");
+			outputAS.add(companySet.firstNode(),
+			companySet.lastNode(), "TempExperienceToken", features);
+	}
+}
+
+Rule: experience_company_end_SPACE
+(
+ ({TempExperienceToken.kind == date_range}|{TempExperienceToken.kind == job_title})
+ ({Token.kind == punctuation})[0,2]({Token.kind == space})[1,8]({Token.kind == punctuation})[0,2]
+((CompanyTokenStart)(CompanyTokenSecond)(CompanyToken)[0,15]):company
+)
+-->
+{
+	gate.AnnotationSet companySet = (gate.AnnotationSet)bindings.get("company");
+	long start = companySet.firstNode().getOffset();
+	long end = companySet.lastNode().getOffset();
+	gate.FeatureMap fm = Factory.newFeatureMap();
+	fm.put("kind", "date_range");
+	AnnotationSet tempExpSet = inputAS.get("TempExperienceToken", fm).get(start,end);
+    if(tempExpSet == null || tempExpSet.isEmpty())
+    {
+ 	    	gate.FeatureMap features = Factory.newFeatureMap();
+			features.put("kind", "company_name");
+			features.put("rule", "experience_company_end_SPACE");
+			outputAS.add(companySet.firstNode(),
+			companySet.lastNode(), "TempExperienceToken", features);
+	}
+}
+Rule: experience_company_prefix
+(
+ {Lookup.majorType == experience, Lookup.minorType == company_name_prefix}
+ ({Token})[0,5]
+ ({Token.string == ":"}|{Token.string == "-"})
+((CompanyTokenStart)(CompanyTokenSecond)(CompanyToken)[0,15]):company
+)
+-->
+:company.TempExperienceToken = {kind = "company_name", rule = "experience_company_prefix"}
+
+Rule: in_city
+(
+	(CompanyTokenStart)(CompanyToken)[0,10]
+	({Token.string == ","})?
+	{Lookup.majorType == location, Token.length > 3}
+):company
+-->
+{
+	gate.AnnotationSet companySet = (gate.AnnotationSet)bindings.get("company");
+	long start = companySet.firstNode().getOffset();
+	long end = companySet.lastNode().getOffset();
+	gate.FeatureMap fm = Factory.newFeatureMap();
+	fm.put("majorType", "location");
+	AnnotationSet tempExpSet = inputAS.get("Lookup", fm).get(start,end);
+	List senList = new ArrayList(tempExpSet);
+	Collections.sort(senList, new OffsetComparator());
+	Annotation ann = (Annotation)senList.get(0);
+   if(tempExpSet.isEmpty() || ((Annotation)senList.get(0)).getStartNode().getOffset() != start)
+    {
+    	gate.FeatureMap features = Factory.newFeatureMap();
+		features.put("kind", "company_name");
+		features.put("rule", "in_city");
+		outputAS.add(companySet.firstNode(),
+		companySet.lastNode(), "TempExperienceToken", features);
+    	
+    }	
+}

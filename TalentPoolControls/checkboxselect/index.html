@@ -1,0 +1,118 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<title>Untitled Document</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<script type="text/javascript" src="prototype.js"></script>
+<script type="text/javascript" src="checkboxlist.js"></script>
+<script type="text/javascript" src="../selectoption.js"></script>
+
+
+<style>
+body,input, div,a{
+font-family:Verdana, Arial, Helvetica, sans-serif;
+font-size:10px;
+}
+
+
+.checkboxlistdiv{
+	scrollbar-track-color: #FFFFFF;
+	scrollbar-arrow-color: #265644;
+	scrollbar-face-color: #DDEBA5;
+	scrollbar-3dlight-color:#9EAC64;
+	scrollbar-shadow-color: #9EAC64;
+	scrollbar-darkshadow-color: #DDEBA5;
+	scrollbar-highlight-color: #DDEBA5;
+
+	-moz-box-sizing: border-box;
+    box-sizing: border-box;
+    border:1px solid #9EAC64;
+	overflow:hidden;
+	background-color:#F3F9DC;
+	padding:0px;
+	margin:0px;
+	padding-top:5px;
+}
+.checkboxlistdiv div {
+    cursor:default;
+	border:0px solid #000099;
+	padding-top:0px; /*keep padding top and bottom as 0*/
+	padding-bottom:0px;
+	margin:0px;
+	height:17px;
+	overflow:hidden;
+	width:400px;
+}
+.chkboxclass{
+	padding:0px 3px 0px 2px;
+	border:0px;
+	margin:0px;
+	margin-bottom:-3px;
+	
+}
+.contentImgClass{
+margin-bottom:-5px;
+padding:0px 5px 0px 5px;
+}
+</style>
+</head>
+<body style="margin:10px; ">
+<b>TalentPool Controls: SelectBox</b><br><br>
+<script type="text/javascript">
+var opts = new Array();
+opts[0] = new SelectOption('1','Electronics And Telecommunication Engineering',0,null,false,{optImage: 'flag_yellow.gif'});
+opts[1] = new SelectOption('2','Mechanical Engineering',0,null,false,{optImage: 'flag_red.gif'});
+opts[2] = new SelectOption('3','Computer Science');
+opts[3] = new SelectOption('4','Electrical Engineering');
+opts[4] = new SelectOption('5','Electronics" Engineering');
+opts[5] = new SelectOption('6','Metallurgy');
+opts[6] = new SelectOption('7','Civil',null,null,'1');
+opts[7] = new SelectOption('8','Production');
+opts[8] = new SelectOption('9','Instrumentation');
+var x=null;
+</script>
+<b>Normal Select Box:</b><br>
+<br>
+<script type="text/javascript">
+var x = new CheckBoxList(opts,'1,4,5,9',{namesonly:false, layerclass:'checkboxlistdiv', width:'210px', size:15, imageclass:'chkboxclass', uncheckedimg:'checkboxunchecked.gif', checkedimg:'checkboxchecked.gif', tristatecheckedimg:'checkboxtristate.gif', disabledcheckedimg:'checkboxdisabledchecked.gif', disableduncheckedimg:'checkboxdisabledunchecked.gif', contentImgClass:'contentImgClass', tristateids:'2,3', disabledids:'8,9'});
+//x.setOnChangeHandler('onChange');
+document.write(x.getHtml());
+x.init();
+x.setOnChangeHandler("onChange");
+
+function onChange(objX){
+	alert(objX.getSelectedIds());
+}
+function reinitialize(){
+	var optz = new Array();
+	optz[0] = new SelectOption('1','Electronics And Telecommunication Engineering',0,null,false,{optImage: 'flag_yellow.gif'});
+	optz[1] = new SelectOption('2','Mechanical Engineering',0,null,false,{optImage: 'flag_red.gif'});
+	optz[2] = new SelectOption('3','Computer Science');
+	optz[3] = new SelectOption('4','Electrical Engineering');
+	optz[4] = new SelectOption('5','Electronics" Engineering');
+	
+	x.reInitialize(optz, '',{tristateids:'2,3'});
+}
+</script>
+<br><br><br>
+<a href="#" onClick="javascript: alert(x.getSelectedIds());">show selected</a>
+<br><br>
+<a href="#" onClick="javascript: reinitialize();">reinitialize</a>
+<br><br>
+<a href="#" onClick="javascript: x.hideMe();">hide me</a>
+<br><br>
+<a href="#" onClick="javascript: x.showMe();">show me</a>
+<br><br>
+<a href="#" onClick="javascript: x.resetSelected();">reset selected</a>
+<br><br>
+<a href="#" onClick="javascript: x.selectAll(true);">Select all</a>
+<br><br>
+<a href="#" onClick="javascript: x.selectAll(false);">Unselect all</a>
+<br><br>
+<a href="#" onClick="javascript: alert(x.getTristateIds());">getTristateIds</a>
+<br><br>
+<a href="#" onClick="javascript: alert(x.getTristateText(','));">getTristateText</a>
+
+</body>
+</html>

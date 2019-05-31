@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mapping xmlns="http://castor.exolab.org/" xmlns:cst="http://castor.exolab.org/">
+    <description xmlns="">Castor generated mapping file</description>
+    <class name="com.talentPool.employeeservice.dataobject.EcustomFieldData">
+        <description xmlns="">Default mapping for class com.talentPool.employeeservice.dataobject.EcustomFieldData</description>
+        <map-to xml="ecustom-field-data"/>
+        <field name="fieldRequired" type="int">
+            <bind-xml name="field-required" node="attribute"/>
+        </field>
+        <field name="fieldSearchable" type="int">
+            <bind-xml name="field-searchable" node="attribute"/>
+        </field>
+        <field name="fieldNumberValue" type="double">
+            <bind-xml name="field-number-value" node="attribute"/>
+        </field>
+        <field name="fieldInputAllowed" type="int">
+            <bind-xml name="field-input-allowed" node="attribute"/>
+        </field>
+        <field name="fieldRank" type="int">
+            <bind-xml name="field-rank" node="attribute"/>
+        </field>
+        <field name="fieldEntityType" type="int">
+            <bind-xml name="field-entity-type" node="attribute"/>
+        </field>
+        <field name="fieldName" type="java.lang.String">
+            <bind-xml name="field-name" node="element"/>
+        </field>
+        <field name="fieldStringValue" type="java.lang.String">
+            <bind-xml name="field-string-value" node="element"/>
+        </field>
+        <field name="fieldOptions" type="java.lang.String">
+            <bind-xml name="field-options" node="element"/>
+        </field>
+        <field name="fieldDisplayName" type="java.lang.String">
+            <bind-xml name="field-display-name" node="element"/>
+        </field>
+        <field name="fieldType" type="java.lang.String">
+            <bind-xml name="field-type" node="element"/>
+        </field>
+        <field name="fieldAttributes" type="java.lang.String">
+            <bind-xml name="field-attributes" node="element"/>
+        </field>
+        <field name="fieldValues" type="java.lang.String" collection="array">
+            <bind-xml name="field-values" node="element"/>
+        </field>
+        <field name="fieldDefaultValue" type="java.lang.String">
+            <bind-xml name="field-default-value" node="element"/>
+        </field>
+        <field name="fieldId" type="java.lang.String">
+            <bind-xml name="field-id" node="element"/>
+        </field>
+        <field name="fieldDateValue" type="java.sql.Date">
+            <bind-xml name="field-date-value" node="element"/>
+        </field>
+        <field name="toValues" type="java.lang.String" collection="array">
+            <bind-xml name="to-values" node="element"/>
+        </field>
+        <field name="fieldOtherAttributes" type="java.lang.String">
+            <bind-xml name="field-other-attributes" node="element"/>
+        </field>
+        <field name="tableId" type="java.lang.String">
+            <bind-xml name="table-id" node="element"/>
+        </field>
+        <field name="tableName" type="java.lang.String">
+            <bind-xml name="table-name" node="element"/>
+        </field>
+    </class>
+    <class name="com.talentPool.employeeservice.dataobject.EcustomFieldDataList">
+        <description xmlns="">Default mapping for class com.talentPool.employeeservice.dataobject.EcustomFieldDataList</description>
+        <map-to xml="ecustom-field-data-list"/>
+        <field name="customFields" type="java.lang.Object" collection="arraylist">
+            <bind-xml name="custom-fields" node="element"/>
+        </field>
+    </class>
+</mapping>

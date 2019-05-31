@@ -1,0 +1,14 @@
+branch_prefix.lst:edu_prefix:branch
+college_prefix.lst:edu_prefix:college
+college.lst:education:college
+degree_of_prefix.lst:education:degree_of_prefix
+degree_prefix.lst:edu_prefix:degree
+degree.lst:education:degree
+exam.lst:education:exam
+percentage_prefix.lst:edu_prefix:percent
+sections_education.lst:section_header:education
+sections.lst:section_header:all
+university_prefix.lst:edu_prefix:university
+university.list:education:university
+wrong_tokens.lst:education:wrong_token
+year_prefix.lst:edu_prefix:date

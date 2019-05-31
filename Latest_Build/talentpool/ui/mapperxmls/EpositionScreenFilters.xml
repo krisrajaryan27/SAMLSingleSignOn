@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mapping xmlns="http://castor.exolab.org/" xmlns:cst="http://castor.exolab.org/">
+    <description xmlns="">Castor generated mapping file</description>
+    <class name="com.talentPool.employeeservice.dataobject.EpositionFilters">
+        <description xmlns="">Default mapping for class com.talentPool.employeeservice.dataobject.EpositionFilters</description>
+        <map-to xml="eposition-filters"/>
+        <field name="applyReferOptions" type="java.lang.Object" collection="map">
+            <bind-xml name="apply-refer-options" node="element"/>
+        </field>
+        <field name="skillsList" type="java.lang.Object" collection="arraylist">
+            <bind-xml name="skills-list" node="element"/>
+        </field>
+    </class>
+    <class name="com.talentPool.employeeservice.dataobject.EpositionSkills">
+        <description xmlns="">Default mapping for class com.talentPool.employeeservice.dataobject.EpositionSkills</description>
+        <map-to xml="eposition-skills"/>
+        <field name="skillName" type="java.lang.String">
+            <bind-xml name="skill-name" node="element"/>
+        </field>
+        <field name="skillId" type="java.lang.String">
+            <bind-xml name="skill-id" node="element"/>
+        </field>
+    </class>
+</mapping>

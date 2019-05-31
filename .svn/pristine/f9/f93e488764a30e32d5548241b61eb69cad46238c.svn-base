@@ -1,0 +1,986 @@
+/**
+ * 
+ */
+package com.talentPool.applicant.bc;
+
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+
+import com.talentPool.applicant.dataobject.ApplicantData;
+import com.talentPool.applicant.dataobject.ApplicantDuplicateSearchData;
+import com.talentPool.applicant.dataobject.EducationalData;
+import com.talentPool.applicant.dataobject.EmploymentHistoryData;
+import com.talentPool.applicant.form.ApplicantForm;
+import com.talentPool.applicant.form.ApplicantFromWebForm;
+import com.talentPool.applicant.manager.ApplicantManager;
+import com.talentPool.common.Logger.TPLogger;
+import com.talentPool.common.db.SimpleDataObject;
+import com.talentPool.common.properties.GlobalConstants;
+import com.talentPool.common.properties.TPApplicationProperties;
+import com.talentPool.common.utils.CommonUtils;
+import com.talentPool.common.utils.Utils;
+import com.talentPool.common.utils.Exception.RChilliParseException;
+import com.talentPool.custom.dataobject.CustomFieldData;
+import com.talentPool.documents.DocumentConstants;
+import com.talentPool.documents.utils.DocumentUploader;
+import com.talentPool.inbox.InboxConstants;
+import com.talentPool.inbox.dataobject.MessageData;
+import com.talentPool.inbox.manager.InboxManager;
+import com.talentPool.parser.DiceParser;
+import com.talentPool.parser.MonsterParser;
+import com.talentPool.parser.NLPParser;
+import com.talentPool.parser.NaukriParser;
+import com.talentPool.parser.ParserConstants;
+import com.talentPool.parser.ResumeParser;
+import com.talentPool.parser.TechFetchParser;
+import com.talentPool.parser.TimesjobsParser;
+import com.talentPool.parser.dataobject.ParsedResultData;
+import com.talentPool.parser.dataobject.PhoneParsedData;
+import com.talentPool.parser.exception.EduExpParserException;
+import com.talentPool.positions.manager.PositionManager;
+import com.talentPool.user.manager.ModuleSet;
+
+/**
+ * @author shivprasad
+ * 
+ */
+public class ApplicantBC {
+	public void parseAndSetFormFieldsForNaukriOrMonster(ApplicantForm applicantForm, HashMap map) {
+
+		// get email
+		ArrayList content = (ArrayList) map.get(ParserConstants.FIELD_EMAIL);
+		if (content != null && content.size() > 0) {
+			applicantForm.setApplicantEmail1((String) content.get(0));
+			if (content.size() > 1 && ((String) content.get(1)).contains("@")) {
+				applicantForm.setApplicantEmail2((String) content.get(1));
+			}
+		}
+		// get phone
+		content = (ArrayList) map.get(ParserConstants.FIELD_PHONE);
+		if (content != null && content.size() > 0) {
+			applicantForm.setApplicantCellPhone((String) content.get(0));
+			if (content.size() > 1) {
+				applicantForm.setApplicantHomePhone((String) content.get(1));
+			}
+		}
+		// get name
+		content = (ArrayList) map.get(ParserConstants.FIELD_NAME);
+		if (content != null && content.size() > 0) {
+			applicantForm.setApplicantName((String) content.get(0));
+		}
+		// get location
+		content = (ArrayList) map.get(ParserConstants.FIELD_LOCATION);
+		if (content != null && content.size() > 0) {
+			applicantForm.setApplicantCity((String) content.get(0));
+		}
+		// get current employer
+		content = (ArrayList) map.get(ParserConstants.FIELD_CURRENT_EMPLOYER);
+		if (content != null && content.size() > 0) {
+			applicantForm.setApplicantCurrentEmployer((String) content.get(0));
+		}
+
+		// get Source
+		content = (ArrayList) map.get(ParserConstants.FIELD_SOURCE);
+		if (content != null && content.size() > 0) {
+			applicantForm.setSourceId((String) content.get(0));
+		}
+		// get Skills
+		content = (ArrayList) map.get(ParserConstants.FIELD_SKILLS);
+		if (content != null && content.size() > 0) {
+			applicantForm.setPrimarySkillIds((String) content.get(0));
+			if (content.size() > 1) {
+				applicantForm.setPrimarySkills((String) content.get(1));
+			}
+		}
+		// get currentCTC
+		String currentCTC = (String) map.get(ParserConstants.FIELD_CURRENT_CTC);
+		if (!Utils.isBlankOrNull(currentCTC))
+			applicantForm.setCurrentCTC(currentCTC);
+		// get working since
+		String wrkSince = (String) map.get(ParserConstants.FIELD_WORKING_SINCE);
+		if (!Utils.isBlankOrNull(wrkSince)) {
+			applicantForm.setApplicantWorkingSince((String) map.get(ParserConstants.FIELD_WORKING_SINCE));
+			applicantForm.setFresher("0");
+		} else {
+			applicantForm.setFresher("1");
+		}
+		// get Educations
+		content = (ArrayList) map.get(ParserConstants.FIELD_EDUCATION);
+		if (content != null && content.size() > 0) {
+			int sz = content.size();
+			String[] fromYear = new String[sz];
+			String[] eduYop = new String[sz];
+			String[] eduInstitute = new String[sz];
+			String[] eduDegree = new String[sz];
+			String[] eduMajor = new String[sz];
+			String[] eduGrades = new String[sz];
+			String[] remarks = new String[sz];
+			String[] eduStartDate = new String[sz];
+			String[] eduEndDate = new String[sz];
+			String[] university = new String[sz];
+			String[] typeOfProgram = new String[sz];
+			for (int i = 0; i < sz; i++) {
+				EducationalData eData = (EducationalData) content.get(i);
+				fromYear[i] = eData.getFromYear()==null?"":Utils.getDateConvertedToString(eData.getFromYear(), Utils.regYYYYFormat);
+				eduYop[i] = eData.getYearOfPassing() == null ? "" : Utils.getDateConvertedToString(eData.getYearOfPassing(), Utils.regYYYYFormat);
+				eduInstitute[i] = eData.getInstitute();
+				eduDegree[i] = "" + eData.getDegreeId();
+				eduMajor[i] = "" + eData.getMajorId();
+				eduGrades[i] = eData.getGrade();
+				remarks[i]=Utils.isBlankOrNull(eData.getRemarks())?"":eData.getRemarks();
+				eduStartDate[i]= eData.getStartDate() == null ? "" : Utils.getDateConvertedToString(eData.getStartDate(), Utils.regDDMMMYYYYFormat);
+				eduEndDate[i]= eData.getEndDate() == null ? "" : Utils.getDateConvertedToString(eData.getEndDate(), Utils.regDDMMMYYYYFormat);
+				university[i]= "" + eData.getUniversity() == null ? "" : eData.getUniversity();
+				typeOfProgram[i]= Utils.isBlankOrNull(eData.getTypeOfProgram())?"":eData.getTypeOfProgram();
+			}
+			applicantForm.setEducationYearOfPassing(eduYop);
+			applicantForm.setEducationInstitute(eduInstitute);
+			applicantForm.setEducationDegreeId(eduDegree);
+			applicantForm.setEducationMajorId(eduMajor);
+			applicantForm.setEducationalGrade(eduGrades);
+			applicantForm.setRemarks(remarks);
+			applicantForm.setFromYear(fromYear);
+			applicantForm.setEducationalStartDate(eduStartDate);
+			applicantForm.setEducationalEndDate(eduEndDate);
+			applicantForm.setUniversity(university);
+			applicantForm.setTypeOfProgram(typeOfProgram);
+		}
+		
+		// get Employment History
+		content = (ArrayList) map.get(ParserConstants.FIELD_EMPLOYMENT_HISTORY);
+		if (content != null && content.size() > 0) {
+			int sz = content.size();
+			String[] employmentFromDate = new String[sz];
+			String[] employmentToDate = new String[sz];
+			String[] employmentEmployerId = new String[sz];
+			String[] employmentDesignationId = new String[sz];
+			String[] employmentExperience = new String[sz];
+			String[] grossSalary = new String[sz];
+			String[] allowance = new String[sz];
+			String[] reasonForLeaving = new String[sz];
+			String[] dutiesInvolved = new String[sz];
+			String[] empType = new String[sz];
+			String[] location = new String[sz];
+			String[] country = new String[sz];
+			String[] lastCtc = new String[sz];
+			for (int i = 0; i < sz; i++) {
+				EmploymentHistoryData empData = (EmploymentHistoryData) content.get(i);								
+				employmentFromDate[i] = empData.getEmployerFromDate() == null ? "" : Utils.getDateConvertedToString(empData.getEmployerFromDate(), Utils.regMMMYYYYFormat);
+				employmentToDate[i] = empData.getEmployerToDate() == null ? "" : Utils.getDateConvertedToString(empData.getEmployerToDate(), Utils.regMMMYYYYFormat);				
+				employmentEmployerId[i] = Utils.isBlankOrNull(empData.getEmployerName())?"":empData.getEmployerName();
+				employmentDesignationId[i] = Utils.isBlankOrNull(empData.getDesignationName())?"":empData.getDesignationName();
+				employmentExperience[i] = empData.getEmployerExperience();				
+				grossSalary[i] = Utils.isBlankOrNull(empData.getGrossSalary())?"":empData.getGrossSalary();
+				allowance[i]=Utils.isBlankOrNull(empData.getAllowance())?"":empData.getAllowance();
+				reasonForLeaving[i]=Utils.isBlankOrNull(empData.getReasonForLeaving())?"":empData.getReasonForLeaving();
+				dutiesInvolved[i]=Utils.isBlankOrNull(empData.getDutiesInvolved())?"":empData.getDutiesInvolved();
+				empType[i]=Utils.isBlankOrNull(empData.getEmpType())?"":empData.getEmpType();
+				location[i]=Utils.isBlankOrNull(empData.getLocation())?"":empData.getLocation();
+				country[i]= Utils.isBlankOrNull(empData.getCountry())?"":empData.getCountry();
+				lastCtc[i]=Utils.isBlankOrNull(empData.getLastCtc())?"":empData.getLastCtc();
+			}
+			applicantForm.setEmploymentFromDate(employmentFromDate);
+			applicantForm.setEmploymentToDate(employmentToDate);
+			applicantForm.setEmploymentEmployerId(employmentEmployerId);
+			applicantForm.setEmploymentDesignationId(employmentDesignationId);
+			applicantForm.setEmploymentExperience(employmentExperience);
+			applicantForm.setGrossSalary(grossSalary);
+			applicantForm.setAllowance(allowance);
+			applicantForm.setReasonForLeaving(reasonForLeaving);
+			applicantForm.setDutiesInvolved(dutiesInvolved);
+			applicantForm.setEmpType(empType);
+			applicantForm.setLocation(location);
+			applicantForm.setCountry(country);
+			applicantForm.setLastCtc(lastCtc);
+		}
+	}
+
+	public void parseAndSetFormFieldsForOthers(ApplicantForm applicantForm, HashMap map) {
+		// get name
+		ArrayList content = (ArrayList) map.get(ParserConstants.FIELD_NAME);
+		if (content != null && content.size() > 0) {
+			ParsedResultData prData = (ParsedResultData) content.get(0);
+			applicantForm.setApplicantName(prData.getMatchedString().trim());
+		}
+		// get email
+		content = (ArrayList) map.get(ParserConstants.FIELD_EMAIL);
+		if (content != null && content.size() > 0) {
+			ParsedResultData prData = (ParsedResultData) content.get(0);
+			applicantForm.setApplicantEmail1(prData.getMatchedString());
+			if (content.size() > 1) {
+				prData = (ParsedResultData) content.get(1);
+				applicantForm.setApplicantEmail2(prData.getMatchedString());
+			}
+		}
+		// get phone
+		content = (ArrayList) map.get(ParserConstants.FIELD_PHONE);
+		if (content != null && content.size() > 0) {
+			boolean mobileFound = false;
+			for (int i = 0; i < content.size(); i++) {
+				PhoneParsedData pData = (PhoneParsedData) content.get(i);
+				if (pData.getPhoneType() == ParserConstants.PHONE_TYPE_MOBILE && !mobileFound) {
+					applicantForm.setApplicantCellPhone(pData.getMatchedString());
+					mobileFound = true;
+				} else {
+					if (Utils.isBlankOrNull(applicantForm.getApplicantHomePhone())) {
+						applicantForm.setApplicantHomePhone(pData.getMatchedString());
+					} else if (Utils.isBlankOrNull(applicantForm.getApplicantWorkPhone())) {
+						applicantForm.setApplicantWorkPhone(pData.getMatchedString());
+					} else if (Utils.isBlankOrNull(applicantForm.getApplicantCellPhone())) {
+						applicantForm.setApplicantCellPhone(pData.getMatchedString());
+					}
+				}
+			}
+		}
+		// get Source
+		content = (ArrayList) map.get(ParserConstants.FIELD_SOURCE);
+		if (content != null && content.size() > 0) {
+			applicantForm.setSourceId((String) content.get(0));
+		}
+		// get Skills
+		content = (ArrayList) map.get(ParserConstants.FIELD_SKILLS);
+		if (content != null && content.size() > 0) {
+			applicantForm.setPrimarySkillIds((String) content.get(0));
+		}
+		if (content != null && content.size() > 1) {
+			applicantForm.setPrimarySkills((String) content.get(1));
+		}
+	}
+
+	public ApplicantData parseAndSetFormFields(ApplicantForm applicantForm, String fileContent, String textContent, String originalDocPath, String userId) throws RChilliParseException {
+		HashMap map = null;
+		//List<String> errorMsg=new ArrayList<String>();
+		ApplicantData applicantData=null;
+		try {
+			if (textContent == null) {
+				textContent = "";
+			}
+			NaukriParser naukriParser = new NaukriParser(fileContent, textContent);
+			MonsterParser monsterParser = new MonsterParser(fileContent, textContent);
+			TimesjobsParser timesjobsParser = new TimesjobsParser(fileContent, textContent);
+			TechFetchParser techFetchParser=new TechFetchParser(fileContent, textContent);
+			DiceParser diceParser= new DiceParser(fileContent, textContent);
+			int resumeType = naukriParser.isFormat();			
+			int monsterVersion = monsterParser.isFormat();	
+			if (timesjobsParser.isFormat()  && (Utils.isBlankOrNull(TPApplicationProperties.getProperty("use_timesjob_parser")) || "1".equals(TPApplicationProperties.getProperty("use_timesjob_parser")))) {
+				map = timesjobsParser.getParsedMap();
+				parseAndSetFormFieldsForNaukriOrMonster(applicantForm, map);
+			} else if (monsterVersion != ParserConstants.NON_MONSTER_RESUME   && (Utils.isBlankOrNull(TPApplicationProperties.getProperty("use_monster_parser")) || "1".equals(TPApplicationProperties.getProperty("use_monster_parser")))) {
+				monsterParser.setResumeType(monsterVersion);
+				map = monsterParser.getParsedMap();
+				parseAndSetFormFieldsForNaukriOrMonster(applicantForm, map);
+			} else if (resumeType != ParserConstants.NON_NAUKRI_RESUME && (Utils.isBlankOrNull(TPApplicationProperties.getProperty("use_naukri_parser")) || "1".equals(TPApplicationProperties.getProperty("use_naukri_parser")))) {				
+				naukriParser.setResumeType(resumeType);
+				map = naukriParser.getParsedMap();
+				parseAndSetFormFieldsForNaukriOrMonster(applicantForm, map);
+			}
+			else if (techFetchParser.isFormat()  && (Utils.isBlankOrNull(TPApplicationProperties.getProperty("use_techfetch_parser")) || "1".equals(TPApplicationProperties.getProperty("use_techfetch_parser")))) {
+				map = techFetchParser.getParsedMap();
+				parseAndSetFormFieldsForNaukriOrMonster(applicantForm, map);
+			}
+			else if (diceParser.isFormat()  && (Utils.isBlankOrNull(TPApplicationProperties.getProperty("use_dice_parser")) || "1".equals(TPApplicationProperties.getProperty("use_dice_parser")))) {
+				map = diceParser.getParsedMap();
+				parseAndSetFormFieldsForNaukriOrMonster(applicantForm, map);
+			}
+			if (ModuleSet.isMODULE_RCHILLI_INTEGRATION()&& "1".equals(TPApplicationProperties.getProperty("is_rchilli_integration"))) {
+
+				Soap soap = new Soap();
+				try{
+				 applicantData=soap.rchilliParseAndSetData(originalDocPath,fileContent);
+				} catch (RChilliParseException e){
+					throw e;
+				}
+				if(applicantData !=null){
+					populateRchilliParseApplicantForm(applicantData,applicantForm);
+				}
+				//errorMsg = soap.rchilliParseAndSetData(originalDocPath, applicantForm, fileContent);
+
+			} else {
+			     if("1".equals(TPApplicationProperties.getProperty("use_nlp_parser"))) {
+			      long start = System.nanoTime();
+			      NLPParser nlpParser = new NLPParser(originalDocPath, fileContent, textContent, true, true);
+			      long end = System.nanoTime();
+			      double elapsedTime = (double)((end - start)/1000000000) ;
+			      TPLogger.getLogger().info("After NLP Parser Initialization:"+elapsedTime);
+			      
+			      try {
+			       nlpParser.setApplicantForm(applicantForm, userId); 
+			      } catch (EduExpParserException e) {
+			       TPLogger.getLogger().info("NLP Praser Failed. Parsing Resume With Normal Resume Parsing");
+			       normalParsingPopulateApplicantForm(textContent, applicantForm, map);
+			      }
+			      end = System.nanoTime();
+			      elapsedTime = (double)((end - start)/1000000000) ;
+			      TPLogger.getLogger().info("After nlpParser.setApplicantForm:"+elapsedTime);
+			     } else {
+			      normalParsingPopulateApplicantForm(textContent, applicantForm, map);
+			     }
+			    }
+			if (applicantForm.getEducationYearOfPassing() == null || applicantForm.getEducationYearOfPassing().length == 0) {
+				applicantForm.setDefaultEducationRow();
+			}
+			if (applicantForm.getEmploymentFromDate() == null || applicantForm.getEmploymentFromDate().length == 0) {
+				applicantForm.setDefaultEmploymentHistoryRow();
+			}
+
+		} catch (RChilliParseException e){
+			throw e;
+		}catch (Exception e) {
+			TPLogger.getLogger().error("Error while parsing the content", e);
+		}
+		
+		return applicantData;
+		
+	}
+	
+	public ApplicantData getParsedApplicantData(String fileContent, String textContent, String originalDocPath) {
+		ApplicantData applicantData = new ApplicantData();
+		HashMap map = null;
+		try {
+			NaukriParser naukriParser = new NaukriParser(fileContent, textContent);
+			MonsterParser monsterParser = new MonsterParser(fileContent, textContent);
+			TechFetchParser techFetchParser=new TechFetchParser(fileContent, textContent);
+			DiceParser diceParser= new DiceParser(fileContent, textContent);
+			int resumeType = naukriParser.isFormat();			
+			int monsterVersion=monsterParser.isFormat();
+			if (resumeType != ParserConstants.NON_NAUKRI_RESUME && (Utils.isBlankOrNull(TPApplicationProperties.getProperty("use_naukri_parser")) || "1".equals(TPApplicationProperties.getProperty("use_naukri_parser")))) {
+				naukriParser.setResumeType(resumeType);
+				map = naukriParser.getParsedMap();
+				setParsedContentFromNaukriOrMonster(applicantData, map);
+
+			} 
+			else if (monsterVersion != ParserConstants.NON_MONSTER_RESUME  && (Utils.isBlankOrNull(TPApplicationProperties.getProperty("use_monster_parser")) || "1".equals(TPApplicationProperties.getProperty("use_monster_parser")))) {
+				monsterParser.setResumeType(monsterVersion);
+				map = monsterParser.getParsedMap();
+				setParsedContentFromNaukriOrMonster(applicantData, map);
+			}
+			else if (techFetchParser.isFormat()  && (Utils.isBlankOrNull(TPApplicationProperties.getProperty("use_techfetch_parser")) || "1".equals(TPApplicationProperties.getProperty("use_techfetch_parser")))) {
+				map = techFetchParser.getParsedMap();
+				setParsedContentFromNaukriOrMonster(applicantData, map);
+			}
+			else if (diceParser.isFormat()  && (Utils.isBlankOrNull(TPApplicationProperties.getProperty("use_dice_parser")) || "1".equals(TPApplicationProperties.getProperty("use_dice_parser")))) {
+				map = diceParser.getParsedMap();
+				setParsedContentFromNaukriOrMonster(applicantData, map);
+			}
+			else if (ModuleSet.isMODULE_RCHILLI_INTEGRATION()&& "1".equals(TPApplicationProperties.getProperty("is_rchilli_integration"))) {
+
+				Soap soap = new Soap();
+				try{
+				 applicantData=soap.rchilliParseAndSetData(originalDocPath,fileContent);
+				} catch (RChilliParseException e){
+					TPLogger.getLogger().error(e);
+				}
+				
+			}
+			else {
+				if("1".equals(TPApplicationProperties.getProperty("use_nlp_parser"))) {
+					long start = System.nanoTime();
+					NLPParser nlpParser = new NLPParser(originalDocPath, fileContent, textContent, true, true);
+					
+					try {
+						nlpParser.setApplicantData(applicantData);
+					} catch (EduExpParserException e) {
+						TPLogger.getLogger().info("NLP Praser Failed. Parsing Resume With Normal Resume Parsing");
+						normalParsingPopulateApplicantData(textContent, applicantData, map);
+					}
+					
+					long end = System.nanoTime();
+					double elapsedTime = (double)((end - start)/1000000000) ;
+					TPLogger.getLogger().info("After setApplicantData:"+elapsedTime);
+				} else {
+					normalParsingPopulateApplicantData(textContent, applicantData, map);
+				}
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return applicantData;
+	}
+	
+	private void normalParsingPopulateApplicantData(String textContent,ApplicantData applicantData, HashMap map){
+		ResumeParser resumeParser = new ResumeParser(textContent);
+		map = resumeParser.getParsedMap();
+		setParsedContentFromOther(applicantData, map);
+	}
+	
+	private void normalParsingPopulateApplicantForm(String textContent,ApplicantForm applicantForm, HashMap map){
+		ResumeParser resumeParser = new ResumeParser(textContent);
+		map = resumeParser.getParsedMap();
+		parseAndSetFormFieldsForOthers(applicantForm, map);
+	}
+	
+	public void setParsedContentFromNaukriOrMonster(ApplicantData applicantData, HashMap map) {
+
+		// get email
+		ArrayList content = (ArrayList) map.get(ParserConstants.FIELD_EMAIL);
+		if (content != null && content.size() > 0) {
+			applicantData.setApplicantEmail1((String) content.get(0));
+			if (content.size() > 1 && ((String) content.get(1)).contains("@")) {
+				applicantData.setApplicantEmail2((String) content.get(1));
+			}
+		}
+		// get phone
+		content = (ArrayList) map.get(ParserConstants.FIELD_PHONE);
+		if (content != null && content.size() > 0) {
+			applicantData.setApplicantCellPhone((String) content.get(0));
+			if (content.size() > 1) {
+				applicantData.setApplicantHomePhone((String) content.get(1));
+			}
+		}
+		// get name
+		content = (ArrayList) map.get(ParserConstants.FIELD_NAME);
+		if (content != null && content.size() > 0) {
+			applicantData.setApplicantName((String) content.get(0));
+		}
+		// get location
+		content = (ArrayList) map.get(ParserConstants.FIELD_LOCATION);
+		if (content != null && content.size() > 0) {
+			applicantData.setApplicantCity((String) content.get(0));
+		}
+		// get current employer
+		content = (ArrayList) map.get(ParserConstants.FIELD_CURRENT_EMPLOYER);
+		if (content != null && content.size() > 0) {
+			applicantData.setApplicantCurrentEmployer((String) content.get(0));
+		}
+
+		// get Source
+		content = (ArrayList) map.get(ParserConstants.FIELD_SOURCE);
+		if (content != null && content.size() > 0) {
+			try {
+				applicantData.setApplicantSourceId(Integer.parseInt((String) content.get(0)));
+			} catch (Exception e) {
+				// TODO: handle exception
+			}
+		}
+		// get Skills
+		content = (ArrayList) map.get(ParserConstants.FIELD_SKILLS);
+		if (content != null && content.size() > 0) {
+			applicantData.setSkillIds((String) content.get(0));
+			// if (content.size() > 1) {
+			// applicantForm.setPrimarySkills((String) content.get(1));
+			// }
+		}
+		// get currentCTC
+		String currentCTC = (String) map.get(ParserConstants.FIELD_CURRENT_CTC);
+		if (!Utils.isBlankOrNull(currentCTC))
+			applicantData.setCurrentCTC(currentCTC);
+		// get working since
+
+		java.sql.Date dtWorkingFrom = null;
+		String wrkSince = (String) map.get(ParserConstants.FIELD_WORKING_SINCE);
+		if (!Utils.isBlankOrNull(wrkSince)) {
+			Calendar calendar = Calendar.getInstance();
+			if(wrkSince.contains(".")){
+				String[] yysmms = wrkSince.split("\\.");
+				calendar.add(Calendar.YEAR, -Integer.parseInt(yysmms[0]));
+				calendar.add(Calendar.MONTH, -Integer.parseInt(yysmms[1]));
+			}else{
+				calendar.add(Calendar.YEAR, -Integer.parseInt(wrkSince));
+			}
+			dtWorkingFrom = Utils.convertDateToSQLDate(calendar.getTime());
+		}
+		applicantData.setApplicantWorkingSince(dtWorkingFrom);
+
+		// get Educations
+		ArrayList<EducationalData> educationalDetails = (ArrayList) map.get(ParserConstants.FIELD_EDUCATION);
+		applicantData.setEducationalDetails(educationalDetails);
+	}
+
+	public void setParsedContentFromOther(ApplicantData applicantData, HashMap map) {
+		// get name
+		ArrayList content = (ArrayList) map.get(ParserConstants.FIELD_NAME);
+		if (content != null && content.size() > 0) {
+			ParsedResultData prData = (ParsedResultData) content.get(0);
+			applicantData.setApplicantName(prData.getMatchedString().trim());
+		}
+		// get email
+		content = (ArrayList) map.get(ParserConstants.FIELD_EMAIL);
+		if (content != null && content.size() > 0) {
+			ParsedResultData prData = (ParsedResultData) content.get(0);
+			applicantData.setApplicantEmail1(prData.getMatchedString());
+			if (content.size() > 1) {
+				prData = (ParsedResultData) content.get(1);
+				applicantData.setApplicantEmail2(prData.getMatchedString());
+			}
+		}
+		// get phone
+		content = (ArrayList) map.get(ParserConstants.FIELD_PHONE);
+		if (content != null && content.size() > 0) {
+			boolean mobileFound = false;
+			for (int i = 0; i < content.size(); i++) {
+				PhoneParsedData pData = (PhoneParsedData) content.get(i);
+				if (pData.getPhoneType() == ParserConstants.PHONE_TYPE_MOBILE && !mobileFound) {
+					applicantData.setApplicantCellPhone(pData.getMatchedString());
+					mobileFound = true;
+				} else {
+					if (Utils.isBlankOrNull(applicantData.getApplicantHomePhone())) {
+						applicantData.setApplicantHomePhone(pData.getMatchedString());
+					} else if (Utils.isBlankOrNull(applicantData.getApplicantWorkPhone())) {
+						applicantData.setApplicantWorkPhone(pData.getMatchedString());
+					} else if (Utils.isBlankOrNull(applicantData.getApplicantCellPhone())) {
+						applicantData.setApplicantCellPhone(pData.getMatchedString());
+					}
+				}
+			}
+		}
+		// get Source
+		content = (ArrayList) map.get(ParserConstants.FIELD_SOURCE);
+		if (content != null && content.size() > 0) {
+			try {
+				applicantData.setApplicantSourceId(Integer.parseInt((String) content.get(0)));
+			} catch (Exception e) {
+				// TODO: handle exception
+			}
+		}
+		// get Skills
+		content = (ArrayList) map.get(ParserConstants.FIELD_SKILLS);
+		if (content != null && content.size() > 0) {
+			applicantData.setSkillIds((String) content.get(0));
+		}
+	}
+	
+	/**
+	 * @param duplicates
+	 * @return String format of duplicates matched
+	 */
+	public String getDuplicateStringFromData(ArrayList<ApplicantDuplicateSearchData> duplicates) {
+		StringBuffer sb = new StringBuffer();
+		String recordSeparator = "||";
+		String rowSeparator = "$$";
+		String fieldSeparator = ",";
+		try {
+			for (int i = 0; duplicates != null && i < duplicates.size(); i++) {
+				if (i > 0) {
+					sb.append(rowSeparator);
+				}
+				ApplicantDuplicateSearchData applicantDuplicateSearchData = duplicates.get(i);
+				sb.append(applicantDuplicateSearchData.getApplicantId());
+				sb.append(recordSeparator);
+				sb.append(getFormattedRecord(applicantDuplicateSearchData.getApplicantName()));
+				sb.append(recordSeparator);
+
+				ArrayList<String> matchedFields = applicantDuplicateSearchData.getMatchedFields();
+				for (int k = 0; k < matchedFields.size(); k++) {
+					if (k > 0) {
+						sb.append(fieldSeparator);
+					}
+					sb.append(getFormattedRecord(matchedFields.get(k)));
+
+				}
+				sb.append(recordSeparator);
+				sb.append(Utils.getDateConvertedToString(applicantDuplicateSearchData.getResumeDateUpdated(), Utils.redDDMMYYYYFormat));
+				sb.append(recordSeparator);
+				sb.append(applicantDuplicateSearchData.getOriginalResumePath());
+				sb.append(recordSeparator);
+				sb.append(applicantDuplicateSearchData.getApplicantStatus());
+				sb.append(recordSeparator);
+				sb.append(applicantDuplicateSearchData.getPositionTitle());
+				sb.append(recordSeparator);
+				sb.append(applicantDuplicateSearchData.getProcessStatus());
+				sb.append(recordSeparator);
+				sb.append(applicantDuplicateSearchData.getProcessMovedDate());
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while creating duplicate string", e);
+		}
+		return sb.toString();
+	}
+
+	/**
+	 * @param strDuplicates
+	 * @return records converted from string
+	 */
+	public ArrayList<ApplicantDuplicateSearchData> getDuplicateDataFromString(String strDuplicates, String duplicateApplicantId) {
+		String recordSeparator = "\\|\\|";
+		String rowSeparator = "\\$\\$";
+		String fieldSeparator = ",";
+		ArrayList<ApplicantDuplicateSearchData> duplicates = new ArrayList<ApplicantDuplicateSearchData>();
+
+		try {
+			if (!Utils.isBlankOrNull(strDuplicates)) {
+				String[] rows = strDuplicates.split(rowSeparator);
+				for (int i = 0; rows != null && i < rows.length; i++) {
+					if (!Utils.isBlankOrNull(rows[i])) {
+						String[] records = rows[i].split(recordSeparator);
+						if (records != null && records.length > 1) {
+							if (!records[0].equals(duplicateApplicantId)) {
+								ApplicantDuplicateSearchData applicantDuplicateSearchData = new ApplicantDuplicateSearchData();
+								applicantDuplicateSearchData.setApplicantId(records[0]);
+								applicantDuplicateSearchData.setApplicantName(records[1]);
+								String[] fields = records[2].split(fieldSeparator);
+								for (int k = 0; fields != null && k < fields.length; k++) {
+									applicantDuplicateSearchData.getMatchedFields().add(fields[k]);
+								}
+								String originalResumePath = "";
+								if (records.length > 4) {
+									originalResumePath = records[4];
+								}
+								applicantDuplicateSearchData.setResumeDateUpdated(Utils.convertToSQLDate(records[3], Utils.redDDMMYYYYFormat));
+								applicantDuplicateSearchData.setOriginalResumePath(originalResumePath);
+								if (records.length > 5) {
+									applicantDuplicateSearchData.setApplicantStatus(records[5]);
+								}	
+								if (records.length > 6) {
+									applicantDuplicateSearchData.setPositionTitle(records[6]);
+								}	
+								if (records.length > 7) {
+									applicantDuplicateSearchData.setProcessStatus(records[7]);
+								}	
+								if (records.length > 8) {
+									applicantDuplicateSearchData.setProcessMovedDate(Utils.convertToSQLDate(records[8], Utils.redDDMMYYYYFormat));
+								}	
+								duplicates.add(applicantDuplicateSearchData);
+							}
+						}
+					}
+				}
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while creating duplicate string", e);
+		}
+		return duplicates;
+	}
+
+	private String getFormattedRecord(String s) {
+		if (!Utils.isBlankOrNull(s)) {
+			s = s.replaceAll("\\|\\|", "");
+			s = s.replaceAll("\\$\\$", "");
+		}
+		return s;
+	}
+
+	/**
+	 * checks if email exists or not
+	 * 
+	 * @param emailId
+	 * @return
+	 */
+	public boolean emailExist(String emailId) {
+		InboxManager inboxManager = new InboxManager();
+		if (!Utils.isBlankOrNull(emailId)) {
+			MessageData messageData = inboxManager.getEmailHeader(emailId, InboxConstants.EMAIL_LOCATION_INBOX, false);
+			if (messageData == null) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	public ApplicantData saveResumeAndUpdatePaths(ApplicantData aData, String selAttachment, String emailId, String uploadedFilePath) throws Exception {
+		ApplicantManager applicantManager = new ApplicantManager();
+		String applicantOriginalDocPath = applicantManager.saveOriginalResume(selAttachment, emailId, uploadedFilePath);
+		DocumentUploader documentUploader = new DocumentUploader();
+		String applicantOriginalResumePath = documentUploader.getHtmlFilePathIfExist(Utils.concatFilePath(DocumentConstants.documentsPath, applicantOriginalDocPath));
+
+		applicantOriginalDocPath = (applicantOriginalDocPath == null) ? "" : applicantOriginalDocPath;
+		applicantOriginalResumePath = (applicantOriginalResumePath == null) ? "" : applicantOriginalResumePath;
+
+		if (applicantOriginalResumePath.length() > DocumentConstants.documentsPath.length()) {
+			applicantOriginalResumePath = applicantOriginalResumePath.substring(DocumentConstants.documentsPath.length() + 1);
+		}
+		
+		/* PDF resume : insert the PDF path in original_doc column */
+		String pdfFilePath = documentUploader.getPdfFilePathIfExist(applicantOriginalDocPath);
+		if(pdfFilePath != null) {
+			applicantOriginalDocPath = pdfFilePath; /* relative path */
+			applicantOriginalResumePath = "";
+		}
+		
+		/* WORD resume : insert the WORD path in original_doc column */
+		String wordFilePath = documentUploader.getWordFilePathIfExist(applicantOriginalDocPath);
+		if (wordFilePath != null) {
+			 applicantOriginalDocPath = wordFilePath; /* relative path */
+		}
+		aData.setApplicantOriginalDocPath(applicantOriginalDocPath);
+		aData.setApplicantOriginalResumePath(applicantOriginalResumePath);
+		return aData;
+	}
+	
+	public String getAutoImportBody(ApplicantFromWebForm applicantForm, ApplicantData aData,String userName) {
+		StringBuffer autoFormat = new StringBuffer();
+		PositionManager positionManager = new PositionManager();
+		SimpleDataObject positionDescription = new SimpleDataObject();
+		try {
+			String workingSince = "";
+			if (applicantForm.getFresher().equals("0")) {
+				Date dtWorkingSince = Utils.convertToDate("1" + Utils.dateDescSeparator + applicantForm.getApplicantWorkingSince(), Utils.regDDMMMYYYYFormat);
+				workingSince = Utils.getDateConvertedToString(dtWorkingSince, Utils.regEUDateFormat);
+			}
+			autoFormat.append("Name: " + applicantForm.getApplicantName() + "<br>");
+			autoFormat.append("Source: " + aData.getApplicantSourceTitle() + "<br>");
+			autoFormat.append("Current Location: " + applicantForm.getApplicantCity() + "<br>");
+			autoFormat.append("Email: " + applicantForm.getApplicantEmail1()+","+ applicantForm.getApplicantEmail2() +"<br>");
+			autoFormat.append("Cell phone: " + applicantForm.getApplicantCellPhone() + "<br>");
+			autoFormat.append("Phone1: " + applicantForm.getApplicantHomePhone() + "<br>");
+			autoFormat.append("Phone2: " + applicantForm.getApplicantWorkPhone() + "<br>");
+			autoFormat.append("Working since: " + workingSince + "<br>");
+			autoFormat.append("Current employer: " + applicantForm.getApplicantCurrentEmployer() + "<br><br>");
+
+			String education = getEducationPart(applicantForm);
+			autoFormat.append(education);
+
+			autoFormat.append("CTC: " + applicantForm.getCurrentCTC() + "<br>");
+			autoFormat.append("E-CTC: " + applicantForm.getExpectedCTC() + "<br>");
+			
+			autoFormat.append("Notice Period: " + applicantForm.getNoticePeriod() + "<br>");
+						
+			String strSkills = getSkillsPart(applicantForm);
+			autoFormat.append("Skills: " + strSkills + "<br><br>");
+			
+			positionDescription = (SimpleDataObject)positionManager.getPositionDescriptionToView(applicantForm.getPositionId());
+			
+			autoFormat.append("Position code: " + positionDescription.getString("positionCode") + "<br>");
+			autoFormat.append("Position title: " + positionDescription.getString("positionName") + "<br>");
+			
+			String customFields = getCustomFieldPart(applicantForm,aData);
+			autoFormat.append(customFields + "<br>");
+
+			autoFormat.append("Note: " + applicantForm.getApplicantNote() + "<br>");
+
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while creating autoimport email::",e);
+		}
+		return autoFormat.toString();
+	}
+	
+	private String getEducationPart(ApplicantFromWebForm applicantForm) {
+		StringBuffer autoFormat = new StringBuffer();
+		try {
+			String[] eduYop = applicantForm.getEducationYearOfPassing();
+			String[] eduInstitute = applicantForm.getEducationInstitute();
+			String[] eduDegree = applicantForm.getEducationDegreeId();
+			String[] eduMajor = applicantForm.getEducationMajorId();
+			String[] eduGrades = applicantForm.getEducationalGrade();
+			String[] remarks =applicantForm.getRemarks();
+			String [] fromYear = applicantForm.getFromYear();
+			int eduno = 1;
+			for (int i = 0; eduYop != null && i < eduYop.length; i++) {
+				if (!(Utils.isBlankOrNull(eduYop[i]) && Utils.isBlankOrNull(eduInstitute[i]) && eduDegree[i].equals("-1") && eduMajor[i].equals("-1") && Utils.isBlankOrNull(eduGrades[i]))) {
+					autoFormat.append(eduno + ")Degree: " + CommonUtils.getDegreeName(eduDegree[i]) + "<br>");
+					autoFormat.append("Year of passing: " + eduYop[i] + "<br>");
+					autoFormat.append("Institute/university: " + eduInstitute[i] + "<br>");
+					autoFormat.append("Branch: " + CommonUtils.getBranchName(eduMajor[i]) + "<br>");
+					autoFormat.append("Grade/Class: " + eduGrades[i] + "<br>");
+					eduno += 1;
+				}
+			}
+		}catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting Education Part::"+e);
+		}
+		return autoFormat.toString();
+	}
+
+	private String getSkillsPart(ApplicantFromWebForm applicantForm) {
+		String strSkills = "";
+		try{
+			String strSkillIds = applicantForm.getPrimarySkillIds();
+			
+			if (!Utils.isBlankOrNull(strSkillIds)) {
+				String[] skillIds = strSkillIds.split(",");
+				StringBuffer skillNames = new StringBuffer();
+				for (int i = 0; i < skillIds.length; i++) {
+					String skill = CommonUtils.getSkillName(skillIds[i]);
+					if (!Utils.isBlankOrNull(skill)) {
+						skillNames.append(skill + ",");
+					}
+				}
+				strSkills = skillNames.toString();
+				if (!Utils.isBlankOrNull(strSkills)) {
+					strSkills = strSkills.substring(0, strSkills.length() - 1);
+				}
+			}
+		}catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting Skills Part::"+e);
+		}
+		return strSkills;
+	}
+
+	private String getCustomFieldPart(ApplicantFromWebForm applicantForm,ApplicantData aData) {
+		StringBuffer autoFormat = new StringBuffer();
+		try{
+			ArrayList<CustomFieldData> customFields = aData.getCustomFields();
+			if (customFields != null) {
+				for (int i = 0; i < customFields.size(); i++) {
+					CustomFieldData customFieldData = customFields.get(i);
+					autoFormat.append(customFieldData.getFieldDisplayName() + ": " + customFieldData.getDisplayValue() + "<br>");
+				}
+			}
+		}catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting CustomFields Part::"+e);
+		}
+		return autoFormat.toString();
+	}
+	
+	public void populateRchilliParseApplicantForm(ApplicantData applicantData,ApplicantForm applicantForm){
+			String applicantEmail1=applicantData.getApplicantEmail1();
+			if(!Utils.isBlankOrNull(applicantEmail1)){
+			applicantForm.setApplicantEmail1(applicantEmail1);
+			}
+			String applicantEmail2=applicantData.getApplicantEmail2();
+			if(!Utils.isBlankOrNull(applicantEmail2)){
+				applicantForm.setApplicantEmail2(applicantEmail2);
+				}
+		// get phone
+			String cellPhone=applicantData.getApplicantCellPhone();
+			if(!Utils.isBlankOrNull(cellPhone)){
+			applicantForm.setApplicantCellPhone(cellPhone);
+		
+				
+			}
+			String homePhone=applicantData.getApplicantHomePhone();
+			if(!Utils.isBlankOrNull(homePhone)){
+			
+		
+				applicantForm.setApplicantHomePhone(homePhone);
+			}
+			
+			String workPhone=applicantData.getApplicantWorkPhone();
+			if(!Utils.isBlankOrNull(workPhone)){
+			
+		
+				applicantForm.setApplicantWorkPhone(workPhone);
+			}
+		// get name
+			String applicantName=applicantData.getApplicantName();
+			if(!Utils.isBlankOrNull(applicantName)){
+			applicantForm.setApplicantName(applicantName);
+			}
+			String applicantCity=applicantData.getApplicantCity();
+			if(!Utils.isBlankOrNull(applicantCity)){
+			applicantForm.setApplicantCity(applicantCity);
+			}
+			String applicantCurrentEmployer=applicantData.getApplicantCurrentEmployer();
+			if(!Utils.isBlankOrNull(applicantName)){
+			applicantForm.setApplicantCurrentEmployer(applicantCurrentEmployer);
+			}
+			
+			String dateOfBirth=(String)applicantData.getDateOfBirthForDisplay();
+			if (!Utils.isBlankOrNull(dateOfBirth)){
+				applicantForm.setDateOfBirth(dateOfBirth);
+			}
+			String currentCTC = (String) applicantData.getCurrentCTC();
+			if (!Utils.isBlankOrNull(currentCTC)){
+				applicantForm.setCurrentCTC(currentCTC);
+			}
+			String expectedCTC = (String) applicantData.getExpectedCTC();
+			if (!Utils.isBlankOrNull(expectedCTC)) {
+				applicantForm.setCurrentCTC(expectedCTC);
+			}
+			// get working since
+			//String wrkSince = (String) applicantData.getApplicantExperience();
+			String wrkExp = (String) applicantData.getApplicantTotalExperience();
+			
+			if (!Utils.isBlankOrNull(wrkExp)) {
+				if(Utils.isNumeric(wrkExp)){
+							if(!wrkExp.trim().equals("0")){
+						applicantForm.setApplicantWorkingSince(wrkExp);
+						applicantForm.setFresher("0");
+							}
+							else{
+								applicantForm.setFresher("1");
+							}
+				}
+					else{
+						applicantForm.setFresher("1");
+					}
+				
+			} else {
+				applicantForm.setFresher("1");
+			}
+			// get Educations
+			ArrayList educationalHistory = (ArrayList) applicantData.getEducationalDetails();
+			if (educationalHistory != null && educationalHistory.size() > 0) {
+				int sz = educationalHistory.size();
+				String[] eduYop = new String[sz];
+				String[] eduInstitute = new String[sz];
+				String[] eduDegree = new String[sz];
+				String[] eduMajor = new String[sz];
+				String[] eduGrades = new String[sz];
+				String[] remarks = new String[sz];
+				String[] fromYear = new String[sz];
+				String[] eduStartDate = new String[sz];
+				String[] eduEndDate = new String[sz];
+				String[] university = new String[sz];
+				String[] typeOfProgram = new String[sz];
+				for (int i = 0; i < sz; i++) {
+					EducationalData eData = (EducationalData) educationalHistory.get(i);
+					fromYear[i] = eData.getFromYear() == null ? "" : Utils.getDateConvertedToString(eData.getFromYear(), Utils.regYYYYFormat);
+					eduYop[i] = eData.getYearOfPassing() == null ? "" : Utils.getDateConvertedToString(eData.getYearOfPassing(), Utils.regYYYYFormat);
+					eduInstitute[i] = eData.getInstitute();
+					eduDegree[i] = "" + eData.getDegreeId();
+					eduMajor[i] = "" + eData.getMajorId();
+					eduGrades[i] = eData.getGrade();
+					remarks[i]=Utils.isBlankOrNull(eData.getRemarks())?"":eData.getRemarks();
+					eduStartDate[i]= eData.getStartDate() == null ? "" : Utils.getDateConvertedToString(eData.getStartDate(), Utils.regDDMMMYYYYFormat);
+					eduEndDate[i]= eData.getEndDate() == null ? "" : Utils.getDateConvertedToString(eData.getEndDate(), Utils.regDDMMMYYYYFormat);
+					university[i]= "" + eData.getUniversity() == null ? "" : eData.getUniversity();
+					typeOfProgram[i]= Utils.isBlankOrNull(eData.getTypeOfProgram())?"":eData.getTypeOfProgram();
+				}
+				applicantForm.setEducationYearOfPassing(eduYop);
+				applicantForm.setEducationInstitute(eduInstitute);
+				applicantForm.setEducationDegreeId(eduDegree);
+				applicantForm.setEducationMajorId(eduMajor);
+				applicantForm.setEducationalGrade(eduGrades);
+				applicantForm.setRemarks(remarks);
+				applicantForm.setFromYear(fromYear);
+				applicantForm.setEducationalStartDate(eduStartDate);
+				applicantForm.setEducationalEndDate(eduEndDate);
+				applicantForm.setUniversity(university);
+				applicantForm.setTypeOfProgram(typeOfProgram);
+			}
+			
+			// get Employment History
+			ArrayList employmentHistory = (ArrayList) applicantData.getEmploymentHistoryDetails();
+			if (employmentHistory != null && employmentHistory.size() > 0) {
+				int sz = employmentHistory.size();
+				String[] employmentFromDate = new String[sz];
+				String[] employmentToDate = new String[sz];
+				String[] employmentEmployerId = new String[sz];
+				String[] employmentDesignationId = new String[sz];
+				String[] employmentExperience = new String[sz];
+				String[] grossSalary = new String[sz];
+				String[] allowance = new String[sz];
+				String[] reasonForLeaving = new String[sz];
+				String[] dutiesInvolved = new String[sz];
+				String[] empType = new String[sz];
+				String[] location = new String[sz];
+				String[] country = new String[sz];
+				String[] lastCtc = new String[sz];
+				for (int i = 0; i < sz; i++) {
+					EmploymentHistoryData empData = (EmploymentHistoryData) employmentHistory.get(i);								
+					employmentFromDate[i] = empData.getEmployerFromDate() == null ? "" : Utils.getDateConvertedToString(empData.getEmployerFromDate(), Utils.regMMMYYYYFormat);
+					employmentToDate[i] = empData.getEmployerToDate() == null ? "" : Utils.getDateConvertedToString(empData.getEmployerToDate(), Utils.regMMMYYYYFormat);				
+					employmentEmployerId[i] = Utils.isBlankOrNull(empData.getEmployerName())?"":empData.getEmployerName();
+					
+						employmentDesignationId[i] = Utils.isBlankOrNull(empData.getDesignationName())?"":empData.getDesignationName();
+					
+					employmentExperience[i] = empData.getEmployerExperience();				
+					grossSalary[i] = Utils.isBlankOrNull(empData.getGrossSalary())?"":empData.getGrossSalary();
+					allowance[i]=Utils.isBlankOrNull(empData.getAllowance())?"":empData.getAllowance();
+					reasonForLeaving[i]=Utils.isBlankOrNull(empData.getReasonForLeaving())?"":empData.getReasonForLeaving();
+					dutiesInvolved[i]=Utils.isBlankOrNull(empData.getDutiesInvolved())?"":empData.getDutiesInvolved();
+					empType[i]=Utils.isBlankOrNull(empData.getEmpType())?"":empData.getEmpType();
+					location[i]=Utils.isBlankOrNull(empData.getLocation())?"":empData.getLocation();
+					country[i]= Utils.isBlankOrNull(empData.getCountry())?"":empData.getCountry();
+					lastCtc[i]=Utils.isBlankOrNull(empData.getLastCtc())?"":empData.getLastCtc();
+				}
+				applicantForm.setEmploymentFromDate(employmentFromDate);
+				applicantForm.setEmploymentToDate(employmentToDate);
+				applicantForm.setEmploymentEmployerId(employmentEmployerId);
+				applicantForm.setEmploymentDesignationId(employmentDesignationId);
+				
+				applicantForm.setEmploymentExperience(employmentExperience);
+				applicantForm.setGrossSalary(grossSalary);
+				applicantForm.setAllowance(allowance);
+				applicantForm.setReasonForLeaving(reasonForLeaving);
+				applicantForm.setDutiesInvolved(dutiesInvolved);
+				applicantForm.setEmpType(empType);
+				applicantForm.setLocation(location);
+				applicantForm.setCountry(country);
+				applicantForm.setLastCtc(lastCtc);
+			}
+	}
+}

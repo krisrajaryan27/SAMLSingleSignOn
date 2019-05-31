@@ -1,0 +1,56 @@
+<?xml version="1.0"?>
+<dbmap> 
+	<dbqueries>
+		<dbquery name="qOfferSheetManager_isOfferAlreadyGenerated">
+			SELECT count(1) FROM tp_applicant_offer_sheet_details taosd WHERE taosd.applicant_id=?
+		</dbquery>
+		<dbquery name="qOfferSheetManager_getApplicantCurrentOfferSheet">
+			SELECT tad.document_path 
+			FROM tp_applicant_offer_sheet_details taosd LEFT JOIN tp_applicant_documents tad ON (taosd.offer_letter_doc_id=tad.document_id)
+			WHERE taosd.applicant_id=?
+		</dbquery>
+		<dbquery name="qOfferSheetManager_insertOfferSheetDetails">
+			INSERT INTO tp_applicant_offer_sheet_details 
+			(applicant_id, offer_code, offer_letter_doc_id, offer_sheet_template_id)
+			VALUES
+			(?, ?, ?, ?)
+		</dbquery>
+		<dbquery name="qOfferSheetManager_updateOfferSheetDetails">
+			UPDATE tp_applicant_offer_sheet_details SET  offer_code=?, offer_sheet_template_id=?
+			WHERE applicant_id=?
+		</dbquery>
+		<dbquery name="qOfferSheetManager_deleteExistingOfferSheetDetails">
+			DELETE FROM tp_applicant_offer_sheet_details WHERE applicant_id=?
+		</dbquery>
+		<dbquery name="qOfferSheetManager_getExistingOfferSheetDetails">
+			SELECT taosd.offer_Code, taosd.offer_letter_doc_id, taosd.offer_sheet_template_id FROM tp_applicant_offer_sheet_details taosd WHERE taosd.applicant_id=?
+		</dbquery>
+		<dbquery name="qOfferSheetManager_insertOfferDetails">
+			INSERT INTO tp_applicant_offer_details 
+			(applicant_id, position_id, template_id,offer_code,version,attribute_name,attribute_value,date_created)
+			VALUES
+			(?, ?, ?, ?, ?, ?, ?, now())
+		</dbquery>
+		<dbquery name="qOfferSheetManager_getLatestOfferVersion">
+			SELECT version FROM tp_applicant_offer_sheet_details WHERE applicant_id=? and offer_sheet_template_id=? and offer_code=?
+		</dbquery>
+		<dbquery name="qOfferSheetManager_updateLatestOfferVersion">
+			UPDATE tp_applicant_offer_sheet_details SET version =? WHERE applicant_id=? and offer_sheet_template_id=? and offer_code=?
+		</dbquery>
+	</dbqueries>
+	<dataqueries>
+		<dataquery name="dOfferSheetManager_isOfferAlreadyGenerated" dbquery="qOfferSheetManager_isOfferAlreadyGenerated"/>
+		<dataquery name="dOfferSheetManager_getApplicantCurrentOfferSheet" dbquery="qOfferSheetManager_getApplicantCurrentOfferSheet"/>
+		<dataquery name="dOfferSheetManager_insertOfferSheetDetails" dbquery="qOfferSheetManager_insertOfferSheetDetails"/>
+		<dataquery name="dOfferSheetManager_updateOfferSheetDetails" dbquery="qOfferSheetManager_updateOfferSheetDetails"/>
+		<dataquery name="dOfferSheetManager_deleteExistingOfferSheetDetails" dbquery="qOfferSheetManager_deleteExistingOfferSheetDetails"/>
+		<dataquery name="dOfferSheetManager_getExistingOfferSheetDetails" dbquery="qOfferSheetManager_getExistingOfferSheetDetails" object="com.talentPool.offerSheet.dataobject.ApplicantOfferSheetDetails">
+			<attribute name= "offerCode" column="offer_Code" type ="STRING" />
+		   	<attribute name= "offerLetterDocId" column="offer_letter_doc_id" type ="STRING" />
+		   	<attribute name= "offerSheetTemplateId" column="offer_sheet_template_id" type ="STRING" />
+		</dataquery>
+		<dataquery name="dOfferSheetManager_insertOfferDetails" dbquery="qOfferSheetManager_insertOfferDetails"/>
+		<dataquery name="dOfferSheetManager_getLatestOfferVersion" dbquery="qOfferSheetManager_getLatestOfferVersion"/>
+		<dataquery name="dOfferSheetManager_updateLatestOfferVersion" dbquery="qOfferSheetManager_updateLatestOfferVersion"/>
+	</dataqueries>   
+</dbmap>

@@ -1,0 +1,34 @@
+/*
+*  basicinfo_name.jape
+* Pattern (Name:name)
+* 
+*/
+
+
+Phase:   name
+Input: Token Lookup SpaceTokenControl NameTitle
+Options: control = appelt
+
+Macro: NAME_TOKEN
+(
+ {Token.category == NNP, Token.kind == word, Token.orth == upperInitial }|
+ {Token.category == NN, Token.kind == word, Token.orth == upperInitial}|
+ {Token.category == DT, Token.kind == word, Token.orth == upperInitial}|
+ {Token.category == NNP, Token.kind == word, Token.orth == allCaps }|
+ {Token.category == NN, Token.kind == word, Token.orth == allCaps}|
+ {Token.category == DT, Token.kind == word, Token.orth == allCaps}
+)
+
+Rule: name
+(
+	{SpaceTokenControl}
+	({Lookup.majorType == prefix, Lookup.minorType == name})
+	({SpaceTokenControl})[0,8]
+	({Token.kind == punctuation})[1,3]
+	({SpaceTokenControl})[0,8]
+	({NameTitle})?
+	({Lookup.majorType == title})?(({Token.kind == word}({Token.string == "."})?)[2,8]):name
+	{SpaceTokenControl}
+)
+-->
+:name.TempNameToken = {majorType = "name", minorType="name_colon"}

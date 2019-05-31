@@ -1,0 +1,54 @@
+<html>
+<body id="contextArea">
+<script type="text/javascript" src="prototype.js"></script>
+<script type="text/javascript" src="proto.menu.0.6.js"></script>
+<link rel="stylesheet" href="proto.menu.0.6.css" type="text/css" media="screen" />
+<script type="text/javascript">
+var myMenuItems = [
+  {
+    name: 'Edit',
+    className: 'edit',
+    callback: function() {
+      alert('Forward function called');
+    }
+  },{
+    name: 'Copy',
+    className: 'copy',
+    callback: function() {
+      alert('Copy function called');
+    }
+  },{
+    name: 'Delete',
+    disabled: true,
+    className: 'delete'
+  },{
+    separator: true
+  },{
+    name: 'Save',
+    className: 'save',
+    callback: function() {
+      alert('Saving...');
+    }
+  }
+]
+
+ window.onload=doOnLoad;
+function doOnLoad() {
+
+new Proto.Menu({
+  selector: '#contextArea', // context menu will be shown when element with id of "contextArea" is clicked
+  className: 'menu desktop', // this is a class which will be attached to menu container (used for css styling)
+  menuItems: myMenuItems // array of menu items
+})
+}
+</script>
+
+
+sadas
+das
+d
+asd
+as
+</body>
+
+</html>

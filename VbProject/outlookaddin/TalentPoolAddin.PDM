@@ -1,0 +1,150 @@
+[Root]
+Most Recent Package=TalentPoolAddIn
+
+
+[Package|TalentPoolAddIn|Root]
+SubWizProgID=PDWizard.SetupPkgSubWiz
+BuildFolder=D:\Projects\VB-projects-talentpool\outlookaddin\installer
+
+[Package|TalentPoolAddIn|Configure DAO ISAMs]
+Applicable=No
+
+[Package|TalentPoolAddIn|Configure DAO ODBC]
+JetWorkspace=
+ODBCDirect=
+
+[Package|TalentPoolAddIn|Files Found]
+AttachToCandidate.jpg=C:\Build\Projects\talentpool\Trunk\VbProject\outlookaddin\AttachToCandidate.jpg
+BulkImport.jpg=C:\Build\Projects\talentpool\Trunk\VbProject\outlookaddin\BulkImport.jpg
+
+[Package|TalentPoolAddIn|Files Released]
+
+[Package|TalentPoolAddIn|Missing Dependency Information]
+C:\WINDOWS\system32\msxml3.dll=
+C:\WINDOWS\system32\ieframe.dll=
+C:\Program Files\MyApp\OFFICE11\MSOUTL.OLB=
+C:\Program Files\Common Files\Microsoft Shared\OFFICE11\MSO.DLL=
+D:\Projects\VB-projects-talentpool\outlookaddin\desktopImport.exe=
+C:\Build\Projects\talentpool\Trunk\VbProject\outlookaddin\desktopImport.exe=
+C:\Program Files\Microsoft Office\OFFICE11\MSOUTL.OLB=
+
+[Package|TalentPoolAddIn|Out-of-Date Dependency Information]
+C:\WINDOWS\system32\MSCOMCTL.OCX=
+C:\WINDOWS\system32\scrrun.dll=
+
+[Package|TalentPoolAddIn|Files Added]
+attachtocandidate.jpg=
+bulkimport.jpg=
+import.jpg=
+settings.jpg=
+talentpoolproperties.txt=
+ts_icon.jpeg=
+desktopimport.exe=
+
+[Package|TalentPoolAddIn|Files Removed]
+c:\windows\system32\mscomctl.ocx=
+c:\windows\system32\msvcrt.dll=
+c:\windows\system32\msxml3.dll=
+c:\windows\system32\scrrun.dll=
+c:\windows\system32\ieframe.dll=
+c:\program files\microsoft office\office11\msoutl.olb=
+c:\program files\common files\microsoft shared\office11\mso.dll=
+
+[Package|TalentPoolAddIn|Files In Project]
+C:\WINDOWS\system32\msvbvm60.dll=Yes
+C:\WINDOWS\system32\oleaut32.dll=Yes
+C:\WINDOWS\system32\olepro32.dll=Yes
+C:\WINDOWS\system32\asycfilt.dll=Yes
+C:\WINDOWS\system32\stdole2.tlb=Yes
+C:\Program Files\Microsoft Visual Studio\VB98\Wizards\PDWizard\Redist\COMCAT.DLL=Yes
+C:\Program Files\Common Files\Microsoft Shared\OFFICE11\MSO.DLL=No
+C:\WINDOWS\system32\ieframe.dll=No
+C:\WINDOWS\system32\scrrun.dll=No
+C:\WINDOWS\system32\msvcrt.dll=No
+C:\WINDOWS\system32\msxml3.dll=No
+C:\WINDOWS\system32\MSCOMCTL.OCX=No
+C:\Program Files\Microsoft Visual Studio\VB98\Wizards\PDWizard\SETUP.EXE=Yes
+C:\Program Files\Microsoft Visual Studio\VB98\Wizards\PDWizard\SETUP1.EXE=Yes
+C:\WINDOWS\system32\VB6STKIT.DLL=Yes
+C:\Program Files\Microsoft Visual Studio\VB98\Wizards\PDWizard\ST6UNST.EXE=Yes
+C:\Build\Projects\talentpool\Trunk\VbProject\outlookaddin\talentpool.dll=Yes
+C:\Program Files\Microsoft Office\OFFICE11\MSOUTL.OLB=No
+C:\Build\Projects\talentpool\Trunk\VbProject\outlookaddin\AttachToCandidate.jpg=Yes
+C:\Build\Projects\talentpool\Trunk\VbProject\outlookaddin\BulkImport.jpg=Yes
+C:\Build\Projects\talentpool\Trunk\VbProject\outlookaddin\Import.jpg=Yes
+C:\Build\Projects\talentpool\Trunk\VbProject\outlookaddin\Settings.jpg=Yes
+C:\Build\Projects\talentpool\Trunk\VbProject\outlookaddin\talentpoolProperties.txt=Yes
+C:\Build\Projects\talentpool\Trunk\VbProject\outlookaddin\ts_icon.JPEG=Yes
+C:\Build\Projects\talentpool\Trunk\VbProject\outlookaddin\desktopImport.exe=Yes
+
+[Package|TalentPoolAddIn|Configure Registry Files]
+Applicable=No
+
+[Package|TalentPoolAddIn|Configure Remote Servers]
+Applicable=No
+
+[Package|TalentPoolAddIn|Install Locations]
+D:\Projects\VB-projects-talentpool\outlookaddin\talentpool.dll=$(AppPath)
+C:\WINDOWS\system32\msvbvm60.dll=$(WinSysPathSysFile)
+C:\WINDOWS\system32\oleaut32.dll=$(WinSysPathSysFile)
+C:\WINDOWS\system32\olepro32.dll=$(WinSysPathSysFile)
+C:\WINDOWS\system32\asycfilt.dll=$(WinSysPathSysFile)
+C:\WINDOWS\system32\stdole2.tlb=$(WinSysPathSysFile)
+C:\Program Files\Microsoft Visual Studio\VB98\Wizards\PDWizard\Redist\COMCAT.DLL=$(WinSysPathSysFile)
+C:\Program Files\Common Files\Microsoft Shared\OFFICE11\MSO.DLL=$(WinSysPath)
+C:\Program Files\MyApp\OFFICE11\MSOUTL.OLB=$(WinSysPath)
+C:\Program Files\Microsoft Visual Studio\VB98\Wizards\PDWizard\SETUP.EXE=$(AppPath)
+C:\Program Files\Microsoft Visual Studio\VB98\Wizards\PDWizard\SETUP1.EXE=$(WinPath)
+C:\WINDOWS\system32\VB6STKIT.DLL=$(WinSysPathSysFile)
+C:\Program Files\Microsoft Visual Studio\VB98\Wizards\PDWizard\ST6UNST.EXE=$(WinPath)
+D:\Projects\VB-projects-talentpool\outlookaddin\AttachToCandidate.jpg=$(AppPath)
+D:\Projects\VB-projects-talentpool\outlookaddin\BulkImport.jpg=$(AppPath)
+D:\Projects\VB-projects-talentpool\outlookaddin\Import.jpg=$(AppPath)
+D:\Projects\VB-projects-talentpool\outlookaddin\Settings.jpg=$(AppPath)
+D:\Projects\VB-projects-talentpool\outlookaddin\talentpoolProperties.txt=$(AppPath)
+C:\WINDOWS\system32\ieframe.dll=$(WinSysPath)
+D:\Projects\VB-projects-talentpool\outlookaddin\ts_icon.JPEG=$(AppPath)
+D:\Projects\VB-projects-talentpool\outlookaddin\desktopImport.exe=$(AppPath)
+C:\Build\Projects\talentpool\Trunk\VbProject\outlookaddin\talentpool.dll=$(AppPath)
+C:\Program Files\Microsoft Office\OFFICE11\MSOUTL.OLB=$(WinSysPath)
+C:\Build\Projects\talentpool\Trunk\VbProject\outlookaddin\AttachToCandidate.jpg=$(AppPath)
+C:\Build\Projects\talentpool\Trunk\VbProject\outlookaddin\BulkImport.jpg=$(AppPath)
+C:\Build\Projects\talentpool\Trunk\VbProject\outlookaddin\Import.jpg=$(AppPath)
+C:\Build\Projects\talentpool\Trunk\VbProject\outlookaddin\Settings.jpg=$(AppPath)
+C:\Build\Projects\talentpool\Trunk\VbProject\outlookaddin\talentpoolProperties.txt=$(AppPath)
+C:\Build\Projects\talentpool\Trunk\VbProject\outlookaddin\ts_icon.JPEG=$(AppPath)
+C:\Build\Projects\talentpool\Trunk\VbProject\outlookaddin\desktopImport.exe=$(AppPath)
+
+[Package|TalentPoolAddIn|Configure Shared Files]
+Applicable=Yes
+D:\Projects\VB-projects-talentpool\outlookaddin\talentpool.dll=No
+D:\Projects\VB-projects-talentpool\outlookaddin\AttachToCandidate.jpg=No
+D:\Projects\VB-projects-talentpool\outlookaddin\BulkImport.jpg=No
+D:\Projects\VB-projects-talentpool\outlookaddin\Import.jpg=No
+D:\Projects\VB-projects-talentpool\outlookaddin\Settings.jpg=No
+D:\Projects\VB-projects-talentpool\outlookaddin\talentpoolProperties.txt=No
+D:\Projects\VB-projects-talentpool\outlookaddin\ts_icon.JPEG=No
+D:\Projects\VB-projects-talentpool\outlookaddin\desktopImport.exe=No
+C:\Build\Projects\talentpool\Trunk\VbProject\outlookaddin\talentpool.dll=No
+C:\Build\Projects\talentpool\Trunk\VbProject\outlookaddin\AttachToCandidate.jpg=No
+C:\Build\Projects\talentpool\Trunk\VbProject\outlookaddin\BulkImport.jpg=No
+C:\Build\Projects\talentpool\Trunk\VbProject\outlookaddin\Import.jpg=No
+C:\Build\Projects\talentpool\Trunk\VbProject\outlookaddin\Settings.jpg=No
+C:\Build\Projects\talentpool\Trunk\VbProject\outlookaddin\talentpoolProperties.txt=No
+C:\Build\Projects\talentpool\Trunk\VbProject\outlookaddin\ts_icon.JPEG=No
+C:\Build\Projects\talentpool\Trunk\VbProject\outlookaddin\desktopImport.exe=No
+
+[Package|TalentPoolAddIn|Distribution]
+Type=single
+Size=
+Title=TalentPoolAddin
+
+[Package|TalentPoolAddIn|Package]
+PackageFolder=D:\Projects\VB-projects-talentpool\outlookaddin\installer
+ProjectFolder=C:\Build\Projects\talentpool\Trunk\VbProject\outlookaddin
+ServerSideCab=
+File1=D:\Projects\VB-projects-talentpool\outlookaddin\installer\setup.exe
+File2=D:\Projects\VB-projects-talentpool\outlookaddin\installer\Setup.Lst
+File3=D:\Projects\VB-projects-talentpool\outlookaddin\installer\talentpool.CAB
+Handler1=PDWizard.FolderDplySubWiz
+Handler2=PDWizard.WebPostDplySubWiz

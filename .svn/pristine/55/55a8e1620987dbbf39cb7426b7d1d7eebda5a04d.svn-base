@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>	
+	    <dbquery name="qSearchManager_GetLastFeedbackDetails">
+			SELECT tpos.position_title, tasp.position_step_id_from, tasp.position_step_id_to, tasp.process_moved_date,
+			tps.position_step_title
+			FROM tp_positions tpos, tp_position_steps tps,
+			(
+				SELECT process_id, applicant_id, position_step_id_from, position_step_id_to, process_moved_date, position_id,
+				CASE WHEN position_step_id_to>0 THEN position_step_id_to ELSE position_step_id_from END AS last_step_id
+				FROM 
+				(
+				SELECT process_id, applicant_id, position_step_id_from, position_step_id_to, process_moved_date, position_id
+				FROM tp_applicant_selection_process
+				WHERE applicant_id=?
+				ORDER BY process_id DESC
+				) as tasp
+				where tasp.process_id=(select max(tpsad.process_id) from tp_applicant_selection_process
+				tpsad where tpsad.applicant_id=tasp.applicant_id and tpsad.position_id=tasp.position_id)
+				GROUP BY applicant_id, position_id
+			) AS tasp
+			WHERE tasp.position_id=tpos.position_id
+			AND tasp.last_step_id = tps.position_step_id
+			AND tpos.position_id = tps.position_id	  
+			ORDER BY tasp.process_moved_date DESC  
+	    </dbquery>  
+	    <dbquery name="qSearchManager_GetApplicantNames">
+		select applicant_name from tp_applicants where applicant_name like ? and IFNULL(is_employee_apply,'0')=?
+	    </dbquery>  
+	     <dbquery name="qSearchManager_GetApplicantNumbers">
+			select applicant_cell_phone from tp_applicants where applicant_cell_phone like ?
+	    </dbquery>  
+	</dbqueries>
+	<dataqueries>
+	    <dataquery name="dSearchManager_GetLastFeedbackDetails" dbquery="qSearchManager_GetLastFeedbackDetails" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "positionTitle" column="position_title" type ="STRING" />
+	    	<attribute name= "positionStepIdFrom" column="position_step_id_from" type ="INT" />
+			<attribute name= "positionStepIdTo" column="position_step_id_to" type ="INT" />
+			<attribute name= "processMovedDate" column="process_moved_date" type ="STRING" />
+			<attribute name= "positionStepTitle" column="position_step_title" type ="STRING" />
+	    </dataquery>
+	    <dataquery name="dSearchManager_GetApplicantNames" dbquery="qSearchManager_GetApplicantNames" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "applicantName" column="applicant_name" type ="STRING" />
+	    </dataquery>
+	    <dataquery name="dSearchManager_GetApplicantNumbers" dbquery="qSearchManager_GetApplicantNumbers" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "applicantNumber" column="applicant_cell_phone" type ="STRING" />
+	    </dataquery>
+	</dataqueries>   
+</dbmap>

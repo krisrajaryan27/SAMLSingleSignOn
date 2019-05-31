@@ -1,0 +1,873 @@
+/**
+ * 
+ */
+package com.talentPool.inbox.dataobject;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import com.talentPool.common.db.SimpleDataObject;
+import com.talentPool.custom.dataobject.CustomFieldData;
+import com.talentPool.custom.dataobject.CustomFieldTable;
+
+
+/**
+ * @author Shantanu
+ *
+ */
+public class ImportData extends SimpleDataObject{
+	
+	private ArrayList<CustomFieldData> customFields;
+	private List<CustomFieldTable> customTables;	
+		
+	/**
+	 * @return the customTables
+	 */
+	public List<CustomFieldTable> getCustomTables() {
+		return customTables;
+	}
+
+	/**
+	 * @param customTables the customTables to set
+	 */
+	public void setCustomTables(List<CustomFieldTable> customTables) {
+		this.customTables = customTables;
+	}
+
+	/**
+	 * @return the customFields
+	 */
+	public ArrayList<CustomFieldData> getCustomFields() {
+		return customFields;
+	}
+
+	/**
+	 * @param customFields the customFields to set
+	 */
+	public void setCustomFields(ArrayList<CustomFieldData> customFields) {
+		this.customFields = customFields;
+	}
+	
+	
+	
+	public String getSessionId() {
+		return getString("sessionId");
+	}
+
+	public void setSessionId(String sessionId) {
+		setAttribute("sessionId", sessionId);
+	}
+	
+	public String getName() {
+		return getString("applicantName");
+	}
+
+	public void setName(String applicantName) {
+		setAttribute("applicantName", applicantName);
+	}
+	
+	public String getEmail1() {
+		return getString("email1");
+	}
+
+	public void setEmail1(String email1) {
+		setAttribute("email1", email1);
+	}
+	
+	public String getEmail2() {
+		return getString("email2");
+	}
+
+	public void setEmail2(String email2) {
+		setAttribute("email2", email2);
+	}
+	
+	public String getPhone1() {
+		return getString("phone1");
+	}
+
+	public void setPhone1(String phone1) {
+		setAttribute("phone1", phone1);
+	}
+	
+	public String getPhone2() {
+		return getString("phone2");
+	}
+
+	public void setPhone2(String phone2) {
+		setAttribute("phone2", phone2);
+	}
+	
+	public String getMobile() {
+		return getString("mobile");
+	}
+
+	public void setMobile(String mobile) {
+		setAttribute("mobile", mobile);
+	}
+	
+	public String getDateOfBirth() {
+		return getString("dateOfBirth");
+	}
+	
+	public void setDateOfBirth(String dateOfBirth) {
+		setAttribute("dateOfBirth", dateOfBirth);
+	}
+	
+	
+	public String getExperience() {
+		return getString("experience");
+	}
+
+	public void setExperience(String experience) {
+		setAttribute("experience", experience);
+	}
+	
+	public String getSource() {
+		return getString("source");
+	}
+
+	public void setSource(String source) {
+		setAttribute("source", source);
+	}
+	
+	public String getCurrentLocation() {
+		return getString("currentLocation");
+	}
+
+	public void setCurrentLocation(String currentLocation) {
+		setAttribute("currentLocation", currentLocation);
+	}
+	
+	public String getSkills() {
+		return getString("skills");
+	}
+
+	public void setSkills(String skills) {
+		setAttribute("skills", skills);
+	}
+	
+	public String getYOP1() {
+		return getString("yop1");
+	}
+
+	public void setYOP1(String yop1) {
+		setAttribute("yop1", yop1);
+	}
+	
+	public String getStartDate1() {
+		return getString("startDate1");
+	}
+
+	public void setStartDate1(String startDate1) {
+		setAttribute("startDate1", startDate1);
+	}
+	
+	public String getEndDate1() {
+		return getString("endDate1");
+	}
+
+	public void setEndDate1(String endDate1) {
+		setAttribute("endDate1", endDate1);
+	}
+	
+	public String getInstitute1() {
+		return getString("institute1");
+	}
+
+	public void setInstitute1(String institute1) {
+		setAttribute("institute1", institute1);
+	}
+	
+	public String getDegree1() {
+		return getString("degree1");
+	}
+
+	public void setDegree1(String degree1) {
+		setAttribute("degree1", degree1);
+	}
+	
+	public String getBranch1() {
+		return getString("branch1");
+	}
+
+	public void setBranch1(String branch1) {
+		setAttribute("branch1", branch1);
+	}
+	
+	public String getTypeOfProgram1() {
+		return getString("typeOfProgram1");
+	}
+
+	public void setTypeOfProgram1(String typeOfProgram1) {
+		setAttribute("typeOfProgram1", typeOfProgram1);
+	}
+	
+	public String getUniversity1() {
+		return getString("university1");
+	}
+
+	public void setUniversity1(String university1) {
+		setAttribute("university1", university1);
+	}
+	
+	public String getPercentage1() {
+		return getString("percentage1");
+	}
+
+	public void setPercentage1(String percentage1) {
+		setAttribute("percentage1", percentage1);
+	}
+	
+	public String getYOP2() {
+		return getString("yop2");
+	}
+
+	public void setYOP2(String yop2) {
+		setAttribute("yop2", yop2);
+	}
+	
+	public String getStartDate2() {
+		return getString("startDate2");
+	}
+
+	public void setStartDate2(String startDate2) {
+		setAttribute("startDate2", startDate2);
+	}
+	
+	public String getEndDate2() {
+		return getString("endDate2");
+	}
+
+	public void setEndDate2(String endDate2) {
+		setAttribute("endDate2", endDate2);
+	}
+	
+	public String getInstitute2() {
+		return getString("institute2");
+	}
+
+	public void setInstitute2(String institute2) {
+		setAttribute("institute2", institute2);
+	}
+	
+	public String getDegree2() {
+		return getString("degree2");
+	}
+
+	public void setDegree2(String degree2) {
+		setAttribute("degree2", degree2);
+	}
+	
+	public String getBranch2() {
+		return getString("branch2");
+	}
+
+	public void setBranch2(String branch2) {
+		setAttribute("branch2", branch2);
+	}
+	
+	public String getTypeOfProgram2() {
+		return getString("typeOfProgram2");
+	}
+
+	public void setTypeOfProgram2(String typeOfProgram2) {
+		setAttribute("typeOfProgram2", typeOfProgram2);
+	}
+	
+	public String getUniversity2() {
+		return getString("university2");
+	}
+
+	public void setUniversity2(String university2) {
+		setAttribute("university2", university2);
+	}
+	
+	public String getPercentage2() {
+		return getString("percentage2");
+	}
+
+	public void setPercentage2(String percentage2) {
+		setAttribute("percentage2", percentage2);
+	}
+	
+	public String getYOP3() {
+		return getString("yop3");
+	}
+
+	public void setYOP3(String yop3) {
+		setAttribute("yop3", yop3);
+	}
+	
+	public String getStartDate3() {
+		return getString("startDate3");
+	}
+
+	public void setStartDate3(String startDate3) {
+		setAttribute("startDate3", startDate3);
+	}
+	
+	public String getEndDate3() {
+		return getString("endDate3");
+	}
+
+	public void setEndDate3(String endDate3) {
+		setAttribute("endDate3", endDate3);
+	}
+	
+	public String getInstitute3() {
+		return getString("institute3");
+	}
+
+	public void setInstitute3(String institute3) {
+		setAttribute("institute3", institute3);
+	}
+	
+	public String getDegree3() {
+		return getString("degree3");
+	}
+
+	public void setDegree3(String degree3) {
+		setAttribute("degree3", degree3);
+	}
+	
+	public String getBranch3() {
+		return getString("branch3");
+	}
+
+	public void setBranch3(String branch3) {
+		setAttribute("branch3", branch3);
+	}
+	
+	public String getTypeOfProgram3() {
+		return getString("typeOfProgram3");
+	}
+
+	public void setTypeOfProgram3(String typeOfProgram3) {
+		setAttribute("typeOfProgram3", typeOfProgram3);
+	}
+	
+	public String getUniversity3() {
+		return getString("university3");
+	}
+
+	public void setUniversity3(String university3) {
+		setAttribute("university3", university3);
+	}
+	
+	public String getPercentage3() {
+		return getString("percentage3");
+	}
+
+	public void setPercentage3(String percentage3) {
+		setAttribute("percentage3", percentage3);
+	}
+	
+	public String getYOP4() {
+		return getString("yop4");
+	}
+
+	public void setYOP4(String yop4) {
+		setAttribute("yop4", yop4);
+	}
+	
+	public String getStartDate4() {
+		return getString("startDate4");
+	}
+
+	public void setStartDate4(String startDate4) {
+		setAttribute("startDate4", startDate4);
+	}
+	
+	public String getEndDate4() {
+		return getString("endDate4");
+	}
+
+	public void setEndDate4(String endDate4) {
+		setAttribute("endDate4", endDate4);
+	}
+	
+	public String getInstitute4() {
+		return getString("institute4");
+	}
+
+	public void setInstitute4(String institute4) {
+		setAttribute("institute4", institute4);
+	}
+	
+	public String getDegree4() {
+		return getString("degree4");
+	}
+
+	public void setDegree4(String degree4) {
+		setAttribute("degree4", degree4);
+	}
+	
+	public String getBranch4() {
+		return getString("branch4");
+	}
+
+	public void setBranch4(String branch4) {
+		setAttribute("branch4", branch4);
+	}
+	
+	public String getTypeOfProgram4() {
+		return getString("typeOfProgram4");
+	}
+
+	public void setTypeOfProgram4(String typeOfProgram4) {
+		setAttribute("typeOfProgram4", typeOfProgram4);
+	}
+	
+	public String getUniversity4() {
+		return getString("university4");
+	}
+
+	public void setUniversity4(String university4) {
+		setAttribute("university4", university4);
+	}
+	
+	public String getPercentage4() {
+		return getString("percentage4");
+	}
+
+	public void setPercentage4(String percentage4) {
+		setAttribute("percentage4", percentage4);
+	}
+	
+	
+	public String getCurrentEmployer() {
+		return getString("currentEmployer");
+	}
+
+	public void setCurrentEmployer(String currentEmployer) {
+		setAttribute("currentEmployer", currentEmployer);
+	}
+	
+	public String getCurrentCTC() {
+		return getString("currentCtc");
+	}
+
+	public void setCurrentCTC(String currentCtc) {
+		setAttribute("currentCtc", currentCtc);
+	}
+	
+	public String getExpectedCTC() {
+		return getString("expectedCtc");
+	}
+
+	public void setExpectedCTC(String expectedCtc) {
+		setAttribute("expectedCtc", expectedCtc);
+	}	
+	
+	public String getNote() {
+		return getString("note");
+	}
+
+	public void setNote(String note) {
+		setAttribute("note", note);
+	}
+
+	public String getRowNumber() {
+		return getString("rowId");
+	}
+
+	public void setRowNumber(String rowId) {
+		setAttribute("rowId", rowId);
+	}
+	
+	public String getError() {
+		return getString("error");
+	}
+
+	public void setError(String error) {
+		setAttribute("error", error);
+	}
+	
+	public String getNoticePeriod() {
+		return getString("noticePeriod");
+	}
+
+	public void setNoticePeriod(String noticePeriod) {
+		setAttribute("noticePeriod", noticePeriod);
+	}
+
+	
+	//Only if the resume path mentioned in the cell of csv is at server
+	//Later this can be used if we develope something from which the resume file can be shifted to server.
+	public String getOriginalResumePath() {
+		return getString("originalResumePath");
+	}
+
+	public void setOriginalResumePath(String originalResumePath) {
+		setAttribute("originalResumePath", originalResumePath);
+	}
+	
+	/**
+	 * @return the employmentFromDate1
+	 */
+	public String getEmploymentFromDate1() {
+		return getString("employmentFromDate1");		
+	}
+
+	/**
+	 * @param employmentFromDate1 the employmentFromDate1 to set
+	 */
+	public void setEmploymentFromDate1(String employmentFromDate1) {
+		setAttribute("employmentFromDate1", employmentFromDate1);		
+	}
+
+	/**
+	 * @return the employmentToDate1
+	 */
+	public String getEmploymentToDate1() {
+		return getString("employmentToDate1");
+	}
+
+	/**
+	 * @param employmentToDate1 the employmentToDate1 to set
+	 */
+	public void setEmploymentToDate1(String employmentToDate1) {
+		setAttribute("employmentToDate1", employmentToDate1);		
+	}
+
+	/**
+	 * @return the employmentEmployer1
+	 */
+	public String getEmploymentEmployer1() {
+		return getString("employmentEmployer1");		
+	}
+
+	/**
+	 * @param employmentEmployer1 the employmentEmployer1 to set
+	 */
+	public void setEmploymentEmployer1(String employmentEmployer1) {
+		setAttribute("employmentEmployer1", employmentEmployer1);		
+	}
+
+	/**
+	 * @return the employmentDesignation1
+	 */
+	public String getEmploymentDesignation1() {
+		return getString("employmentDesignation1");		
+	}
+
+	/**
+	 * @param employmentDesignation1 the employmentDesignation1 to set
+	 */
+	public void setEmploymentDesignation1(String employmentDesignation1) {
+		setAttribute("employmentDesignation1", employmentDesignation1);		
+	}
+	
+	/**
+	 * @return the employmentType1
+	 */
+	public String getEmploymentType1() {
+		return getString("employmentType1");		
+	}
+
+	/**
+	 * @param employmentType1 the employmentType1 to set
+	 */
+	public void setEmploymentType1(String employmentType1) {
+		setAttribute("employmentType1", employmentType1);
+	}
+	
+	/**
+	 * @return the employmentLocation1
+	 */
+	public String getEmploymentLocation1() {
+		return getString("employmentLocation1");		
+	}
+
+	/**
+	 * @param employmentLocation1 the employmentLocation1 to set
+	 */
+	public void setEmploymentLocation1(String employmentLocation1) {
+		setAttribute("employmentLocation1", employmentLocation1);
+	}
+	
+	/**
+	 * @return the employmentCountry1
+	 */
+	public String getEmploymentCountry1() {
+		return getString("employmentCountry1");		
+	}
+
+	/**
+	 * @param employmentCountry1 the employmentCountry1 to set
+	 */
+	public void setEmploymentCountry1(String employmentCountry1) {
+		setAttribute("employmentCountry1", employmentCountry1);
+	}
+
+	/**
+	 * @return the employmentFromDate2
+	 */
+	public String getEmploymentFromDate2() {
+		return getString("employmentFromDate2");		
+	}
+
+	/**
+	 * @param employmentFromDate2 the employmentFromDate2 to set
+	 */
+	public void setEmploymentFromDate2(String employmentFromDate2) {
+		setAttribute("employmentFromDate2", employmentFromDate2);		
+	}
+
+	/**
+	 * @return the employmentToDate2
+	 */
+	public String getEmploymentToDate2() {
+		return getString("employmentToDate2");		
+	}
+
+	/**
+	 * @param employmentToDate2 the employmentToDate2 to set
+	 */
+	public void setEmploymentToDate2(String employmentToDate2) {
+		setAttribute("employmentToDate2", employmentToDate2);
+	}
+
+	/**
+	 * @return the employmentEmployer2
+	 */
+	public String getEmploymentEmployer2() {
+		return getString("employmentEmployer2");		
+	}
+
+	/**
+	 * @param employmentEmployer2 the employmentEmployer2 to set
+	 */
+	public void setEmploymentEmployer2(String employmentEmployer2) {
+		setAttribute("employmentEmployer2", employmentEmployer2);
+	}
+
+	/**
+	 * @return the employmentDesignation2
+	 */
+	public String getEmploymentDesignation2() {
+		return getString("employmentDesignation2");		
+	}
+
+	/**
+	 * @param employmentDesignation2 the employmentDesignation2 to set
+	 */
+	public void setEmploymentDesignation2(String employmentDesignation2) {
+		setAttribute("employmentDesignation2", employmentDesignation2);
+	}
+	
+	/**
+	 * @return the employmentType2
+	 */
+	public String getEmploymentType2() {
+		return getString("employmentType2");		
+	}
+
+	/**
+	 * @param employmentType2 the employmentType2 to set
+	 */
+	public void setEmploymentType2(String employmentType2) {
+		setAttribute("employmentType2", employmentType2);
+	}
+	
+	/**
+	 * @return the employmentLocation2
+	 */
+	public String getEmploymentLocation2() {
+		return getString("employmentLocation2");		
+	}
+
+	/**
+	 * @param employmentLocation2 the employmentLocation2 to set
+	 */
+	public void setEmploymentLocation2(String employmentLocation2) {
+		setAttribute("employmentLocation2", employmentLocation2);
+	}
+	
+	/**
+	 * @return the employmentCountry2
+	 */
+	public String getEmploymentCountry2() {
+		return getString("employmentCountry2");		
+	}
+
+	/**
+	 * @param employmentCountry2 the employmentCountry2 to set
+	 */
+	public void setEmploymentCountry2(String employmentCountry2) {
+		setAttribute("employmentCountry2", employmentCountry2);
+	}
+	
+
+	/**
+	 * @return the employmentFromDate3
+	 */
+	public String getEmploymentFromDate3() {
+		return getString("employmentFromDate3");		
+	}
+
+	/**
+	 * @param employmentFromDate3 the employmentFromDate3 to set
+	 */
+	public void setEmploymentFromDate3(String employmentFromDate3) {
+		setAttribute("employmentFromDate3", employmentFromDate3);
+	}
+
+	/**
+	 * @return the employmentToDate3
+	 */
+	public String getEmploymentToDate3() {
+		return getString("employmentToDate3");		
+	}
+
+	/**
+	 * @param employmentToDate3 the employmentToDate3 to set
+	 */
+	public void setEmploymentToDate3(String employmentToDate3) {
+		setAttribute("employmentToDate3", employmentToDate3);		
+	}
+
+	/**
+	 * @return the employmentEmployer3
+	 */
+	public String getEmploymentEmployer3() {
+		return getString("employmentEmployer3");		
+	}
+
+	/**
+	 * @param employmentEmployer3 the employmentEmployer3 to set
+	 */
+	public void setEmploymentEmployer3(String employmentEmployer3) {
+		setAttribute("employmentEmployer3", employmentEmployer3);		
+	}
+
+	/**
+	 * @return the employmentDesignation3
+	 */
+	public String getEmploymentDesignation3() {
+		return getString("employmentDesignation3");		
+	}
+
+	/**
+	 * @param employmentDesignation3 the employmentDesignation3 to set
+	 */
+	public void setEmploymentDesignation3(String employmentDesignation3) {
+		setAttribute("employmentDesignation3", employmentDesignation3);		
+	}
+
+	/**
+	 * @return the employmentFromDate4
+	 */
+	public String getEmploymentFromDate4() {
+		return getString("employmentFromDate4");		
+	}
+
+	/**
+	 * @param employmentFromDate4 the employmentFromDate4 to set
+	 */
+	public void setEmploymentFromDate4(String employmentFromDate4) {
+		setAttribute("employmentFromDate4", employmentFromDate4);		
+	}
+
+	/**
+	 * @return the employmentToDate4
+	 */
+	public String getEmploymentToDate4() {
+		return getString("employmentToDate4");		
+	}
+
+	/**
+	 * @param employmentToDate4 the employmentToDate4 to set
+	 */
+	public void setEmploymentToDate4(String employmentToDate4) {
+		setAttribute("employmentToDate4", employmentToDate4);
+	}
+
+	/**
+	 * @return the employmentEmployer4
+	 */
+	public String getEmploymentEmployer4() {
+		return getString("employmentEmployer4");
+	}
+
+	/**
+	 * @param employmentEmployer4 the employmentEmployer4 to set
+	 */
+	public void setEmploymentEmployer4(String employmentEmployer4) {
+		setAttribute("employmentEmployer4", employmentEmployer4);		
+	}
+
+	/**
+	 * @return the employmentDesignation4
+	 */
+	public String getEmploymentDesignation4() {
+		return getString("employmentDesignation4");
+	}
+
+	/**
+	 * @param employmentDesignation4 the employmentDesignation4 to set
+	 */
+	public void setEmploymentDesignation4(String employmentDesignation4) {
+		setAttribute("employmentDesignation4", employmentDesignation4);		
+	}
+
+	/**
+	 * @return the employmentFromDate5
+	 */
+	public String getEmploymentFromDate5() {
+		return getString("employmentFromDate5");		
+	}
+
+	/**
+	 * @param employmentFromDate5 the employmentFromDate5 to set
+	 */
+	public void setEmploymentFromDate5(String employmentFromDate5) {
+		setAttribute("employmentFromDate5", employmentFromDate5);		
+	}
+
+	/**
+	 * @return the employmentToDate5
+	 */
+	public String getEmploymentToDate5() {
+		return getString("employmentToDate5");		
+	}
+
+	/**
+	 * @param employmentToDate5 the employmentToDate5 to set
+	 */
+	public void setEmploymentToDate5(String employmentToDate5) {
+		setAttribute("employmentToDate5", employmentToDate5);		
+	}
+
+	/**
+	 * @return the employmentEmployer5
+	 */
+	public String getEmploymentEmployer5() {
+		return getString("employmentEmployer5");		
+	}
+
+	/**
+	 * @param employmentEmployer5 the employmentEmployer5 to set
+	 */
+	public void setEmploymentEmployer5(String employmentEmployer5) {
+		setAttribute("employmentEmployer5", employmentEmployer5);		
+	}
+
+	/**
+	 * @return the employmentDesignation5
+	 */
+	public String getEmploymentDesignation5() {
+		return getString("employmentDesignation5");		
+	}
+
+	/**
+	 * @param employmentDesignation5 the employmentDesignation5 to set
+	 */
+	public void setEmploymentDesignation5(String employmentDesignation5) {
+		setAttribute("employmentDesignation5", employmentDesignation5);		
+	}
+	
+	
+	
+}

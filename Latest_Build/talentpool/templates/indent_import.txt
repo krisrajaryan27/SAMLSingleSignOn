@@ -1,0 +1,53 @@
+Position Name:		
+
+Position Code:
+
+Position Owner:
+
+Requested By:
+
+Location:
+
+Department Hierarchy Level 1:
+
+Department Hierarchy Level 2:
+
+Department Hierarchy Level 3:
+
+Grade:
+
+Band:
+
+Vacancies:
+
+Hire By Date:
+
+Position Level:
+
+Referral Fees:
+
+Note:
+
+Job Responsibilities:
+
+Primary Skills:
+
+Secondary Skills:
+
+Education:
+
+Branch:
+
+Minimum Experience:
+
+Maximum Experience:
+
+Job Requirements:
+
+Requisition Approval Template:
+
+Notify Users:
+
+Approval Comment:
+
+Next Approver:

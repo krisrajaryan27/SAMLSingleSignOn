@@ -1,0 +1,20 @@
+/*
+*  main.jape
+*
+*/
+
+MultiPhase:	AllGrammers
+Phases:
+space
+sections_all
+sections_education
+wrong_tokens
+sentence_splitter
+macros
+degree_branch
+university_college_tokens
+acronyms
+college
+degree
+branch
+year

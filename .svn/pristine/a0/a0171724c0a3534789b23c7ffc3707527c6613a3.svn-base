@@ -1,0 +1,1201 @@
+/**
+ * 
+ */
+package com.talentPool.inbox.manager;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Date;
+import java.util.StringTokenizer;
+
+import com.talentPool.applicant.dataobject.ApplicantData;
+import com.talentPool.applicant.dataobject.ApplicantDuplicateSearchData;
+import com.talentPool.applicant.dataobject.EducationalData;
+import com.talentPool.applicant.dataobject.EmploymentHistoryData;
+import com.talentPool.applicant.form.ApplicantForm;
+import com.talentPool.applicant.manager.ApplicantDuplicateChecker;
+import com.talentPool.applicant.manager.ApplicantManager;
+import com.talentPool.common.Logger.TPLogger;
+import com.talentPool.common.properties.GlobalConstants;
+import com.talentPool.common.utils.Utils;
+import com.talentPool.common.utils.Exception.FileUploadException;
+import com.talentPool.custom.constants.CustomFieldConstants;
+import com.talentPool.custom.dataobject.CustomFieldData;
+import com.talentPool.custom.dataobject.CustomFieldOption;
+import com.talentPool.custom.manager.CustomFieldManager;
+import com.talentPool.documents.DocumentConstants;
+import com.talentPool.documents.dataobject.DocumentData;
+import com.talentPool.documents.utils.DocumentUploader;
+import com.talentPool.inbox.InboxConstants;
+import com.talentPool.inbox.dataobject.AttachmentData;
+import com.talentPool.inbox.dataobject.CSVImportSessionList;
+import com.talentPool.inbox.dataobject.ImportData;
+import com.talentPool.parser.converter.WordToHtmlConverter;
+import com.talentPool.repository.TPIndexEvent;
+import com.talentPool.repository.TPIndexEventQueue;
+import com.talentPool.user.manager.PermissionSet;
+
+
+/**
+ * @author Shantanu
+ *
+ */
+public class ReadApplicantsFromCSV {
+	
+	public void startExcelImport(String mappings, String sessionId, String userId, PermissionSet permissionSet) {
+		try {
+			CSVUploadManager csvUploadManager = new CSVUploadManager();
+			ArrayList<ImportData> excelList = csvUploadManager.getExcelImportData(sessionId, "0");
+			ArrayList applicantInfo = new ArrayList();
+			for (int i = 0; i < excelList.size(); i++) {
+				ImportData iData = excelList.get(i);
+				CustomFieldManager customFieldManager = new CustomFieldManager();
+				ArrayList<CustomFieldData> customFields = customFieldManager.getCustomFieldDataForEntity(sessionId + iData.getRowNumber(), CustomFieldConstants.ENTITY_TYPE_EXCEL_IMPORT);
+				iData.setCustomFields(customFields);
+
+				try {
+					applicantInfo = importApplicant(iData, mappings, userId, permissionSet);
+					csvUploadManager.updateExcelImportTable(sessionId, iData.getRowNumber(), applicantInfo);
+				} catch (Exception e) {
+					TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+				}
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+	}
+	
+	public ArrayList<String> csvFieldName(String relativeFilePath) {
+		ArrayList<String> excelFieldName = new ArrayList<String>();
+		try {
+			String filePath = Utils.concatFilePath(DocumentConstants.documentsPath, relativeFilePath);
+			BufferedReader in = new BufferedReader(new FileReader(filePath));
+			String line = in.readLine();
+			StringTokenizer st = new StringTokenizer(line, ",");
+			while (st.hasMoreTokens()) {
+				excelFieldName.add(st.nextToken());
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return excelFieldName;
+	}
+	
+	
+	public void validateExcelImportData( String sessionId, String relativeFilePath, String mappings, String userId) throws Exception {
+		String filePath = Utils.concatFilePath(DocumentConstants.documentsPath, relativeFilePath);
+		CSVUploadManager csvUploadManager = new CSVUploadManager();
+		ImportData importData = null;
+		try {
+			int columnCount = 0;
+			String[] mappingStr = mappings.split(",");
+			BufferedReader in = new BufferedReader(new FileReader(filePath));
+			String line = in.readLine(); // remove header line
+			line = in.readLine();			
+			int rowNumber = 1;
+			
+			int startInd,endInd;
+			char FieldSeparator = ',';
+
+			while (line != null) {
+				if (CSVImportSessionList.sessions.get(sessionId) == null) {
+					return;
+				}
+				columnCount = 0;
+				importData = new ImportData();
+				line = replaceComaWithChrInBetwnQuotes(line);
+
+				CustomFieldManager customFieldManager = new CustomFieldManager();
+				ArrayList<CustomFieldData> customFields = customFieldManager.getCustomFieldsForInputAllowed(CustomFieldConstants.ENTITY_TYPE_APPLICANT, CustomFieldConstants.INPUT_ALLOWED, true);
+				importData.setCustomFields(customFields);
+
+				String errStr = "";
+				boolean fldName = false;
+				
+				int len = line.length();
+				for (startInd = -1, endInd = 0; endInd >= 0;) {
+					String dataText = "";
+					endInd = line.indexOf(FieldSeparator, startInd + 1);
+					if (endInd < 1) {
+						dataText = line.substring(startInd+1,len);
+					} else {
+						dataText = line.substring(startInd+1,endInd);
+					}					
+					if (!Utils.isBlankOrNull(dataText)) {
+						dataText = dataText.replaceAll(InboxConstants.EXCEL_REPLACE_STR, ",");
+					}					
+					String colName = "0";
+					// edited for a header bug  replaced "<="  with "<"
+					if (columnCount < mappingStr.length) {
+						colName = mappingStr[columnCount];						
+					}
+					importData.setError("");
+					if (!colName.equals("0")) {
+						importData = getDataValueError(importData, dataText, colName, userId);
+						if (!Utils.isBlankOrNull(importData.getError())) {
+							if (Utils.isBlankOrNull(errStr)) {
+								errStr = importData.getError();
+							} else {
+								errStr += " ," + importData.getError();
+							}
+						}
+					}
+					if (colName.equals(InboxConstants.FLD_NAME)) {
+						fldName = true;
+					}
+					columnCount++;
+					
+					startInd = endInd;
+				}
+
+				if (!fldName) {
+					if (Utils.isBlankOrNull(errStr)) {
+						errStr = "Applicant name required";
+					} else {
+						errStr += " ," + "Applicant name required";
+					}
+				}
+
+				// save data to tp_excel_import
+				importData.setError(errStr);
+				importData.setRowNumber("" + rowNumber++);
+				csvUploadManager.saveRowData(importData, sessionId);
+				line = in.readLine();
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+	}
+
+	
+	public String replaceComaWithChrInBetwnQuotes(String line) {
+		String[] lineStr = line.split("\"");
+		String newLine = "";
+		for (int i = 0; i < lineStr.length; i++) {
+			String txt = lineStr[i];
+			if (i % 2 == 0) {
+				// ignore even numbers
+			} else {
+				String[] txtStr = txt.split(",");
+				String newText = "";
+				for (int j = 0; j < txtStr.length; j++) {
+					if (newText.equals("")) {
+						newText = txtStr[j];
+					} else {
+						newText += InboxConstants.EXCEL_REPLACE_STR + txtStr[j];
+					}
+				}
+				txt = newText;
+			}
+			if (newLine.equals("")) {
+				newLine = txt;
+			} else {
+				newLine += txt;
+			}
+		}
+		return newLine;
+	}
+	
+	private ImportData getDataValueError(ImportData importData, String dataText, String colName, String userId) {
+		String err = "";
+		CSVUploadManager csvUploadManager = new CSVUploadManager();
+
+		if(!Utils.isBlankOrNull(dataText)){
+		if (colName.equals(InboxConstants.FLD_NAME)) {
+			importData.setName(dataText);
+		}
+
+		if (colName.equals(InboxConstants.FLD_EMAIL_1)) {
+			if (dataText.length() > 50) {
+				err = "Email1 \"" + dataText + "\" is more than the desired length and hence will be cut short.";
+				importData.setError(err);
+				dataText = dataText.substring(0, 45);
+			}
+			importData.setEmail1(dataText);
+		}
+
+		if (colName.equals(InboxConstants.FLD_EMAIL_2)) {
+			if (dataText.length() > 50) {
+				err = "Email2 \"" + dataText + "\" is more than the desired length and hence will be cut short.";
+				importData.setError(err);
+				dataText = dataText.substring(0, 45);
+			}
+			importData.setEmail2(dataText);
+		}
+
+		if (colName.equals(InboxConstants.FLD_PHONE_1)) {
+			if (dataText.length() > 25) {
+				err = "Phone1 \"" + dataText + "\" is more than the desired length and hence will be cut short.";
+				importData.setError(err);
+				dataText = dataText.substring(0, 20);
+			}
+			importData.setPhone1(dataText);
+		}
+		if (colName.equals(InboxConstants.FLD_PHONE_2)) {
+			if (dataText.length() > 25) {
+				err = "Phone2 \"" + dataText + "\" is more than the desired length and hence will be cut short.";
+				importData.setError(err);
+				dataText = dataText.substring(0, 20);
+			}
+			importData.setPhone2(dataText);
+		}
+		if (colName.equals(InboxConstants.FLD_MOBILE)) {
+			if (dataText.length() > 25) {
+				err = "Mobile \"" + dataText + "\" is more than the desired length and hence will be cut short.";
+				importData.setError(err);
+				dataText = dataText.substring(0, 20);
+			}
+			importData.setMobile(dataText);
+		}
+		if (colName.equals(InboxConstants.FLD_EXPERIENCE)) {
+			double exp = -1;
+			if (!Utils.isBlankOrNull(dataText)) {
+				try {
+					exp = Double.parseDouble(dataText);
+				} catch (Exception e) {
+					err = "Experience \"" + dataText + "\" must be a number";
+					importData.setError(err);
+				}
+				if (exp != -1) {
+					importData.setExperience("" + exp);
+				}
+			}
+		}
+
+		if (colName.equals(InboxConstants.FLD_SOURCE)) {
+			String sourceId = csvUploadManager.getSourceId(dataText);
+			if (Utils.isBlankOrNull(sourceId)) {
+				err = "Source \"" + dataText + "\" is invalid";
+				importData.setError(err);
+			}else{
+				importData.setSource(dataText);
+			}
+		}
+
+		if (colName.equals(InboxConstants.FLD_CURRENT_LOCATION)) {
+			importData.setCurrentLocation(dataText);
+		}
+
+		if (colName.equals(InboxConstants.FLD_SKILLS)) {
+			String validSkills = "";
+			String[] skillStr = dataText.split(",");
+			String invalidSkills = "";
+			for (int j = 0; j < skillStr.length; j++) {
+				String skillId = csvUploadManager.getSkillId(skillStr[j].trim());				
+				if (Utils.isBlankOrNull(skillId)) {
+					if (Utils.isBlankOrNull(invalidSkills)) {
+						invalidSkills = skillStr[j].trim();
+					} else {
+						invalidSkills += ", " + skillStr[j].trim();
+					}
+				}else{
+					if (Utils.isBlankOrNull(validSkills)) {
+						validSkills = skillStr[j].trim();
+					} else {
+						validSkills += ", " + skillStr[j].trim();
+					}
+					
+				}
+			}
+			if (!Utils.isBlankOrNull(invalidSkills)) {
+				err = "Skills \"" + invalidSkills + "\" is invalid";
+				importData.setError(err);
+			}
+			importData.setSkills(validSkills);
+		}
+
+		if (colName.equals(InboxConstants.FLD_YEAR_OF_PASSING_1)) {
+			if (dataText.length() > 4) {
+				err = "Year of passing 1 \"" + dataText + "\" is more than 4 digit";
+				importData.setError(err);
+				dataText = dataText.substring(0, 4);
+			}
+			importData.setYOP1(dataText);
+		}
+
+		if (colName.equals(InboxConstants.FLD_INSTITUTE_1)) {
+			importData.setInstitute1(dataText);
+		}
+
+		if (colName.equals(InboxConstants.FLD_DEGREE_1)) {
+			String degreeId = csvUploadManager.getDegreeId(dataText);
+			if (Utils.isBlankOrNull(degreeId) || degreeId.equals("-1")) {
+				err = "Degree \"" + dataText + "\" is invalid";
+				importData.setError(err);
+			}else{
+				importData.setDegree1(dataText);
+			}
+		}
+
+		if (colName.equals(InboxConstants.FLD_BRANCH_1)) {
+			importData.setBranch1(dataText);
+		}
+
+		if (colName.equals(InboxConstants.FLD_YEAR_OF_PASSING_2)) {
+			if (dataText.length() > 4) {
+				err = "Year of passing 2 \"" + dataText + "\" is more than 4 digit";
+				importData.setError(err);
+				dataText = dataText.substring(0, 4);
+			}
+			importData.setYOP2(dataText);
+		}
+
+		if (colName.equals(InboxConstants.FLD_INSTITUTE_2)) {
+			importData.setInstitute2(dataText);
+		}
+
+		if (colName.equals(InboxConstants.FLD_DEGREE_2)) {
+			String degreeId = csvUploadManager.getDegreeId(dataText);
+			if (Utils.isBlankOrNull(degreeId) || degreeId.equals("-1")) {
+				err = "Degree \"" + dataText + "\" is invalid";
+				importData.setError(err);
+			}else{
+				importData.setDegree2(dataText);
+			}
+		}
+
+		if (colName.equals(InboxConstants.FLD_BRANCH_2)) {
+			importData.setBranch2(dataText);
+		}
+
+		if (colName.equals(InboxConstants.FLD_CURRENT_EMPLOYER)) {
+			importData.setCurrentEmployer(dataText);
+		}
+
+		if (colName.equals(InboxConstants.FLD_CURRENT_CTC)) {
+			String currentCTC = dataText;
+			double ctc = 0;
+			if (!Utils.isBlankOrNull(currentCTC)) {
+				try {
+					ctc = Double.parseDouble(currentCTC);
+				} catch (Exception e) {
+					err = "Current CTC \"" + currentCTC + "\" must be a number";
+					importData.setError(err);
+				}
+				if (ctc != 0) {
+					importData.setCurrentCTC("" + ctc);
+				}
+			}
+		}
+
+		if (colName.equals(InboxConstants.FLD_EXPECTED_CTC)) {
+			String expectedCTC = dataText;
+			double ctc = 0;
+			if (!Utils.isBlankOrNull(expectedCTC)) {
+				try {
+					ctc = Double.parseDouble(expectedCTC);
+				} catch (Exception e) {
+					err = "Expected CTC \"" + expectedCTC + "\" must be a number";
+					importData.setError(err);
+				}
+				if (ctc != 0) {
+					importData.setExpectedCTC("" + ctc);
+				}
+			}
+		}
+				
+		if (colName.equals(InboxConstants.FLD_NOTE)) {
+			importData.setNote(dataText);
+		}
+		
+		if (colName.equals(InboxConstants.FLD_ORIGINAL_RESUME_PATH)) {
+			importData.setOriginalResumePath(dataText);
+		}
+		
+		if (colName.equals(InboxConstants.FLD_EMPLOYMENT_FROM_DATE_1)) {
+			Date dt = null;
+			if (!Utils.isBlankOrNull(dataText)) {
+				try {
+					dt = Utils.convertToDate(dataText, Utils.regEUDateFormat);
+					if(dt == null){
+						err =  "From_date_1 \"" + dataText + "\" must be a dd/MM/yyyy format";
+						importData.setError(err);
+					}
+				} catch (Exception e) {
+					err =  "From_date_1 \"" + dataText + "\" must be a dd/MM/yyyy format";
+					importData.setError(err);
+				}
+				if (dt != null) {
+					importData.setEmploymentFromDate1(new java.sql.Date(dt.getTime()).toString());
+				}
+			}			
+		}
+		if (colName.equals(InboxConstants.FLD_EMPLOYMENT_TO_DATE_1)) {
+			Date dt = null;
+			if (!Utils.isBlankOrNull(dataText)) {
+				try {
+					dt = Utils.convertToDate(dataText, Utils.regEUDateFormat);
+					if(dt == null){
+						err =  "To_date_1 \"" + dataText + "\" must be a dd/MM/yyyy format";
+						importData.setError(err);
+					}
+				} catch (Exception e) {
+					err =  "To_date_1 \"" + dataText + "\" must be a dd/MM/yyyy format";
+					importData.setError(err);
+				}
+				if (dt != null) {
+					importData.setEmploymentToDate1(new java.sql.Date(dt.getTime()).toString());
+				}
+			}
+		}
+		if (colName.equals(InboxConstants.FLD_EMPLOYMENT_EMPLOYER_1)) {
+			importData.setEmploymentEmployer1(dataText);
+		}
+		if (colName.equals(InboxConstants.FLD_EMPLOYMENT_DESIGNATION_1)) {
+			importData.setEmploymentDesignation1(dataText);
+		}		
+		if (colName.equals(InboxConstants.FLD_EMPLOYMENT_FROM_DATE_2)) {
+			Date dt = null;
+			if (!Utils.isBlankOrNull(dataText)) {
+				try {
+					dt = Utils.convertToDate(dataText, Utils.regEUDateFormat);
+					if(dt == null){
+						err =  "From_date_2 \"" + dataText + "\" must be a dd/MM/yyyy format";
+						importData.setError(err);
+					}
+				} catch (Exception e) {
+					err =  "From_date_2 \"" + dataText + "\" must be a dd/MM/yyyy format";
+					importData.setError(err);
+				}
+				if (dt != null) {
+					importData.setEmploymentFromDate2(new java.sql.Date(dt.getTime()).toString());
+				}
+			}
+		}		
+		if (colName.equals(InboxConstants.FLD_EMPLOYMENT_TO_DATE_2)) {
+			Date dt = null;
+			if (!Utils.isBlankOrNull(dataText)) {
+				try {
+					dt = Utils.convertToDate(dataText, Utils.regEUDateFormat);
+					if(dt == null){
+						err =  "To_date_2 \"" + dataText + "\" must be a dd/MM/yyyy format";
+						importData.setError(err);
+					}
+				} catch (Exception e) {
+					err =  "To_date_2 \"" + dataText + "\" must be a dd/MM/yyyy format";
+					importData.setError(err);
+				}
+				if (dt != null) {
+					importData.setEmploymentToDate2(new java.sql.Date(dt.getTime()).toString());
+				}
+			}
+		}
+		if (colName.equals(InboxConstants.FLD_EMPLOYMENT_EMPLOYER_2)) {
+			importData.setEmploymentEmployer2(dataText);
+		}
+		if (colName.equals(InboxConstants.FLD_EMPLOYMENT_DESIGNATION_2)) {
+			importData.setEmploymentDesignation2(dataText);
+		}
+		if (colName.equals(InboxConstants.FLD_EMPLOYMENT_FROM_DATE_3)) {
+			Date dt = null;
+			if (!Utils.isBlankOrNull(dataText)) {
+				try {
+					dt = Utils.convertToDate(dataText, Utils.regEUDateFormat);
+					if(dt == null){
+						err =  "From_date_3 \"" + dataText + "\" must be a dd/MM/yyyy format";
+						importData.setError(err);
+					}
+				} catch (Exception e) {
+					err =  "From_date_3 \"" + dataText + "\" must be a dd/MM/yyyy format";
+					importData.setError(err);
+				}
+				if (dt != null) {
+					importData.setEmploymentFromDate3(new java.sql.Date(dt.getTime()).toString());
+				}
+			}
+		}
+		if (colName.equals(InboxConstants.FLD_EMPLOYMENT_TO_DATE_3)) {
+			Date dt = null;
+			if (!Utils.isBlankOrNull(dataText)) {
+				try {
+					dt = Utils.convertToDate(dataText, Utils.regEUDateFormat);
+					if(dt == null){
+						err =  "To_date_3 \"" + dataText + "\" must be a dd/MM/yyyy format";
+						importData.setError(err);
+					}
+				} catch (Exception e) {
+					err =  "To_date_3 \"" + dataText + "\" must be a dd/MM/yyyy format";
+					importData.setError(err);
+				}
+				if (dt != null) {
+					importData.setEmploymentToDate3(new java.sql.Date(dt.getTime()).toString());
+				}
+			}
+		}
+		if (colName.equals(InboxConstants.FLD_EMPLOYMENT_EMPLOYER_3)) {
+			importData.setEmploymentEmployer3(dataText);
+		}
+		if (colName.equals(InboxConstants.FLD_EMPLOYMENT_DESIGNATION_3)) {
+			importData.setEmploymentDesignation3(dataText);
+		}
+		if (colName.equals(InboxConstants.FLD_EMPLOYMENT_FROM_DATE_4)) {
+			Date dt = null;
+			if (!Utils.isBlankOrNull(dataText)) {
+				try {
+					dt = Utils.convertToDate(dataText, Utils.regEUDateFormat);
+					if(dt == null){
+						err =  "From_date_4 \"" + dataText + "\" must be a dd/MM/yyyy format";
+						importData.setError(err);
+					}
+				} catch (Exception e) {
+					err =  "From_date_4 \"" + dataText + "\" must be a dd/MM/yyyy format";
+					importData.setError(err);
+				}
+				if (dt != null) {
+					importData.setEmploymentFromDate4(new java.sql.Date(dt.getTime()).toString());
+				}
+			}
+		}
+		if (colName.equals(InboxConstants.FLD_EMPLOYMENT_TO_DATE_4)) {
+			Date dt = null;
+			if (!Utils.isBlankOrNull(dataText)) {
+				try {
+					dt = Utils.convertToDate(dataText, Utils.regEUDateFormat);
+					if(dt == null){
+						err =  "To_date_4 \"" + dataText + "\" must be a dd/MM/yyyy format";
+						importData.setError(err);
+					}
+				} catch (Exception e) {
+					err =  "To_date_4 \"" + dataText + "\" must be a dd/MM/yyyy format";
+					importData.setError(err);
+				}
+				if (dt != null) {
+					importData.setEmploymentToDate4(new java.sql.Date(dt.getTime()).toString());
+				}
+			}
+		}
+		if (colName.equals(InboxConstants.FLD_EMPLOYMENT_EMPLOYER_4)) {
+			importData.setEmploymentEmployer4(dataText);
+		}
+		if (colName.equals(InboxConstants.FLD_EMPLOYMENT_DESIGNATION_4)) {
+			importData.setEmploymentDesignation4(dataText);
+		}
+		if (colName.equals(InboxConstants.FLD_EMPLOYMENT_FROM_DATE_5)) {
+			Date dt = null;
+			if (!Utils.isBlankOrNull(dataText)) {
+				try {
+					dt = Utils.convertToDate(dataText, Utils.regEUDateFormat);
+					if(dt == null){
+						err =  "From_date_5 \"" + dataText + "\" must be a dd/MM/yyyy format";
+						importData.setError(err);
+					}
+				} catch (Exception e) {
+					err =  "From_date_5 \"" + dataText + "\" must be a dd/MM/yyyy format";
+					importData.setError(err);
+				}
+				if (dt != null) {
+					importData.setEmploymentFromDate5(new java.sql.Date(dt.getTime()).toString());
+				}
+			}
+		}
+		if (colName.equals(InboxConstants.FLD_EMPLOYMENT_TO_DATE_5)) {			
+			Date dt = null;
+			if (!Utils.isBlankOrNull(dataText)) {
+				try {
+					dt = Utils.convertToDate(dataText, Utils.regEUDateFormat);
+					if(dt == null){
+						err =  "To_date_5 \"" + dataText + "\" must be a dd/MM/yyyy format";
+						importData.setError(err);
+					}
+				} catch (Exception e) {
+					err =  "To_date_5 \"" + dataText + "\" must be a dd/MM/yyyy format";
+					importData.setError(err);
+				}
+				if (dt != null) {
+					importData.setEmploymentToDate5(new java.sql.Date(dt.getTime()).toString());
+				}
+			}
+		}
+		if (colName.equals(InboxConstants.FLD_EMPLOYMENT_EMPLOYER_5)) {
+			importData.setEmploymentEmployer5(dataText);
+		}
+		if (colName.equals(InboxConstants.FLD_EMPLOYMENT_DESIGNATION_5)) {
+			importData.setEmploymentDesignation5(dataText);
+		}
+
+		if (CustomFieldManager.isCustomFieldsAvailable(CustomFieldConstants.ENTITY_TYPE_APPLICANT)) {
+			ArrayList<CustomFieldData> customFields = importData.getCustomFields();
+			for (int c = 0; c < customFields.size(); c++) {
+				CustomFieldData cData = customFields.get(c);
+				if (colName.equals(cData.getFieldName())) {
+					String value = dataText;
+					String fldType = cData.getFieldType();
+					
+					if (fldType.equals(CustomFieldConstants.TYPE_RADIO) || fldType.equals(CustomFieldConstants.TYPE_CHECKBOX) || fldType.equals(CustomFieldConstants.TYPE_LISTBOX) || fldType.equals(CustomFieldConstants.TYPE_DROPDOWN)) {
+						// save error
+						try {
+							ArrayList<CustomFieldOption> options = cData.getOptionsList(cData.getFieldOptions());
+							if (options != null) {
+								int totalOptions = options.size();
+								boolean valueMatch = false;
+								if (totalOptions > 0) {
+									for (int j = 0; j < totalOptions; j++) {
+										String optionValue = options.get(j).getValue().replaceAll("'", "\\\\'");
+										if (optionValue.equals(value)) {
+											valueMatch = true;
+										}
+									}
+									if (!valueMatch) {
+										err = cData.getFieldDisplayName() + " \"" + value + "\" is invalid";
+										importData.setError(err);
+									}
+								}
+							}
+						} catch (Exception e) {
+							TPLogger.getLogger().error(e);
+						}
+						cData.setFieldValues(value.split(","));
+
+					} else if (fldType.equals(CustomFieldConstants.TYPE_DATE)) {
+						Date dt = null;
+						try {
+							dt = Utils.convertToDate(value, Utils.regEUDateFormat);
+
+						} catch (Exception e) {
+							err = cData.getFieldDisplayName() + " \"" + value + "\" must be a dd-MMM-yyyy format";
+							importData.setError(err);
+						}
+						if (dt != null) {
+							String dateValue = Utils.getDateConvertedToString(dt, cData.getOtherAttribute(CustomFieldConstants.ATTRIBUTE_DATE_FORMAT));
+							cData.setFieldValues(dateValue.split(","));
+						} else {
+							cData.setFieldValues("".split(" "));
+						}
+					} else {
+						cData.setFieldValues(value.split(","));
+					}
+				}
+			}
+		}
+		}
+		return importData;
+	}
+	
+	public ArrayList<String> importApplicant(ImportData iData, String mappings, String userId, PermissionSet permissionSet) {
+		ArrayList<String> applicantinfo = new ArrayList<String>();
+		ApplicantForm appForm = new ApplicantForm();
+		ApplicantManager applicantManager = new ApplicantManager();
+		String status = InboxConstants.EXCEL_IMPOT_SUCCESS;
+		try {
+			setBlankEducationInForm(appForm);
+			setBlankEmploymentHistoryForm(appForm);
+			setValueToAppForm(appForm, iData, userId);
+
+			// Add Applicant
+			String applicantId = "";
+
+			if (appForm.getEducationYearOfPassing() == null) {
+				appForm.setDefaultEducationRow();
+			}
+			
+			if (appForm.getEmploymentFromDate() == null) {
+				appForm.setDefaultEmploymentHistoryRow();
+			}
+			// Check Duplicates
+			ApplicantDuplicateChecker applicantDuplicateChecker = new ApplicantDuplicateChecker();
+			ArrayList<ApplicantDuplicateSearchData> duplicates = applicantDuplicateChecker.getInternalDuplicateChecked(appForm.getApplicantId(), appForm.getApplicantName(), appForm.getApplicantEmail1(), appForm.getApplicantEmail2(), appForm.getApplicantCellPhone(), null);
+			if (duplicates != null && duplicates.size() > 0) {
+				// duplicates found
+				status = InboxConstants.EXCEL_IMPOT_DUPLICATE;
+			} else {
+				// Save Applicant
+				// Construct ApplicantData
+				
+				//Upload Resume
+				//upload resume file if the file path is given in csv provided the resume is kept at server
+				
+				if(!Utils.isBlankOrNull(iData.getOriginalResumePath())){					
+					uploadResumeFile(iData.getOriginalResumePath(),appForm);					
+				}
+				
+				ApplicantData aData = getApplicantDataConstructed(appForm);
+				if (iData.getCustomFields() != null) {
+					aData.setCustomFields(iData.getCustomFields());
+				}
+				aData.setUserId(userId);
+				applicantId = applicantManager.addApplicant(aData, appForm.getPrimarySkillIds());
+
+				// add Note
+				if (!Utils.isBlankOrNull(appForm.getApplicantNote()) && !Utils.isBlankOrNull(applicantId)) {
+					applicantManager.addNote(applicantId, userId, appForm.getApplicantNote());
+				}
+				// Add original doc
+				if (!Utils.isBlankOrNull(aData.getApplicantOriginalDocPath())) {
+					applicantManager.addOriginalResumeToDocument(applicantId, aData.getApplicantOriginalDocPath(), userId);
+				}
+
+				if (Utils.isBlankOrNull(applicantId)) {
+					status = InboxConstants.EXCEL_IMPOT_FAIL;
+				} else {
+					TPIndexEventQueue.push(new TPIndexEvent(TPIndexEvent.TYPE_ADD_APPLICANT, applicantId, TPIndexEvent.PRIORITY_NORMAL));
+				}
+			}
+			if (Utils.isBlankOrNull(applicantId)) {
+				applicantId = "0";
+			}
+
+			applicantinfo.add(applicantId);
+			applicantinfo.add(iData.getRowNumber());
+			applicantinfo.add(status);
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return applicantinfo;
+	}
+
+	private void setBlankEducationInForm(ApplicantForm appForm) {
+		try {
+			String[] eYop = new String[2];
+			eYop[0] = "";
+			eYop[1] = "";
+			String[] eDegree = new String[2];
+			eDegree[0] = "";
+			eDegree[1] = "";
+			String[] eBranch = new String[2];
+			eBranch[0] = "";
+			eBranch[1] = "";
+			String[] eInstitute = new String[2];
+			eInstitute[0] = "";
+			eInstitute[1] = "";
+
+			appForm.setEducationYearOfPassing(eYop);
+			appForm.setEducationDegreeId(eDegree);
+			appForm.setEducationMajorId(eBranch);
+			appForm.setEducationInstitute(eInstitute);
+
+		} catch (Exception e) {
+			TPLogger.getLogger().error(e);
+		}
+
+	}
+
+	private void setValueToAppForm(ApplicantForm appForm, ImportData iData, String userId) {
+		CSVUploadManager csvUploadManager = new CSVUploadManager();
+		try {
+
+			if (!Utils.isBlankOrNull(iData.getName())) {
+				appForm.setApplicantName(iData.getName());
+			}
+
+			if (!Utils.isBlankOrNull(iData.getEmail1())) {
+				appForm.setApplicantEmail1(iData.getEmail1());
+			}
+
+			if (!Utils.isBlankOrNull(iData.getEmail2())) {
+				appForm.setApplicantEmail2(iData.getEmail2());
+			}
+
+			if (!Utils.isBlankOrNull(iData.getPhone1())) {
+				appForm.setApplicantHomePhone(iData.getPhone1());
+			}
+
+			if (!Utils.isBlankOrNull(iData.getPhone2())) {
+				appForm.setApplicantHomePhone(iData.getPhone2());
+			}
+
+			if (!Utils.isBlankOrNull(iData.getMobile())) {
+				appForm.setApplicantCellPhone(iData.getMobile());
+			}
+
+			if (!Utils.isBlankOrNull(iData.getExperience())) {
+				appForm.setApplicantWorkingSince(iData.getExperience());
+			}
+
+			if (!Utils.isBlankOrNull(iData.getSource())) {
+				String sourceId = csvUploadManager.getSourceId(iData.getSource());
+				if (!Utils.isBlankOrNull(sourceId)) {
+					appForm.setSourceId(sourceId);
+				}
+			}
+
+			if (!Utils.isBlankOrNull(iData.getCurrentLocation())) {
+				appForm.setApplicantCity(iData.getCurrentLocation());
+			}
+
+			if (!Utils.isBlankOrNull(iData.getSkills())) {
+				String skills = iData.getSkills();
+				String[] skillStr = skills.split(",");
+				String skillIds = "";
+				for (int j = 0; j < skillStr.length; j++) {
+					String skillId = csvUploadManager.getSkillId(skillStr[j].trim());
+					if (!Utils.isBlankOrNull(skillId)) {
+						if (Utils.isBlankOrNull(skillIds)) {
+							skillIds = skillId;
+
+						} else {
+							skillIds += "," + skillId;
+						}
+					}
+				}
+				if (!Utils.isBlankOrNull(skillIds)) {
+					appForm.setPrimarySkillIds(skillIds);
+				}
+
+			}
+
+			if (!Utils.isBlankOrNull(iData.getYOP1())) {
+				appForm.getEducationYearOfPassing()[0] = iData.getYOP1();
+			}
+
+			if (!Utils.isBlankOrNull(iData.getInstitute1())) {
+				appForm.getEducationInstitute()[0] = iData.getInstitute1();
+			}
+
+			if (!Utils.isBlankOrNull(iData.getDegree1())) {
+				String degreeId = csvUploadManager.getDegreeId(iData.getDegree1().trim());
+				if (!Utils.isBlankOrNull(degreeId) && !degreeId.equals("-1")) {
+					appForm.getEducationDegreeId()[0] = degreeId;
+				}
+			}
+
+			if (!Utils.isBlankOrNull(iData.getBranch1())) {
+				appForm.getEducationMajorId()[0] = iData.getBranch1().trim();
+			}
+
+			if (!Utils.isBlankOrNull(iData.getYOP2())) {
+				appForm.getEducationYearOfPassing()[1] = iData.getYOP2();
+			}
+
+			if (!Utils.isBlankOrNull(iData.getInstitute2())) {
+				appForm.getEducationInstitute()[1] = iData.getInstitute2();
+			}
+
+			if (!Utils.isBlankOrNull(iData.getDegree2())) {
+				String degreeId = csvUploadManager.getDegreeId(iData.getDegree2().trim());
+				if (!Utils.isBlankOrNull(degreeId) && !degreeId.equals("-1")) {
+					appForm.getEducationDegreeId()[1] = degreeId;
+				}
+			}
+
+			if (!Utils.isBlankOrNull(iData.getBranch2())) {
+				appForm.getEducationMajorId()[1] = iData.getBranch2().trim();
+			}
+
+			if (!Utils.isBlankOrNull(iData.getCurrentEmployer())) {
+				appForm.setApplicantCurrentEmployer(iData.getCurrentEmployer());
+			}
+
+			if (!Utils.isBlankOrNull(iData.getCurrentCTC())) {
+				appForm.setCurrentCTC(iData.getCurrentCTC());
+			}
+
+			if (!Utils.isBlankOrNull(iData.getExpectedCTC())) {
+				appForm.setExpectedCTC(iData.getExpectedCTC());
+			}
+
+			
+			if (!Utils.isBlankOrNull(iData.getNote())) {
+				appForm.setApplicantNote(iData.getNote());
+			}
+
+			if (!Utils.isBlankOrNull(iData.getEmploymentFromDate1())) {
+				appForm.getEmploymentFromDate()[0] = iData.getEmploymentFromDate1();
+			}
+			
+			if (!Utils.isBlankOrNull(iData.getEmploymentToDate1())) {
+				appForm.getEmploymentToDate()[0] = iData.getEmploymentToDate1();
+			}
+			
+			if (!Utils.isBlankOrNull(iData.getEmploymentEmployer1())) {
+				appForm.getEmploymentEmployerId()[0] = iData.getEmploymentEmployer1();			
+			}
+			
+			if (!Utils.isBlankOrNull(iData.getEmploymentDesignation1())) {
+				appForm.getEmploymentDesignationId()[0] = iData.getEmploymentDesignation1();
+			}
+			
+			if (!Utils.isBlankOrNull(iData.getEmploymentFromDate2())) {
+				appForm.getEmploymentFromDate()[1] = iData.getEmploymentFromDate2();
+			}
+			
+			if (!Utils.isBlankOrNull(iData.getEmploymentToDate2())) {
+				appForm.getEmploymentToDate()[1] = iData.getEmploymentToDate2();
+			}
+			
+			if (!Utils.isBlankOrNull(iData.getEmploymentEmployer2())) {
+				appForm.getEmploymentEmployerId()[1] = iData.getEmploymentEmployer2();			
+			}
+			
+			if (!Utils.isBlankOrNull(iData.getEmploymentDesignation2())) {
+				appForm.getEmploymentDesignationId()[1] = iData.getEmploymentDesignation2();
+			}
+			
+			if (!Utils.isBlankOrNull(iData.getEmploymentFromDate3())) {
+				appForm.getEmploymentFromDate()[2] = iData.getEmploymentFromDate3();
+			}
+			
+			if (!Utils.isBlankOrNull(iData.getEmploymentToDate3())) {
+				appForm.getEmploymentToDate()[2] = iData.getEmploymentToDate3();
+			}
+			
+			if (!Utils.isBlankOrNull(iData.getEmploymentEmployer3())) {
+				appForm.getEmploymentEmployerId()[2] = iData.getEmploymentEmployer3();			
+			}
+			
+			if (!Utils.isBlankOrNull(iData.getEmploymentDesignation3())) {
+				appForm.getEmploymentDesignationId()[2] = iData.getEmploymentDesignation3();
+			}
+			
+			if (!Utils.isBlankOrNull(iData.getEmploymentFromDate4())) {
+				appForm.getEmploymentFromDate()[3] = iData.getEmploymentFromDate4();
+			}
+			
+			if (!Utils.isBlankOrNull(iData.getEmploymentToDate4())) {
+				appForm.getEmploymentToDate()[3] = iData.getEmploymentToDate4();
+			}
+			
+			if (!Utils.isBlankOrNull(iData.getEmploymentEmployer4())) {
+				appForm.getEmploymentEmployerId()[3] = iData.getEmploymentEmployer4();			
+			}
+			
+			if (!Utils.isBlankOrNull(iData.getEmploymentDesignation4())) {
+				appForm.getEmploymentDesignationId()[3] = iData.getEmploymentDesignation4();
+			}
+
+			if (!Utils.isBlankOrNull(iData.getEmploymentFromDate5())) {
+				appForm.getEmploymentFromDate()[4] = iData.getEmploymentFromDate5();
+			}
+			
+			if (!Utils.isBlankOrNull(iData.getEmploymentToDate5())) {
+				appForm.getEmploymentToDate()[4] = iData.getEmploymentToDate5();
+			}
+			
+			if (!Utils.isBlankOrNull(iData.getEmploymentEmployer5())) {
+				appForm.getEmploymentEmployerId()[4] = iData.getEmploymentEmployer5();			
+			}
+			
+			if (!Utils.isBlankOrNull(iData.getEmploymentDesignation5())) {
+				appForm.getEmploymentDesignationId()[4] = iData.getEmploymentDesignation5();
+			}
+
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+	}
+	
+	private ApplicantData getApplicantDataConstructed(ApplicantForm aForm) {
+		ApplicantData aData = new ApplicantData();
+		if (!Utils.isBlankOrNull(aForm.getSourceId())) {
+			aData.setApplicantSourceId(Integer.parseInt(aForm.getSourceId()));
+		}
+		aData.setApplicantName(aForm.getApplicantName());
+		aData.setApplicantCity(aForm.getApplicantCity());
+		aData.setApplicantEmail1(aForm.getApplicantEmail1());
+		aData.setApplicantEmail2(aForm.getApplicantEmail2());
+		aData.setApplicantWorkPhone(aForm.getApplicantWorkPhone());
+		aData.setApplicantHomePhone(aForm.getApplicantHomePhone());
+		aData.setApplicantCellPhone(aForm.getApplicantCellPhone());
+		aData.setApplicantCurrentEmployer(aForm.getApplicantCurrentEmployer());
+		aData.setCurrentCTC(aForm.getCurrentCTC());
+		aData.setExpectedCTC(aForm.getExpectedCTC());
+		aData.setNoticePeriod(aForm.getNoticePeriod());
+		
+
+		java.sql.Date dtWorkingFrom = null;
+		String fresher = "0";
+		if (!Utils.isBlankOrNull(aForm.getApplicantWorkingSince())) {
+			try {
+				int months = new Double(Double.parseDouble(aForm.getApplicantWorkingSince()) * 12).intValue();
+				dtWorkingFrom = Utils.convertDateToSQLDate(Utils.adjustDateBy(new Date(), Calendar.MONTH, -months));
+			} catch (Exception e) {
+			}
+			if (aForm.getApplicantWorkingSince().equals("0")) {
+				fresher = "1";
+			}
+		} else {
+			fresher = "0";
+		}
+		aData.setApplicantIsFresher(fresher);
+		aData.setApplicantWorkingSince(dtWorkingFrom);
+
+		String[] eduYop = aForm.getEducationYearOfPassing();
+		String[] eduInstitute = aForm.getEducationInstitute();
+		String[] eduDegree = aForm.getEducationDegreeId();
+		String[] eduMajor = aForm.getEducationMajorId();
+		// String[] eduGrades = aForm.getEducationalGrade();
+		ArrayList<EducationalData> educationalDetails = new ArrayList<EducationalData>();
+
+		for (int i = 0; eduYop != null && i < eduYop.length; i++) {
+			if (!"null".equals(eduYop[i])) {
+				if (!(Utils.isBlankOrNull(eduYop[i]) && Utils.isBlankOrNull(eduInstitute[i]) && Utils.isBlankOrNull(eduDegree[i]) && Utils.isBlankOrNull(eduMajor[i]))) {
+					EducationalData eData = new EducationalData();
+					Date tmpDt = null;
+					if (!Utils.isBlankOrNull(eduYop[i].trim())) {
+						tmpDt = Utils.convertToDate("1" + Utils.dateDescSeparator + "1" + Utils.dateDescSeparator + eduYop[i], Utils.redDDMMYYYYFormat);
+						if (tmpDt != null) {
+							eData.setYearOfPassing(new java.sql.Date(tmpDt.getTime()));
+						}
+					} else {
+						eData.setYearOfPassing(null);
+					}
+
+					if (null != eduInstitute && !Utils.isBlankOrNull(eduInstitute[i])) {
+						eData.setInstitute(eduInstitute[i]);
+					}
+					if (null != eduDegree && !Utils.isBlankOrNull(eduDegree[i]) && !eduDegree[i].equals("-1")) {
+						eData.setDegreeId(Integer.parseInt(eduDegree[i]));
+					}
+					if (null != eduMajor && !Utils.isBlankOrNull(eduMajor[i])) {
+						eData.setMajor(eduMajor[i]);
+					}
+					educationalDetails.add(eData);
+				}
+			}
+		}
+		aData.setEducationalDetails(educationalDetails);
+				
+		String[] employmentFromDate = aForm.getEmploymentFromDate();
+		String[] employmentToDate = aForm.getEmploymentToDate();
+		String[] employmentEmployerName = aForm.getEmploymentEmployerId();
+		String[] employmentDesignationName = aForm.getEmploymentDesignationId();
+		String[] employerExperience = aForm.getEmploymentExperience();
+		ArrayList<EmploymentHistoryData> employmentHistoryDetails = new ArrayList<EmploymentHistoryData>();
+		
+		for (int i = 0; employmentFromDate != null && i < employmentFromDate.length; i++) {
+			if (!"null".equals(employmentFromDate[i]) && employmentFromDate[i] != null) {
+				if (!(Utils.isBlankOrNull(employmentFromDate[i]) && Utils.isBlankOrNull(employmentToDate[i]) 
+						&& Utils.isBlankOrNull(employmentEmployerName[i]) && Utils.isBlankOrNull(employmentDesignationName[i]))) {
+					EmploymentHistoryData empHistoryData = new EmploymentHistoryData();
+					Date toDt = null;
+					Date fromDt = null;
+					if (!Utils.isBlankOrNull(employmentFromDate[i].trim())) {
+						fromDt = Utils.convertToDate(employmentFromDate[i], Utils.redYYYYMMDDFormat);
+						if (fromDt != null) {							
+							empHistoryData.setEmployerFromDate(new java.sql.Date(fromDt.getTime()));
+						}
+						toDt = Utils.convertToDate(employmentToDate[i], Utils.redYYYYMMDDFormat);
+						if (toDt != null) {							
+							empHistoryData.setEmployerToDate(new java.sql.Date(toDt.getTime()));
+						}
+						empHistoryData.setEmployerExperience(Utils.getDateDifferenceInMonths(fromDt, toDt).toString());						
+					} else {
+						empHistoryData.setEmployerFromDate(null);
+						empHistoryData.setEmployerToDate(null);
+						empHistoryData.setEmployerExperience("0");
+					}					
+					empHistoryData.setEmployerName(employmentEmployerName[i]);
+					empHistoryData.setDesignationName(employmentDesignationName[i]);					
+					employmentHistoryDetails.add(empHistoryData);
+				}
+			}
+		}
+		if(!employmentHistoryDetails.isEmpty()){
+			try{
+				Collections.sort(employmentHistoryDetails,EmploymentHistoryData.REVERSE_CHRONOLOGICAL );
+			}catch (Exception e) {
+				TPLogger.getLogger().debug(GlobalConstants.ERROR,e);
+			}
+			aData.setEmploymentHistoryDetails(employmentHistoryDetails);			
+		}
+		
+		aData.setApplicantOriginalDocPath(aForm.getOriginalResumeDocPath());
+		//aData.setApplicantOriginalResumePath("");
+		aData.setApplicantOriginalResumePath(Utils.isBlankOrNull(aForm.getOriginalResumePath())?"":aForm.getOriginalResumePath());
+		
+		return aData;
+	}
+	
+			
+	/*
+	 * upload resume file to the document folder if and only if the resumes are at server. 
+	 * 
+	 * 1. Fetching file path and file name 
+	 * 2. Creating File object from file path and file name
+	 * 3. Uploading the file to the application and converting it to html
+	 * 4. Setting value in ApplicantForm object 
+	 * 
+	 * */
+
+	
+	public void uploadResumeFile(String originalResumePath, ApplicantForm applicantForm) throws FileNotFoundException, FileUploadException{
+		
+		try{
+			String[] filePathName = originalResumePath.split("\\\\");
+			String fileName = "";		
+			String filePath = "";
+			for (int i = 0; i < filePathName.length; i++) {
+				if(i<filePathName.length-1){
+					filePath+=filePathName[i]+"\\";
+				}else{
+					fileName=filePathName[i];
+				}
+			}
+			
+			File fileToCreate = new File(filePath, fileName);
+			FileInputStream fileInputStream = new FileInputStream(fileToCreate);
+			
+			DocumentUploader documentUploader = new DocumentUploader();
+			DocumentData documentData = null;
+			AttachmentData attachmentData = null;
+		
+			documentData = documentUploader.saveFileFromStream(fileInputStream, fileToCreate.getName());
+			attachmentData = new AttachmentData();
+			attachmentData.setAttachmentFilePath(documentData.getRelativeFilePath());
+			attachmentData.setOriginalFileName(fileName);
+			attachmentData.setAttachmentSize(fileToCreate.length());
+			String srcFilePathDoc = "";
+			String srcFilePathHtml = "";
+			if (attachmentData != null && !Utils.isBlankOrNull(attachmentData.getAttachmentFilePath())) {
+				srcFilePathDoc = Utils.concatFilePath(DocumentConstants.documentsPath, attachmentData.getAttachmentFilePath());
+				WordToHtmlConverter converter = new WordToHtmlConverter();
+				srcFilePathHtml = converter.convertToHtml(srcFilePathDoc);
+			}	
+			
+			if (srcFilePathHtml.length() > DocumentConstants.documentsPath.length()) {
+				srcFilePathHtml = srcFilePathHtml.substring(DocumentConstants.documentsPath.length() + 1);
+			}			
+			if (srcFilePathDoc.length() > DocumentConstants.documentsPath.length()) {
+				srcFilePathDoc = srcFilePathDoc.substring(DocumentConstants.documentsPath.length() + 1);
+			}
+			
+			applicantForm.setOriginalResumeDocPath(srcFilePathDoc);
+			applicantForm.setOriginalResumePath(srcFilePathHtml);		
+			
+		} catch (Exception e) {
+			throw new FileUploadException("Error saving form file");
+		}		
+	}
+	
+	private void setBlankEmploymentHistoryForm(ApplicantForm appForm) {
+		try {
+			String[] empHistFromDate = new String[5];
+			empHistFromDate[0] = "";
+			empHistFromDate[1] = "";
+			empHistFromDate[2] = "";
+			empHistFromDate[3] = "";
+			empHistFromDate[4] = "";
+			String[] empHistToDate = new String[5];
+			empHistToDate[0] = "";
+			empHistToDate[1] = "";
+			empHistToDate[2] = "";
+			empHistToDate[3] = "";
+			empHistToDate[4] = "";
+			String[] empHistEmployer = new String[5];
+			empHistEmployer[0] = "";
+			empHistEmployer[1] = "";
+			empHistEmployer[2] = "";
+			empHistEmployer[3] = "";
+			empHistEmployer[4] = "";
+			String[] empHistDesignation = new String[5];
+			empHistDesignation[0] = "";
+			empHistDesignation[1] = "";
+			empHistDesignation[2] = "";
+			empHistDesignation[3] = "";
+			empHistDesignation[4] = "";
+
+			appForm.setEmploymentFromDate(empHistFromDate);
+			appForm.setEmploymentToDate(empHistToDate);
+			appForm.setEmploymentEmployerId(empHistEmployer);
+			appForm.setEmploymentDesignationId(empHistDesignation);
+
+		} catch (Exception e) {
+			TPLogger.getLogger().error(e);
+		}		
+	}	
+}

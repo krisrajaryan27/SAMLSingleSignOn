@@ -1,0 +1,495 @@
+/**
+ * 
+ */
+package com.talentPool.inbox.utils;
+
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.HashMap;
+
+import org.xml.sax.SAXException;
+import org.xml.sax.helpers.AttributesImpl;
+
+import com.talentPool.common.Logger.TPLogger;
+import com.talentPool.common.db.SimpleDataObject;
+import com.talentPool.common.properties.GlobalConstants;
+import com.talentPool.common.properties.TPLabels;
+import com.talentPool.common.utils.Utils;
+import com.talentPool.common.xmlutils.XMLWriter;
+import com.talentPool.custom.constants.CustomFieldConstants;
+import com.talentPool.custom.dataobject.CustomFieldData;
+import com.talentPool.custom.manager.CustomFieldManager;
+import com.talentPool.inbox.InboxConstants;
+import com.talentPool.inbox.dataobject.ImportData;
+
+/**
+ * @author Shantanu
+ *
+ */
+public class CSVImportUtils {
+
+	public HashMap<String, String> generateCSVHeader() {
+		HashMap<String, String> headerMap = new HashMap<String, String>();
+
+		headerMap.put(InboxConstants.FLD_NAME, TPLabels.getLabel("common.name"));
+		headerMap.put(InboxConstants.FLD_EMAIL_1, TPLabels.getLabel("common.email1"));
+		headerMap.put(InboxConstants.FLD_EMAIL_2, TPLabels.getLabel("common.email2"));
+		headerMap.put(InboxConstants.FLD_PHONE_1, TPLabels.getLabel("common.phone1"));
+		headerMap.put(InboxConstants.FLD_PHONE_2, TPLabels.getLabel("common.phone2"));
+		headerMap.put(InboxConstants.FLD_MOBILE, TPLabels.getLabel("common.mobile"));
+		headerMap.put(InboxConstants.FLD_EXPERIENCE, TPLabels.getLabel("common.experience"));
+		headerMap.put(InboxConstants.FLD_SOURCE, TPLabels.getLabel("common.source"));
+		headerMap.put(InboxConstants.FLD_CURRENT_LOCATION, TPLabels.getLabel("common.current_location"));
+		headerMap.put(InboxConstants.FLD_SKILLS, TPLabels.getLabel("common.skills"));
+		headerMap.put(InboxConstants.FLD_YEAR_OF_PASSING_1, TPLabels.getLabel("common.year_of_passing_1"));
+		headerMap.put(InboxConstants.FLD_START_DATE_OF_PASSING_1, TPLabels.getLabel("common.start_date_of_passing_1"));
+		headerMap.put(InboxConstants.FLD_END_DATE_OF_PASSING_1, TPLabels.getLabel("common.end_date_of_passing_1"));
+		headerMap.put(InboxConstants.FLD_INSTITUTE_1, TPLabels.getLabel("common.institute_1"));
+		headerMap.put(InboxConstants.FLD_DEGREE_1, TPLabels.getLabel("common.degree_1"));
+		headerMap.put(InboxConstants.FLD_BRANCH_1, TPLabels.getLabel("common.branch_1"));
+		headerMap.put(InboxConstants.FLD_UNIVERSITY_OF_PASSING_1, TPLabels.getLabel("common.university_of_passing_1"));
+		headerMap.put(InboxConstants.FLD_TYPE_OF_PROGRAM_OF_PASSING_1, TPLabels.getLabel("common.type_of_program_of_passing_1"));
+		headerMap.put(InboxConstants.FLD_PERCENTAGE_OF_PASSING_1, TPLabels.getLabel("common.percentage_passing_1"));
+		headerMap.put(InboxConstants.FLD_YEAR_OF_PASSING_2, TPLabels.getLabel("common.year_of_passing_2"));
+		headerMap.put(InboxConstants.FLD_START_DATE_OF_PASSING_2, TPLabels.getLabel("common.start_date_of_passing_2"));
+		headerMap.put(InboxConstants.FLD_END_DATE_OF_PASSING_2, TPLabels.getLabel("common.end_date_of_passing_2"));
+		headerMap.put(InboxConstants.FLD_INSTITUTE_2, TPLabels.getLabel("common.institute_2"));
+		headerMap.put(InboxConstants.FLD_DEGREE_2, TPLabels.getLabel("common.degree_2"));
+		headerMap.put(InboxConstants.FLD_BRANCH_2, TPLabels.getLabel("common.branch_2"));
+		headerMap.put(InboxConstants.FLD_UNIVERSITY_OF_PASSING_2, TPLabels.getLabel("common.university_of_passing_2"));
+		headerMap.put(InboxConstants.FLD_TYPE_OF_PROGRAM_OF_PASSING_2, TPLabels.getLabel("common.type_of_program_of_passing_2"));
+		headerMap.put(InboxConstants.FLD_PERCENTAGE_OF_PASSING_2, TPLabels.getLabel("common.percentage_passing_2"));
+		headerMap.put(InboxConstants.FLD_YEAR_OF_PASSING_3, TPLabels.getLabel("common.year_of_passing_3"));
+		headerMap.put(InboxConstants.FLD_START_DATE_OF_PASSING_3, TPLabels.getLabel("common.start_date_of_passing_3"));
+		headerMap.put(InboxConstants.FLD_END_DATE_OF_PASSING_3, TPLabels.getLabel("common.end_date_of_passing_3"));
+		headerMap.put(InboxConstants.FLD_INSTITUTE_3, TPLabels.getLabel("common.institute_3"));
+		headerMap.put(InboxConstants.FLD_DEGREE_3, TPLabels.getLabel("common.degree_3"));
+		headerMap.put(InboxConstants.FLD_BRANCH_3, TPLabels.getLabel("common.branch_3"));
+		headerMap.put(InboxConstants.FLD_UNIVERSITY_OF_PASSING_3, TPLabels.getLabel("common.university_of_passing_3"));
+		headerMap.put(InboxConstants.FLD_TYPE_OF_PROGRAM_OF_PASSING_3, TPLabels.getLabel("common.type_of_program_of_passing_3"));
+		headerMap.put(InboxConstants.FLD_PERCENTAGE_OF_PASSING_3, TPLabels.getLabel("common.percentage_passing_3"));
+		headerMap.put(InboxConstants.FLD_YEAR_OF_PASSING_4, TPLabels.getLabel("common.year_of_passing_4"));
+		headerMap.put(InboxConstants.FLD_START_DATE_OF_PASSING_4, TPLabels.getLabel("common.start_date_of_passing_4"));
+		headerMap.put(InboxConstants.FLD_END_DATE_OF_PASSING_4, TPLabels.getLabel("common.end_date_of_passing_4"));
+		headerMap.put(InboxConstants.FLD_INSTITUTE_4, TPLabels.getLabel("common.institute_4"));
+		headerMap.put(InboxConstants.FLD_DEGREE_4, TPLabels.getLabel("common.degree_4"));
+		headerMap.put(InboxConstants.FLD_BRANCH_4, TPLabels.getLabel("common.branch_4"));
+		headerMap.put(InboxConstants.FLD_UNIVERSITY_OF_PASSING_4, TPLabels.getLabel("common.university_of_passing_4"));
+		headerMap.put(InboxConstants.FLD_TYPE_OF_PROGRAM_OF_PASSING_4, TPLabels.getLabel("common.type_of_program_of_passing_4"));
+		headerMap.put(InboxConstants.FLD_PERCENTAGE_OF_PASSING_4, TPLabels.getLabel("common.percentage_passing_4"));
+		headerMap.put(InboxConstants.FLD_CURRENT_EMPLOYER, TPLabels.getLabel("common.current_employer"));
+		headerMap.put(InboxConstants.FLD_CURRENT_CTC, TPLabels.getLabel("common.current_ctc"));
+		headerMap.put(InboxConstants.FLD_EXPECTED_CTC, TPLabels.getLabel("common.expected_ctc"));		
+		headerMap.put(InboxConstants.FLD_NOTICE_PERIOD, TPLabels.getLabel("common.time_to_join"));	
+		headerMap.put(InboxConstants.FLD_NOTE, TPLabels.getLabel("common.note"));		
+		headerMap.put(InboxConstants.FLD_ORIGINAL_RESUME_PATH, TPLabels.getLabel("common.original_resume_path"));
+		headerMap.put(InboxConstants.FLD_EMPLOYMENT_FROM_DATE_1, TPLabels.getLabel("common.employment_from_date")+"_1");
+		headerMap.put(InboxConstants.FLD_EMPLOYMENT_TO_DATE_1, TPLabels.getLabel("common.employment_to_date")+"_1");
+		headerMap.put(InboxConstants.FLD_EMPLOYMENT_EMPLOYER_1, TPLabels.getLabel("common.employer")+"_1");
+		headerMap.put(InboxConstants.FLD_EMPLOYMENT_DESIGNATION_1, TPLabels.getLabel("common.designation")+"_1");
+		headerMap.put(InboxConstants.FLD_EMPLOYMENT_TYPE_1, TPLabels.getLabel("common.employment_type")+"_1");
+		headerMap.put(InboxConstants.FLD_EMPLOYMENT_LOCATION_1, TPLabels.getLabel("common.employment_location")+"_1");
+		headerMap.put(InboxConstants.FLD_EMPLOYMENT_COUNTRY_1, TPLabels.getLabel("common.employment_country")+"_1");
+		headerMap.put(InboxConstants.FLD_EMPLOYMENT_FROM_DATE_2, TPLabels.getLabel("common.employment_from_date")+"_2");
+		headerMap.put(InboxConstants.FLD_EMPLOYMENT_TO_DATE_2, TPLabels.getLabel("common.employment_to_date")+"_2");
+		headerMap.put(InboxConstants.FLD_EMPLOYMENT_EMPLOYER_2, TPLabels.getLabel("common.employer")+"_2");
+		headerMap.put(InboxConstants.FLD_EMPLOYMENT_DESIGNATION_2, TPLabels.getLabel("common.designation")+"_2");
+		headerMap.put(InboxConstants.FLD_EMPLOYMENT_TYPE_2, TPLabels.getLabel("common.employment_type")+"_2");
+		headerMap.put(InboxConstants.FLD_EMPLOYMENT_LOCATION_2, TPLabels.getLabel("common.employment_location")+"_2");
+		headerMap.put(InboxConstants.FLD_EMPLOYMENT_COUNTRY_2, TPLabels.getLabel("common.employment_country")+"_2");
+		headerMap.put(InboxConstants.FLD_EMPLOYMENT_FROM_DATE_3, TPLabels.getLabel("common.employment_from_date")+"_3");
+		headerMap.put(InboxConstants.FLD_EMPLOYMENT_TO_DATE_3, TPLabels.getLabel("common.employment_to_date")+"_3");
+		headerMap.put(InboxConstants.FLD_EMPLOYMENT_EMPLOYER_3, TPLabels.getLabel("common.employer")+"_3");
+		headerMap.put(InboxConstants.FLD_EMPLOYMENT_DESIGNATION_3, TPLabels.getLabel("common.designation")+"_3");
+		headerMap.put(InboxConstants.FLD_EMPLOYMENT_FROM_DATE_4, TPLabels.getLabel("common.employment_from_date")+"_4");
+		headerMap.put(InboxConstants.FLD_EMPLOYMENT_TO_DATE_4, TPLabels.getLabel("common.employment_to_date")+"_4");
+		headerMap.put(InboxConstants.FLD_EMPLOYMENT_EMPLOYER_4, TPLabels.getLabel("common.employer")+"_4");
+		headerMap.put(InboxConstants.FLD_EMPLOYMENT_DESIGNATION_4, TPLabels.getLabel("common.designation")+"_4");
+		headerMap.put(InboxConstants.FLD_EMPLOYMENT_FROM_DATE_5, TPLabels.getLabel("common.employment_from_date")+"_5");
+		headerMap.put(InboxConstants.FLD_EMPLOYMENT_TO_DATE_5, TPLabels.getLabel("common.employment_to_date")+"_5");
+		headerMap.put(InboxConstants.FLD_EMPLOYMENT_EMPLOYER_5, TPLabels.getLabel("common.employer")+"_5");
+		headerMap.put(InboxConstants.FLD_EMPLOYMENT_DESIGNATION_5, TPLabels.getLabel("common.designation")+"_5");
+
+		if (CustomFieldManager.isCustomFieldsAvailable(CustomFieldConstants.ENTITY_TYPE_APPLICANT)) {
+			CustomFieldManager customFieldManager = new CustomFieldManager();
+			ArrayList customFields = customFieldManager.getCustomFieldsForInputAllowed(CustomFieldConstants.ENTITY_TYPE_APPLICANT, CustomFieldConstants.INPUT_ALLOWED, true);
+			for (int c = 0; c < customFields.size(); c++) {
+				CustomFieldData cData = (CustomFieldData) customFields.get(c);
+				headerMap.put(cData.getFieldName(), cData.getFieldDisplayName());
+			}
+		}
+		
+		if (CustomFieldManager.isCustomFieldsAvailable(CustomFieldConstants.ENTITY_TYPE_APPLICANT_TABLE_FIELD)) {
+			CustomFieldManager customFieldManager = new CustomFieldManager();
+			ArrayList customFields = customFieldManager.getCustomFieldsForInputAllowed(CustomFieldConstants.ENTITY_TYPE_APPLICANT_TABLE_FIELD, CustomFieldConstants.INPUT_ALLOWED, true);
+			for (int c = 0; c < customFields.size(); c++) {
+				CustomFieldData cData = (CustomFieldData) customFields.get(c);
+				headerMap.put(cData.getFieldName(), cData.getFieldDisplayName());
+			}
+		}
+		return headerMap;
+	}
+	
+	public String getXMLViewCSVImport(ArrayList<ImportData> excelList, String mappings) {
+		StringWriter sWr = new StringWriter();
+		XMLWriter wr = new XMLWriter(sWr);
+		HashMap<String,Integer> mp=new HashMap<>();
+		Integer count=0;
+		try {
+			wr.startDocument();
+			wr.startElement("rows");
+			for (int i = 0; i < excelList.size(); i++) {
+				ImportData iData = (ImportData) excelList.get(i);
+				String[] mappingStr = mappings.split(",");
+				
+				AttributesImpl at = new AttributesImpl();
+				at.addAttribute("", "id", "", "", "" + iData.getRowNumber());
+				wr.startElement("", "row", "", at);
+				
+				wr.startElement("cell");
+				wr.characters("");
+				wr.endElement("cell");
+				
+				for(int j=0 ; j< mappingStr.length; j++){ 
+					if(!mappingStr[j].equals("0")){
+						String colName = mappingStr[j];
+						String str = "";
+						if (colName.equals(InboxConstants.FLD_NAME)) {
+							str = Utils.isBlankOrNull(iData.getName())?"&nbsp;":iData.getName();
+						}		
+						if (colName.equals(InboxConstants.FLD_EMAIL_1)) {
+							str = Utils.isBlankOrNull(iData.getEmail1())?"&nbsp;":iData.getEmail1();
+						}
+						if (colName.equals(InboxConstants.FLD_EMAIL_2)) {
+							str = Utils.isBlankOrNull(iData.getEmail2())?"&nbsp;":iData.getEmail2();
+						}
+						if (colName.equals(InboxConstants.FLD_PHONE_1)) {
+							str = Utils.isBlankOrNull(iData.getPhone1())?"&nbsp;":iData.getPhone1();
+						}
+						if (colName.equals(InboxConstants.FLD_PHONE_2)) {
+							str = Utils.isBlankOrNull(iData.getPhone2())?"&nbsp;":iData.getPhone2();
+						}
+						if (colName.equals(InboxConstants.FLD_MOBILE)) {
+							str = Utils.isBlankOrNull(iData.getMobile())?"&nbsp;":iData.getMobile();
+						}
+						if (colName.equals(InboxConstants.FLD_EXPERIENCE)) {
+							str = Utils.isBlankOrNull(iData.getExperience())?"&nbsp;":iData.getExperience();
+						}
+						if (colName.equals(InboxConstants.FLD_SOURCE)) {
+							str = Utils.isBlankOrNull(iData.getSource())?"&nbsp;":iData.getSource();
+						}
+						if (colName.equals(InboxConstants.FLD_CURRENT_LOCATION)) {
+							str = Utils.isBlankOrNull(iData.getCurrentLocation())?"&nbsp;":iData.getCurrentLocation();
+						}
+						if (colName.equals(InboxConstants.FLD_SKILLS)) {
+							str = Utils.isBlankOrNull(iData.getSkills())?"&nbsp;":iData.getSkills();
+						}					
+						if (colName.equals(InboxConstants.FLD_YEAR_OF_PASSING_1)) {
+							str = Utils.isBlankOrNull(iData.getYOP1())?"&nbsp;":iData.getYOP1();
+						}
+						if (colName.equals(InboxConstants.FLD_START_DATE_OF_PASSING_1)) {
+							str = Utils.isBlankOrNull(iData.getStartDate1())?"&nbsp;":iData.getStartDate1();
+						}
+						if (colName.equals(InboxConstants.FLD_END_DATE_OF_PASSING_1)) {
+							str = Utils.isBlankOrNull(iData.getEndDate1())?"&nbsp;":iData.getEndDate1();
+						}
+						if (colName.equals(InboxConstants.FLD_INSTITUTE_1)) {
+							str = Utils.isBlankOrNull(iData.getInstitute1())?"&nbsp;":iData.getInstitute1();
+						}
+						if (colName.equals(InboxConstants.FLD_DEGREE_1)) {
+							str = Utils.isBlankOrNull(iData.getDegree1())?"&nbsp;":iData.getDegree1();
+						}
+						if (colName.equals(InboxConstants.FLD_BRANCH_1)) {
+							str = Utils.isBlankOrNull(iData.getBranch1())?"&nbsp;":iData.getBranch1();
+						}
+						if (colName.equals(InboxConstants.FLD_TYPE_OF_PROGRAM_OF_PASSING_1)) {
+							str = Utils.isBlankOrNull(iData.getTypeOfProgram1())?"&nbsp;":iData.getTypeOfProgram1();
+						}
+						if (colName.equals(InboxConstants.FLD_UNIVERSITY_OF_PASSING_1)) {
+							str = Utils.isBlankOrNull(iData.getUniversity1())?"&nbsp;":iData.getUniversity1();
+						}
+						if (colName.equals(InboxConstants.FLD_PERCENTAGE_OF_PASSING_1)) {
+							str = Utils.isBlankOrNull(iData.getPercentage1())?"&nbsp;":iData.getPercentage1();
+						}
+						if (colName.equals(InboxConstants.FLD_YEAR_OF_PASSING_2)) {
+							str = Utils.isBlankOrNull(iData.getYOP2())?"&nbsp;":iData.getYOP2();
+						}
+						if (colName.equals(InboxConstants.FLD_START_DATE_OF_PASSING_2)) {
+							str = Utils.isBlankOrNull(iData.getStartDate2())?"&nbsp;":iData.getStartDate2();
+						}
+						if (colName.equals(InboxConstants.FLD_END_DATE_OF_PASSING_2)) {
+							str = Utils.isBlankOrNull(iData.getEndDate2())?"&nbsp;":iData.getEndDate2();
+						}
+						if (colName.equals(InboxConstants.FLD_INSTITUTE_2)) {
+							str = Utils.isBlankOrNull(iData.getInstitute2())?"&nbsp;":iData.getInstitute2();
+						}
+						if (colName.equals(InboxConstants.FLD_DEGREE_2)) {
+							str = Utils.isBlankOrNull(iData.getDegree2())?"&nbsp;":iData.getDegree2();
+						}
+						if (colName.equals(InboxConstants.FLD_BRANCH_2)) {
+							str = Utils.isBlankOrNull(iData.getBranch2())?"&nbsp;":iData.getBranch2();
+						}
+						if (colName.equals(InboxConstants.FLD_TYPE_OF_PROGRAM_OF_PASSING_2)) {
+							str = Utils.isBlankOrNull(iData.getTypeOfProgram2())?"&nbsp;":iData.getTypeOfProgram2();
+						}
+						if (colName.equals(InboxConstants.FLD_UNIVERSITY_OF_PASSING_2)) {
+							str = Utils.isBlankOrNull(iData.getUniversity2())?"&nbsp;":iData.getUniversity2();
+						}
+						if (colName.equals(InboxConstants.FLD_PERCENTAGE_OF_PASSING_2)) {
+							str = Utils.isBlankOrNull(iData.getPercentage2())?"&nbsp;":iData.getPercentage2();
+						}
+						if (colName.equals(InboxConstants.FLD_YEAR_OF_PASSING_3)) {
+							str = Utils.isBlankOrNull(iData.getYOP3())?"&nbsp;":iData.getYOP3();
+						}
+						if (colName.equals(InboxConstants.FLD_START_DATE_OF_PASSING_3)) {
+							str = Utils.isBlankOrNull(iData.getStartDate3())?"&nbsp;":iData.getStartDate3();
+						}
+						if (colName.equals(InboxConstants.FLD_END_DATE_OF_PASSING_3)) {
+							str = Utils.isBlankOrNull(iData.getEndDate3())?"&nbsp;":iData.getEndDate3();
+						}
+						if (colName.equals(InboxConstants.FLD_INSTITUTE_3)) {
+							str = Utils.isBlankOrNull(iData.getInstitute3())?"&nbsp;":iData.getInstitute3();
+						}
+						if (colName.equals(InboxConstants.FLD_DEGREE_3)) {
+							str = Utils.isBlankOrNull(iData.getDegree3())?"&nbsp;":iData.getDegree3();
+						}
+						if (colName.equals(InboxConstants.FLD_BRANCH_3)) {
+							str = Utils.isBlankOrNull(iData.getBranch3())?"&nbsp;":iData.getBranch3();
+						}
+						if (colName.equals(InboxConstants.FLD_TYPE_OF_PROGRAM_OF_PASSING_3)) {
+							str = Utils.isBlankOrNull(iData.getTypeOfProgram3())?"&nbsp;":iData.getTypeOfProgram3();
+						}
+						if (colName.equals(InboxConstants.FLD_UNIVERSITY_OF_PASSING_3)) {
+							str = Utils.isBlankOrNull(iData.getUniversity3())?"&nbsp;":iData.getUniversity3();
+						}
+						if (colName.equals(InboxConstants.FLD_PERCENTAGE_OF_PASSING_3)) {
+							str = Utils.isBlankOrNull(iData.getPercentage3())?"&nbsp;":iData.getPercentage3();
+						}
+						if (colName.equals(InboxConstants.FLD_YEAR_OF_PASSING_4)) {
+							str = Utils.isBlankOrNull(iData.getYOP4())?"&nbsp;":iData.getYOP4();
+						}
+						if (colName.equals(InboxConstants.FLD_START_DATE_OF_PASSING_4)) {
+							str = Utils.isBlankOrNull(iData.getStartDate4())?"&nbsp;":iData.getStartDate4();
+						}
+						if (colName.equals(InboxConstants.FLD_END_DATE_OF_PASSING_4)) {
+							str = Utils.isBlankOrNull(iData.getEndDate4())?"&nbsp;":iData.getEndDate4();
+						}
+						if (colName.equals(InboxConstants.FLD_INSTITUTE_4)) {
+							str = Utils.isBlankOrNull(iData.getInstitute4())?"&nbsp;":iData.getInstitute4();
+						}
+						if (colName.equals(InboxConstants.FLD_DEGREE_4)) {
+							str = Utils.isBlankOrNull(iData.getDegree4())?"&nbsp;":iData.getDegree4();
+						}
+						if (colName.equals(InboxConstants.FLD_BRANCH_4)) {
+							str = Utils.isBlankOrNull(iData.getBranch4())?"&nbsp;":iData.getBranch4();
+						}
+						if (colName.equals(InboxConstants.FLD_TYPE_OF_PROGRAM_OF_PASSING_4)) {
+							str = Utils.isBlankOrNull(iData.getTypeOfProgram4())?"&nbsp;":iData.getTypeOfProgram4();
+						}
+						if (colName.equals(InboxConstants.FLD_UNIVERSITY_OF_PASSING_4)) {
+							str = Utils.isBlankOrNull(iData.getUniversity4())?"&nbsp;":iData.getUniversity4();
+						}
+						if (colName.equals(InboxConstants.FLD_PERCENTAGE_OF_PASSING_4)) {
+							str = Utils.isBlankOrNull(iData.getPercentage4())?"&nbsp;":iData.getPercentage4();
+						}
+						if (colName.equals(InboxConstants.FLD_CURRENT_EMPLOYER)) {
+							str = Utils.isBlankOrNull(iData.getCurrentEmployer())?"&nbsp;":iData.getCurrentEmployer();
+						}
+						if (colName.equals(InboxConstants.FLD_CURRENT_CTC)) {
+							str = Utils.isBlankOrNull(iData.getCurrentCTC())?"&nbsp;":iData.getCurrentCTC();
+						}
+						if (colName.equals(InboxConstants.FLD_EXPECTED_CTC)) {
+							str = Utils.isBlankOrNull(iData.getExpectedCTC())?"&nbsp;":iData.getExpectedCTC();
+						}
+						if (colName.equals(InboxConstants.FLD_NOTICE_PERIOD)) {
+							str = Utils.isBlankOrNull(iData.getNoticePeriod())?"&nbsp;":iData.getNoticePeriod();
+						}
+						if (colName.equals(InboxConstants.FLD_NOTE)) {
+							str = Utils.isBlankOrNull(iData.getNote())?"&nbsp;":iData.getNote();					
+						}
+						if (colName.equals(InboxConstants.FLD_ORIGINAL_RESUME_PATH)) {
+							str = Utils.isBlankOrNull(iData.getOriginalResumePath())?"&nbsp;":iData.getOriginalResumePath();				
+						}
+						if (colName.equals(InboxConstants.FLD_EMPLOYMENT_FROM_DATE_1)) {
+							str = Utils.isBlankOrNull(iData.getEmploymentFromDate1())?"&nbsp;":iData.getEmploymentFromDate1();				
+						}
+						if (colName.equals(InboxConstants.FLD_EMPLOYMENT_TO_DATE_1)) {
+							str = Utils.isBlankOrNull(iData.getEmploymentToDate1())?"&nbsp;":iData.getEmploymentToDate1();				
+						}
+						if (colName.equals(InboxConstants.FLD_EMPLOYMENT_EMPLOYER_1)) {
+							str = Utils.isBlankOrNull(iData.getEmploymentEmployer1())?"&nbsp;":iData.getEmploymentEmployer1();				
+						}
+						if (colName.equals(InboxConstants.FLD_EMPLOYMENT_DESIGNATION_1)) {
+							str = Utils.isBlankOrNull(iData.getEmploymentDesignation1())?"&nbsp;":iData.getEmploymentDesignation1();				
+						}
+						
+						if (colName.equals(InboxConstants.FLD_EMPLOYMENT_TYPE_1)) {
+							str = Utils.isBlankOrNull(iData.getEmploymentType1())?"&nbsp;":iData.getEmploymentType1();				
+						}
+						if (colName.equals(InboxConstants.FLD_EMPLOYMENT_LOCATION_1)) {
+							str = Utils.isBlankOrNull(iData.getEmploymentLocation1())?"&nbsp;":iData.getEmploymentLocation1();				
+						}
+						if (colName.equals(InboxConstants.FLD_EMPLOYMENT_COUNTRY_1)) {
+							str = Utils.isBlankOrNull(iData.getEmploymentCountry1())?"&nbsp;":iData.getEmploymentCountry1();				
+						}
+						
+						if (colName.equals(InboxConstants.FLD_EMPLOYMENT_FROM_DATE_2)) {
+							str = Utils.isBlankOrNull(iData.getEmploymentFromDate2())?"&nbsp;":iData.getEmploymentFromDate2();				
+						}
+						if (colName.equals(InboxConstants.FLD_EMPLOYMENT_TO_DATE_2)) {
+							str = Utils.isBlankOrNull(iData.getEmploymentToDate2())?"&nbsp;":iData.getEmploymentToDate2();				
+						}
+						if (colName.equals(InboxConstants.FLD_EMPLOYMENT_EMPLOYER_2)) {
+							str = Utils.isBlankOrNull(iData.getEmploymentEmployer2())?"&nbsp;":iData.getEmploymentEmployer2();				
+						}
+						if (colName.equals(InboxConstants.FLD_EMPLOYMENT_DESIGNATION_2)) {
+							str = Utils.isBlankOrNull(iData.getEmploymentDesignation2())?"&nbsp;":iData.getEmploymentDesignation2();				
+						}
+						
+						if (colName.equals(InboxConstants.FLD_EMPLOYMENT_TYPE_2)) {
+							str = Utils.isBlankOrNull(iData.getEmploymentType2())?"&nbsp;":iData.getEmploymentType2();				
+						}
+						if (colName.equals(InboxConstants.FLD_EMPLOYMENT_LOCATION_2)) {
+							str = Utils.isBlankOrNull(iData.getEmploymentLocation2())?"&nbsp;":iData.getEmploymentLocation2();				
+						}
+						if (colName.equals(InboxConstants.FLD_EMPLOYMENT_COUNTRY_2)) {
+							str = Utils.isBlankOrNull(iData.getEmploymentCountry2())?"&nbsp;":iData.getEmploymentCountry2();				
+						}
+						
+						if (colName.equals(InboxConstants.FLD_EMPLOYMENT_FROM_DATE_3)) {
+							str = Utils.isBlankOrNull(iData.getEmploymentFromDate3())?"&nbsp;":iData.getEmploymentFromDate3();				
+						}
+						if (colName.equals(InboxConstants.FLD_EMPLOYMENT_TO_DATE_3)) {
+							str = Utils.isBlankOrNull(iData.getEmploymentToDate3())?"&nbsp;":iData.getEmploymentToDate3();				
+						}
+						if (colName.equals(InboxConstants.FLD_EMPLOYMENT_EMPLOYER_3)) {
+							str = Utils.isBlankOrNull(iData.getEmploymentEmployer3())?"&nbsp;":iData.getEmploymentEmployer3();				
+						}
+						if (colName.equals(InboxConstants.FLD_EMPLOYMENT_DESIGNATION_3)) {
+							str = Utils.isBlankOrNull(iData.getEmploymentDesignation3())?"&nbsp;":iData.getEmploymentDesignation3();				
+						}
+						if (colName.equals(InboxConstants.FLD_EMPLOYMENT_FROM_DATE_4)) {
+							str = Utils.isBlankOrNull(iData.getEmploymentFromDate4())?"&nbsp;":iData.getEmploymentFromDate4();				
+						}
+						if (colName.equals(InboxConstants.FLD_EMPLOYMENT_TO_DATE_4)) {
+							str = Utils.isBlankOrNull(iData.getEmploymentToDate4())?"&nbsp;":iData.getEmploymentToDate4();				
+						}
+						if (colName.equals(InboxConstants.FLD_EMPLOYMENT_EMPLOYER_4)) {
+							str = Utils.isBlankOrNull(iData.getEmploymentEmployer4())?"&nbsp;":iData.getEmploymentEmployer4();				
+						}
+						if (colName.equals(InboxConstants.FLD_EMPLOYMENT_DESIGNATION_4)) {
+							str = Utils.isBlankOrNull(iData.getEmploymentDesignation4())?"&nbsp;":iData.getEmploymentDesignation4();				
+						}
+						if (colName.equals(InboxConstants.FLD_EMPLOYMENT_FROM_DATE_5)) {
+							str = Utils.isBlankOrNull(iData.getEmploymentFromDate5())?"&nbsp;":iData.getEmploymentFromDate5();				
+						}
+						if (colName.equals(InboxConstants.FLD_EMPLOYMENT_TO_DATE_5)) {
+							str = Utils.isBlankOrNull(iData.getEmploymentToDate5())?"&nbsp;":iData.getEmploymentToDate5();				
+						}
+						if (colName.equals(InboxConstants.FLD_EMPLOYMENT_EMPLOYER_5)) {
+							str = Utils.isBlankOrNull(iData.getEmploymentEmployer5())?"&nbsp;":iData.getEmploymentEmployer5();				
+						}
+						if (colName.equals(InboxConstants.FLD_EMPLOYMENT_DESIGNATION_5)) {
+							str = Utils.isBlankOrNull(iData.getEmploymentDesignation5())?"&nbsp;":iData.getEmploymentDesignation5();				
+						}
+						
+						if (CustomFieldManager.isCustomFieldsAvailable(CustomFieldConstants.ENTITY_TYPE_APPLICANT)
+								|| CustomFieldManager.isCustomFieldsAvailable(CustomFieldConstants.ENTITY_TYPE_APPLICANT_TABLE_FIELD)) {
+							ArrayList<CustomFieldData> customFields = iData.getCustomFields();
+							for (int c = 0; customFields!=null && c < customFields.size(); c++) {
+								CustomFieldData cData = customFields.get(c);
+								if(cData !=null){
+									if (colName.equals(cData.getFieldName())) {
+										String[] value = cData.getFieldValues();
+										if(cData.getFieldEntityType() == CustomFieldConstants.ENTITY_TYPE_APPLICANT_TABLE_FIELD){
+											if(mp.get(cData.getFieldName())!=null){
+												count=mp.get(cData.getFieldName())+1;
+												mp.put(cData.getFieldName(), count);
+											}else{
+												mp.put(cData.getFieldName(), 0);
+											}
+											str=Utils.isBlankOrNull(value[count])?"&nbsp;":value[count];
+											
+										} else {
+											str = Utils.isBlankOrNull(value[0])?"&nbsp;":value[0];
+										}
+									}
+								}
+							}
+						}
+						createColumn(wr, str);
+					}
+				}
+				createColumn(wr, Utils.isBlankOrNull(iData.getError())? "&nbsp;" : iData.getError());
+				wr.endElement("row");
+			}
+			wr.endElement("rows");
+			wr.endDocument();
+		} catch (SAXException e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return sWr.getBuffer().toString();
+	}
+	
+	private void createColumn(XMLWriter wr, String str){
+		try{
+			wr.startElement("cell");
+			wr.characters(wr.doubleEscape(str));
+			wr.endElement("cell");
+		}catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+	}
+	
+	public String getXMLforExcelImport(ArrayList data) {
+		StringWriter sWr = new StringWriter();
+		XMLWriter wr = new XMLWriter(sWr);
+		try {
+			wr.startDocument();
+			wr.startElement("rows");
+			for (int i = 0; i < data.size(); i++) {
+				SimpleDataObject sData = (SimpleDataObject) data.get(i);
+
+				AttributesImpl at = new AttributesImpl();
+				at.addAttribute("", "id", "", "", "" + sData.getString("rowId"));
+				wr.startElement("", "row", "", at);
+
+				wr.startElement("cell");
+				wr.characters("");
+				wr.endElement("cell");
+				
+				at = new AttributesImpl();
+				at.addAttribute("", "name", "", "", "Col_I_Comment");
+				wr.startElement("", "userdata", "", at);
+				wr.characters("Delete");
+				wr.endElement("userdata");				
+				
+				wr.startElement("cell");
+				wr.characters(wr.doubleEscape(sData.getString("applicantName")));
+				wr.endElement("cell");
+				
+				wr.startElement("cell");
+				wr.characters(wr.doubleEscape(sData.getString("rowId")));
+				wr.endElement("cell");
+				
+				String status = "success";
+				if(sData.getString("status").equals(InboxConstants.EXCEL_IMPOT_DUPLICATE)){
+					status = "duplicate";
+				}else if(sData.getString("status").equals(InboxConstants.EXCEL_IMPOT_FAIL)){
+					status = "fail";
+				}
+				wr.startElement("cell");
+				wr.characters(wr.doubleEscape(status));
+				wr.endElement("cell");
+
+				wr.endElement("row");
+			}
+			wr.endElement("rows");
+			wr.endDocument();
+		} catch (SAXException e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return sWr.getBuffer().toString();
+	}
+	
+}

@@ -1,0 +1,15 @@
+/*
+*  basicinfo_email.jape
+*
+*/
+
+Phase: name_title
+Input: Lookup
+Options: control = appelt
+
+Rule: name_title
+(
+ {Lookup.majorType ==title}
+):title
+-->
+:title.NameTitle = {kind = "title", rule = "name_title"}

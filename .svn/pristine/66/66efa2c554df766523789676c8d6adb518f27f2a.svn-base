@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE struts PUBLIC
+    "-//Apache Software Foundation//DTD Struts Configuration 2.0//EN"
+    "http://struts.apache.org/dtds/struts-2.0.dtd">
+
+<struts>
+	<package name="socialMedia" namespace="/" extends="pool-default">
+	
+        <default-interceptor-ref name="poolStack" />
+        <action name="oauthredirect" class="com.talentPool.socialNetwork.action.PublishPositionAction" method="redirectToOAuthGeneration">
+             <result name="success">/positions/redirectBackToMain.jsp</result>
+              <result name="error">/common/error.jsp</result>
+        </action>
+		<action name="publishPosition" class="com.talentPool.socialNetwork.action.PublishPositionAction" method="publishPositionToSocialMedia">
+            <result name="success">/positions/positionsToPublishForSocialMediaPopUp.jsp</result>
+            <result name="error">/common/error.jsp</result>
+        </action>
+        <action name="publishPositionToSocialMedia" class="com.talentPool.socialNetwork.action.PublishPositionAction" method="publishPositionTo">
+            <result name="success">/positions/positionsToPublishForSocialMediaPopUp.jsp</result>
+            <result name="error">/common/error.jsp</result>
+        </action>
+         <action name="getGroupsAndCompanies" class="com.talentPool.socialNetwork.action.PublishPositionAction" method="getGroupsAndCompaniesBySource">
+            <result name="success">/common/xmlFile.jsp</result>
+        </action>  
+        
+        <action name="extractEvent" class="com.talentPool.socialNetwork.action.PublishPositionAction" method="extractEvent">
+             <result name="success">/positions/redirectBackToMain.jsp</result>
+             <result name="errorSocial">/position.do?mode=getAllPositionsToPublishToSocialMedia</result>
+            <result name="error">/common/error.jsp</result>
+        </action>
+         <action name="templateAction" class="com.talentPool.socialNetwork.action.PublishPositionAction" method="getTemplateXML">
+			<result name="success">/common/xmlFile.jsp</result>
+            <result name="error">/common/error.jsp</result>
+         </action>
+    </package>
+</struts>

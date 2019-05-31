@@ -1,0 +1,46 @@
+/*
+*  basicinfo_email.jape
+*
+*/
+
+
+
+
+Phase: email
+Input: Address Email
+Options: control = appelt
+
+Rule: email
+(
+ {Address.kind == email}|{Email}
+)
+:email -->
+{
+try{
+	gate.AnnotationSet emailAnnSet = (gate.AnnotationSet)bindings.get("email");
+	if(emailAnnSet != null && emailAnnSet.size() > 0)
+	{
+		gate.Annotation emailAnn = (gate.Annotation)emailAnnSet.iterator().next();
+		long start = emailAnn.getStartNode().getOffset();
+		long end = emailAnn.getEndNode().getOffset();
+		String annotation = doc.getContent().getContent(start, end).toString();
+		String[] emails = annotation.split("[|,/;\\\\]");
+		if(emails.length > 0)
+		{
+			long tempStart = start;
+			for(int i=0;i<emails.length;i++)
+			{
+				gate.FeatureMap features = Factory.newFeatureMap();
+				features.put("rule", "email");			
+				outputAS.add(tempStart, tempStart+emails[i].length(), "TempEmailToken",features);
+				tempStart = tempStart + emails[i].length()+1;
+			}
+			outputAS.removeAll(emailAnnSet);
+		}
+	}
+	}
+	catch(Exception e)
+	{
+		e.printStackTrace();
+	}
+}

@@ -1,0 +1,1323 @@
+<%@ taglib uri="/WEB-INF/tld/struts-html.tld" prefix="html"%>
+<%@ taglib uri="/WEB-INF/tld/struts-bean.tld" prefix="bean"%>
+<%@ taglib uri="/WEB-INF/tld/struts-logic.tld" prefix="logic"%> 
+<%@page import="com.talentPool.custom.utils.CustomFieldUtils"%>
+<%@page import="com.talentPool.search.SearchConstants"%>
+<%@page import="com.talentPool.common.utils.CommonUtils"%>
+<%@page import="java.util.ArrayList"%>
+<%@page import="com.talentPool.custom.dataobject.CustomFieldData"%>
+<%@page import="com.talentPool.custom.constants.CustomPageConstants"%>
+<%@page import="com.talentPool.common.utils.Utils"%>
+<%@page import="com.talentPool.applicant.ApplicantConstants"%>
+<%@page import="com.talentPool.custom.constants.CustomFieldConstants"%>
+<%@page import="com.talentPool.applicant.manager.ImportConfigurationManager"%>
+<%@page import="com.talentPool.applicant.constants.ImportConfigurationConstants"%>
+<%@page import="com.talentPool.common.properties.GlobalConstants"%>
+<%@page import="com.talentPool.common.properties.GlobalApplicationProperties"%>
+
+<%@page import="com.talentPool.common.properties.TPApplicationProperties"%><link rel="stylesheet" type="text/css" href="themes/default/CalendarPopup.css"/>
+<script language="JavaScript" src="js/scripta/lib/prototype.js" type="text/javascript"></script>
+<script language="JavaScript" src="js/scripta/src/effects.js" type="text/javascript"></script>
+<script language="JavaScript" src="js/scripta/src/controls.js" type="text/javascript"></script>
+<script language="JavaScript" src="js/calender/CalendarPopup.js"></script>		
+<script language="JavaScript" src="js/calender/dateFormatter.js" type="text/javascript"></script>
+<script language="JavaScript" src="js/selectoption.js" type="text/javascript"></script>
+<script language="JavaScript" src="js/selectbox/selectbox.js" type="text/javascript"></script>
+<script language="JavaScript" src="js/checkboxlist/checkboxlist.js" type="text/javascript"></script>
+<script language="JavaScript" src="js/checkboxandradiogroup/checkboxradiogroup.js" type="text/javascript"></script>
+<script language="JavaScript" src="js/tpmenu/tpmenu.js" type="text/javascript"></script>
+<script language="JavaScript" src="js/tpmenu/tpmenuhandler.js" type="text/javascript"></script>
+<script language="JavaScript" src="js/ajaxfunctions.js" type="text/javascript"></script>
+<script language="JavaScript" src="js/commonFunctions.js" type="text/javascript"></script>
+<script src="js/submodal/common.js"></script>
+<script src="js/submodal/subModal.js"></script>
+					
+<script language="JavaScript" src="js/customfields/customfield.js"></script>
+<script language="JavaScript" src="js/customfields/customfieldvalidator.js"></script>
+<script language="JavaScript" type="text/javascript" src="js/tooltip/balloon.config.js"></script>
+<script language="JavaScript" type="text/javascript" src="js/tooltip/balloon.js"></script>
+<script language="JavaScript" type="text/javascript" src="js/tooltip/box.js"></script>
+<script language="JavaScript" type="text/javascript" src="js/tooltip/yahoo-dom-event.js"></script>
+<script language="JavaScript" type="text/javascript" src="js/tooltip/tip_ajaxcall.js"></script>
+<link rel="stylesheet" type="text/css" href="themes/default/autoComplete.css">
+<link rel="stylesheet" type="text/css" href="themes/default/searchTpMenu.css">		
+
+<script language="javascript">
+var radioGroupDegree=null;
+var checkboxListDegree=null;
+var checkboxListBranch=null;
+var checkboxListRejectReason = null;
+var selectBoxSourceType=null;
+var selectBoxResumeType=null;
+var selectBoxImportDuration=null;
+var selectBoxBirthDuration=null;
+var selectBox1othmarks=null;
+var selectBox12thmarksn=null;
+var selectBoxGradMarks=null;
+var selectBoxPostGradMarks=null;
+var selectBoxAge=null;
+var selectBoxYearsofExperience=null;
+var checkboxListFlags = null;
+var selectBoxMatchCondition=null;
+var selectBoxPositionApplied=null;
+</script>
+<% ArrayList customFields = (ArrayList)request.getAttribute("customFields");%>
+<script language="javascript">
+<%=CustomFieldUtils.getArrayForCustomFieldsAvailableWhileImportOrEdit(customFields)%>
+</script>
+<% 
+String tokenId = (String)request.getSession().getAttribute("deleteApplicantTokenId");
+%>
+
+<div class="contentDiv">
+<div id="autocomplete" class="autocomplete"></div>
+<html:form action="/doSearch">
+<html:hidden property="mode" value="doSearch"/>
+<html:hidden property="t"/>
+
+<html:hidden property="matchCondition"/>
+<html:hidden property="degreeId"/>
+<html:hidden property="branchId"/>
+<html:hidden property="sourceTypeId"/>
+<html:hidden property="positionId"/>
+<html:hidden property="resumeTypeId"/>
+<html:hidden property="flagId"/>
+<html:hidden property="rejectReason"/>
+<html:hidden property="degreeCriteria"/>
+<html:hidden property="degree"/>
+<html:hidden property="branch"/>
+<html:hidden property="flag"/>
+<html:hidden property="importDaysFilter"/>
+<html:hidden property="birthDayFilter"/>
+<html:hidden property="tenthMarksFilter"/>
+<html:hidden property="twelvethMarksFilter"/>
+<html:hidden property="gradeMarksFilter"/>
+<html:hidden property="postGradeMarksFilter"/>
+<html:hidden property="ageFilter"/>
+<html:hidden property="yearOfExperienceFilter"/>
+<html:hidden property="lastInteractionFilter"/>
+<html:hidden property="excludeInprocess"/>
+<html:hidden property="excludeRejectedInPast"/>
+
+<html:hidden property="pageNo"/>
+<html:hidden property="sortBy"/>
+
+<html:hidden property="resetSearch" value=""/>
+
+<html:hidden property="applicantId" value=""/>
+<html:hidden property="flagIdToSet" value=""/>
+<html:hidden property="flagStateToSet" value=""/>
+<html:hidden property="deleteApplicantTokenId" value=""/>
+
+<table cellspacing="0" cellpadding="0" border="0" >
+<tr>
+	<td class="Grey"><bean:message key="search_applicant.home.keywords"/></td>
+	<td>&nbsp;</td>
+	<td>
+	</td>
+	<td width="10">&nbsp;</td>
+	<td class="Grey"><bean:message key="search_applicant.home.applicant_experience"/></td>
+	<td width="10">&nbsp;</td>
+	<td></td>
+</tr>
+<tr>
+	<td><html:text property="searchText" size="50" styleClass="txt1" styleId="searchText"/></td>
+	<td>&nbsp;</td>
+	<td>
+		<script type="text/javascript">
+			var opts = [new SelectOption('<%=SearchConstants.MATCH_ALL%>','<bean:message key="search_applicant.home.label.all_words"/>'), new SelectOption('<%=SearchConstants.MATCH_ANY%>','<bean:message key="search_applicant.home.label.any_words"/>'), new SelectOption('<%=SearchConstants.MATCH_EXACT%>','<bean:message key="search_applicant.home.label.exact_words"/>'), new SelectOption('<%=SearchConstants.MATCH_ID%>','<bean:message key="search_applicant.home.label.id"/>')];
+			<% if(GlobalConstants.ENABLED.equals(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_EMPLOYEE_CAN_APPLY_FOR_JOB)) ) { %>
+				opts[opts.length] = new SelectOption('<%=SearchConstants.MATCH_EMP_ID%>','<bean:message key="search_applicant.home.label.employee_id"/>');
+			<% } else if(GlobalConstants.ENABLED.equals(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_SHOW_JOINED_CANDIDATE_IN_SEARCH))){ %>
+				opts[opts.length] = new SelectOption('<%=SearchConstants.MATCH_EMP_ID%>','<bean:message key="search_applicant.home.label.employee_id"/>');
+			<%}%>
+			selectBoxMatchCondition = new SelectBox(opts,'<bean:write name="searchForm" property="matchCondition"/>','images/btn_dropdown.gif',{namesonly:false, width:'100px', size:5, textboxclass: 'dropdowntextboxsearch', imageclass:'dropdownimagesearch', textboxfocussedclass:'dropdowntextboxfocusedsearch'});
+			document.write(selectBoxMatchCondition.getHtml());
+			selectBoxMatchCondition.init();
+		</script>
+	</td>
+	<td>&nbsp;</td>
+	<td>
+	<html:text property="minExperience" size="5" maxlength="5" styleClass="txt1"/>
+	<bean:message key="search_applicant.home.label_to"/>
+	<html:text property="maxExperience" size="5" styleClass="txt1"/>
+	</td>
+	<td>&nbsp;</td>
+	<td>
+	<div class="navBtn" style="float: right;"><a href="#" style="width:60px;" class="active" onclick="javascript: submitForm(1);return false;"><span class="rightC"></span><span class="leftC"></span><bean:message key="common.search"/></a></div>
+	</td>
+</tr>
+</table>
+<br class="br5"/>
+<a href="#" onclick="toggleTheFilterDiv('filterDiv');return false;" class="green"><bean:message key="search_applicant.home.label.current_filters"/></a>:
+	<bean:write name="searchForm" property="searchFilterString" scope="request"/>
+<br class="br5"/><br class="br5"/>
+<div class="outerDiv" style="padding:5px;overflow:visible;display:none;" id="filterDiv">		
+	   <table cellpadding="0" cellspacing="0">
+				   <tr>
+					   <td  valign="top" width="100%">
+							<!--Main column 1 -->
+				          	<table class="inputBox" width="100%">
+				          		<%
+						   		 if(ImportConfigurationManager.isImportOrEditFieldShow(ImportConfigurationConstants.FIELD_EDUCATION)){ 
+								%>
+			          	              <tr> 
+						                  <td class="label" style="vertical-align: top;">  
+				                            <bean:message key="search_applicant.home.applicant_degree"/>:
+				                          </td>
+							              <td> 
+							           		<script type="text/javascript">
+							          			var opts = [ new SelectOption('<%=SearchConstants.OR %>','Any'), new SelectOption('<%=SearchConstants.AND %>','All')];
+							          			radioGroupDegree = new CheckBoxRadioGroup(opts,'<bean:write property="degreeCriteria" name="searchForm"/>',{namesonly:false, layerclass:'checkboxradiogroupdiv', imageclass:'chkboxgroupclass', contentImgClass:'contentImgClass', singleselect:'true'});
+							          			document.write(radioGroupDegree.getHtml());
+												radioGroupDegree.init();
+							          		</script>
+							          		<script type="text/javascript">
+	                                               var opts = <bean:write name="searchForm" property="JSDegreeArray" filter="false"/>;
+	                                               checkboxListDegree = new CheckBoxList(opts,'<bean:write name="searchForm" property="degreeId"/>',{namesonly:false, layerclass:'checkboxlistdiv', width:'182px', size:5, imageclass:'chkboxclass', uncheckedimg:'images/checkboxunchecked.gif', checkedimg:'images/checkboxchecked.gif'});
+	                                               document.write(checkboxListDegree.getHtml());
+	                                               checkboxListDegree.init();
+	                                          </script>
+							              </td>
+							              <td class="label" style="vertical-align:top;"> 
+							                  <bean:message key="search_applicant.home.label.major"/>
+							               </td>
+							               <td style="vertical-align:top;">
+								              <script type="text/javascript">
+	                                               var opts = <bean:write name="searchForm" property="JSBranchArray" filter="false"/>;
+	                                               checkboxListBranch = new CheckBoxList(opts,'<bean:write name="searchForm" property="branchId"/>',{namesonly:false, layerclass:'checkboxlistdiv', width:'182px', size:6, imageclass:'chkboxclass', uncheckedimg:'images/checkboxunchecked.gif', checkedimg:'images/checkboxchecked.gif'});
+	                                               document.write(checkboxListBranch.getHtml());
+	                                               checkboxListBranch.init();
+	                                          </script>
+	                                       </td>
+			                          </tr>
+						             <% } %>
+						              <% if(ImportConfigurationManager.isImportOrEditFieldShow(ImportConfigurationConstants.FIELD_SOURCE)){ %>
+							         <tr>   
+								           <td  class="label">
+								              <bean:message key="search_applicant.home.label.select_source_category"/> :
+								           </td>
+								           <td>
+								              <script type="text/javascript">
+	                                               var opts = <bean:write name="searchForm" property="JSSourceTypeArray" filter="false"/>;
+	                                               var m = [new SelectOption('-1','<bean:message key="search_applicant.home.common.label_select_one"/>')];
+	                                               opts = m.concat(opts);
+                                                   selectBoxSourceType = new SelectBox(opts,'<bean:write name="searchForm" property="sourceTypeId"/>','images/btn_dropdown.gif',{namesonly:false, width:'182px', size:15});
+	                                               document.write(selectBoxSourceType.getHtml());
+	                                               selectBoxSourceType.init();
+	                                          </script>
+                                           </td>
+                                           <td  class="label">
+								              <bean:message key="search_applicant.home.label.select_source"/>
+								           </td>
+								           <td>
+								              <html:text property="source" name="searchForm" size="34" styleId="source"></html:text>
+                                           </td>
+							         </tr>
+							          <% } %>
+							    
+							          <% if(ImportConfigurationManager.isImportOrEditFieldShow(ImportConfigurationConstants.FIELD_RESUME_TYPE)){ %>
+							          <tr>   
+								           <td  class="label">
+								              <bean:message key="search_applicant.home.label.select_resume_type"/> :
+								           </td>
+								           <td>
+								              <script type="text/javascript">
+	                                               var opts = <bean:write name="searchForm" property="JSResumeTypeArray" filter="false"/>;
+	                                               var m = [new SelectOption('-1','<bean:message key="search_applicant.home.common.label_select_one"/>')];
+	                                               opts = m.concat(opts);
+                                                   selectBoxResumeType = new SelectBox(opts,'<bean:write name="searchForm" property="resumeTypeId"/>','images/btn_dropdown.gif',{namesonly:false, width:'182px', size:15});
+	                                               document.write(selectBoxResumeType.getHtml());
+	                                               selectBoxResumeType.init();
+	                                          </script>
+                                           </td>
+                                           <td  class="label">								              
+								           </td>
+								           <td>
+                                           </td>
+							         </tr>	
+							         <% } %>						          
+							         <% if(ImportConfigurationManager.isImportOrEditFieldShow(ImportConfigurationConstants.FIELD_CURRENT_LOCATION)){ %>
+							         <tr>
+								          <td  class="label">
+											<bean:message key="search_applicant.home.label.current_location"/>
+										  </td>
+										  <td>
+													<html:text property="currentLocation"  name="searchForm" size="34" styleId="currentLocation"></html:text>
+										  </td>
+							         </tr>
+							         <% } %>
+							        <% if(ImportConfigurationManager.isImportOrEditFieldShow(ImportConfigurationConstants.FIELD_CURRENT_EMPLOYER)){ %>
+						        	<tr>
+							          <td  class="label" style="width: 130px;">
+											<bean:message key="common.current_employer"/> :
+									  </td>									  
+									  	<td>
+											<html:text property="currentEmployer" size="34" styleId="currentEmployer"/>
+									  	</td>								
+									</tr>
+							 	 <% } %>
+							 	 <% if(ImportConfigurationManager.isImportOrEditFieldShow(ImportConfigurationConstants.FIELD_PHONE1)){ %>
+						        	<tr>
+							          <td  class="label" style="width: 130px;">
+											<bean:message key="common.phone1"/> :
+									  </td>									  
+									  	<td>
+											<html:text property="phone1" size="34" styleId="phone1"/>
+									  	</td>								
+									</tr>
+							 	 <% } %>
+							 	  <% if(ImportConfigurationManager.isImportOrEditFieldShow(ImportConfigurationConstants.FIELD_EMPLOYMENT_HISTORY)){ %>
+						        	<tr>
+							          <td  class="label" style="width: 130px;">
+											<bean:message key="common.previous_employers"/> :
+									  </td>									  
+									  	<td>
+											<html:text property="previousEmployer" size="34" styleId="previousEmployer"/>
+									  	</td>								
+									</tr>
+									<tr>
+							          <td  class="label" style="width: 130px;">
+											<bean:message key="common.designation"/> :
+									  </td>									  
+									  	<td>
+											<html:text property="designation" size="34" styleId="designation"/>
+									  	</td>								
+									</tr>
+							 	 <% } %>
+							 	 
+							 	 <% if(ImportConfigurationManager.isImportOrEditFieldShow(ImportConfigurationConstants.FIELD_PASSPORT_NUMBER)){ %>
+							 	   	<tr>
+							          <td  class="label" style="width: 130px;">
+											<bean:message key="common.passport_number"/> :
+									  </td>									  
+									  	<td>
+											<html:text property="passport" size="34" styleId="passport"/>
+									  	</td>								
+									</tr>
+									<% } %>							 	 
+									<% if(ImportConfigurationManager.isImportOrEditFieldShow(ImportConfigurationConstants.FIELD_DATE_OF_BIRTH)){ %>
+							         <tr>
+									   	<td colspan="4" style="padding-left:0px;padding-bottom:0px;">
+									   		 <table class="inputBox">
+												<tr>
+													<td class="label" style="vertical-align: top;width: 130px;padding-left:0px;"><bean:message key="search_applicant.home.label.date_of_birth"/></td>
+													<td style="padding-left:0px;">
+														<script type="text/javascript"> 
+															var opts = <%=SearchConstants.SEARCH_RANGE_OPTIONS%>;
+															selectBoxBirthDuration = new SelectBox(opts,'<bean:write name="searchForm" property="birthDayFilter"/>','images/btn_dropdown.gif',{controlname: 'birthDays', namesonly:false, width:'182px', size:15});
+															document.write(selectBoxBirthDuration.getHtml());
+															selectBoxBirthDuration.init();
+															selectBoxBirthDuration.setOnChangeHandler('onChangeRangeSelect');
+														</script>
+							                        </td>
+										            <td style="width:5px;"></td>
+										            <td style="vertical-align:top;padding: 0px;">
+									              		<table cellpadding="0" cellspacing="0" id="divbirthDays" style="display: none;">
+											              <tr>
+											                   <td>
+											                   		&nbsp;<html:text name="searchForm" styleId="birthDaysFROM" property="birthDaysFROM" maxlength="15" size="13" styleClass="Grey" onblur="getFDate(this,'DD/MM/YYYY');"  />&nbsp;<img src="images/ico_cal.gif" style="height:16px;margin-bottom:-3px;cursor:hand;" onclick="popUpCal.select(document.getElementById('birthDaysFROM'),'birthDaysFROM','dd/MM/yyyy'); return false;" />
+								                               </td>
+										                   	   <td>
+												              		<table cellpadding="0" cellspacing="0" id="divbirthDaysto" style="display: none;">
+												              			<tr>
+											                   				<td class="label" style="padding: 0px;">&nbsp;and 
+																				<html:text name="searchForm" styleId="birthDaysTO" property="birthDaysTO" maxlength="15" size="13" styleClass="Grey" onblur="getFDate(this,'DD/MM/YYYY');" />&nbsp;<img src="images/ico_cal.gif" style="height:16px;margin-bottom:-3px;cursor:hand;" onclick="popUpCal.select(document.getElementById('birthDaysTO'),'birthDaysTO','dd/MM/yyyy'); return false;" />
+										    	                           </td>
+							        				                    </tr>
+									            	                </table>
+									                           </td>
+							    	                      </tr>
+						        	                  </table>
+					                         		</td>	
+												</tr>
+											</table>		   		
+									   	</td>
+									 </tr>
+									 <% } %>
+									
+									      <tr>
+							           <td  class="label">
+								              <bean:message key="search_applicant.home.label.select_position_applied"/>
+								           </td>
+								           <td>
+								              <script type="text/javascript">
+	                                               var opts = <bean:write name="searchForm" property="jsPositionsArray" filter="false"/>;
+	                                               var m = [new SelectOption('-1','<bean:message key="search_applicant.home.common.label_select_one"/>')];
+	                                               opts = m.concat(opts);
+                                                   selectBoxPositionApplied = new SelectBox(opts,'<bean:write name="searchForm" property="positionId"/>','images/btn_dropdown.gif',{namesonly:false, width:'182px', size:15});
+	                                               document.write(selectBoxPositionApplied.getHtml());
+	                                               selectBoxPositionApplied.init();
+	                                          </script>
+                                           </td>
+                                         </tr>
+
+							         <tr>
+									   	<td colspan="4" style="padding-left:0px;padding-bottom:0px;">
+									   		 <table class="inputBox">
+												<tr>
+													<td class="label" style="vertical-align: top;width: 130px;padding-left:0px;"><bean:message key="search_applicant.home.label.tenth_marks"/></td>
+													<td style="padding-left:0px;">
+														<script type="text/javascript"> 
+															var opts = <%=SearchConstants.SEARCH_RANGE_OPTIONS%>;
+															selectBox1othmarks = new SelectBox(opts,'<bean:write name="searchForm" property="tenthMarksFilter"/>','images/btn_dropdown.gif',{controlname: 'tenthMarks', namesonly:false, width:'182px', size:15});
+															document.write(selectBox1othmarks.getHtml());
+															selectBox1othmarks.init();
+															selectBox1othmarks.setOnChangeHandler('onChangeRangeSelect');
+														</script>
+							                        </td>
+										            <td style="width:5px;"></td>
+										            <td style="vertical-align:top;padding: 0px;">
+									              		<table cellpadding="0" cellspacing="0" id="divtenthMarks" style="display: none;">
+											              <tr>
+											                   <td>
+											                   		&nbsp;<html:text name="searchForm" styleId="tenthMarksFrom" property="tenthMarksFrom" maxlength="15" size="13" styleClass="Grey" />&nbsp;
+								                               </td>
+										                   	   <td>
+												              		<table cellpadding="0" cellspacing="0" id="divtenthMarksto" style="display: none;">
+												              			<tr>
+											                   				<td class="label" style="padding: 0px;">&nbsp;and 
+																				<html:text name="searchForm" styleId="tenthMarksTo" property="tenthMarksTo" maxlength="15" size="13" styleClass="Grey"/>&nbsp;
+										    	                           </td>
+							        				                    </tr>
+									            	                </table>
+									                           </td>
+							    	                      </tr>
+						        	                  </table>
+					                         		</td>	
+												</tr>
+											</table>		   		
+									   	</td>
+									 </tr>
+									
+									 
+									
+							         <tr>
+									   	<td colspan="4" style="padding-left:0px;padding-bottom:0px;">
+									   		 <table class="inputBox">
+												<tr>
+													<td class="label" style="vertical-align: top;width: 130px;padding-left:0px;"><bean:message key="search_applicant.home.label.twelveth_marks"/></td>
+													<td style="padding-left:0px;">
+														<script type="text/javascript"> 
+															var opts = <%=SearchConstants.SEARCH_RANGE_OPTIONS%>;
+															selectBox12thmarksn = new SelectBox(opts,'<bean:write name="searchForm" property="twelvethMarksFilter"/>','images/btn_dropdown.gif',{controlname: 'twelvethMarks', namesonly:false, width:'182px', size:15});
+															document.write(selectBox12thmarksn.getHtml());
+															selectBox12thmarksn.init();
+															selectBox12thmarksn.setOnChangeHandler('onChangeRangeSelect');
+														</script>
+							                        </td>
+										            <td style="width:5px;"></td>
+										            <td style="vertical-align:top;padding: 0px;">
+									              		<table cellpadding="0" cellspacing="0" id="divtwelvethMarks" style="display: none;">
+											              <tr>
+											                   <td>
+											                   		&nbsp;<html:text name="searchForm" styleId="twelvethMarksFrom" property="twelvethMarksFrom" maxlength="15" size="13" styleClass="Grey"  />&nbsp;
+								                               </td>
+										                   	   <td>
+												              		<table cellpadding="0" cellspacing="0" id="divtwelvethMarksto" style="display: none;">
+												              			<tr>
+											                   				<td class="label" style="padding: 0px;">&nbsp;and 
+																				<html:text name="searchForm" styleId="twelvethMarksTo" property="twelvethMarksTo" maxlength="15" size="13" styleClass="Grey" />&nbsp;
+										    	                           </td>
+							        				                    </tr>
+									            	                </table>
+									                           </td>
+							    	                      </tr>
+						        	                  </table>
+					                         		</td>	
+												</tr>
+											</table>		   		
+									   	</td>
+									 </tr>
+									
+							
+									 
+							         <tr>
+									   	<td colspan="4" style="padding-left:0px;padding-bottom:0px;">
+									   		 <table class="inputBox">
+												<tr>
+													<td class="label" style="vertical-align: top;width: 130px;padding-left:0px;"><bean:message key="search_applicant.home.label.grade_marks"/></td>
+													<td style="padding-left:0px;">
+														<script type="text/javascript"> 
+															var opts = <%=SearchConstants.SEARCH_RANGE_OPTIONS%>;
+															selectBoxGradMarks = new SelectBox(opts,'<bean:write name="searchForm" property="gradeMarksFilter"/>','images/btn_dropdown.gif',{controlname: 'gradeMarks', namesonly:false, width:'182px', size:15});
+															document.write(selectBoxGradMarks.getHtml());
+															selectBoxGradMarks.init();
+															selectBoxGradMarks.setOnChangeHandler('onChangeRangeSelect');
+														</script>
+							                        </td>
+										            <td style="width:5px;"></td>
+										            <td style="vertical-align:top;padding: 0px;">
+									              		<table cellpadding="0" cellspacing="0" id="divgradeMarks" style="display: none;">
+											              <tr>
+											                   <td>
+											                   		&nbsp;<html:text name="searchForm" styleId="gradeMarksFrom" property="gradeMarksFrom" maxlength="15" size="13" styleClass="Grey"  />&nbsp;
+								                               </td>
+										                   	   <td>
+												              		<table cellpadding="0" cellspacing="0" id="divgradeMarksto" style="display: none;">
+												              			<tr>
+											                   				<td class="label" style="padding: 0px;">&nbsp;and 
+																				<html:text name="searchForm" styleId="gradeMarksTo" property="gradeMarksTo" maxlength="15" size="13" styleClass="Grey"/>&nbsp;
+										    	                           </td>
+							        				                    </tr>
+									            	                </table>
+									                           </td>
+							    	                      </tr>
+						        	                  </table>
+					                         		</td>	
+												</tr>
+											</table>		   		
+									   	</td>
+									 </tr>
+								
+									 
+									 
+							         <tr>
+									   	<td colspan="4" style="padding-left:0px;padding-bottom:0px;">
+									   		 <table class="inputBox">
+												<tr>
+													<td class="label" style="vertical-align: top;width: 130px;padding-left:0px;"><bean:message key="search_applicant.home.label.post_grade_marks"/></td>
+													<td style="padding-left:0px;">
+														<script type="text/javascript"> 
+															var opts = <%=SearchConstants.SEARCH_RANGE_OPTIONS%>;
+															selectBoxPostGradMarks = new SelectBox(opts,'<bean:write name="searchForm" property="postGradeMarksFilter"/>','images/btn_dropdown.gif',{controlname: 'postGradeMarks', namesonly:false, width:'182px', size:15});
+															document.write(selectBoxPostGradMarks.getHtml());
+															selectBoxPostGradMarks.init();
+															selectBoxPostGradMarks.setOnChangeHandler('onChangeRangeSelect');
+														</script>
+							                        </td>
+										            <td style="width:5px;"></td>
+										            <td style="vertical-align:top;padding: 0px;">
+									              		<table cellpadding="0" cellspacing="0" id="divpostGradeMarks" style="display: none;">
+											              <tr>
+											                   <td>
+											                   		&nbsp;<html:text name="searchForm" styleId="postGradeMarksFrom" property="postGradeMarksFrom" maxlength="15" size="13" styleClass="Grey" />&nbsp;
+								                               </td>
+										                   	   <td>
+												              		<table cellpadding="0" cellspacing="0" id="divpostGradeMarksto" style="display: none;">
+												              			<tr>
+											                   				<td class="label" style="padding: 0px;">&nbsp;and 
+																				<html:text name="searchForm" styleId="postGradeMarksTo" property="postGradeMarksTo" maxlength="15" size="13" styleClass="Grey" />&nbsp;
+										    	                           </td>
+							        				                    </tr>
+									            	                </table>
+									                           </td>
+							    	                      </tr>
+						        	                  </table>
+					                         		</td>	
+												</tr>
+											</table>		   		
+									   	</td>
+									 </tr>
+			
+									 
+		
+							         <tr>
+									   	<td colspan="4" style="padding-left:0px;padding-bottom:0px;">
+									   		 <table class="inputBox">
+												<tr>
+													<td class="label" style="vertical-align: top;width: 130px;padding-left:0px;"><bean:message key="search_applicant.home.label.age"/></td>
+													<td style="padding-left:0px;">
+														<script type="text/javascript"> 
+															var opts = <%=SearchConstants.SEARCH_RANGE_OPTIONS%>;
+															selectBoxAge = new SelectBox(opts,'<bean:write name="searchForm" property="ageFilter"/>','images/btn_dropdown.gif',{controlname: 'age', namesonly:false, width:'182px', size:15});
+															document.write(selectBoxAge.getHtml());
+															selectBoxAge.init();
+															selectBoxAge.setOnChangeHandler('onChangeRangeSelect');
+														</script>
+							                        </td>
+										            <td style="width:5px;"></td>
+										            <td style="vertical-align:top;padding: 0px;">
+									              		<table cellpadding="0" cellspacing="0" id="divage" style="display: none;">
+											              <tr>
+											                   <td>
+											                   		&nbsp;<html:text name="searchForm" styleId="minAge" property="minAge" maxlength="15" size="13" styleClass="Grey"/>&nbsp;
+								                               </td>
+										                   	   <td>
+												              		<table cellpadding="0" cellspacing="0" id="divageto" style="display: none;">
+												              			<tr>
+											                   				<td class="label" style="padding: 0px;">&nbsp;and 
+																				<html:text name="searchForm" styleId="maxAge" property="maxAge" maxlength="15" size="13" styleClass="Grey" />&nbsp;
+										    	                           </td>
+							        				                    </tr>
+									            	                </table>
+									                           </td>
+							    	                      </tr>
+						        	                  </table>
+					                         		</td>	
+												</tr>
+											</table>		   		
+									   	</td>
+									 </tr>
+								
+									 
+									 
+							         <tr>
+									   	<td colspan="4" style="padding-left:0px;padding-bottom:0px;">
+									   		 <table class="inputBox">
+												<tr>
+													<td class="label" style="vertical-align: top;width: 130px;padding-left:0px;"><bean:message key="search_applicant.home.label.years_of_experience"/></td>
+													<td style="padding-left:0px;">
+														<script type="text/javascript"> 
+															var opts = <%=SearchConstants.SEARCH_RANGE_OPTIONS%>;
+															selectBoxYearsofExperience = new SelectBox(opts,'<bean:write name="searchForm" property="yearOfExperienceFilter"/>','images/btn_dropdown.gif',{controlname: 'yearOfExperience', namesonly:false, width:'182px', size:15});
+															document.write(selectBoxYearsofExperience.getHtml());
+															selectBoxYearsofExperience.init();
+															selectBoxYearsofExperience.setOnChangeHandler('onChangeRangeSelect');
+														</script>
+							                        </td>
+										            <td style="width:5px;"></td>
+										            <td style="vertical-align:top;padding: 0px;">
+									              		<table cellpadding="0" cellspacing="0" id="divyearOfExperience" style="display: none;">
+											              <tr>
+											                   <td>
+											                   		&nbsp;<html:text name="searchForm" styleId="minimumExperience" property="minimumExperience" maxlength="15" size="13" styleClass="Grey" />&nbsp;
+								                               </td>
+										                   	   <td>
+												              		<table cellpadding="0" cellspacing="0" id="divyearOfExperienceto" style="display: none;">
+												              			<tr>
+											                   				<td class="label" style="padding: 0px;">&nbsp;and 
+																				<html:text name="searchForm" styleId="maximumExperience" property="maximumExperience" maxlength="15" size="13" styleClass="Grey" />&nbsp;
+										    	                           </td>
+							        				                    </tr>
+									            	                </table>
+									                           </td>
+							    	                      </tr>
+						        	                  </table>
+					                         		</td>	
+												</tr>
+											</table>		   		
+									   	</td>
+									 </tr>
+									
+									 
+							         <tr>
+									   	<td colspan="4" style="padding-left:0px;padding-bottom:0px;">
+									   		 <table class="inputBox">
+												<tr>
+													<td class="label" style="vertical-align: top;width: 130px;padding-left:0px;"><bean:message key="search_applicant.home.label.import_date"/></td>
+													<td style="padding-left:0px;">
+														<script type="text/javascript"> 
+															var opts = <%=SearchConstants.SEARCH_RANGE_OPTIONS%>;
+															selectBoxImportDuration = new SelectBox(opts,'<bean:write name="searchForm" property="importDaysFilter"/>','images/btn_dropdown.gif',{controlname: 'importDays', namesonly:false, width:'182px', size:15});
+															document.write(selectBoxImportDuration.getHtml());
+															selectBoxImportDuration.init();
+															selectBoxImportDuration.setOnChangeHandler('onChangeRangeSelect');
+														</script>
+							                        </td>
+										            <td style="width:5px;"></td>
+										            <td style="vertical-align:top;padding: 0px;">
+									              		<table cellpadding="0" cellspacing="0" id="divimportDays" style="display: none;">
+											              <tr>
+											                   <td>
+											                   		&nbsp;<html:text name="searchForm" styleId="importDaysFROM" property="importDaysFROM" maxlength="15" size="13" styleClass="Grey" onblur="getFDate(this,'DD/MM/YYYY');"  />&nbsp;<img src="images/ico_cal.gif" style="height:16px;margin-bottom:-3px;cursor:hand;" onclick="popUpCal.select(document.getElementById('importDaysFROM'),'importDaysFROM','dd/MM/yyyy'); return false;" />
+								                               </td>
+										                   	   <td>
+												              		<table cellpadding="0" cellspacing="0" id="divimportDaysto" style="display: none;">
+												              			<tr>
+											                   				<td class="label" style="padding: 0px;">&nbsp;and 
+																				<html:text name="searchForm" styleId="importDaysTO" property="importDaysTO" maxlength="15" size="13" styleClass="Grey" onblur="getFDate(this,'DD/MM/YYYY');" />&nbsp;<img src="images/ico_cal.gif" style="height:16px;margin-bottom:-3px;cursor:hand;" onclick="popUpCal.select(document.getElementById('importDaysTO'),'importDaysTO','dd/MM/yyyy'); return false;" />
+										    	                           </td>
+							        				                    </tr>
+									            	                </table>
+									                           </td>
+							    	                      </tr>
+						        	                  </table>
+					                         		</td>	
+												</tr>
+											</table>		   		
+									   	</td>
+									 </tr>
+									 <tr>
+									   	<td colspan="4" style="padding-left:0px;padding-top:0px;">
+									   		 <table class="inputBox">
+												<tr>
+													<td class="label" style="vertical-align: top;width: 130px;padding-left:0px;"><bean:message key="search_applicant.home.label.last_interaction"/></td>
+													<td style="padding-left:0px;">
+														<script type="text/javascript"> 
+															var opts = <%=SearchConstants.SEARCH_RANGE_OPTIONS%>;
+															selectBoxLastInteraction = new SelectBox(opts,'<bean:write name="searchForm" property="lastInteractionFilter"/>','images/btn_dropdown.gif',{controlname: 'lastInteraction', namesonly:false, width:'182px', size:15});
+															document.write(selectBoxLastInteraction.getHtml());
+															selectBoxLastInteraction.init();
+															selectBoxLastInteraction.setOnChangeHandler('onChangeRangeSelect');
+														</script>
+							                        </td>
+										            <td style="width:5px;"></td>
+										            <td style="vertical-align:top;padding: 0px;">
+									              		<table cellpadding="0" cellspacing="0" id="divlastInteraction" style="display: none;">
+											              <tr>
+											                   <td>
+											                   		&nbsp;<html:text name="searchForm" styleId="lastInteractionFROM"  property="lastInteractionFROM" maxlength="15" size="13" styleClass="Grey"  onblur="getFDate(this,'dd/MM/yyyy');" />&nbsp;<img src="images/ico_cal.gif" style="height:16px;margin-bottom:-3px;cursor:hand;" onclick="popUpCal.select(document.getElementById('lastInteractionFROM'),'lastInteractionFROM','dd/MM/yyyy'); return false;" />
+								                               </td>
+										                   	   <td>
+												              		<table cellpadding="0" cellspacing="0" id="divlastInteractionto" style="display: none;">
+												              			<tr>
+											                   				<td class="label" style="padding: 0px;">&nbsp;and 
+																				<html:text name="searchForm" styleId="lastInteractionTO" property="lastInteractionTO" maxlength="15" size="13" styleClass="Grey" onblur="getFDate(this,'dd/MM/yyyy');" />&nbsp;<img src="images/ico_cal.gif" style="height:16px;margin-bottom:-3px;cursor:hand;" onclick="popUpCal.select(document.getElementById('lastInteractionTO'),'lastInteractionTO','dd/MM/yyyy'); return false;" />
+										    	                           </td>
+							        				                    </tr>
+									            	                </table>
+									                           </td>
+							    	                      </tr>
+						        	                  	</table>
+					                         		</td>	
+												</tr>
+											</table>		   		
+									   	</td>
+									 </tr>
+						            <tr> 
+						                  <td class="label" style="vertical-align: top;">  
+				                            <bean:message key="search_applicant.home.label.flags"/>
+				                          </td>
+							              <td> 
+								              <script type="text/javascript">
+		                                           var opts = <bean:write name="searchForm" property="jsFlagsArray" filter="false"/>;
+		                                           checkboxListFlags = new CheckBoxList(opts,'<bean:write name="searchForm" property="flagId"/>',{namesonly:false, layerclass:'checkboxlistdiv', width:'182px', size:4, imageclass:'chkboxclass', uncheckedimg:'images/checkboxunchecked.gif', checkedimg:'images/checkboxchecked.gif', contentImgClass:'contentImgClass'});
+		                                           document.write(checkboxListFlags.getHtml());
+		                                           checkboxListFlags.init();
+		                                      </script>
+							              </td>
+			                        </tr>
+					              	<tr>
+						               <td class="label" style="vertical-align:top;">
+						               	<bean:message key="search_applicant.home.label.search_candidates"/> :
+						               </td>
+					                   <td style="padding-left: 0px;width: 250px;">
+					                   <table cellpadding="0" cellspacing="0">
+					                   		<tr>
+					                   			<td style="padding: 0px;">
+					                   				 <img src="images/radiobutton.gif" name="searchIn" id="searchIn_<%=SearchConstants.SEARCH_ALL%>" onclick="onClickSearchIn('<%=SearchConstants.SEARCH_ALL%>');" style="margin-bottom: -2px;"/>&nbsp;<bean:message key="common.all"/>
+					                   			</td>
+					                   			<td></td>
+					                   		</tr>
+					                   		<tr>
+					                   			<td style="padding: 0px;">
+					                   				 <img src="images/radiobutton.gif" name="searchIn" id="searchIn_<%=SearchConstants.SEARCH_INPROCESS%>" onclick="onClickSearchIn('<%=SearchConstants.SEARCH_INPROCESS%>');" style="margin-bottom: -2px;"/>&nbsp;<bean:message key="search_applicant.home.label.candidates_in_process"/>
+					                   			</td>
+					                   			<td></td>
+					                   		</tr>
+					                   		<tr>
+					                   			<td style="padding: 0px;">
+					                   				 <img src="images/radiobutton.gif" name="searchIn" id="searchIn_<%=SearchConstants.SEARCH_NOT_INPROCESS%>" onclick="onClickSearchIn('<%=SearchConstants.SEARCH_NOT_INPROCESS%>');" style="margin-bottom: -2px;"/>&nbsp;<bean:message key="search_applicant.home.label.exclude_candidates_in_process"/>
+					                   			</td>
+					                   			<td style="padding-left: 10px; display: none;" id="tdExcludeRejected">
+					                   				<img src="images/checkboxunchecked.gif" id="imgExcludeRejected" onclick="onClickExcludeRejected();" style="margin-bottom: -2px;"/>&nbsp;<bean:message key="search_applicant.home.label.exclude_rejected"/>
+					                   			</td>
+					                   		</tr>
+					                   		 <tr>
+					                   			<td style="padding: 0px;">
+					                   				 <img src="images/radiobutton.gif" name="searchIn" id="searchIn_<%=SearchConstants.SEARCH_APPLIED_STAGE%>" onclick="onClickSearchIn('<%=SearchConstants.SEARCH_APPLIED_STAGE%>');" style="margin-bottom: -2px;"/>&nbsp;<bean:message key="search_applicant.home.label.candidates_in_applied"/>
+					                   			</td>
+					                   			<td></td>
+					                   		</tr>
+					                   		<% if(GlobalConstants.ENABLED.equals(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_EMPLOYEE_CAN_APPLY_FOR_JOB))) { %>
+					                   		<tr>
+					                   			<td style="padding: 0px;">
+					                   				 <img src="images/radiobutton.gif" name="searchIn" id="searchIn_<%=SearchConstants.SEARCH_EXCLUDE_EMPLOYEE%>" onclick="onClickSearchIn('<%=SearchConstants.SEARCH_EXCLUDE_EMPLOYEE%>');" style="margin-bottom: -2px;"/>&nbsp;<bean:message key="search_applicant.home.label.exclude_employees"/>
+					                   			</td>
+					                   			<td></td>
+					                   		</tr>
+					                   		<% }else if( GlobalConstants.ENABLED.equals(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_SHOW_JOINED_CANDIDATE_IN_SEARCH))){ %>
+					                   		<tr>
+					                   			<td style="padding: 0px;">
+					                   				 <img src="images/radiobutton.gif" name="searchIn" id="searchIn_<%=SearchConstants.SEARCH_EXCLUDE_EMPLOYEE%>" onclick="onClickSearchIn('<%=SearchConstants.SEARCH_EXCLUDE_EMPLOYEE%>');" style="margin-bottom: -2px;"/>&nbsp;<bean:message key="search_applicant.home.label.exclude_employees"/>
+					                   			</td>
+					                   			<td></td>
+					                   		</tr>
+					                   		<% } %>
+					                   		<tr>
+					                   			<td style="padding: 0px;">
+					                   				 <img src="images/radiobutton.gif" name="searchIn" id="searchIn_<%=SearchConstants.SEARCH_BLACKLISTED%>" onclick="onClickSearchIn('<%=SearchConstants.SEARCH_BLACKLISTED%>');" style="margin-bottom: -2px;"/>&nbsp;<bean:message key="black_list.label.blackListed"/>
+					                   			</td>
+					                   			<td></td>
+					                   		</tr>
+					                   </table>
+                                       </td>
+					               	</tr>
+					                <tr>
+						               <td class="label" style="vertical-align:top;"> 
+						                  <bean:message key="search_applicant.home.label.include_rejected"/>
+						               </td>
+					                   <td>
+							              <script type="text/javascript">
+									           var opts = [new SelectOption('<%=SearchConstants.REJECTED_IN_SHORTLIST%>','<bean:message key="search_applicant.home.label.rejected_in_shortlist"/>'),new SelectOption('<%=SearchConstants.REJECTED_IN_SELECTION%>','<bean:message key="search_applicant.home.label.rejected_in_selection"/>'),new SelectOption('<%=SearchConstants.REJECTED_IN_HIRE%>','<bean:message key="search_applicant.home.label.rejected_in_hire"/>'),new SelectOption('<%=SearchConstants.REJECTED_POSITION_CLOSED%>','<bean:message key="common.due_to"/> <bean:message key="common.position"/> <bean:message key="common.closed"/>')];
+                                               checkboxListRejectReason = new CheckBoxList(opts,'<bean:write name="searchForm" property="rejectReason"/>',{namesonly:false, layerclass:'checkboxlistdiv', width:'182px', size:6, imageclass:'chkboxclass', uncheckedimg:'images/checkboxunchecked.gif', checkedimg:'images/checkboxchecked.gif'});
+                                               document.write(checkboxListRejectReason.getHtml());
+                                               checkboxListRejectReason.init();
+                                          </script>
+                                       </td>
+					                </tr> 				                
+							</table>
+							<!--Main column 1 Ends-->					   
+					   </td>
+				   </tr>
+				   <tr>
+				   	<td colspan="3">
+				   		 <%  
+						if(customFields!=null && customFields.size()>0){
+						for(int i=0; i<customFields.size();i++){
+						CustomFieldData data = (CustomFieldData)customFields.get(i);
+						if(ImportConfigurationManager.isImportOrEditFieldShow(data.getFieldName())){
+					%>
+					<table class="inputBox">
+						<tr>
+						<td class="label" style="vertical-align: top;width: 117px;"><%=data.getFieldDisplayName() %>:</td>
+						<% 
+						if(data.getFieldType().equals(CustomFieldConstants.TYPE_NUMBER) || data.getFieldType().equals(CustomFieldConstants.TYPE_DATE)){
+						%>
+						<td>
+						<% 
+						   String cVal = data.getRangeCriteria();
+						   if(cVal==null){
+						   	cVal="-1";
+						   }	
+						%>
+						<input type="hidden" name="<%=data.getFieldName()+CustomFieldConstants.POSTFIX_CRITERIA%>" id="<%=data.getFieldName()+CustomFieldConstants.POSTFIX_CRITERIA%>" value="<%=cVal%>"/>
+			              <script type="text/javascript">
+                               var opts = <%=SearchConstants.SEARCH_RANGE_OPTIONS%>;
+                               <%=data.getFieldName()%> = new SelectBox(opts,'<%=cVal%>','images/btn_dropdown.gif',{namesonly:false, width:'182px', size:15, controlname:'<%=data.getFieldName()%>'});
+                               document.write(<%=data.getFieldName()%>.getHtml());
+                               <%=data.getFieldName()%>.setOnChangeHandler('onChangeRangeSelect');
+                               <%=data.getFieldName()%>.init();
+                           </script>
+                         </td>
+			             <td style="width:5px;"></td>
+			             <td style="vertical-align:top;padding: 0px;">
+				              <table class="inputBox" cellpadding="0" cellspacing="0" id="div<%=data.getFieldName()%>" style="display: none;">
+				              <tr>
+			                   <td>
+									&nbsp;<%=data.getSearchUI(CustomFieldConstants.POSTFIX_FROM) %>
+                               </td>
+			                   <td>
+					              <table class="inputBox" cellpadding="0" cellspacing="0" id="div<%=data.getFieldName()%>to" style="display: none;">
+					              <tr>
+				                   <td class="label" style="padding: 0px;">&nbsp;<bean:message key="search_applicant.home.criteria.betweenand"/> 
+									<%=data.getSearchUI(CustomFieldConstants.POSTFIX_TO) %>
+    	                           </td>
+        	                      </tr>
+            	                  </table>
+	                           </td>
+    	                      </tr>
+        	                  </table>
+                         </td>									
+						<% } else {%>
+						<td><%=data.getSearchUI("") %></td>
+						<% } %>
+						</tr>
+					</table>
+					<% } } }  %>				   		
+				   	</td>
+				   </tr>
+				   </table>
+				   <table width="100%" cellpadding="0" cellspacing="0">
+						<tr>
+							<td align="right">
+								<a href="#" width="100px" class="green" onclick="resetAdvanceSearch();return false;"><b><bean:message key="search_applicant.home.label.reset_filters"/></b></a>
+							</td>
+						</tr>
+					</table>
+			       </div><br/>
+<%
+//Commented by Shatnanu : A hardcoded "searchResultKrup.jsp" is made for thyssenkrupp. 
+//Whose reference is given at database table "tp_custom_pages". 
+//As the custom field are taken into application this page doesnt have relevance.
+//Thus deleting the table and jsp.
+//String includeFile = CustomPagesManager.getCustomPage(CustomPageConstants.PAGE_TYPE_SEARCH_RESULTS);
+//if(Utils.isBlankOrNull(includeFile)){
+String includeFile = "searchResult.jsp";
+//}
+%>
+<jsp:include page='<%=includeFile %>' />
+</html:form>
+</div>
+<DIV id="calDiv" style="position:absolute;background:#FFFFFF;z-index:1000;" ></DIV>
+<script>
+var popUpCal = new CalendarPopup("calDiv"); 
+popUpCal.showNavigationDropdowns();
+function getFNumber(obj){
+	if(obj.value.trim()!=''){
+		if(isNaN(obj.value)){
+			alert('<bean:message key="common.please_enter_valid_number" />');
+			obj.focus();
+			return false;
+		}
+	}
+}
+var dtfo = new DateFormatter();
+function getFDate(obj,format){
+	dtfo.setDisplayFormat(format);
+	if(obj.value.trim()!=''){
+	if(!dtfo.checkDate(obj)){
+		obj.select();
+		alert("Please enter date in " + format + " format");
+		obj.focus();
+		return false;
+	}else {
+		return true;
+	}
+	}
+	return true;
+}
+
+function resetAdvanceSearch(){
+	var frm = document.searchForm;
+	frm.degreeId.value="";
+	frm.degree.value="";
+	frm.branchId.value="";
+	frm.branch.value="";
+	frm.sourceTypeId.value="";
+	frm.resumeTypeId.value="";
+	frm.source.value="";
+	frm.positionId.value="";
+	frm.importDaysFilter.value="";
+	frm.birthDayFilter.value="";
+	frm.tenthMarksFilter.value="";
+	frm.twelvethMarksFilter.value="";
+	frm.gradeMarksFilter.value="";
+	frm.postGradeMarksFilter.value="";
+	frm.ageFilter.value="";
+	frm.yearOfExperienceFilter.value="";
+	frm.lastInteractionFilter.value="";
+	frm.resetSearch.value="1";
+	frm.flagId.value="";
+	frm.flag.value="";
+	frm.rejectReason.value="";
+	if(radioGroupDegree != null) {
+		radioGroupDegree.resetSelected('<%=SearchConstants.MATCH_ANY%>');
+	}
+	if(checkboxListDegree != null) {
+		checkboxListDegree.selectAll(false);	
+	}
+	checkboxListFlags.selectAll(false);
+	if(checkboxListBranch != null) {
+		checkboxListBranch.selectAll(false);
+	}
+	checkboxListRejectReason.selectAll(false);
+	if(selectBoxSourceType != null) {
+		selectBoxSourceType.setSelected(selectBoxSourceType.getIndexWithId("-1")); 
+	}
+	if(selectBoxPositionApplied != null) {
+		selectBoxPositionApplied.setSelected(selectBoxPositionApplied.getIndexWithId("-1")); 
+	}
+	if(selectBoxResumeType != null) {
+		selectBoxResumeType.setSelected(selectBoxResumeType.getIndexWithId("-1")); 
+	}
+	selectBoxImportDuration.setSelected(selectBoxImportDuration.getIndexWithId("-1")); 
+	
+	if(selectBoxBirthDuration != null) {
+		selectBoxBirthDuration.setSelected(selectBoxBirthDuration.getIndexWithId("-1"));
+	}
+	if(selectBoxGradMarks != null) {
+		selectBoxGradMarks.setSelected(selectBoxGradMarks.getIndexWithId("-1"));
+	}
+	if(selectBox1othmarks != null) {
+		selectBox1othmarks.setSelected(selectBox1othmarks.getIndexWithId("-1"));
+	}
+	if(selectBox12thmarksn != null) {
+		selectBox12thmarksn.setSelected(selectBox12thmarksn.getIndexWithId("-1"));
+	}
+	if(selectBoxPostGradMarks != null) {
+		selectBoxPostGradMarks.setSelected(selectBoxPostGradMarks.getIndexWithId("-1"));
+	}
+	if(selectBoxAge != null) {
+		selectBoxAge.setSelected(selectBoxAge.getIndexWithId("-1"));
+	}
+	if(selectBoxYearsofExperience != null) {
+		selectBoxYearsofExperience.setSelected(selectBoxYearsofExperience.getIndexWithId("-1"));
+	}
+	selectBoxLastInteraction.setSelected(selectBoxLastInteraction.getIndexWithId("-1")); 
+	<% if(GlobalConstants.ENABLED.equals(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_EMPLOYEE_CAN_APPLY_FOR_JOB))) { %>
+   	onClickSearchIn('<%=SearchConstants.SEARCH_EXCLUDE_EMPLOYEE%>');
+   	<%} else if(GlobalConstants.ENABLED.equals(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_SHOW_JOINED_CANDIDATE_IN_SEARCH))) { %>
+   	onClickSearchIn('<%=SearchConstants.SEARCH_EXCLUDE_EMPLOYEE%>');
+	<% } else { %>
+	onClickSearchIn('<%=SearchConstants.SEARCH_ALL%>');
+	<% } %>
+	setExcludeRejected('');
+	if(frm.currentLocation){
+		frm.currentLocation.value="";
+	}
+	if(frm.currentEmployer){
+		frm.currentEmployer.value="";
+	}
+	if(frm.passport){
+		frm.passport.value="";
+	}
+	if(frm.previousEmployer){
+		frm.previousEmployer.value="";
+	}
+	if(frm.phone1){
+		frm.phone1.value="";
+	}
+	if(frm.designation){
+		frm.designation.value="";
+	}
+	resetCustomFields();
+	submitForm(1);	
+}
+function resetCustomFields(){
+		for(x=0;x<customFieldsList.length;x++){
+			var cData = customFieldsList[x];
+			if(cData.getType()=='<%=CustomFieldConstants.TYPE_DATE%>' || cData.getType()=='<%=CustomFieldConstants.TYPE_NUMBER%>'){
+				var ctl = eval(cData.getName());
+				ctl.setSelected(ctl.getIndexWithId("-1")); 
+				$(cData.getName()+'<%=CustomFieldConstants.POSTFIX_CRITERIA%>').value =ctl.getSelectedId();
+				$(cData.getName()+'<%=CustomFieldConstants.POSTFIX_FROM%>').value ="";
+				$(cData.getName()+'<%=CustomFieldConstants.POSTFIX_TO%>').value ="";
+			}else if(cData.getType()=='<%=CustomFieldConstants.TYPE_DROPDOWN%>'){
+				var ctl =eval(cData.getName());
+				ctl.setSelected(ctl.getIndexWithId("-1")); 
+				$(cData.getName()).value ="";
+			}else if(cData.getType()=='<%=CustomFieldConstants.TYPE_LISTBOX%>' || cData.getType()=='<%=CustomFieldConstants.TYPE_CHECKBOX%>' || cData.getType()=='<%=CustomFieldConstants.TYPE_RADIO%>'){ 
+				var ctl =eval(cData.getName());
+				ctl.selectAll(false);
+				$(cData.getName()).value ="";
+			}else{
+				$(cData.getName()).value ="";
+			}
+		}	
+	}
+function toggleTheFilterDiv(divId){
+	if($(divId).style.display=="block"){
+		$(divId).style.display="none";
+	}else{
+		$(divId).style.display="block";
+	}
+}
+</script>
+<script type="text/javascript">
+	function submitForm(pageNo){
+		var frm = document.searchForm;
+		frm.mode.value="doSearch";
+		frm.target='_self';
+		frm.pageNo.value=pageNo;
+		submitMe();
+	}
+	function submitMe(){
+		var frm = document.searchForm;
+		frm.degreeId.value="";
+		frm.degree.value="";
+		frm.branchId.value="";
+		frm.branch.value="";
+		frm.sourceTypeId.value="";
+		frm.positionId.value="";
+		frm.resumeTypeId.value="";
+		frm.importDaysFilter.value="";
+		frm.birthDayFilter.value="";
+		frm.tenthMarksFilter.value="";
+		frm.twelvethMarksFilter.value="";
+		frm.gradeMarksFilter.value="";
+		frm.postGradeMarksFilter.value="";
+		frm.ageFilter.value="";
+		frm.yearOfExperienceFilter.value="";
+		frm.lastInteractionFilter.value="";
+		frm.flagId.value="";
+		frm.flag.value="";
+		frm.rejectReason.value="";
+		
+		if(radioGroupDegree != null) {
+			frm.degreeCriteria.value=radioGroupDegree.getSelectedIds();
+		}
+		if(checkboxListDegree != null) {		
+			var dIds=checkboxListDegree.getSelectedIds();
+			if(dIds!=""){
+				frm.degreeId.value= dIds; 
+				frm.degree.value=checkboxListDegree.getSelectedText(", ");
+			}
+		}
+		if(checkboxListBranch != null) {
+			var bIds=checkboxListBranch.getSelectedIds();
+			if(bIds!=""){
+				frm.branchId.value=bIds; 
+				frm.branch.value=checkboxListBranch.getSelectedText(", ");
+			}
+		}
+		if(selectBoxSourceType.getSelectedId()!="-1"){
+			frm.sourceTypeId.value=selectBoxSourceType.getSelectedId(); 
+		}
+		if(selectBoxPositionApplied.getSelectedId()!="-1"){
+			frm.positionId.value=selectBoxPositionApplied.getSelectedId(); 
+		}
+		if(selectBoxResumeType!=null && selectBoxResumeType.getSelectedId()!="-1"){
+			frm.resumeTypeId.value=selectBoxResumeType.getSelectedId(); 
+		}
+		if(selectBoxImportDuration.getSelectedId()!="-1"){
+			frm.importDaysFilter.value=selectBoxImportDuration.getSelectedId(); 
+		}
+		if(selectBoxBirthDuration!=null && selectBoxBirthDuration.getSelectedId()!="-1"){
+			frm.birthDayFilter.value=selectBoxBirthDuration.getSelectedId(); 
+		}
+		if(selectBox1othmarks!=null && selectBox1othmarks.getSelectedId()!="-1"){
+			frm.tenthMarksFilter.value=selectBox1othmarks.getSelectedId(); 
+		}
+		if(selectBox12thmarksn!=null && selectBox12thmarksn.getSelectedId()!="-1"){
+			frm.twelvethMarksFilter.value=selectBox12thmarksn.getSelectedId(); 
+		}
+		if(selectBoxGradMarks!=null && selectBoxGradMarks.getSelectedId()!="-1"){
+			frm.gradeMarksFilter.value=selectBoxGradMarks.getSelectedId(); 
+		}
+		if(selectBoxPostGradMarks!=null && selectBoxPostGradMarks.getSelectedId()!="-1"){
+			frm.postGradeMarksFilter.value=selectBoxPostGradMarks.getSelectedId(); 
+		}
+		if(selectBoxAge!=null && selectBoxAge.getSelectedId()!="-1"){
+			frm.ageFilter.value=selectBoxAge.getSelectedId(); 
+		}
+		if(selectBoxYearsofExperience!=null && selectBoxYearsofExperience.getSelectedId()!="-1"){
+			frm.yearOfExperienceFilter.value=selectBoxYearsofExperience.getSelectedId(); 
+		}
+		if(selectBoxLastInteraction.getSelectedId()!="-1"){
+			frm.lastInteractionFilter.value=selectBoxLastInteraction.getSelectedId(); 
+		}		
+		var fIds = 	checkboxListFlags.getSelectedIds();
+		if(fIds!=""){
+			frm.flagId.value= fIds; 
+			frm.flag.value=checkboxListFlags.getSelectedText(", ");
+		}
+		
+		var rIds = checkboxListRejectReason.getSelectedIds();
+		if(rIds!=""){
+			frm.rejectReason.value= rIds; 
+		}
+		
+		frm.matchCondition.value=selectBoxMatchCondition.getSelectedId();;
+		setCustomFieldValues();
+		frm.submit();
+	
+	}
+	function setCustomFieldValues(){
+		for(x=0;x<customFieldsList.length;x++){
+			var cData = customFieldsList[x];
+			if(cData.getType()=='<%=CustomFieldConstants.TYPE_DATE%>' || cData.getType()=='<%=CustomFieldConstants.TYPE_NUMBER%>'){
+				var ctl = eval(cData.getName());
+				var selId = ctl.getSelectedId();
+				if(selId =='-1'){
+					selId='';
+				}
+				$(cData.getName()+'<%=CustomFieldConstants.POSTFIX_CRITERIA%>').value =selId;
+			}
+			if(cData.getType()=='<%=CustomFieldConstants.TYPE_DROPDOWN%>'){
+				var ctl = eval(cData.getName());
+				var selId = ctl.getSelectedId();
+				if(selId =='-1'){
+					selId='';
+				}
+				$(cData.getName()).value=selId;
+				
+			}else if(cData.getType()=='<%=CustomFieldConstants.TYPE_LISTBOX%>'){ 
+				$(cData.getName()).value=eval(cData.getName()).getSelectedItems(true,true,'|');
+			}else if(cData.getType()=='<%=CustomFieldConstants.TYPE_CHECKBOX%>' || cData.getType()=='<%=CustomFieldConstants.TYPE_RADIO%>'){
+				$(cData.getName()).value=eval(cData.getName()).getSelectedItems(true,'|');
+			}
+		}	
+	}
+	
+	function sortResults(sortBy){
+		var frm = document.searchForm;
+		frm.sortBy.value=sortBy;
+		submitForm(1);
+	}
+	function getAutocompleteQry(){
+		var selId=selectBoxSourceType.getSelectedId();
+		if(selId=="-1"){
+			selId="";
+		}
+		return uncache("sourceTypeId="+selId+"&source="+document.searchForm.source.value);
+	}
+
+	function getApplicantAutocompleteQry(){
+		return uncache("searchText="+document.searchForm.searchText.value);
+	}	
+	
+	function getCurrentEmployerAutocompleteQry(){		
+		return uncache("applicantCurrentEmployer="+document.searchForm.currentEmployer.value);
+	}
+	
+	
+	function onWindowLoad(){
+		onClickSearchIn('<bean:write property="excludeInprocess" name="searchForm"/>');
+		setExcludeRejected('<bean:write property="excludeRejectedInPast" name="searchForm"/>');
+		initPopUp();
+		
+		<% if(ImportConfigurationManager.isImportOrEditFieldShow(ImportConfigurationConstants.FIELD_SOURCE)){ %>
+			new Ajax.Autocompleter("source", "autocomplete", "importResume.do?mode=getAutoCompleteList&fld=<%=ApplicantConstants.AUTOCOMPLETE_SOURCE%>", {frequency: 0.001, callback: getAutocompleteQry});
+		<% } %>
+		<% if(ImportConfigurationManager.isImportOrEditFieldShow(ImportConfigurationConstants.FIELD_CURRENT_EMPLOYER)){ %>
+			new Ajax.Autocompleter("currentEmployer", "autocomplete", "importResume.do?mode=getAutoCompleteList&fld=<%=ApplicantConstants.AUTOCOMPLETE_EMPLOYER%>", {frequency: 0.001, callback: getCurrentEmployerAutocompleteQry});
+			<% } %>
+		Event.observe(document, "keydown", onDocumentKeyDown.bindAsEventListener(this));
+		showHideRanges(selectBoxImportDuration.getControlName(),selectBoxImportDuration);
+		if(selectBoxBirthDuration != null) {
+			showHideRanges(selectBoxBirthDuration.getControlName(),selectBoxBirthDuration);
+		}
+		if(selectBox1othmarks != null) {
+			showHideRanges(selectBox1othmarks.getControlName(),selectBox1othmarks);
+		}
+		if(selectBox12thmarksn != null) {
+			showHideRanges(selectBox12thmarksn.getControlName(),selectBox12thmarksn);
+		}
+		if(selectBoxGradMarks != null) {
+			showHideRanges(selectBoxGradMarks.getControlName(),selectBoxGradMarks);
+		}
+		if(selectBoxPostGradMarks != null) {
+			showHideRanges(selectBoxPostGradMarks.getControlName(),selectBoxPostGradMarks);
+		}
+		if(selectBoxAge != null) {
+			showHideRanges(selectBoxAge.getControlName(),selectBoxAge);
+		}
+		if(selectBoxYearsofExperience != null) {
+			showHideRanges(selectBoxYearsofExperience.getControlName(),selectBoxYearsofExperience);
+		}
+		showHideRanges(selectBoxLastInteraction.getControlName(),selectBoxLastInteraction);		
+		showHideCustomDivs();	
+		new Ajax.Autocompleter("searchText", "autocomplete", "doSearch.do?mode=getAutoCompleteList", {frequency: 0.001, callback: getApplicantAutocompleteQry});
+	}
+	function showHideCustomDivs(){
+		for(x=0;x<customFieldsList.length;x++){
+			var cData = customFieldsList[x];
+			if(cData.getType()=='<%=CustomFieldConstants.TYPE_DATE%>' || cData.getType()=='<%=CustomFieldConstants.TYPE_NUMBER%>'){
+				var ctl = eval(cData.getName());
+				showHideRanges(ctl.getControlName(),ctl);
+			}
+		}	
+	}
+	
+	function onDocumentKeyDown(event){
+		if(event.keyCode==13){
+			submitForm(1);
+		}
+	}
+	function massEmail(){
+		var frm = document.searchForm;
+		frm.mode.value="massEmail";
+		frm.target='popupFrame';
+		frm.pageNo.value=1;
+		showPopWin("", 800, 550, null,true);
+		submitMe();
+	}
+	function sendSMS(applicantId) {
+		var url = 'selectionProcess.do?mode=sendSMS&applicantId='+applicantId;
+		window.setTimeout("showInPopUp('"+url+"',550, 320,null,true);", 10);
+	}
+	function showInPopUp(url,width,height,returnFun, close){
+		showPopWin(url, width, height, returnFun,close);
+	}
+	function deleteApplicant(applicantId){
+		var deleteApplicantTokenId = '<%=tokenId%>';
+		var frm = document.searchForm;
+		frm.mode.value="deleteApplicant";
+		frm.target='_self';
+		frm.applicantId.value=applicantId;
+		frm.deleteApplicantTokenId.value=deleteApplicantTokenId;
+		if(confirm('<bean:message key="common.confirm.delete" />'))
+			submitMe();
+		else
+			return false;
+	}
+	function clearViewed(){
+		document.searchForm.mode.value="resetViewed";
+		submitMe();
+	}
+	
+	function setApplicantFlag(applicantId, flagIdToSet, flagStateToSet){
+		var frm = document.searchForm;
+		frm.mode.value="setFlag";
+		frm.target='_self';
+		frm.applicantId.value=applicantId;
+		frm.flagIdToSet.value=flagIdToSet;
+		frm.flagStateToSet.value=flagStateToSet;
+		submitMe();
+		
+	}
+	function onClickSearchIn(rId){
+		document.searchForm.excludeInprocess.value='';
+		var imgs = document.getElementsByName('searchIn');
+		for (i = 0; i < imgs.length; i++) {
+			var theImage = imgs[i];
+			if( theImage.id == 'searchIn_'+rId){
+				document.searchForm.excludeInprocess.value=rId;
+				theImage.src = "images/checkedradiobutton.gif";
+			}else{
+				theImage.src = "images/radiobutton.gif";
+			}
+		}
+		if(rId=='<%=SearchConstants.SEARCH_NOT_INPROCESS%>'){
+			Element.show('tdExcludeRejected');
+		}else{
+			Element.hide('tdExcludeRejected');
+			setExcludeRejected('');
+		}
+	}
+	function setExcludeRejected(val){
+		document.searchForm.excludeRejectedInPast.value=val;
+		if(val==''){
+			$('imgExcludeRejected').src='images/checkboxunchecked.gif';
+		}else{
+			$('imgExcludeRejected').src='images/checkboxchecked.gif';
+		}
+	}
+	function onClickExcludeRejected(){
+		if(document.searchForm.excludeRejectedInPast.value==''){
+			setExcludeRejected('1');
+		}else{
+			setExcludeRejected('');
+		}
+		
+	}
+	window.onload=onWindowLoad;
+	
+	function showHideRanges(ctlName,ctl){
+		var selId = ctl.getSelectedId();
+		if(selId!='-1' && selId!='<%=SearchConstants.CRITERIA_NOT_SPECIFIED%>'){
+			Element.show('div'+ctlName);
+			if(selId=='<%=SearchConstants.CRITERIA_BETWEEN%>'){
+				Element.show('div'+ctlName+'to');
+			}else{
+				Element.hide('div'+ctlName+'to');
+			}
+		}else{
+			Element.hide('div'+ctlName);
+		}
+	}
+	function onChangeRangeSelect(selIdx, ctl){
+		showHideRanges(ctl.getControlName(),ctl);
+	}
+
+	function savedSearches(){
+		var url = 'doSearch.do?mode=showSavedSearches';
+		showInPopUp(url, 620, 380,doSaveSearch);
+	}
+
+	function doSaveSearch(returnVal){
+		if(returnVal !='' && returnVal !=null){
+			var url = 'doSearch.do?mode=doSavedSearch&searchId='+returnVal;
+			window.location=url;
+		}
+		return true;
+	}
+	
+	function searchForPosition(){
+		var url = 'doSearch.do?mode=selectPositionForSearch';
+		showInPopUp(url, 500, 200,doSearchForPosition);
+	}
+	
+	function doSearchForPosition(returnVal){
+		if(returnVal !='' && returnVal !=null){
+			var retArr = returnVal.split("_");
+			var posId = retArr[0];
+			var deptId = retArr[1];
+			var locationId = retArr[2];
+			
+			if(posId!='' && posId!='-1'){
+				var url = 'doSearch.do?mode=doSearchForPosition&positionId='+posId+"&departmentId="+deptId+"&locationId="+locationId;
+				window.location=url;
+			}
+		}
+		return true;
+	}
+	
+<logic:equal value="1" property="advancedSearch" name="searchForm">
+	toggleTheFilterDiv('filterDiv');
+</logic:equal>
+
+</script>
+	

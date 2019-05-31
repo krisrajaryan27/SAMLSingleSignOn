@@ -1,0 +1,106 @@
+<%@page import="com.talentPool.positions.constants.PositionConfigurationConstants"%>
+<%@page import="com.talentPool.positions.manager.PositionScreenConfigurationManager"%>
+<%@ taglib uri="/WEB-INF/tld/struts-html.tld" prefix="html"%>
+<%@ taglib uri="/WEB-INF/tld/struts-bean.tld" prefix="bean"%>
+<%@ taglib uri="/WEB-INF/tld/struts-logic.tld" prefix="logic"%>
+<%@page import="com.talentPool.common.properties.GlobalApplicationProperties"%>
+<%@page import="com.talentPool.common.properties.GlobalConstants"%>
+<%@page import="com.talentPool.budget.utils.BudgetUtils"%>
+<%@page import="com.talentPool.user.manager.ModuleSet"%>
+
+<%@page import="com.talentPool.user.UserConstants"%>
+<%@page import="com.talentPool.user.dataobject.LastViewedEntity"%><div>
+	<div style="margin-left:5px; margin-top:5px;width: 195px;background-color: #fdfdfd;border: 1px solid #99CC01; padding: 5px;">
+		<table width="100%">
+			<tr>
+				<td>
+					<bean:message key="common.vacancies"/>: 
+					<bean:write name="positionForm" property="vacancies" scope="request" />
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<bean:message key="position_summary.unfilled_vacancies"/>: 
+					<bean:write name="positionForm" property="currentNoOfOpenings" scope="request" />
+				</td>
+			</tr>
+			<tr>	
+				<td>
+					<bean:message key="position_summary.days_remaining"/>: 
+					<bean:write name="daysRemaining" scope="request" />
+				</td>
+			</tr>
+		</table>
+	</div>
+	<div style="border-bottom: 1px solid rgb(204, 204, 204);">&nbsp;</div>
+	<table>
+		<tr> 
+	      <td><img src="images/spacer.gif" width="1" height="13" /></td> 
+	    </tr>
+		<tr>	
+			<td>
+				<b><bean:message key="common.summary" /></b>
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<table border="0" cellspacing="0" cellpadding="0" class="posinput">
+						<tr>
+							<td class="label"><%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_DEPARTMENT_LEVEL_1) %></td>
+							<td><bean:write name="positionForm" property="department" /></td>
+						</tr>
+						<tr>
+							<td class="label"><bean:message key="position.description.location" />
+							</td>
+							<td><bean:write name="positionForm" property="locationName" /></td>
+						</tr>
+						<%if(PositionScreenConfigurationManager.isDescriptionFieldShow(PositionConfigurationConstants.FIELD_POSITION_OWNER)){%>
+							<tr>
+								<td class="label"><bean:message key="global.position_owner" /></td>
+								<td><bean:write name="positionForm" property="positionOwnerName" /></td>
+							</tr>
+						<%} %>
+						<tr>
+							<td class="label"><bean:message key="position.description.requested_by" /></td>
+							<td><bean:write name="positionForm" property="requisitioner" /></td>
+						</tr>
+						<tr>
+							<td class="label"><%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_BUDGET_ITEM_GRADE_LABEL)%></td>
+							<td><bean:write name="positionForm" property="gradeName" /></td>
+						</tr>
+						<tr>
+							<td class="label"><%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_BUDGET_ITEM_BAND_LABEL)%></td>
+							<td><bean:write name="positionForm" property="bandName" /></td>
+						</tr>
+						 <% if (ModuleSet.isMODULE_BUDGET() && BudgetUtils.isBudgetModuleActive()) { %>			
+						<tr>
+							<td class="label"><bean:message key="position.description.budget_item" /></td>
+							<td><bean:write name="positionForm" property="budgetItemName" /></td>
+						</tr>
+						<%} %>
+				</table>	
+			</td>
+		</tr>
+	</table>
+	<br/>
+	<div style="border-bottom: 1px solid rgb(204, 204, 204);">&nbsp;</div>
+	<table>
+		<tr> 
+	      <td><img src="images/spacer.gif" width="1" height="13" /></td> 
+	    </tr> 
+	    <tr> 
+	      <td height="20"><strong class="Grey"><bean:message key="leftpane.label.viewed"/></strong></td> 
+	    </tr> 
+	    <tr> 
+	      <td style="line-height:18px;"> 
+			<logic:notEmpty name="lastViewedPositions">
+				<logic:iterate id="entity" name="lastViewedPositions" type="LastViewedEntity">
+					<logic:equal name="entity" property="entityType" value="<%=UserConstants.ENTITY_POSITION%>">
+				        <img src="images/ico_star.gif" width="13" height="13" vspace="3" align="absmiddle" /> <a href="#" onclick="javascript: viewPositionSummary('<bean:write name="entity" property="entityId"/>');return false;" class="green"><bean:write name="entity" property="descriptionTrimmed"/></a><br /> 
+					</logic:equal>
+				</logic:iterate>
+			</logic:notEmpty>
+		   </td>
+	    </tr>
+	</table>	
+</div>

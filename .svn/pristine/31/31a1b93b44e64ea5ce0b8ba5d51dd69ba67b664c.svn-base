@@ -1,0 +1,209 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>
+			<!-- Start: Report Scheduler-->       
+		<dbquery name="qReportSchedulerManager_AddNewScheduleReport">
+		    INSERT INTO tp_report_scheduler
+			( report_id,frequency,start_date,everyday,weekdays,day_of_week,
+			day_of_month,schedule_time,schedule_status,email_ids,date_created,
+			user_id,department_id,position_id,filter_id,source_ids,action_id,degree_ids,
+			step_ids,report_type,report_format,applicants,users,interviewers,from_date,
+			to_date,from_month,to_month,from_year,to_year,date_range,max_exp,min_exp,stages,
+			order_by,cost_report_type,email_subject,email_body,number_range, sub_department_id, sub_sub_department_id,
+			source_category_ids, activities, position_filter, department_filter,template_id
+			)
+			VALUES
+			(?,?,?,?,?,?,?,?,?,?,now(),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)		
+		</dbquery>       
+		<dbquery name="qReportSchedulerManager_AddNewScheduleReportUsers">
+	  		INSERT INTO tp_report_scheduler_users(schedule_id,scheduled_to_user_id) VALUES(?,?)
+  		</dbquery>
+       	<dbquery name="qReportSchedulerManager_UpdateScheduleReportDetails">
+   		    UPDATE tp_report_scheduler 
+			SET  report_id =?, frequency=?, start_date=?, everyday=?, weekdays=?,
+			day_of_week=?, day_of_month=?, schedule_time=?, schedule_status=?, 
+			email_ids=?, email_subject=?, email_body=?, date_created=now(),template_id=?
+			WHERE schedule_id=?
+		</dbquery>       
+       	<dbquery name="qReportSchedulerManager_DeleteScheduledReport">
+       		DELETE FROM tp_report_scheduler WHERE schedule_id=?
+		</dbquery>  
+		<dbquery name="qReportSchedulerManager_DeleteScheduledReportUsers">
+       		DELETE FROM tp_report_scheduler_users WHERE schedule_id=?
+		</dbquery>   
+		<dbquery name="qReportSchedulerManager_FetchEmailIdForScheduledToUser">
+			SELECT GROUP_CONCAT(tu.user_email SEPARATOR ',') AS email_ids
+			FROM tp_report_scheduler_users trsu, tp_users tu
+			WHERE tu.user_id = trsu.scheduled_to_user_id
+			AND trsu.schedule_id=?
+		</dbquery>   		  				
+       	<dbquery name="qReportSchedulerManager_ViewScheduledReport">
+			SELECT trs.user_id, trs.report_id, trs.frequency, trs.start_date, trs.everyday, 
+			trs.weekdays, trs.day_of_week, trs.day_of_month, trs.schedule_time, trs.schedule_status, 
+			GROUP_CONCAT(CONCAT(tu.user_fname, ' ', tu.user_lname)) as email_ids, 
+			trs.department_id, trs.position_id, trs.filter_id, trs.source_ids, trs.action_id, 
+			trs.degree_ids, trs.step_ids, trs.report_type, trs.report_format, trs.applicants, trs.users, 
+			trs.interviewers, trs.from_date, trs.to_date, trs.from_month, trs.to_month, trs.from_year, 
+			trs.to_year, trs.date_range, trs.max_exp, trs.min_exp, trs.stages, trs.order_by, 
+			trs.cost_report_type, trs.email_subject, trs.email_body, trs.number_range,
+			trs.sub_department_id, trs.sub_sub_department_id, trs.source_category_ids, trs.activities,  
+			trs.position_filter, trs.department_filter,trs.template_id
+			FROM tp_report_scheduler trs LEFT JOIN tp_report_scheduler_users trsu
+			ON (trs.schedule_id = trsu.schedule_id)
+			LEFT JOIN tp_users tu ON (trsu.scheduled_to_user_id=tu.user_id)
+			WHERE trs.schedule_id=?
+			GROUP BY trs.schedule_id
+		</dbquery>
+		<dbquery name="qReportSchedulerManager_FetchScheduleReportDetails">
+        	SELECT trs.schedule_id, trs.report_id, trs.frequency, trs.start_date, 
+			GROUP_CONCAT(CONCAT(tu.user_fname, ' ', tu.user_lname)) as email_ids,  
+			trs.schedule_time, trs.everyday, trs.weekdays, trs.day_of_week, trs.day_of_month, 
+			trs.schedule_status, trs.department_id, trs.position_id, trs.filter_id, trs.source_ids, 
+			trs.action_id, trs.degree_ids, trs.step_ids, trs.report_type, trs.report_format, trs.applicants, 
+			trs.users, trs.interviewers, trs.from_date, trs.to_date, trs.from_month, trs.to_month, 
+			trs.from_year, trs.to_year, trs.date_range, trs.max_exp, trs.min_exp, trs.stages, 
+			trs.order_by, trs.cost_report_type, trs.email_subject, trs.email_body, trs.number_range,
+			trs.source_category_ids, trs.activities , trs.position_filter, trs.department_filter       	
+			FROM tp_report_scheduler trs LEFT JOIN tp_report_scheduler_users trsu
+			ON (trs.schedule_id = trsu.schedule_id)
+			LEFT JOIN tp_users tu ON (trsu.scheduled_to_user_id=tu.user_id)
+			WHERE trs.user_id=? and trs.report_id=?
+			GROUP BY trs.schedule_id
+	    </dbquery>  
+	    
+	    <dbquery name="qReportSchedulerManager_GetPositionConflicts">
+		    SELECT tu.user_id, CONCAT(tu.user_fname, ' ' , tu.user_lname) as name,
+			count(tpsu.position_id) AS no_of_positions
+			FROM tp_users tu LEFT JOIN tp_position_step_users tpsu
+			ON (tu.user_id = tpsu.user_id @@)
+			WHERE 
+			tu.user_id in (@@)
+			GROUP BY user_id
+			HAVING no_of_positions &lt; ?
+			ORDER BY name
+		</dbquery>
+		<dbquery name="qReportSchedulerManager_GetPositionWithNoRightsToUser">
+		    SELECT distinct tpos.position_title FROM tp_positions tpos WHERE tpos.position_id in (@@)
+			AND tpos.position_id NOT IN (SELECT position_id FROM tp_position_step_users where user_id=?)
+			AND tpos.position_requested_by!=?
+		</dbquery>
+	
+	    <!-- End: Report Scheduler-->
+			
+	</dbqueries>
+	<dataqueries>
+		<!-- Start: Report Scheduler-->       
+       <dataquery name="dReportSchedulerManager_AddNewScheduleReport" dbquery="qReportSchedulerManager_AddNewScheduleReport"/>
+       <dataquery name="dReportSchedulerManager_AddNewScheduleReportUsers" dbquery="qReportSchedulerManager_AddNewScheduleReportUsers"/>
+       <dataquery name="dReportSchedulerManager_UpdateScheduleReportDetails" dbquery="qReportSchedulerManager_UpdateScheduleReportDetails"/>
+       <dataquery name="dReportSchedulerManager_DeleteScheduledReport" dbquery="qReportSchedulerManager_DeleteScheduledReport"/>
+       <dataquery name="dReportSchedulerManager_DeleteScheduledReportUsers" dbquery="qReportSchedulerManager_DeleteScheduledReportUsers"/>
+       
+       <dataquery name="dReportSchedulerManager_FetchScheduleReportDetails" dbquery="qReportSchedulerManager_FetchScheduleReportDetails" object="com.talentPool.reports.dataobject.ReportScheduleData">
+       		<attribute name="scheduleId" column="schedule_id" type="INT"/>
+       		<attribute name="reportId" column="report_id" type="INT"/>       		
+	    	<attribute name="frequency" column="frequency" type="STRING"/>
+	        <attribute name="startDate" column="start_date" type="STRING"/>
+	        <attribute name="scheduleTime" column="schedule_time" type="STRING"/>
+	        <attribute name="emailIds" column="email_ids" type="STRING"/>
+			<attribute name="everyday" column="everyday" type="STRING"/>
+			<attribute name="weekdays" column="weekdays" type="STRING"/>
+			<attribute name="dayOfWeek" column="day_of_week" type="STRING"/>
+			<attribute name="dayOfMonth" column="day_of_month" type="STRING"/>
+			<attribute name="scheduleTime" column="schedule_time" type="TIMESTAMP"/>
+			<attribute name="scheduleStatus" column="schedule_status" type="STRING"/>
+			<attribute name="departmentId" column="department_id" type="STRING"/>
+			<attribute name="positionId" column="position_id" type="STRING"/>
+			<attribute name="filterId" column="filter_id" type="STRING"/>
+			<attribute name="sourceId" column="source_ids" type="STRING"/>
+			<attribute name="sourceCategoryId" column="source_category_ids" type="STRING"/>
+			<attribute name="actionId" column="action_id" type="STRING"/>
+			<attribute name="degreeIds" column="degree_ids" type="STRING"/>
+			<attribute name="stepIds" column="step_ids" type="STRING"/>
+			<attribute name="reportType" column="report_type" type="STRING"/>
+			<attribute name="reportFormat" column="report_format" type="STRING"/>
+			<attribute name="applicants" column="applicants" type="STRING"/>
+			<attribute name="users" column="users" type="STRING"/>
+			<attribute name="interviewers" column="interviewers" type="STRING"/>
+			<attribute name="fromDate" column="from_date" type="STRING"/>
+			<attribute name="toDate" column="to_date" type="STRING"/>
+			<attribute name="fromMonth" column="from_month" type="STRING"/>
+			<attribute name="toMonth" column="to_month" type="STRING"/>
+			<attribute name="fromYear" column="from_year" type="STRING"/>
+			<attribute name="toYear" column="to_year" type="STRING"/>
+			<attribute name="dateRange" column="date_range" type="STRING"/>
+			<attribute name="maxExp" column="max_exp" type="STRING"/>
+			<attribute name="minExp" column="min_exp" type="STRING"/>
+			<attribute name="stages" column="stages" type="STRING"/>
+			<attribute name="orderBy" column="order_by" type="STRING"/>
+			<attribute name="costReportType" column="cost_report_type" type="STRING"/>	
+			<attribute name="mailSubject" column="email_subject" type="STRING"/>
+			<attribute name="mailBody" column="email_body" type="STRING"/>	
+			<attribute name="numberRange" column="number_range" type="STRING"/>
+			<attribute name="activities" column="activities" type="STRING"/>
+			<attribute name="positionFilter" column="position_filter" type="STRING"/>
+			<attribute name="departmentFilter" column="department_filter" type="STRING"/>
+		</dataquery>       	
+       	<dataquery name="dReportSchedulerManager_ViewScheduledReport" dbquery="qReportSchedulerManager_ViewScheduledReport" object="com.talentPool.reports.dataobject.ReportScheduleData">
+       		<attribute name="userId" column="user_id" type="INT"/>
+       		<attribute name="reportId" column="report_id" type="INT"/>       		
+	    	<attribute name="frequency" column="frequency" type="STRING"/>
+	        <attribute name="startDate" column="start_date" type="STRING"/>
+	        <attribute name="scheduleTime" column="schedule_time" type="STRING"/>
+	        <attribute name="emailIds" column="email_ids" type="STRING"/>       		
+			<attribute name="everyday" column="everyday" type="STRING"/>
+			<attribute name="weekdays" column="weekdays" type="STRING"/>
+			<attribute name="dayOfWeek" column="day_of_week" type="STRING"/>
+			<attribute name="dayOfMonth" column="day_of_month" type="STRING"/>
+			<attribute name="scheduleTime" column="schedule_time" type="TIMESTAMP"/>
+			<attribute name="scheduleStatus" column="schedule_status" type="STRING"/>
+			<attribute name="departmentId" column="department_id" type="STRING"/>
+			<attribute name="positionId" column="position_id" type="STRING"/>
+			<attribute name="filterId" column="filter_id" type="STRING"/>
+			<attribute name="sourceId" column="source_ids" type="STRING"/>
+			<attribute name="sourceCategoryId" column="source_category_ids" type="STRING"/>
+			<attribute name="actionId" column="action_id" type="STRING"/>
+			<attribute name="degreeIds" column="degree_ids" type="STRING"/>
+			<attribute name="stepIds" column="step_ids" type="STRING"/>
+			<attribute name="reportType" column="report_type" type="STRING"/>
+			<attribute name="reportFormat" column="report_format" type="STRING"/>
+			<attribute name="applicants" column="applicants" type="STRING"/>
+			<attribute name="users" column="users" type="STRING"/>
+			<attribute name="interviewers" column="interviewers" type="STRING"/>
+			<attribute name="fromDate" column="from_date" type="STRING"/>
+			<attribute name="toDate" column="to_date" type="STRING"/>
+			<attribute name="fromMonth" column="from_month" type="STRING"/>
+			<attribute name="toMonth" column="to_month" type="STRING"/>
+			<attribute name="fromYear" column="from_year" type="STRING"/>
+			<attribute name="toYear" column="to_year" type="STRING"/>
+			<attribute name="dateRange" column="date_range" type="STRING"/>
+			<attribute name="maxExp" column="max_exp" type="STRING"/>
+			<attribute name="minExp" column="min_exp" type="STRING"/>
+			<attribute name="stages" column="stages" type="STRING"/>
+			<attribute name="orderBy" column="order_by" type="STRING"/>
+			<attribute name="costReportType" column="cost_report_type" type="STRING"/>			
+			<attribute name="mailSubject" column="email_subject" type="STRING"/>
+			<attribute name="mailBody" column="email_body" type="STRING"/>
+			<attribute name="numberRange" column="number_range" type="STRING"/>	
+			<attribute name="subDepartmentId" column="sub_department_id" type="STRING"/>
+			<attribute name="subSubDepartmentId" column="sub_sub_department_id" type="STRING"/>
+			<attribute name="activities" column="activities" type="STRING"/>
+			<attribute name="positionFilter" column="position_filter" type="STRING"/>
+			<attribute name="departmentFilter" column="department_filter" type="STRING"/>
+			<attribute name="templateId" column="template_id" type="STRING"/>
+       	</dataquery>
+       	<dataquery name="dReportSchedulerManager_FetchEmailIdForScheduledToUser" dbquery="qReportSchedulerManager_FetchEmailIdForScheduledToUser" />
+       	<dataquery name="dReportSchedulerManager_GetPositionConflicts" dbquery="qReportSchedulerManager_GetPositionConflicts" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name="userId" column="user_id" type="STRING"/>
+			<attribute name="name" column="name" type="STRING"/>			
+       	</dataquery>
+       	<dataquery name="dReportSchedulerManager_GetPositionWithNoRightsToUser" dbquery="qReportSchedulerManager_GetPositionWithNoRightsToUser" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name="positionTitle" column="position_title" type="STRING"/>
+       	</dataquery>
+       	
+		<!-- End: Report Scheduler-->       				
+	</dataqueries>
+</dbmap>	

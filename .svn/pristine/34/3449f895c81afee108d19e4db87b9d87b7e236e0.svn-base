@@ -1,0 +1,169 @@
+package com.talentPool.inbox;
+
+/**
+ * @author shivprasad
+ *
+ */
+public class InboxConstants {
+	public static final String SERVER_TYPE_POP3="0";
+	public static final String SERVER_TYPE_IMAP="1";
+	public static final String SERVER_TYPE_EXCHANGE="3";
+	
+	public static final String PROTOCOL_POP3 = "pop3";
+	public static final String PROTOCOL_SMTP="smtp";
+	public static final String PROTOCOL_IMAP="imap";
+	public static final String PROTOCOL_SECURE_POP3="pop3s";
+	public static final String PROTOCOL_SECURE_IMAP="imaps";
+	public static final String PROTOCOL_SECURE_SMTP="smtps";
+	public static final String PROTOCOL_EXCHANGE="exchange"; 
+
+	
+	public static final String SMTP_AUTHENTICATION_REQUIRED="1";
+	public static final String SMTP_USE_INCOMING_AUTH="1";
+	public static final String SMTP_USE_OTHER_AUTH="2";
+	
+	public static final String SSL_ENABLED="1";
+	public static final String SSL_NOT_ENABLED="0";
+	
+	public static final String TLS_ENABLED="1";
+	public static final String TLS_NOT_ENABLED="0";
+	
+	public static final String INBOX_ACTIVE="1";
+	
+	public static final String ATTACHMENT_TYPE_RELATED="0"; //when attachment is part of email body
+	public static final String ATTACHMENT_TYPE_NOTRELATED="1";
+	
+	public static final String ATTACHMENT_NOT_CONFIRMED="0";
+	public static final String ATTACHMENT_CONFIRMED="1";
+	
+	//These are inbox folders
+	public static final String INBOX_FOLDER_INBOX="1";
+	public static final String INBOX_FOLDER_SENT="2";
+	
+	public static final String INBOX_EMAIL_STATUS_READ="1";
+	public static final String INBOX_EMAIL_STATUS_UNREAD="0";
+	
+	//defines which mail box to be connected.
+	//when EMAIL_LOCATION_COMMUNICATIONS is defined table related to applicant is
+	//supposed to be contacted.
+	public static final String EMAIL_LOCATION_COMMUNICATIONS="C";
+	public static final String EMAIL_LOCATION_INBOX="I";
+	
+	//Type of new email, new, forward, reply
+	public static final String EMAIL_TYPE_NEW="New";
+	public static final String EMAIL_TYPE_FORWARD="Fw";
+	public static final String EMAIL_TYPE_REPLY="Re";
+	public static final String EMAIL_TYPE_SEND_DRAFT="Draft";
+	public static final String EMAIL_TYPE_FORWARD_RESUME="FwRes";
+	
+	//send Email either html or text format 
+	public static final String EMAIL_BODY_TEXT="1";
+	public static final String EMAIL_BODY_HTML="2";
+	
+	//Sort By Column
+	public static final String SORT_BY_ATTACHMENT="1";
+	public static final String SORT_BY_FROM="2";
+	public static final String SORT_BY_DATE="3";
+	public static final String SORT_BY_SUBJECT="4";
+	
+	//auto import constants
+	public static final int FORMAT_AUTO_IMPORT = 1;
+	public static final int FORMAT_NOAUTO_IMPORT = 0;
+	
+	//error constants for auto import
+	public static final String ERROR_BLANK_NAME="1";
+	public static final String ERROR_BLANK_EMAIL="2";
+	public static final String ERROR_BLANK_LOCATION="3";
+	public static final String ERROR_DUPLICATE="4";
+	public static final String ERROR_INCORRECT_SOURCE="5";
+	public static final String ERROR_INVALID_WORKING_SINCE_DATE="6";
+	public static final String ERROR_INVALID_EMAIL="7";
+	public static final String ERROR_NO_RESUME="8";
+	public static final String ERROR_UNKNOWN="9";
+	public static final String MANDATORY_CONDITIONS_NOT_MATCHED="10";
+	
+	public static final int MAIL_RECEIVED_AS_TO=0;
+	public static final int MAIL_RECEIVED_AS_CC=1;
+	public static final int MAIL_RECEIVED_AS_BCC=2;
+	
+	public static final String INBOX_FOLDER_TYPE_USER = "0";
+	public static final String INBOX_FOLDER_TYPE_SYSTEM = "1";
+	public static final String INBOX_FOLDER_TYPE_DRAFT = "2";
+	
+	public static final String NONE = "None";
+	
+	
+	// CSV import constant
+	public static final String FLD_NAME = "NAME";
+	public static final String FLD_EMAIL_1 = "EMAIL_1";
+	public static final String FLD_EMAIL_2 = "EMAIL_2";
+	public static final String FLD_PHONE_1 = "PHONE_1";
+	public static final String FLD_PHONE_2 = "PHONE_2";
+	public static final String FLD_MOBILE = "MOBILE";
+	public static final String FLD_EXPERIENCE = "EXPERIENCE";
+	public static final String FLD_SOURCE = "SOURCE";
+	public static final String FLD_CURRENT_LOCATION = "CURRENT_LOCATION";
+	public static final String FLD_SKILLS = "SKILLS";
+	public static final String FLD_YEAR_OF_PASSING_1 = "YEAR_OF_PASSING_1";
+	public static final String FLD_INSTITUTE_1 = "INSTITUTE_1";
+	public static final String FLD_DEGREE_1 = "DEGREE_1";
+	public static final String FLD_BRANCH_1 = "BRANCH_1";
+	public static final String FLD_YEAR_OF_PASSING_2 = "YEAR_OF_PASSING_2";
+	public static final String FLD_INSTITUTE_2 = "INSTITUTE_2";
+	public static final String FLD_DEGREE_2 = "DEGREE_2";
+	public static final String FLD_BRANCH_2 = "BRANCH_2";
+	public static final String FLD_CURRENT_EMPLOYER = "CURRENT_EMPLOYER";
+	public static final String FLD_CURRENT_CTC = "CURRENT_CTC";
+	public static final String FLD_EXPECTED_CTC = "EXPECTED_CTC";
+	public static final String FLD_NOTICE_PERIOD = "NOTICE_PERIOD";	
+	public static final String FLD_NOTE = "NOTE";	
+	public static final String FLD_ORIGINAL_RESUME_PATH = "ORIGINAL_RESUME_PATH"; //Only if the resume path mentioned in the cell of csv is at server.
+	public static final String FLD_EMPLOYMENT_FROM_DATE_1 = "EMPLOYMENT_FROM_DATE_1";
+	public static final String FLD_EMPLOYMENT_TO_DATE_1 = "EMPLOYMENT_TO_DATE_1";
+	public static final String FLD_EMPLOYMENT_EMPLOYER_1 = "EMPLOYMENT_EMPLOYER_1";
+	public static final String FLD_EMPLOYMENT_DESIGNATION_1 = "EMPLOYMENT_DESIGNATION_1";	
+	public static final String FLD_EMPLOYMENT_FROM_DATE_2 = "EMPLOYMENT_FROM_DATE_2";
+	public static final String FLD_EMPLOYMENT_TO_DATE_2 = "EMPLOYMENT_TO_DATE_2";
+	public static final String FLD_EMPLOYMENT_EMPLOYER_2 = "EMPLOYMENT_EMPLOYER_2";
+	public static final String FLD_EMPLOYMENT_DESIGNATION_2 = "EMPLOYMENT_DESIGNATION_2";
+	public static final String FLD_EMPLOYMENT_FROM_DATE_3 = "EMPLOYMENT_FROM_DATE_3";
+	public static final String FLD_EMPLOYMENT_TO_DATE_3 = "EMPLOYMENT_TO_DATE_3";
+	public static final String FLD_EMPLOYMENT_EMPLOYER_3 = "EMPLOYMENT_EMPLOYER_3";
+	public static final String FLD_EMPLOYMENT_DESIGNATION_3 = "EMPLOYMENT_DESIGNATION_3";
+	public static final String FLD_EMPLOYMENT_FROM_DATE_4 = "EMPLOYMENT_FROM_DATE_4";
+	public static final String FLD_EMPLOYMENT_TO_DATE_4 = "EMPLOYMENT_TO_DATE_4";
+	public static final String FLD_EMPLOYMENT_EMPLOYER_4 = "EMPLOYMENT_EMPLOYER_4";
+	public static final String FLD_EMPLOYMENT_DESIGNATION_4 = "EMPLOYMENT_DESIGNATION_4";
+	public static final String FLD_EMPLOYMENT_FROM_DATE_5 = "EMPLOYMENT_FROM_DATE_5";
+	public static final String FLD_EMPLOYMENT_TO_DATE_5 = "EMPLOYMENT_TO_DATE_5";
+	public static final String FLD_EMPLOYMENT_EMPLOYER_5 = "EMPLOYMENT_EMPLOYER_5";
+	public static final String FLD_EMPLOYMENT_DESIGNATION_5 = "EMPLOYMENT_DESIGNATION_5";
+	
+	
+	public static final String EXCEL_IMPOT_SUCCESS = "1";
+	public static final String EXCEL_IMPOT_FAIL = "2";
+	public static final String EXCEL_IMPOT_DUPLICATE = "3";
+	
+	public static final String EXCEL_REPLACE_STR = "::::";
+	
+	public static final String AUTO_IMPORT_TRIED = "1";
+	public static final String AUTO_IMPORT_NOT_TRIED = "0";
+	
+	public static final String OPTION_RESUME_UPLOAD="0";
+	public static final String OPTION_CSV_UPLOAD="1";
+	
+	public static final String MAIL_SENT_AS_TO="1";
+	public static final String MAIL_SENT_AS_CC="2";
+	public static final String MAIL_SENT_AS_BCC="3";
+	
+	public static final String EXCHANGE_VERSION_2007_SP1="1";
+	public static final String EXCHANGE_VERSION_2010_SP1="2";
+	//public static final String EXCHANGE_VERSION_2007_SP1="3";
+	
+	public static final String EXCHANGE_NO_SMTP="0";
+	public static final String EXCHANGE_USE_SMTP="1";
+	
+	// Inbox pagination Constants
+	public static final int INBOX_PAGE_SIZE = 100;
+	
+}

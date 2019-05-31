@@ -1,0 +1,379 @@
+<html>
+<head>
+<title>Untitled Document</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+
+<style>
+body,input, div,a{
+font-family:Verdana, Arial, Helvetica, sans-serif;
+font-size:10px;
+}
+
+
+pre{
+font-family:verdana;
+font-size:10px;
+}
+a {
+ color:#265644;
+ text-decoration:underline;
+}
+
+
+/*styles required for menu */
+.divTpMnu{
+	background-color: #F3F9DC; 
+	padding: 0px; 
+	position:absolute;
+	border-top:1px solid #D0E4A3;
+	border-right:1px solid #99CC33;
+	border-bottom:1px solid #99CC33;
+	border-left:1px solid #D0E4A3;
+	z-index:100; /*This property is important as submenus have zindex greater than parent*/
+	
+		
+}
+.tblTpMnu{
+	border:1px;
+	CURSOR: hand;
+	border:1px solid #F3F9DC; /*this color same as BG*/
+	border-bottom:1px solid #D0E4A3;
+}
+.tblTpMnu td{
+	font-family:Verdana, Arial, Helvetica, sans-serif;
+	font-size:10px;
+	padding-left:3px;
+}
+.tblTpMnu td.imgtd
+{
+    CLEAR: left;
+    VERTICAL-ALIGN: middle;
+    OVERFLOW: hidden;
+    CURSOR: hand;
+    WIDTH: 20px;
+    HEIGHT: 16px;
+    TEXT-ALIGN: center;
+    SPACING: 0px;
+	border:0px solid #F3F9DC;
+}
+.tblTpMnu td.imgtdToggle{
+	border:1px solid #000;
+}
+.tblTpMnu td.imgarrow
+{
+    CLEAR: left;
+    VERTICAL-ALIGN: middle;
+    OVERFLOW: hidden;
+    CURSOR: hand;
+    WIDTH: 20px;
+    HEIGHT: 16px;
+    TEXT-ALIGN: center;
+    SPACING: 0px;
+}
+
+.selectedTpMenu{
+	background-color:#99CC33; /*#D0E4A3;*/
+	color:#fff; 
+	font-weight:bold;
+	border:1px solid #000;
+}
+.selectedTpMenu td{
+	background-color:#99CC33; /*#D0E4A3;*/
+}
+.icondimensions{
+	
+}
+.arrowdimensions{
+	
+}
+
+
+.tblTpMnuCat{
+	border:1px;
+	CURSOR: hand;
+	border-bottom:1px solid #D0E4A3;
+	background-color: #D0E4A3; 
+	
+}
+.tblTpMnuCat td{
+	font-family:Verdana, Arial, Helvetica, sans-serif;
+	font-size:10px;
+	padding-left:0px;
+	font-weight:bold;
+}
+.tblTpMnuCat td.imgtd
+{
+    CLEAR: left;
+    VERTICAL-ALIGN: middle;
+    OVERFLOW: hidden;
+    CURSOR: hand;
+    WIDTH: 20px;
+    HEIGHT: 16px;
+    TEXT-ALIGN: center;
+    SPACING: 0px;
+	border:0px solid #F3F9DC;
+}
+.tblTpMnuCat td.imgtdToggle{
+	border:1px solid #000;
+}
+.tblTpMnuCat td.imgarrow
+{
+    CLEAR: left;
+    VERTICAL-ALIGN: middle;
+    OVERFLOW: hidden;
+    CURSOR: hand;
+    WIDTH: 20px;
+    HEIGHT: 16px;
+    TEXT-ALIGN: center;
+    SPACING: 0px;
+}
+
+</style>
+
+<script type="text/javascript" src="prototype.js"></script>
+<script type="text/javascript" src="tpmenu.js"></script>
+<script type="text/javascript" src="tpmenuhandler.js"></script>
+</head>
+
+<body style="margin:10px; ">
+<div style="height:100px;width: 200px; overflow: auto;" id="debug"></div>
+
+<script language="javascript">
+	var menu = new TpMenu();
+	var cat1 = new TpMenu({type:'menu', id: 'cat1',  title:'Menu Category', onclick:'onMenuClick', width:'200px', menuCss:'tblTpMnuCat', isCategory: true});
+	menu.addItem(cat1);
+	
+	var menu1 = new TpMenu({type:'menu', id: 'details',  image:'images/ico_sms.gif', title:'View Details', onclick:'onMenuClick', width:'200px'});
+	menu.addItem(menu1);
+
+	var menu2 = new TpMenu({type:'separator'}); /*this is not implemented yet*/
+	menu.addItem(menu2);
+	
+	var menu3 = new TpMenu({type:'menu', id: 'sms', image:'images/ico_sms.gif', title:'Send SMS', onclick:'onMenuClick', disabled: true });
+	menu.addItem(menu3);
+
+	var menu4 = new TpMenu({type:'menu', id: 'email', image:'images/ico_sms.gif', title:'Send Email', onclick:'onMenuClick'});
+	menu.addItem(menu4);
+	
+	var menu5 = new TpMenu({type:'menu', id: 'schedule', image:'images/ico_sms.gif', title:'Schedule Interview', onclick:'onMenuClick', hidden:true});
+	menu.addItem(menu5);
+
+	var menu6 = new TpMenu({type:'menu', id: 'flags', image:'images/ico_sms.gif', title:'Set Flag', onclick:'onMenuClick'});
+	var menu61 = new TpMenu({type:'menu', id: 'bf', image:'images/ico_sms.gif', title:'Blue Flag', onclick:'onMenuClick', width:'150px'});
+	menu6.addItem(menu61);
+	var menu62 = new TpMenu({type:'menu', id: 'rf', image:'images/ico_sms.gif', title:'Red Flag', onclick:'onMenuClick', isToggle:true, toggleState:true});
+	menu6.addItem(menu62);
+	var menu63 = new TpMenu({type:'menu', id: 'of', image:'images/ico_sms.gif', title:'Orange Flag', onclick:'onMenuClick'});
+	menu6.addItem(menu63);
+	
+	menu.addItem(menu6);
+	var mnuhandler = new TpMenuHandler(menu,{});
+	
+	function showMenu(vr,id){
+		mnuhandler.show(vr,id);
+	}	
+</script>
+<script language="javascript">
+function onMenuClick(params){
+	alert('menu clicked with parameter = ' + params);
+}
+</script>
+<b>TalentPool Controls: Menu up to n level</b><br>
+<br>
+
+<a href="#" onMouseOver="showMenu(1,'id1')" id="id1" >Show Menu 1</a>
+<br><br><br>
+<b>Tests:</b>
+<ul>
+<li>
+<a href="#" onClick="javascript:mnuhandler.disableMenuItem(menu3.getId(), true);">disableMenuItem(menu3.getId(), true)</a>
+</li>
+<li>
+<a href="#" onClick="javascript:mnuhandler.disableMenuItem(menu3.getId(), false);">disableMenuItem(menu3.getId(), false)</a>
+</li>
+<li>
+<a href="#" onClick="javascript:alert(mnuhandler.isDisabled(menu3.getId()));">isDisabled(menu3.getId())</a>
+</li>
+<li>
+<a href="#" onClick="javascript:mnuhandler.setMenuItemToggleState(menu62.getId(), true);">setMenuItemToggleState(menu62.getId(), true)</a>
+</li>
+<li>
+<a href="#" onClick="javascript:mnuhandler.setMenuItemToggleState(menu62.getId(), false);">setMenuItemToggleState(menu62.getId(), false)</a>
+</li>
+<li>
+<a href="#" onClick="javascript:alert(mnuhandler.getMenuItemToggleState(menu62.getId()));">getMenuItemToggleState(menu62.getId())</a>
+</li>
+<li>
+<a href="#" onClick="javascript:mnuhandler.hideMenuItem(menu5.getId(), true);">hideMenuItem(menu5.getId(), true)</a>
+</li>
+<li>
+<a href="#" onClick="javascript:mnuhandler.hideMenuItem(menu5.getId(), false);">hideMenuItem(menu5.getId(), false)</a>
+</li>
+<li>
+<a href="#" onClick="javascript:alert(mnuhandler.isHidden(menu5.getId()));">isHidden(menu5.getId())</a>
+</li>
+
+
+</ul>
+<br>
+<b>Creating Control</b>
+<pre>
+	var menu = new TpMenu();
+	
+	var cat1 = new TpMenu({type:'menu', id: 'cat1',  title:'Menu Category', onclick:'onMenuClick', width:'200px', menuCss:'tblTpMnuCat', isCategory: true});
+	menu.addItem(cat1);
+	
+	var menu1 = new TpMenu({type:'menu', id: 'details',  image:'images/ico_sms.gif', title:'View Details', onclick:'onMenuClick', width:'200px'});
+	menu.addItem(menu1);
+
+	var menu2 = new TpMenu({type:'separator'}); /*this is not implemented yet*/
+	menu.addItem(menu2);
+	
+	var menu3 = new TpMenu({type:'menu', id: 'sms', image:'images/ico_sms.gif', title:'Send SMS', onclick:'onMenuClick', disabled: true });
+	menu.addItem(menu3);
+
+	var menu4 = new TpMenu({type:'menu', id: 'email', image:'images/ico_sms.gif', title:'Send Email', onclick:'onMenuClick'});
+	menu.addItem(menu4);
+	
+	var menu5 = new TpMenu({type:'menu', id: 'schedule', image:'images/ico_sms.gif', title:'Schedule Interview', onclick:'onMenuClick', hidden:true});
+	menu.addItem(menu5);
+
+	var menu6 = new TpMenu({type:'menu', id: 'flags', image:'images/ico_sms.gif', title:'Set Flag', onclick:'onMenuClick'});
+	var menu61 = new TpMenu({type:'menu', id: 'bf', image:'images/ico_sms.gif', title:'Blue Flag', onclick:'onMenuClick', width:'150px'});
+	menu6.addItem(menu61);
+	var menu62 = new TpMenu({type:'menu', id: 'rf', image:'images/ico_sms.gif', title:'Red Flag', onclick:'onMenuClick', isToggle:true, toggleState:true});
+	menu6.addItem(menu62);
+	var menu63 = new TpMenu({type:'menu', id: 'of', image:'images/ico_sms.gif', title:'Orange Flag', onclick:'onMenuClick'});
+	menu6.addItem(menu63);
+	
+	menu.addItem(menu6);
+	var mnuhandler = new TpMenuHandler(menu,{});
+
+//To display menu on screen
+&lt'a href="#" onMouseOver="javascript:mnuhandler.show(12);" id="apid"&gt;Show Menu 1&lt/a&gt;
+
+</pre>
+<b>Constructor:</b>
+<br><br>
+<b>TpMenu({type:'menu', id:'rf', image:'images/ico_sms.gif', title:'Red Flag', onclick:'onMenuClick', width:'150px'});</b>
+<pre>
+{type:'menu', image:'images/ico_sms.gif', title:'Red Flag', onclick:'onMenuClick', width:'150px'}
+
+	type:'menu'
+	type can be either menu or separator
+	
+	id: 'rf'
+	Id given by the user
+	
+	image:'images/ico_sms.gif'
+	image for menu
+	
+	title:'Red Flag'
+	Text for menu
+	
+	onclick:'onMenuClick'
+	Action to be performed on click, when even is called it is called onMenuClick(originalMenuObject, optionsPassedInShow)
+	
+	width:'150px'
+	Width of menu, you can define width to any one menu in the given menu group, that will be applied to all list
+	
+	isToggle: true/false
+	Is this menu is toggle menu
+	by default false
+	
+	toggleState: true/false
+	What is toggle state true/false
+	by default false
+	
+	disabled: true/false
+	menu item is disabled - true or false
+	by default false
+	
+	hidden: true/false
+	menu item is hidden - true or false
+	by default false
+	
+</pre>
+<b>TpMenu Methods:</b>
+<br><br>
+<b>addItem(tpMenu)</b>
+<pre>
+	menu1.addItem(menu2)
+	adds menu2 to menu1 as submenu
+</pre>
+
+<br><br>
+<b>TpMenuHandler(menu,{})</b>
+<pre>
+	menu
+		TpMenu object
+
+	{} options can be any of following
+
+		menuClass:'divTpMnu'
+		default class for menu Div is 'divTpMnu'
+		
+		tableClass:'tblTpMnu'
+		default class for menu item is 'divTpMnu'
+		
+		selectedClass:'selectedTpMenu'
+		default class for selected menu item is 'divTpMnu'
+		
+		subMenuImg:'images/ico_sub_arrow.gif'
+		This is image of submenu arrow. default is 'images/ico_sub_arrow.gif'
+		
+</pre>
+<b>TpMenuHandler Methods:</b>
+<br><br>
+<b>show(options,elementId)</b>
+<pre>
+	tpmenuhandler.show(12,'id');
+	tpmenuhandler.show({applicantId:12, applicantName:'Shiv'},'id22');
+	
+	Displays menu, the options passed will be available as it is on the onclick event of the menuitem
+	
+</pre>
+<b>hide()</b>
+<pre>
+	tpmenuhandler.hide();
+	hides menu
+</pre>
+<b>setOffsetOptions()</b>
+<pre>
+	tpmenuhandler.setOffsetOptions({setHeight: false, setWidth: false, offsetTop:20});
+	for more information refer Position.clone method in prototype.js
+</pre>
+<b>disableMenuItem(menuId, state)</b>
+<pre>
+	menuId: Id of menu 
+	state: true/false
+</pre>
+<b>isDisabled(menuId)</b>
+<pre>
+	menuId: Id of menu 
+</pre>
+<b>setMenuItemToggleState(menuId, state)</b>
+<pre>
+	menuId: Id of menu 
+	state: true/false
+</pre>
+<b>getMenuItemToggleState(menuId)</b>
+<pre>
+	menuId: Id of menu 
+</pre>
+<b>hideMenuItem(menuId, state)</b>
+<pre>
+	menuId: Id of menu 
+	state: true/false
+</pre>
+<b>isHidden(menuId)</b>
+<pre>
+	menuId: Id of menu 
+</pre>
+
+
+
+<br><br>
+
+</body>
+</html>

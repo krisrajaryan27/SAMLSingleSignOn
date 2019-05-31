@@ -1,0 +1,30 @@
+.checkboxlistdiv{
+	scrollbar-arrow-color: #99CC33;scrollbar-3dlight-color: #FFFFFF;scrollbar-darkshadow-color: #FFFFFF;scrollbar-face-color: #FFFFFF;scrollbar-highlight-color: #99CC33;scrollbar-shadow-color: #99CC33;scrollbar-track-color: #F2F2F2;
+	-moz-box-sizing: border-box;
+    border:1px solid #99CC01;
+	overflow:hidden;
+	background-color:#FFF;
+	margin:0px;
+	padding:5px 0px 0px 0px;
+}
+.checkboxlistdiv div {
+    cursor:default;
+	border:0px solid #000099;
+	padding-top:0px; /*keep padding top and bottom as 0*/
+	padding-bottom:0px;
+	margin:0px;
+	height:18px;
+	overflow:hidden;
+	width:400px;
+}
+.chkboxclass{
+	padding:0px 5px 0px 5px;
+	border:0px;
+	margin:0px;
+	margin-bottom:0px;
+}
+
+.contentImgClass{
+	margin-bottom:-2px;
+	padding:0px 5px 0px 1px;
+}

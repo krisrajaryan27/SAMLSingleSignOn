@@ -1,0 +1,20 @@
+[Settings]
+NumFields=2
+
+[Field 1]
+Type=label
+Text=Port Number:
+Left=0
+Right=50
+Top=2
+Bottom=12
+
+[Field 2]
+Type=text
+Left=50
+Right=150
+Top=2
+Bottom=12
+State=9090
+;flags=MULTILINE|VSCROLL|READONLY
+;State="Description:\r\n\r\n1 - Show custom page A (where you are now)\r\n2 - Show the components page\r\n3 - Show custom page B\r\n4 - Show directory page\r\n5 - Show custom page C\r\n6 - Show installation progress"

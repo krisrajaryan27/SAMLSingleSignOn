@@ -1,0 +1,71 @@
+// Created by Microsoft (R) C/C++ Compiler Version 13.10.3077 (f6c74bba).
+//
+// c:\tempo\tohtml1\debug\converter.tlh
+//
+// C++ source equivalent of Win32 type library C:\\tempo\\ToHtml1\\Converter.dll
+// compiler-generated file created 12/29/06 at 18:29:30 - DO NOT EDIT!
+
+#pragma once
+#pragma pack(push, 8)
+
+#include <comdef.h>
+
+//
+// Forward references and typedefs
+//
+
+struct __declspec(uuid("f1a9dd29-3fef-4420-9546-480011a5f3b5"))
+/* LIBID */ __Converter;
+struct __declspec(uuid("52cf32e7-918b-4411-90fc-ad523644054c"))
+/* dual interface */ _clsConverter;
+struct /* coclass */ clsConverter;
+
+//
+// Smart pointer typedef declarations
+//
+
+_COM_SMARTPTR_TYPEDEF(_clsConverter, __uuidof(_clsConverter));
+
+//
+// Type library items
+//
+
+struct __declspec(uuid("52cf32e7-918b-4411-90fc-ad523644054c"))
+_clsConverter : IDispatch
+{
+    //
+    // Wrapper methods for error-handling
+    //
+
+    _bstr_t getTime ( );
+
+    //
+    // Raw methods provided by interface
+    //
+
+      virtual HRESULT __stdcall raw_getTime (
+        /*[out,retval]*/ BSTR * _arg1 ) = 0;
+};
+
+struct __declspec(uuid("ddf663ee-299f-422e-915b-1913f6236318"))
+clsConverter;
+    // [ default ] interface _clsConverter
+
+//
+// Named GUID constants initializations
+//
+
+extern "C" const GUID __declspec(selectany) LIBID_Converter =
+    {0xf1a9dd29,0x3fef,0x4420,{0x95,0x46,0x48,0x00,0x11,0xa5,0xf3,0xb5}};
+extern "C" const GUID __declspec(selectany) IID__clsConverter =
+    {0x52cf32e7,0x918b,0x4411,{0x90,0xfc,0xad,0x52,0x36,0x44,0x05,0x4c}};
+extern "C" const GUID __declspec(selectany) CLSID_clsConverter =
+    {0xddf663ee,0x299f,0x422e,{0x91,0x5b,0x19,0x13,0xf6,0x23,0x63,0x18}};
+
+//
+// Wrapper method implementations
+//
+
+#include "c:\tempo\tohtml1\debug\converter.tli"
+
+#pragma pack(pop)

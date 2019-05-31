@@ -1,0 +1,209 @@
+TABLE.tpcal{
+	border:1px solid #99CC01; 
+	border-collapse: collapse;
+	border-top:none;
+	border-right:none;
+}
+.tpcal TD{
+	width:18px;
+	height:20px;
+	padding:0px 0px 0px 5px; 
+	border-collapse: collapse; 
+	border-spacing: 0px;
+	text-align:left; 
+	margin:0;
+	cursor:default;	
+}
+
+.tpcal TD.ScrollBar, TD.ScrollElemEven, TD.ScrollElemOdd{
+	border-left:1px solid #99CC01; 
+	border-right:1px solid #99CC01; 
+	height:20px;
+	width:27px;
+	padding:1px; 
+	text-align:center;
+}
+
+.tpcal TD.ScrollElemEven, TD.Even, .tpweek TD.Even{
+	background-color:#DBDBDB;
+}
+
+.tpcal TD.ScrollElemOdd, TD.Odd, .tpweek TD.Odd, TD.appointmentsOdd, TD.appointmentsEven{
+	background-color:#FFFFFF;
+}
+
+.tpcal TD.TPCell{
+	background-color:#D0E4A3;
+	border-top: none;
+	border-bottom:none; 
+}
+
+.tpcal TD.weekDay {
+	border-bottom:1px solid #ffffff; 
+	border-top:1px solid #99CC01; 
+	background-color:#DBDBDB; 
+}
+
+TABLE.tpweek{		
+	border-collapse: collapse;
+	border:none;
+	width:100%;
+	height:100%; 
+}
+
+.tpweek TD{
+	border:1px solid #99CC01;
+	width:11%;
+	height:14px;
+	padding:2px; 
+	spacing:2px;
+	border-spacing: 0px;
+	text-align:center; 
+	margin:0;
+	cursor:default;	
+}
+
+.tpweek TD.day, TD.daySelected{
+	text-align:center; 
+	background-color:#D0E4A3;
+	border-bottom: 1px solid #ffffff;
+}
+
+.tpweek TD.dt, TD.dtSelected{
+	text-align:center; 
+	background-color:#F2F2F2;
+	border-bottom: 1px dotted #999999;
+}
+
+.tpweek TD.monthYear{
+	text-align:left; 
+	background-color:#D0E4A3;
+}
+
+.tpweek TD.appointments, TD.appointmentsEven, TD.appointmentsOdd, TD.weekDaySelected {
+	padding:0px; 
+	spacing:0px;
+	height:350px;
+	width:105px;	
+	border-spacing:0px;
+}
+
+.tpweek TD.weekDaySelected {	
+	border-right:2px solid #265644;
+	border-bottom:2px solid #265644;
+	border-left:2px solid #265644;	
+}
+
+.tpweek TD.dtSelected {
+	border-right:2px solid #265644;
+	border-left:2px solid #265644;	
+}
+
+.tpweek TD.daySelected {
+	border-top:2px solid #265644;
+	border-right:2px solid #265644;	
+	border-left:2px solid #265644;	
+}
+
+.tpweek TD.container {
+	padding: 0px;
+	spacing: 0px;
+	border:none;
+	border-bottom: 1px dotted #999999;
+}
+
+.tpweek TD.containerNoBorder {
+	padding: 0px;
+	spacing: 0px;
+	border:none;
+	border-bottom: none;
+}
+
+TABLE.appointment{
+	border:none;
+	padding:0px;
+	spacing:0px;
+}
+
+.appointment TD{
+	text-align:left;
+	padding:0px 0px 0px 0px;
+	spacing:0px;
+	margin:0px;
+	border:none;
+	color:#000000;
+}
+
+
+.tpweek TD.newAppointment{
+	border:none;
+	text-align:center;
+	padding:0px 0px 0px 0px;
+}
+
+Table.newAppointmentPopUp {
+	background-color:#D0E4A3;
+    position:absolute;
+    align:center;
+    border-size:0px;
+	padding:0px;
+	spacing:0px;
+	width:100%;
+}
+.newAppointmentPopUp TD {
+	padding:0px;
+	border-size:0px;
+}
+.newAppointmentPopUp td.label{ vertical-align:middle;font-weight:bold;}
+.newAppointmentPopUp TD.titlebar {
+	cursor:move;
+	width:100%;
+}
+
+.closeButton {
+	border:none;
+	cursor:default;
+}
+
+/*.tpcaldropdowntextbox {
+	border:1px solid #9EAC64;
+	background-color:#F3F9DC;
+	height:18px;
+	margin:0px;
+	padding:0px 0px;
+	font-size:12px;
+	text-align:center;
+}*/
+
+/*.tpcaldropdowndiv {
+	scrollbar-track-color: #FFFFFF;
+	scrollbar-arrow-color: #265644;
+	scrollbar-face-color: #DDEBA5;
+	scrollbar-3dlight-color:#9EAC64;
+	scrollbar-shadow-color: #9EAC64;
+	scrollbar-darkshadow-color: #DDEBA5;
+	scrollbar-highlight-color: #DDEBA5;
+    
+	-moz-box-sizing: border-box;
+    box-sizing: border-box;
+    border:1px solid #9EAC64;
+	overflow:auto;
+	background-color:#F3F9DC;
+	padding:0px;
+	margin:0px;
+}*/
+
+/*.tpcaldropdowndiv div {	
+    cursor:default;
+	border:0px solid #000099;
+	padding:0px 2px; 
+	margin:0px;
+	height:18px;
+	overflow:hidden;
+	font-size:12px;
+	text-align:center;
+}*/
+
+.selectedAppointment {
+	background-color:#FEF6B0; 
+}

@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>	
+	    <dbquery name="qLockinManager_ChangeSources">
+			UPDATE tp_applicants ta, tp_sources ts 
+			SET ta.source_id = (SELECT source_id FROM tp_sources WHERE system_generated=? LIMIT 0,1)
+			WHERE ta.source_id = ts.source_id
+			AND ts.system_generated!=?
+			AND (select count(*) 
+			from tp_applicant_joining_history tajh
+			where tajh.applicant_id=ta.applicant_id) = 0
+			AND ts.lock_in_period_on_import &gt; 0 
+			AND ts.lock_in_period_on_import is not null
+			AND ta.resume_locked_date &lt; DATE_SUB(now(),INTERVAL ts.lock_in_period_on_import MONTH)
+	    </dbquery>  
+	</dbqueries>
+	<dataqueries>
+	    <dataquery name="dLockinManager_ChangeSources" dbquery="qLockinManager_ChangeSources" />
+	</dataqueries>   
+</dbmap>

@@ -1,0 +1,50 @@
+:: ............................................................
+::
+:: File Name         : build_talentpool.properties
+:: Description       : local build variables used by ant
+::
+:: Usage             : see Notes below
+::
+:: ............................................................
+app.home=C:/Build/Projects/talentpool/Trunk
+build.home=build
+catalina.home=D:/Env/tomcat-7.0.22
+jdk.home=D:/Env/jdk1.7.0_03
+deploy.home=C:/Build/Projects/talentpool/Trunk/Latest_Build/talentpool
+license.utility.home=C:/Build/Projects/talentpool/Trunk/Latest_Build/license
+service.jar.home=C:/Build/Projects/talentpool/Trunk/Latest_Build/servicejar
+javacc.home=D:/Env/javacc-4.0/bin/lib
+
+debug.flag=off
+
+app.name=TalentPool
+app.version=14.0.0
+source.dir=src
+compile.debug=true
+compile.deprecation=false
+compile.optimize=on
+
+meta-inf.dir=META-INF
+
+:: ............................................................
+::
+:: Notes
+::   1. enter correct paths for the following:
+::
+::      app.home - location of application files (from cvs).
+::
+::      build.home - subdir under "app.home" where "prepare" &
+::                   "compile" targets generate their output.
+::
+::      catalina.home - location of jakarta tomcat.
+::
+::      deploy.home - where application running from.
+::
+::      dist.home - where installation files located.
+::
+::
+:: ............................................................
+::
+:: Author            : Shivprasad Dhakane
+:: Date Created      : 20 March 2006
+:: ............................................................

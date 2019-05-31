@@ -1,0 +1,224 @@
+package com.talentPool.applicant.dataobject;
+
+import java.sql.Date;
+import java.util.Comparator;
+
+import com.talentPool.common.Logger.TPLogger;
+import com.talentPool.common.db.SimpleDataObject;
+import com.talentPool.common.properties.GlobalConstants;
+import com.talentPool.common.utils.Utils;
+
+public class EmploymentHistoryData extends SimpleDataObject{
+	
+	public EmploymentHistoryData(){		
+	}
+	
+	public EmploymentHistoryData(String employerFromDate, String employerToDate, String employerName, String designationName, String employerExperience){
+		java.util.Date fromDt = null;
+		if(!Utils.isBlankOrNull(employerFromDate)){
+			fromDt = Utils.convertToDate("1" + Utils.dateDescSeparator + employerFromDate, Utils.regDDMMMYYYYFormat);
+			if (fromDt != null) {
+				setEmployerFromDate(new java.sql.Date(fromDt.getTime()));
+			}
+		}
+		java.util.Date toDt = null;
+		if(!Utils.isBlankOrNull(employerToDate)){
+			toDt = Utils.convertToDate("1" + Utils.dateDescSeparator + employerToDate, Utils.regDDMMMYYYYFormat);
+			if(toDt!=null){
+				setEmployerToDate(new java.sql.Date(toDt.getTime()));
+			}
+		}
+		setEmployerName(employerName);
+		setDesignationName(designationName);
+		setEmployerExperience(employerExperience);
+	}
+
+	public static final Comparator<EmploymentHistoryData> REVERSE_CHRONOLOGICAL =  new Comparator<EmploymentHistoryData>() {
+				public int compare(EmploymentHistoryData e1, EmploymentHistoryData e2){
+					return e2.getEmployerFromDate().compareTo(e1.getEmployerFromDate());
+				}
+	};
+	
+	/**
+	 * @return the applicantId
+	 */
+	public String getApplicantId() {
+		return getId("applicantId");		
+	}
+	
+	/**
+	 * @param applicantId the applicantId to set
+	 */
+	public void setApplicantId(String applicantId) {
+		setAttribute("applicantId", applicantId);
+	}
+	
+	/**
+	 * @return the employerId
+	 */
+	public Integer getEmployerId() {
+		return getInt("employerId");
+	}
+
+	/**
+	 * @param employerId the employerId to set
+	 */
+	public void setEmployerId(Integer employerId) {
+		setAttribute("employerId",  employerId);
+	}
+		
+	/**
+	 * @return the employerName
+	 */
+	public String getEmployerName() {
+		return getString("employerName");
+	}
+	/**
+	 * @param employerName the employerName to set
+	 */
+	public void setEmployerName(String employerName) {
+		setAttribute("employerName",employerName);
+	}
+	
+	/**
+	 * @return the designationId
+	 */
+	public Integer getDesignationId() {
+		return getInt("designationId");
+	}
+
+	/**
+	 * @param designationId the designationId to set
+	 */
+	public void setDesignationId(Integer designationId) {
+		setAttribute("designationId", designationId);
+	}
+	
+	/**
+	 * @return the employerDesignation
+	 */
+	public String getDesignationName() {
+		return getString("designationName");
+	}
+	/**
+	 * @param designationName the employerDesignation to set
+	 */
+	public void setDesignationName(String designationName) {
+		setAttribute("designationName",designationName);
+	}
+	
+	/**
+	 * @return the employerExperience
+	 */
+	public String getEmployerExperience() {
+		return getString("employerExperience");
+	}
+	/**
+	 * @param employerExperience the employerExperience to set
+	 */
+	public void setEmployerExperience(String employerExperience) {
+		setAttribute("employerExperience", employerExperience);
+	}
+
+	/**
+	 * @return the employmentHistoryId
+	 */
+	public Integer getEmploymentHistoryId() {
+		return getInt("employmentHistoryId");
+	}
+
+	/**
+	 * @param employmentHistoryId the employmentHistoryId to set
+	 */
+	public void setEmploymentHistoryId(Integer employmentHistoryId) {
+		setAttribute("employmentHistoryId" ,employmentHistoryId);
+	}
+
+	/**
+	 * @return the employerFromDate
+	 */
+	public Date getEmployerFromDate() {
+		return getDate("employerFromDate");
+	}
+
+	/**
+	 * @param employerFromDate the employerFromDate to set
+	 */
+	public void setEmployerFromDate(Date employerFromDate) {
+		setAttribute("employerFromDate" , employerFromDate);
+	}
+
+	/**
+	 * @return the employerToDate
+	 */
+	public Date getEmployerToDate() {
+		return getDate("employerToDate");
+	}
+
+	/**
+	 * @param employerToDate the employerToDate to set
+	 */
+	public void setEmployerToDate(Date employerToDate) {
+		setAttribute("employerToDate",  employerToDate);
+	}
+	
+	public void setGrossSalary(String grossSalary){
+		setAttribute("grossSalary", grossSalary);
+	}
+	
+	public String getGrossSalary(){
+		return getString("grossSalary");
+	}
+	
+	public void setAllowance(String allowance){
+		setAttribute("allowance",allowance);
+	}
+	
+	public String getAllowance(){
+		return getString("allowance");
+	}
+	
+	public void setDutiesInvolved(String dutiesInvovled){
+		setAttribute("dutiesInvolved", dutiesInvovled);
+	}
+
+	public String getDutiesInvolved(){
+		return getString("dutiesInvolved");
+	}
+	
+	public void setReasonForLeaving(String reasaon){
+		setAttribute("reasonForLeaving", reasaon);
+	}
+
+	public String getReasonForLeaving(){
+		return getString("reasonForLeaving");
+	}
+	
+	public String getFormattedEmploymentHistory() {
+		StringBuffer sb = new StringBuffer();
+		String employerName=getEmployerName();
+		String designationName=getDesignationName();
+		Date employerFromDate= getEmployerFromDate();
+		Date employerToDate=getEmployerToDate();
+		String employerExperience=getEmployerExperience();
+		try{
+			if(!Utils.isBlankOrNull(employerName)){
+				sb.append(employerName);
+				sb.append(", ");
+			}
+			if(!Utils.isBlankOrNull(designationName)){
+				sb.append(designationName);
+				sb.append(" ");
+			}
+			if(!Utils.isBlankOrNull(employerExperience)){
+				sb.append("(");				
+				sb.append(Utils.getDateDifferenceInYearMonthString(null,null,Integer.parseInt(employerExperience)));				
+				sb.append(")");
+			}		
+		}catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR,e);
+		}		
+		return sb.toString(); 
+	}
+	
+}

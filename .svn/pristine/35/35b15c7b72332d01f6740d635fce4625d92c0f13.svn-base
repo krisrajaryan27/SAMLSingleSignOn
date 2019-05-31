@@ -1,0 +1,294 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>
+		<!-- Calendar Home Section -->
+		<dbquery name="qGetAppointmentData">
+			(SELECT tpa.appointment_id, ta.applicant_id, ta.applicant_name, tpa.appointment_from_date, 
+			tpa.appointment_to_date, CONCAT(tps.position_step_title, ' - ', @@) as subject, 
+			tpa.appointment_created_by, tpa.position_id, tpos.position_title, ta.applicant_original_resume_path, 
+			ts.source_title, ? as type, (select tasm.status_message 
+				from tp_applicant_status_messages tasm
+				where tasm.applicant_id = ta.applicant_id
+				and tasm.position_step_id = ta.applicant_step_id
+				and tasm.date_created &gt; (select tasp.process_moved_date 
+										from tp_applicant_selection_process tasp
+										where tasp.applicant_id = ta.applicant_id
+										and tasp.position_step_id_to = ta.applicant_step_id
+										order by tasp.process_moved_date desc
+										limit 0,1) 
+				order by tasm.date_created desc 
+				limit 0,1) as status_message,tpa.interview_mode,tpa.details_interview_mode
+			FROM tp_appointments AS tpa 
+			@@
+			LEFT JOIN tp_applicants AS ta ON (tpa.applicant_id = ta.applicant_id) 
+			LEFT JOIN tp_positions AS tpos ON (tpa.position_id = tpos.position_id) 
+			LEFT JOIN tp_position_steps AS tps ON (tpa.position_step_id = tps.position_step_id) 
+			LEFT JOIN tp_appointment_status AS tpas ON (tpas.appointment_status_id = tpa.appointment_status_id)
+			LEFT JOIN tp_sources AS ts ON (ts.source_id = ta.source_id) 
+			WHERE tpa.appointment_from_date &gt; ? 
+			AND tpa.appointment_to_date &lt; ? @@ ) @@			
+			ORDER BY appointment_from_date
+		</dbquery>
+		<dbquery name="qGetAppointmentAttendees">
+			select tu.user_id, CONCAT(tu.user_fname,' ',tu.user_lname) as name, tu.user_email, tu.user_cell_phone
+			from tp_users AS tu, 
+			tp_appointment_attendees as tatt where tatt.attendee_id = tu.user_id and tatt.appointment_id = ?
+		</dbquery>
+		<dbquery name="qCalendarManager_GetTemplatesForType">
+			select template_code, template_name, template_is_default
+			from tp_templates
+			where template_type_id = ?
+			and template_auto = ?
+			order by template_name
+		</dbquery>
+		<!--End Calendar Home Section -->
+		<!-- New Appointment Section -->
+		<dbquery name ="qGetOpenPositions">
+		    select position_id, @@ as position_title from tp_positions where position_status = ? @@
+		</dbquery>
+		<dbquery name="qApplicantsInProcess">
+			select ta.applicant_id, ta.applicant_name 
+			from tp_applicants as ta, tp_positions as tpos, tp_position_steps tps  
+			where ta.applicant_position_id is not null 
+			and ta.applicant_step_id is not null 
+			and ta.applicant_position_id = tpos.position_id
+			and tpos.position_status = ? 
+			and tps.position_step_id = ta.applicant_step_id 
+			and tps.position_step_isscheduled = ? 
+			@@ 
+		</dbquery>
+		<dbquery name="qGetApplicantSelectionStatusInfo">
+			SELECT ta.applicant_id, ta.applicant_name, @@ as position_title, tps.position_step_title, 
+					ta.applicant_position_id, ta.applicant_step_id 
+			FROM tp_applicants AS ta 
+			LEFT JOIN tp_positions AS tpos ON ( ta.applicant_position_id = tpos.position_id ) 
+			LEFT JOIN tp_position_steps AS tps ON ( ta.applicant_step_id = tps.position_step_id )
+			WHERE ta.applicant_id = ? 
+		</dbquery>
+		<dbquery name="qGetPositionInterviewers">
+			select distinct tu.user_id, tu.user_name, tu.user_fname, tu.user_lname,  tr.role_title,
+			CONCAT(user_fname,' ',user_lname) as name 
+			from tp_users as tu 
+			join tp_position_step_users as tpu on (tu.user_id = tpu.user_id),	
+			tp_user_roles tur, tp_roles tr
+			where tpu.position_step_id = ? and tu.user_status = ? and tpu.is_responsible_for_scheduling = ?
+			AND tr.role_id=tur.role_id
+			AND tu.user_id=tur.user_id 
+			union
+			select distinct tu.user_id, tu.user_name, tu.user_fname, tu.user_lname,  tr.role_title,
+			CONCAT(user_fname,' ',user_lname) as name 
+			from tp_users as tu, tp_user_roles tur, tp_roles tr 
+			where tu.user_id in (select attendee_id 
+							from tp_appointment_attendees 
+							where appointment_id = ?)
+			AND tr.role_id=tur.role_id
+			AND tu.user_id=tur.user_id 
+			order by name
+		</dbquery>
+		<dbquery name="qGetNotifications">
+			select tp_notification_numberOfMinutes, tp_notification_description from tp_notifications order by tp_notification_numberOfMinutes
+		</dbquery>
+		<dbquery name="qCreateNewAppointment">
+			insert into tp_appointments (appointment_subject, appointment_from_date, appointment_to_date, 
+			appointment_date_created, appointment_created_by, applicant_id, 
+			position_id, position_step_id, remind_me, remind_attendee, remind_applicant, 
+			sms_remind_me, sms_remind_attendee, sms_remind_applicant, appointment_status_id,
+			appointment_date_modified, appointment_modified_by, remind_me_template_code, remind_attendee_template_code, 
+			remind_applicant_template_code, sms_remind_me_template_code, sms_remind_attendee_template_code, 
+			sms_remind_applicant_template_code,interview_mode,details_interview_mode
+			) 
+			values (?, ?, ?, now(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), ?, ?, ?, ?, ?, ?, ?,?,?)
+		</dbquery>
+		<dbquery name="qCreateNewAppointmentAttendee">
+			insert into tp_appointment_attendees (appointment_id, attendee_id) values (?, ?)
+		</dbquery>
+		<dbquery name="qGetStatusList">
+			select * from tp_appointment_status
+		</dbquery>
+		<dbquery name="qCalendarManager_GetAppointments">
+			select appointment_id 
+			from tp_appointments 
+			where applicant_id = ? 
+			and position_id = ?
+			and position_step_id = ?
+			and appointment_from_date > now()
+		</dbquery>
+		<dbquery name="qCalendarManager_GetAppointmentInPast">
+			select tapp.appointment_id
+			from tp_appointments tapp, tp_applicants ta
+			where tapp.applicant_id = ta.applicant_id
+			and tapp.position_id = ta.applicant_position_id
+			and tapp.position_step_id = ta.applicant_step_id
+			and ta.applicant_id = ?
+			and tapp.appointment_date_created > (select tasp.process_date_created 
+								from tp_applicant_selection_process tasp
+								where tasp.applicant_id = ta.applicant_id
+								and tasp.position_id = ta.applicant_position_id
+								and tasp.position_step_id_from=0 
+								order by tasp.process_date_created desc limit 0,1)
+			and tapp.appointment_status_id != ?
+			order by tapp.appointment_date_created desc limit 0, 1
+		</dbquery>
+		<!--End New Appointment Section -->
+		<!--Printable View Section-->
+		
+		<!--End Printable View Section-->
+		
+		<!--Edit Appointment Section -->
+		<dbquery name="qGetAppointmentDataToEdit">
+			SELECT tpa.appointment_id, ta.applicant_name, ta.applicant_id, 
+			tpa.appointment_created_by, tpa.appointment_date_created, tpa.appointment_date_modified,
+			tpa.appointment_from_date, 	
+			tpa.appointment_to_date, 
+			CONCAT(tps.position_step_title, ' for ', @@) as subject, 
+			tpa.position_id, tpa.position_step_id, tpa.remind_me, tpa.remind_attendee, tpa.remind_applicant, 
+			tpa.sms_remind_me, tpa.sms_remind_attendee, tpa.sms_remind_applicant, tpa.appointment_status_id,
+			tpa.remind_me_template_code, tpa.remind_attendee_template_code, tpa.remind_applicant_template_code, 
+			tpa.sms_remind_me_template_code, tpa.sms_remind_attendee_template_code, tpa.sms_remind_applicant_template_code,tpa.interview_mode,tpa.details_interview_mode 
+			FROM tp_appointments AS tpa 
+			LEFT JOIN tp_applicants AS ta ON (tpa.applicant_id = ta.applicant_id) 
+			LEFT JOIN tp_positions AS tpos ON (tpa.position_id = tpos.position_id) 
+			LEFT JOIN tp_position_steps AS tps ON (tpa.position_step_id = tps.position_step_id) 
+			WHERE tpa.appointment_id = ?
+		</dbquery>
+		<dbquery name="qEditAppointment">
+			update tp_appointments set appointment_from_date = ?, appointment_to_date = ?, remind_me = ?, 
+			remind_attendee = ?, remind_applicant = ?, sms_remind_me = ?, 
+			sms_remind_attendee = ?, sms_remind_applicant = ?, appointment_status_id = ?, 
+			appointment_modified_by = ?, appointment_date_modified=now(),
+			remind_me_template_code = ?, remind_attendee_template_code = ?, 
+			remind_applicant_template_code = ?, sms_remind_me_template_code = ?, 
+			sms_remind_attendee_template_code = ?, sms_remind_applicant_template_code = ?,interview_mode=?,details_interview_mode=?
+			where appointment_id = ?
+		</dbquery>
+		<dbquery name="qDeleteAppointmentAttendees">
+			Delete from tp_appointment_attendees where appointment_id = ?
+		</dbquery>						
+		<!--End Edit Appointment Section-->
+		
+		<!--Delete Appointment Section-->
+		<dbquery name="qDeleteAppointment">
+			delete from tp_appointments where appointment_id = ?
+		</dbquery>				
+		<!--End Delete Appointment Section-->
+	</dbqueries>
+	<dataqueries>
+		<!-- Calendar Home Section -->
+	    <dataquery name="dGetAppointmentData" dbquery="qGetAppointmentData" object="com.talentPool.calendar.dataobject.AppointmentData">
+			<attribute name= "appointmentId" column="appointment_id" type ="STRING" />
+	    	<attribute name= "applicantId" column="applicant_id" type ="STRING" />			
+	    	<attribute name= "applicantName" column="applicant_name" type ="STRING" />
+			<attribute name= "applicantOriginalResumePath" column="applicant_original_resume_path" type ="STRING" />			
+			<attribute name= "appointmentFromDate" column="appointment_from_date" type ="STRING" />
+			<attribute name= "appointmentToDate" column="appointment_to_date" type ="STRING" />
+			<attribute name= "appointmentSubject" column="subject" type ="STRING" />
+			<attribute name= "appointmentCreatedBy" column="appointment_created_by" type ="STRING" />
+			<attribute name= "applicantPositionId" column="position_id" type ="STRING" />
+			<attribute name= "status" column="status_message" type ="STRING" />
+			<attribute name= "applicantPositionTitle" column="position_title" type ="STRING" />
+			<attribute name= "source" column="source_title" type ="STRING" />
+			<attribute name= "type" column="type" type ="STRING" />
+			<attribute name= "interviewMode" column="interview_mode" type ="STRING" />
+			<attribute name= "detailsInterviewMode" column="details_interview_mode" type ="STRING" />
+		</dataquery>
+		<dataquery name="dGetAppointmentAttendees" dbquery="qGetAppointmentAttendees" object="com.talentPool.calendar.dataobject.UserData">
+			<attribute name= "userId" column="user_id" type ="STRING" />
+			<attribute name= "userName" column="name" type ="STRING" />
+			<attribute name= "email" column="user_email" type ="STRING" />
+			<attribute name= "cellPhone" column="user_cell_phone" type ="STRING" />			
+		</dataquery>
+		<dataquery name="dCalendarManager_GetTemplatesForType" dbquery="qCalendarManager_GetTemplatesForType" object="com.talentPool.notifier.dataobject.TemplateData">
+			<attribute name= "templateCode" column="template_code" type ="STRING" />
+		    <attribute name= "templateName" column="template_name" type ="STRING" />
+		    <attribute name= "isTemplateDefault" column="template_is_default" type ="STRING" />
+		</dataquery>
+		<!-- End Calendar Home Section -->
+		<!-- New Appointment Section -->
+		<dataquery name="dGetOpenPositions" dbquery="qGetOpenPositions" object = "com.talentPool.positions.dataobject.PositionData">
+	        <attribute name= "positionId" column="position_id" type ="STRING " />
+	        <attribute name= "positionTitle" column="position_title" type ="STRING "/>
+		</dataquery>
+		<dataquery name="dApplicantsInProcess" dbquery="qApplicantsInProcess" object="com.talentPool.calendar.dataobject.AppointmentData">
+			<attribute name= "applicantId" column="applicant_id" type ="INT" />
+		    <attribute name= "applicantName" column="applicant_name" type ="STRING" />
+		</dataquery>
+		<dataquery name="dGetApplicantSelectionStatusInfo" dbquery="qGetApplicantSelectionStatusInfo" object="com.talentPool.calendar.dataobject.AppointmentData">
+			<attribute name= "applicantId" column="applicant_id" type ="STRING" />
+	    	<attribute name= "applicantName" column="applicant_name" type ="STRING" />
+			<attribute name= "applicantPositionId" column="applicant_position_id" type ="STRING" />			
+			<attribute name= "applicantPositionTitle" column="position_title" type ="STRING" />
+			<attribute name= "applicantStepId" column="applicant_step_id" type ="STRING" />
+			<attribute name= "applicantStepTitle" column="position_step_title" type ="STRING" />
+		</dataquery>
+		<dataquery name="dGetPositionInterviewers" dbquery="qGetPositionInterviewers" object="com.talentPool.user.dataobject.LoginData">
+			<attribute name="userId" column="user_id" type="STRING"/>
+	        <attribute name="userName" column="user_name" type="STRING"/>
+	        <attribute name="firstName" column="user_fname" type="STRING"/>
+	        <attribute name="lastName" column="user_lname" type="STRING"/>
+	        <attribute name="name" column="name" type="STRING"/>
+	        <attribute name="roleTitle" column="role_title" type="STRING"/>
+		</dataquery>		
+		<dataquery name="dGetNotifications" dbquery="qGetNotifications" object="com.talentPool.calendar.dataobject.TimeData">
+			<attribute name= "numberOfMinutes" column="tp_notification_numberOfMinutes" type ="INT" />
+	    	<attribute name= "description" column="tp_notification_description" type ="STRING" />
+		</dataquery>
+		<dataquery name="dCreateNewAppointment" dbquery="qCreateNewAppointment" />
+		<dataquery name="dCreateNewAppointmentAttendee" dbquery="qCreateNewAppointmentAttendee" />
+		<dataquery name="dGetStatusList" dbquery="qGetStatusList" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name= "statusId" column="appointment_status_id" type ="INT" />
+	    	<attribute name= "statusText" column="appointment_status_text" type ="STRING" />
+		</dataquery>
+		<dataquery name="dCalendarManager_GetAppointments" dbquery="qCalendarManager_GetAppointments" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name= "appointmentId" column="appointment_id" type ="INT" />
+		</dataquery>
+		<dataquery name="dCalendarManager_GetAppointmentInPast" dbquery="qCalendarManager_GetAppointmentInPast" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name= "appointmentId" column="appointment_id" type ="INT" />
+		</dataquery>		
+		<!--End New Appointment Section -->
+		
+		<!--Printable View Section-->
+		
+		<!--End Printable View Section-->
+		
+		<!--Edit Appointment Section-->
+		<dataquery name="dGetAppointmentDataToEdit" dbquery="qGetAppointmentDataToEdit" object="com.talentPool.calendar.dataobject.AppointmentData">
+			<attribute name= "appointmentId" column="appointment_id" type ="STRING" />
+	    	<attribute name= "applicantName" column="applicant_name" type ="STRING" />
+	    	<attribute name= "applicantId" column="applicant_id" type ="STRING" />
+	    	<attribute name= "appointmentCreatedBy" column="appointment_created_by" type ="STRING" />
+	    	<attribute name= "appointmentDateCreated" column="appointment_date_created" type ="STRING" />
+	    	<attribute name= "appointmentDateModified" column="appointment_date_modified" type ="STRING" />
+			<attribute name= "appointmentFromDate" column="appointment_from_date" type ="STRING" />
+			<attribute name= "appointmentToDate" column="appointment_to_date" type ="STRING" />
+			<attribute name= "appointmentSubject" column="subject" type ="STRING" />
+			<attribute name= "applicantPositionId" column="position_id" type ="STRING" />
+			<attribute name= "applicantStepId" column="position_step_id" type ="STRING" />
+			<attribute name= "remindMe" column="remind_me" type ="STRING" />
+			<attribute name= "remindInterviewer" column="remind_attendee" type ="STRING" />
+			<attribute name= "remindCandidate" column="remind_applicant" type ="STRING" />
+			<attribute name= "smsRemindMe" column="sms_remind_me" type ="STRING" />
+			<attribute name= "smsRemindInterviewer" column="sms_remind_attendee" type ="STRING" />
+			<attribute name= "smsRemindCandidate" column="sms_remind_applicant" type ="STRING" />
+			<attribute name= "status" column="appointment_status_id" type ="STRING" />
+			<attribute name= "remindMeTemplate" column="remind_me_template_code" type ="STRING" />
+			<attribute name= "remindInterviewerTemplate" column="remind_attendee_template_code" type ="STRING" />
+			<attribute name= "remindCandidateTemplate" column="remind_applicant_template_code" type ="STRING" />
+			<attribute name= "smsRemindMeTemplate" column="sms_remind_me_template_code" type ="STRING" />
+			<attribute name= "smsRemindInterviewerTemplate" column="sms_remind_attendee_template_code" type ="STRING" />
+			<attribute name= "smsRemindCandidateTemplate" column="sms_remind_applicant_template_code" type ="STRING" />
+			<attribute name= "status" column="appointment_status_id" type ="STRING" />
+			<attribute name= "interviewMode" column="interview_mode" type ="STRING" />
+			<attribute name= "detailsInterviewMode" column="details_interview_mode" type ="STRING" />
+		</dataquery>
+		<dataquery name="dEditAppointment" dbquery="qEditAppointment"></dataquery>
+		<dataquery name="dDeleteAppointmentAttendees" dbquery="qDeleteAppointmentAttendees"></dataquery>		
+		<!--End Edit Appointment Section-->
+		
+		<!--Delete Appointment Section-->
+		<dataquery name="dDeleteAppointment" dbquery="qDeleteAppointment" />
+		<!--End Delete Appointment Section-->
+	</dataqueries>   
+</dbmap>

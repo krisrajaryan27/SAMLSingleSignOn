@@ -1,0 +1,92 @@
+/**
+ * 
+ */
+package com.talentPool.masters.utils;
+
+import java.io.StringWriter;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.xml.sax.SAXException;
+import org.xml.sax.helpers.AttributesImpl;
+
+import com.talentPool.common.Logger.TPLogger;
+import com.talentPool.common.properties.GlobalConstants;
+import com.talentPool.common.utils.CommonUtils;
+import com.talentPool.common.utils.Utils;
+import com.talentPool.common.xmlutils.XMLWriter;
+import com.talentPool.masters.dataobject.LocationData;
+import com.talentPool.masters.manager.LocationManager;
+
+/**
+ * @author Ajeet
+ *
+ */
+public class LocationUtils {
+
+	public String getJSArrayLocations() {
+		String jsArrayLocations = null;
+		try {
+			LocationManager locationManager = new LocationManager();
+			List<LocationData> locations = locationManager.getAllLocations();
+			jsArrayLocations = CommonUtils.getListJavaScriptArrayWithProperties((ArrayList<LocationData>) locations, "locationId", "locationName");
+		} catch (SQLException e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return jsArrayLocations;
+	}
+	
+	public String getXMLForLocations() {
+		String locationsXML = null;
+		try {
+			LocationManager locationManager = new LocationManager();
+			List<LocationData> locations = locationManager.getAllLocations();
+			locationsXML = getXmlForLocations(locations);
+			locationsXML = Utils.escapeJavaScript(locationsXML);
+		} catch (SQLException e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return locationsXML;
+	}
+	
+	public static String getXmlForLocations(List<LocationData> locations) {
+		StringWriter sWr = new StringWriter();
+		XMLWriter wr = new XMLWriter(sWr);		
+		try {
+			wr.startDocument();
+			wr.startElement("rows");
+			if (locations != null && locations.size() > 0) {
+				for (int i = 0; i < locations.size(); i++) {
+					LocationData locationData = (LocationData) locations.get(i);
+					
+					String locationId = locationData.getLocationId();
+					String locationName = Utils.getBlankIfNull(locationData.getLocationName());					
+					
+					AttributesImpl atr = new AttributesImpl();					
+					atr.addAttribute("", "id", "", "", String.valueOf(locationId));
+					wr.startElement("", "row", "", atr);
+										
+					atr = new AttributesImpl();
+					atr.addAttribute("", "name", "", "", "locationName");
+					wr.startElement("", "userdata", "", atr);
+					wr.characters(locationName);
+					wr.endElement("userdata");
+					
+					wr.startElement("cell");
+					wr.characters(locationName);
+					wr.endElement("cell");			
+				
+					wr.endElement("row");			
+				}
+			}
+			wr.endElement("rows");
+			wr.endDocument();
+
+		}catch (SAXException e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return sWr.getBuffer().toString();
+	}
+	
+}

@@ -1,0 +1,661 @@
+/**
+ * 
+ */
+package com.talentPool.selectionProcess.dataobject;
+
+import java.sql.Date;
+import java.util.ArrayList;
+
+import com.talentPool.common.db.SimpleDataObject;
+import com.talentPool.common.utils.Utils;
+
+/**
+ * 
+ * @author pallavi
+ *
+ */
+public class SelectionProcessData extends SimpleDataObject {
+
+	public SelectionProcessData() {
+
+	}
+
+	/**
+	 * @return Returns the applicantId.
+	 */
+	public int getApplicantId() {
+		return getInt("applicantId");
+	}
+
+	/**
+	 * @param applicantId
+	 *            The applicantId to set.
+	 */
+	public void setApplicantId(int applicantId) {
+		setAttribute("applicantId", new Integer(applicantId));
+	}
+
+	/**
+	 * @return Returns the applicantName.
+	 */
+	public String getApplicantName() {
+		return getString("applicantName");
+	}
+
+	/**
+	 * @param applicantName
+	 *            The applicantName to set.
+	 */
+	public void setApplicantName(String applicantName) {
+		setAttribute("applicantName", applicantName);
+	}
+
+	/**
+	 * @return Returns the applicantAddress1.
+	 */
+	public String getApplicantCurrentAddress() {
+		return getString("applicantCurrentAddress");
+	}
+
+	/**
+	 * @param applicantAddress1
+	 *            The applicantAddress1 to set.
+	 */
+	public void setApplicantCurrentAddress(String applicantCurrentAddress) {
+		setAttribute("applicantCurrentAddress", applicantCurrentAddress);
+	}
+
+	/**
+	 * @return Returns the applicantAddress2.
+	 */
+	public String getApplicantCurrentAddress2() {
+		return getString("applicantCurrentAddress2");
+	}
+
+	/**
+	 * @param applicantAddress1
+	 *            The applicantAddress2 to set.
+	 */
+	public void setApplicantCurrentAddress2(String applicantCurrentAddress2) {
+		setAttribute("applicantCurrentAddress2", applicantCurrentAddress2);
+	}
+	
+	/**
+	 * @return Returns the applicantCellPhone.
+	 */
+	public String getApplicantCellPhone() {
+		return getString("applicantCellPhone");
+	}
+
+	/**
+	 * @param applicantCellPhone
+	 *            The applicantCellPhone to set.
+	 */
+	public void setApplicantCellPhone(String applicantCellPhone) {
+		setAttribute("applicantCellPhone", applicantCellPhone);
+	}
+
+	/**
+	 * @return Returns the applicantCity.
+	 */
+	public String getApplicantCity() {
+		return getString("applicantCity");
+	}
+
+	/**
+	 * @param applicantCity
+	 *            The applicantCity to set.
+	 */
+	public void setApplicantCity(String applicantCity) {
+		setAttribute("applicantCity", applicantCity);
+	}
+
+	/**
+	 * @return Returns the applicantemail1.
+	 */
+	public String getApplicantEmail1() {
+		return getString("applicantEmail1");
+	}
+
+	/**
+	 * @param applicantemail1
+	 *            The applicantemail1 to set.
+	 */
+	public void setApplicantEmail1(String applicantEmail1) {
+		setAttribute("applicantEmail1", applicantEmail1);
+	}
+
+	/**
+	 * @return Returns the applicantemail2.
+	 */
+	public String getApplicantEmail2() {
+		return getString("applicantEmail2");
+	}
+
+	/**
+	 * @param applicantemail2
+	 *            The applicantemail2 to set.
+	 */
+	public void setApplicantEmail2(String applicantEmail2) {
+		setAttribute("applicantEmail2", applicantEmail2);
+	}
+
+	/**
+	 * @return Returns the applicantHomePhone.
+	 */
+	public String getApplicantHomePhone() {
+		return getString("applicantHomePhone");
+	}
+
+	/**
+	 * @param applicantHomePhone
+	 *            The applicantHomePhone to set.
+	 */
+	public void setApplicantHomePhone(String applicantHomePhone) {
+		setAttribute("applicantHomePhone", applicantHomePhone);
+	}
+
+	/**
+	 * @return Returns the applicantPincode.
+	 */
+	public String getApplicantPincode() {
+		return getString("applicantPincode");
+	}
+
+	/**
+	 * @param applicantPincode
+	 *            The applicantPincode to set.
+	 */
+	public void setApplicantPincode(String applicantPincode) {
+		setAttribute("applicantPincode", applicantPincode);
+	}
+
+	/**
+	 * @return Returns the applicantWorkingSince.
+	 */
+	public Date getApplicantWorkingSince() {
+		return getDate("applicantWorkingSince");
+	}
+
+	/**
+	 * @param applicantWorkingSince
+	 *            The applicantWorkingSince to set.
+	 */
+	public void setApplicantWorkingSince(Date applicantWorkingSince) {
+		setAttribute("applicantWorkingSince", applicantWorkingSince);
+	}
+
+	/**
+	 * @return Returns the applicantWorkPhone.
+	 */
+	public String getApplicantWorkPhone() {
+		return getString("applicantWorkPhone");
+	}
+
+	/**
+	 * @param applicantWorkPhone
+	 *            The applicantWorkPhone to set.
+	 */
+	public void setApplicantWorkPhone(String applicantWorkPhone) {
+		setAttribute("applicantWorkPhone", applicantWorkPhone);
+	}
+	
+	public ArrayList getEducationalDetails(){
+		return (ArrayList)getAttribute("educationalDetails");
+	}
+	
+	public void setEducationalDetails(ArrayList educationalDetails){
+		setAttribute("educationalDetails", educationalDetails);
+	}
+	
+	public ArrayList getWorkExperienceDetails(){
+		return (ArrayList)getAttribute("workExperienceDetails");
+	}
+	
+	public void setWorkExperienceDetails(ArrayList workExperienceDetails){
+		setAttribute("workExperienceDetails", workExperienceDetails);
+	}
+	
+	/**
+	 * @return Returns the applicantPrimarySkills.
+	 */
+	public String getApplicantPrimarySkills() {
+		return getString("applicantPrimarySkills");
+	}
+
+	/**
+	 * @param applicantPrimarySkills
+	 *            The applicantPrimarySkills to set.
+	 */
+	public void setApplicantPrimarySkills(String applicantPrimarySkills) {
+		setAttribute("applicantPrimarySkills", applicantPrimarySkills);
+	}
+
+	/**
+	 * @return Returns the applicantSecondarySkills.
+	 */
+	public String getApplicantSecondarySkills() {
+		return getString("applicantSecondarySkills");
+	}
+
+	/**
+	 * @param applicantSecondarySkills
+	 *            The applicantSecondarySkills to set.
+	 */
+	public void setApplicantSecondarySkills(String applicantSecondarySkills) {
+		setAttribute("applicantSecondarySkills", applicantSecondarySkills);
+	}
+	
+	/**
+	 * 
+	 * @return Returns the applicantPosition.
+	 */
+	public String getApplicantPosition() {
+		return getString("applicantPosition");
+	}
+	
+	/**
+	 * 
+	 * @param applicantPosition
+	 * 			The applicantPosition to set.
+	 */
+	public void setApplicantPosition(String applicantPosition) {
+		setAttribute("applicantPosition", applicantPosition);
+	}
+	
+	/**
+	 * 
+	 * @return Returns the applicantStep.
+	 */
+	public String getApplicantStep() {
+		return getString("applicantStep");
+	}
+	
+	/**
+	 * 
+	 * @param applicantStep
+	 * 			The applicantStep to set.
+	 */
+	public void setApplicantStep(String applicantStep) {
+		setAttribute("applicantStep", applicantStep);
+	}
+	
+	/**
+	 * 
+	 * @return Returns the applicantStep.
+	 */
+	public String getApplicantAppointment() {
+		return getString("applicantAppointment");
+	}
+	
+	/**
+	 * 
+	 * @param applicantStep
+	 * 			The applicantStep to set.
+	 */
+	public void setApplicantAppointment(String applicantAppointment) {
+		setAttribute("applicantAppointment", applicantAppointment);
+	}
+	
+	public void setApplicantOriginalResumePath(String applicantOriginalResumePath){
+		setAttribute("applicantOriginalResumePath", applicantOriginalResumePath);
+	}
+	
+	public String getApplicantOriginalResumePath() {
+		return getString("applicantOriginalResumePath");
+	}
+
+	/**
+	 * @return Returns the applicantStatus.
+	 */
+	public String getApplicantStatus() {
+		return getString("applicantStatus");
+	}
+
+	/**
+	 * @param applicantStatus 
+	 * 			The applicantStatus to set.
+	 */
+	public void setApplicantStatus(String applicantStatus) {
+		setAttribute("applicantStatus", applicantStatus);
+	}
+	
+	/**
+	 * @return Returns the actionRequired.
+	 */
+	public String getActionRequired() {
+		return getString("actionRequired");
+	}
+
+	/**
+	 * @param actionRequired 
+	 * 			The actionRequired to set.
+	 */
+	public void setActionRequired(String actionRequired) {
+		setAttribute("actionRequired", actionRequired);
+	}
+	
+	/**
+	 * @return Returns the responsibleUsers.
+	 */
+	public String getResponsibleUsers() {
+		return getString("responsibleUsers");
+	}
+
+	/**
+	 * @param responsibleUsers 
+	 * 			The responsibleUsers to set.
+	 */
+	public void setResponsibleUsers(String responsibleUsers) {
+		setAttribute("responsibleUsers", responsibleUsers);
+	}
+	
+	/**
+	 * @return Returns the applicantCurrentEmployer.
+	 */
+	public String getApplicantCurrentEmployer() {
+		return getString("applicantCurrentEmployer");
+	}
+
+	/**
+	 * @param applicantCurrentEmployer 
+	 * 			The applicantCurrentEmployer to set.
+	 */
+	public void setApplicantCurrentEmployer(String applicantCurrentEmployer) {
+		setAttribute("applicantCurrentEmployer", applicantCurrentEmployer);
+	}
+
+	/**
+	 * @return Returns the applicantExperience.
+	 */
+	public String getApplicantExperience() {
+		return Utils.getExperienceConstructed(getApplicantWorkingSince());
+	}
+
+	/**
+	 * @param applicantExperience 
+	 * 			The applicantExperience to set.
+	 */
+	public void setApplicantExperience(String applicantExperience) {
+		setAttribute("applicantExperience", applicantExperience);
+	}
+
+	/**
+	 * @return Returns the applicantPositionDepartment.
+	 */
+	public String getApplicantPositionDepartment() {
+		return getString("applicantPositionDepartment");
+	}
+
+	/**
+	 * @param applicantPositionDepartment 
+	 * 			The applicantPositionDepartment to set.
+	 */
+	public void setApplicantPositionDepartment(String applicantPositionDepartment) {
+		setAttribute("applicantPositionDepartment", applicantPositionDepartment);
+	}
+
+	/**
+	 * @return Returns the stepRank.
+	 */
+	public String getStepRank() {
+		return getString("stepRank");
+	}
+
+	/**
+	 * @param stepRank 
+	 * 			The stepRank to set.
+	 */
+	public void setStepRank(String stepRank) {
+		setAttribute("stepRank", stepRank);
+	}	
+	
+	/**
+	 * @return Returnd the applicantJoiningDate.
+	 */
+	public String getApplicantJoiningDate() {
+		return getString("applicantJoiningDate");
+	}
+
+	/**
+	 * @param applicantJoiningDate 
+	 * 			The applicantJoiningDate to set.
+	 */
+	public void setApplicantJoiningDate(String applicantJoiningDate) {
+		setAttribute("applicantJoiningDate", applicantJoiningDate);
+	}
+	/**
+	 * @return the applicantPositionId.
+	 */
+	public String getApplicantPositionId() {
+		return getString("applicantPositionId");
+	}
+
+	/**
+	 * @param applicantPositionId 
+	 *			the applicantPositionId to set.
+	 */
+	public void setApplicantPositionId(String applicantPositionId) {
+		setAttribute("applicantPositionId", applicantPositionId);
+	}
+
+	/**
+	 * @return the applicantStepId.
+	 */
+	public String getApplicantStepId() {
+		return getString("applicantStepId");
+	}
+
+	/**
+	 * @param applicantStepId 
+	 *			the applicantStepId to set.
+	 */
+	public void setApplicantStepId(String applicantStepId) {
+		setAttribute("applicantStepId", applicantStepId);
+	}
+
+	/**
+	 * @return the flags
+	 */
+	public String getFlags() {
+		return getString("flags");
+	}
+
+	/**
+	 * @param flags the flags to set
+	 */
+	public void setFlags(String flags) {
+		setAttribute("flags", flags);
+	}
+	
+	public String getUserId() {
+		return getString("userId");
+	}
+
+	public void setUserId(String userId) {
+		setAttribute("userId", userId);
+	}
+	
+	public String getPositionStatus() {
+		return getString("positionStatus");
+	}
+
+	public void setPositionStatus(String positionStatus) {
+		setAttribute("positionStatus", positionStatus);
+	}
+	
+	public String getReminderId() {
+		return getString("reminderId");
+	}
+
+	public void setReminderId(String reminderId) {
+		setAttribute("reminderId", reminderId);
+	}
+	
+	public String getReminderDate() {
+		return getString("reminderDate");
+	}
+
+	public void setReminderDate(String reminderDate) {
+		setAttribute("reminderDate", reminderDate);
+	}
+	
+	public String getReminderDesc() {
+		return getString("reminderDesc");
+	}
+
+	public void setReminderDesc(String reminderDesc) {
+		setAttribute("reminderDesc", reminderDesc);
+	}
+	
+	
+	public String getPositionTitle() {
+		return getString("positionTitle");
+	}
+
+	public void setPositionTitle(String positionTitle) {
+		setAttribute("positionTitle", positionTitle);
+	}
+	
+	public String getPositionStepTitle() {
+		return getString("positionStepTitle");
+	}
+
+	public void setPositionStepTitle(String positionStepTitle) {
+		setAttribute("positionStepTitle", positionStepTitle);
+	}
+	
+	public String getPositionStepIsscheduled() {
+		return getString("positionStepIsscheduled");
+	}
+	
+	public Date getAppointmentFromDate() {
+		return getDate("appointmentFromDate");
+	}
+
+	public String getJoiningDate() {
+		String joiningDate = "";
+		String jDate = getApplicantJoiningDate();
+		if(!Utils.isBlankOrNull(jDate)){
+			java.util.Date date = Utils.convertToDate(jDate, Utils.redYYYYMMDDFormat);
+			joiningDate = Utils.getDateConvertedToString(date, Utils.regEUDateFormat);
+		}
+		return joiningDate;
+	}
+	
+	public String getCurrentStepId() {
+		return getString("currentStepId");
+	}
+	
+	public String getAppointmentId() {
+		return getString("appointmentId");
+	}
+	
+	public String getPositionId() {
+		return getString("positionId");
+	}
+	
+	public String getProcessId() {
+		return getString("processId");
+	}
+	
+	public String getPositionStepIdTo() {
+		return getString("positionStepIdTo");
+	}
+	
+	public String getPositionStepIdFrom() {
+		return getString("positionStepIdFrom");
+	}
+
+	public String getCommunicationId() {
+		return getString("communicationId");
+	}
+	
+	public void setCommunicationId(String communicationId) {
+		setAttribute("communicationId", communicationId);
+	}
+
+	public String getAppointmentStatus() {
+		return getString("appointmentStatus");
+	}
+	
+	public void setAppointmentStatus(String appointmentStatus) {
+		setAttribute("appointmentStatus", appointmentStatus);
+	}
+	
+	public String getOfferedCtc() {
+		return getString("offeredCtc");
+	}
+	
+	public String getApplicantLevelOffered() {
+		return getString("applicantLevelOffered");
+	}
+	
+	public String getApplicantDesignationOffered() {
+		return getString("applicantDesignationOffered");
+	}
+	
+	public String getInputSalaryVariable() {
+		return getString("inputSalaryVariable");
+	}
+	
+	public String getEmployeeCode() {
+		return getString("employeeCode");
+	}
+	
+	public Date getDueDate() {
+		return getDate("dueDate");
+	}
+	
+	public Date getAppointmentTime() {
+		return getDate("appointmentTime");
+	}
+	
+	public String getApplicantSourceTitle() {
+		return getString("applicantSourceTitle");
+	}
+	
+	public void setApplicantSourceTitle(String applicantSourceTitle) {
+		setAttribute("applicantSourceTitle", applicantSourceTitle);
+	}
+	
+	public String getBasicOffered() {
+		return getString("basicOffered");
+	}
+
+	public void setBasicOffered(String basicOffered) {
+		setAttribute("basicOffered", basicOffered);
+	}
+		
+	public String getPositionTypeExtInt() {
+		return getString("positionTypeExtInt");
+	}
+
+	public void setPositionTypeExtInt(String positionTypeExtInt) {
+		setAttribute("positionTypeExtInt", positionTypeExtInt);
+	}
+	
+	public String getFeedbackFormId() {
+		return getString("feedbackFormId");
+	}
+
+	public void setFeedbackFormId(String feedbackFormId) {
+		setAttribute("feedbackFormId", feedbackFormId);
+	}
+	
+	public Date getAppliedDate() {
+		return getDate("appliedDate");
+	}
+	
+	public void setAppliedDate(Date appliedDate) {
+		setAttribute("appliedDate", appliedDate);
+	}
+	
+	public String getVendorId() {
+		return getString("vendorId");
+	}
+
+	public void setVendorId(String vendorId) {
+		setAttribute("vendorId", vendorId);
+	}
+}

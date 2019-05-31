@@ -1,0 +1,467 @@
+<?xml version="1.0"?>
+<dbmap> 
+   <dbqueries>
+		<dbquery name="qCustomFieldManager_GetAllFields">
+			SELECT custom_field_id, custom_field_name, custom_field_type, custom_field_other_attributes, 
+			custom_field_attributes, custom_field_display_name, custom_field_default_value,
+			custom_field_options, custom_field_input_allowed, custom_field_required, 
+			custom_field_rank, custom_field_searchable, custom_field_entity_type, table_id
+			FROM tp_custom_fields ORDER BY custom_field_entity_type, custom_field_rank
+		</dbquery>
+		<dbquery name ="qCustomFieldManager_DeleteCustomFieldValues">
+			DELETE FROM @@ WHERE entity_id=?
+		</dbquery>
+		<dbquery name ="qCustomFieldManager_DeleteCustomFieldValuesForEntityAndField">
+			DELETE FROM @@ WHERE entity_id=? AND custom_field_id in (@@)
+		</dbquery>
+		<dbquery name ="qCustomFieldManager_AddCustomFieldValues">
+			INSERT INTO @@(custom_field_id, string_value, number_value, date_value, entity_id, table_id)
+			VALUES(?,?,?,?,?,?)
+		</dbquery>
+		<dbquery name ="qCustomFieldManager_UpdateApplicantCustomFieldValues">
+			UPDATE  tp_custom_field_values_applicant SET
+			 string_value=?,
+			 number_value=?,
+			 date_value=?
+			WHERE custom_field_id=? AND entity_id=?
+		</dbquery>
+		<dbquery name="qCustomFieldManager_GetCustomFieldValues">
+			SELECT 	tcf.custom_field_id, tcf.custom_field_name, tcf.custom_field_type, 
+				tcf.custom_field_other_attributes, tcf.custom_field_attributes, tcf.custom_field_display_name,
+				tcf.custom_field_default_value, tcf.custom_field_options, tcf.custom_field_input_allowed, 
+				tcf.custom_field_required, tcf.custom_field_rank, tcf.custom_field_searchable, tcf.custom_field_entity_type,			
+				GROUP_CONCAT(tcfv.string_value SEPARATOR '|') AS string_value, tcfv.number_value, tcfv.date_value , tcfv.table_id
+			FROM tp_custom_fields tcf , @@ tcfv
+			WHERE tcf.custom_field_id=tcfv.custom_field_id
+				AND tcfv.entity_id=?
+				AND tcf.custom_field_input_allowed=?
+			GROUP BY tcf.custom_field_id
+			ORDER BY tcf.custom_field_rank
+		</dbquery>
+		<dbquery name="qCustomFieldManager_GetTabularCustomFieldValues">
+			SELECT 	tcf.custom_field_id, tcf.custom_field_name, tcf.custom_field_type, 
+				tcf.custom_field_other_attributes, tcf.custom_field_attributes, tcf.custom_field_display_name,
+				tcf.custom_field_default_value, tcf.custom_field_options, tcf.custom_field_input_allowed, 
+				tcf.custom_field_required, tcf.custom_field_rank, tcf.custom_field_searchable, tcf.custom_field_entity_type,			
+				GROUP_CONCAT(tcfv.string_value SEPARATOR '|') AS string_value, tcfv.number_value, tcfv.date_value, tcfv.table_id, ttcf.table_name ,
+				GROUP_CONCAT(tcfv.date_value SEPARATOR '|') AS date_values
+			FROM tp_custom_fields tcf , tp_custom_field_values_applicant tcfv, tp_tabular_custom_fields ttcf
+			WHERE tcf.custom_field_id=tcfv.custom_field_id
+				AND tcfv.table_id = ttcf.table_id
+				AND tcf.custom_field_entity_type=?
+				AND tcfv.entity_id=?
+				AND tcf.custom_field_input_allowed=?
+			GROUP BY tcf.custom_field_id
+			ORDER BY tcf.custom_field_rank
+		</dbquery>
+		<dbquery name="qCustomFieldManager_GetTabularCustomFields">
+			SELECT 	ttcf.table_id, ttcf.table_name 
+			FROM tp_tabular_custom_fields ttcf
+		</dbquery>
+		<dbquery name="qCustomFieldManager_AddBulkCustomFieldValues">
+			INSERT INTO tp_bulk_import_session_custom_fields(custom_field_id, custom_field_value, entity_id)
+			VALUES(?,?,?)
+		</dbquery>	
+		<dbquery name ="qCustomFieldManager_DeleteCustomFieldValuesForField">
+			DELETE FROM @@ WHERE custom_field_id=?
+		</dbquery>
+		<dbquery name="qCustomFieldManager_GetValuesSearchableCustomFields">
+			SELECT 	tcf.custom_field_id, tcf.custom_field_name, tcf.custom_field_type, 
+				tcf.custom_field_other_attributes, tcf.custom_field_display_name,
+				GROUP_CONCAT(tcfv.string_value SEPARATOR '|') AS string_value, tcfv.number_value, tcfv.date_value 
+			FROM tp_custom_fields tcf LEFT JOIN tp_custom_field_values_applicant tcfv ON ( tcf.custom_field_id=tcfv.custom_field_id AND tcfv.entity_id=?)
+			WHERE tcf.custom_field_entity_type=?
+				AND tcf.custom_field_searchable=?
+			GROUP BY tcf.custom_field_id
+			ORDER BY tcf.custom_field_rank
+		</dbquery>
+		<dbquery name="qCustomFieldManager_GetMaxRankForEntityType">
+			SELECT max(custom_field_rank) as rank
+			FROM tp_custom_fields
+			WHERE custom_field_entity_type=?
+		</dbquery>		
+		<dbquery name="qCustomFieldManager_AddNewCustomField">
+			INSERT INTO tp_custom_fields (custom_field_name,custom_field_type,custom_field_attributes,
+					custom_field_other_attributes,custom_field_display_name,custom_field_default_value,
+					custom_field_options,custom_field_required,custom_field_rank,custom_field_searchable,
+					custom_field_entity_type)
+			VALUES
+			(?,?,?,?,?,?,?,?,?,?,?)
+		</dbquery>
+		<dbquery name="qCustomFieldManager_GetMaxRankForImportField">
+			SELECT max(field_rank) as rank
+			FROM tp_screen_configurations
+		</dbquery>
+		<dbquery name="qCustomFieldManager_GetMaxRankForPositionField">
+			SELECT max(field_rank) as rank
+			FROM tp_position_screen_configurations
+		</dbquery>	
+		<dbquery name="qCustomFieldManager_GetMaxRankForPositionScreenField">
+			SELECT max(field_rank) as rank
+			FROM tp_position_screen
+		</dbquery>	
+		<dbquery name="qCustomFieldManager_GetMaxRankForPositionDescriptionField">
+			SELECT max(field_rank) as rank
+			FROM tp_position_screen_description
+		</dbquery>
+		<dbquery name="qCustomFieldManager_AddCustomFieldToImportScreen">
+			INSERT INTO tp_screen_configurations (field_id, field_type, field_rank, field_import_show, field_edit_show, field_import_mandatory)
+			VALUES(?,?,?,?,?,?)
+		</dbquery>
+		<dbquery name="qCustomFieldManager_AddCustomFieldToPositionScreenField">
+			INSERT INTO tp_position_screen (field_id, field_type, field_rank,field_position_print_show)
+			VALUES(?,?,?,?)
+		</dbquery>
+		<dbquery name="qCustomFieldManager_AddCustomFieldToPositionDescriptionField">
+			INSERT INTO tp_position_screen_description (field_id, field_type, field_rank,field_position_show,field_position_mandatory)
+			VALUES(?,?,?,?,?)
+		</dbquery>
+		<dbquery name="qCustomFieldManager_AddCustomFieldToPositionScreen">
+			INSERT INTO tp_position_screen_configurations (field_id, field_type, field_rank,field_position_details_rank)
+			VALUES(?,?,?,?)
+		</dbquery>
+		<dbquery name="qCustomFieldManager_UpdateCustomField">
+			UPDATE tp_custom_fields
+			SET custom_field_name=?, custom_field_type=?, custom_field_attributes=?,
+			custom_field_other_attributes=?, custom_field_display_name=?, custom_field_default_value=?,
+			custom_field_options=?, custom_field_required=?, custom_field_searchable=? @@
+			WHERE custom_field_id=?
+		</dbquery>
+		<dbquery name="qCustomFieldManager_UpdateCustomFieldToImportScreen">
+			UPDATE tp_screen_configurations
+			SET field_import_mandatory=?, field_id=? WHERE field_id=?
+		</dbquery>
+		<dbquery name="qCustomFieldManager_UpdateCustomFieldToFeedbackFormField">
+			UPDATE tp_feedback_fields
+			SET applicant_field_id=? WHERE applicant_field_id=?
+		</dbquery>
+		<dbquery name="qCustomFieldManager_UpdateCustomFieldToPositionScreenField">
+			UPDATE tp_position_screen
+			SET field_id=? WHERE field_id=?
+		</dbquery>
+		<dbquery name="qCustomFieldManager_UpdateCustomFieldToPositionDescriptionField">
+			UPDATE tp_position_screen_description
+			SET field_id=?, field_position_mandatory=? WHERE field_id=?
+		</dbquery>
+		<dbquery name="qCustomFieldManager_UpdateCustomFieldToPositionScreen">
+			UPDATE tp_position_screen_configurations
+			SET field_id=? WHERE field_id=?
+		</dbquery>
+		<dbquery name="qCustomFieldManager_UpdateCustomFieldRank">
+			update tp_custom_fields 
+			set custom_field_rank = (custom_field_rank - 1) 
+			where custom_field_id > ? and custom_field_entity_type = ?
+		</dbquery>
+		<dbquery name="qCustomFieldManager_DeleteCustomField">
+			delete from tp_custom_fields
+			where custom_field_id=?
+		</dbquery>
+		<dbquery name="qCustomFieldManager_DeleteCustomFieldFromImportScreen"> 
+			DELETE FROM tp_screen_configurations WHERE field_id=?
+		</dbquery>
+		<dbquery name="qCustomFieldManager_DeleteCustomFieldFromPositionScreen"> 
+			DELETE FROM tp_position_screen_configurations WHERE field_id=?
+		</dbquery>		
+		<dbquery name="qCustomFieldManager_DeleteCustomFieldFromPositionScreenField"> 
+			DELETE FROM tp_position_screen WHERE field_id=?
+		</dbquery>
+		<dbquery name="qCustomFieldManager_DeleteCustomFieldFromPositionDescriptionField"> 
+			DELETE FROM tp_position_screen_description WHERE field_id=?
+		</dbquery>
+		<dbquery name="qCustomFieldManager_DeleteAssociationFromFeedbackField">
+			UPDATE tp_feedback_fields
+			SET applicant_field_id=NULL, feedback_field_type=? WHERE applicant_field_id=? 
+		</dbquery>
+		<dbquery name="qCustomFieldManager_GetCustomField">
+			SELECT custom_field_id, custom_field_name, custom_field_type, custom_field_other_attributes, 
+			custom_field_attributes, custom_field_display_name, custom_field_default_value,
+			custom_field_options, custom_field_input_allowed, custom_field_required, 
+			custom_field_rank, custom_field_searchable, custom_field_entity_type,table_id
+			FROM tp_custom_fields WHERE custom_field_id = ?
+		</dbquery>	
+		<dbquery name="qCustomFieldManager_GetCustomFieldForDisplayName">
+			SELECT custom_field_id, custom_field_name, custom_field_type, custom_field_other_attributes, 
+			custom_field_attributes, custom_field_display_name, custom_field_default_value,
+			custom_field_options, custom_field_input_allowed, custom_field_required, 
+			custom_field_rank, custom_field_searchable, custom_field_entity_type
+			FROM tp_custom_fields WHERE custom_field_display_name = ?
+		</dbquery>		
+		<dbquery name="qCustomFieldManager_GetCustomFieldsForType">
+			SELECT custom_field_id, custom_field_display_name, custom_field_type
+			FROM tp_custom_fields
+			WHERE custom_field_entity_type IN (@@)
+		</dbquery>
+		<dbquery name="qCustomFieldManager_GetCustomFieldsForTableType">
+			SELECT custom_field_id, custom_field_display_name, custom_field_type,custom_field_name  
+			FROM tp_custom_fields
+			WHERE custom_field_entity_type IN (@@)
+			AND  (table_id is null @@)
+		</dbquery>
+		<!--  CRColumnCustomFieldMap starts -->
+		<dbquery name="qCustomFieldMapManager_GetAllFields">
+			SELECT column_property, column_display_name, custom_field_id, entity_type 
+			FROM tp_cr_column_customfield_map ORDER BY entity_type, cr_cf_map_id
+		</dbquery>
+		<dbquery name="qCustomFieldMapManager_GetCustomFieldsByProperty">
+			SELECT cfm.column_property, cfm.column_display_name, tcf.custom_field_id, cfm.entity_type,  
+				tcf.custom_field_display_name, tcf.custom_field_type 
+			FROM tp_cr_column_customfield_map cfm 
+				LEFT JOIN tp_custom_fields tcf ON cfm.custom_field_id = tcf.custom_field_id
+			ORDER BY cfm.entity_type
+		</dbquery>				
+		<dbquery name="qCustomFieldMapManager_UpdateCustomFieldMapping">
+			UPDATE tp_cr_column_customfield_map 
+			SET custom_field_id = ?
+			WHERE column_property = ?
+		</dbquery>
+		<dbquery name="qCustomFieldMapManager_InsertPositionCustomFieldToReportTypeColumn">
+			INSERT INTO tp_cr_report_type_column_mapping(cr_report_type_id,column_property)
+			VALUES(?,?)
+		</dbquery>
+		<dbquery name="qCustomFieldMapManager_DeletePositionCustomFieldFromReportTypeColumn">
+			DELETE FROM tp_cr_report_type_column_mapping
+			WHERE column_property=?
+		</dbquery>
+		<dbquery name="qCustomFieldMapManager_UpdatePositionCustomFieldOnReportColumn">
+			UPDATE tp_custom_report_columns
+			SET column_display_name=?,column_data_type=?,is_active=?
+			WHERE column_property=?
+		</dbquery>		
+		<!--  CRColumnCustomFieldMap ends -->
+		<dbquery name="qCustomFieldManager_insertCustomFieldTable">
+		    INSERT IGNORE INTO tp_tabular_custom_fields SET table_id=? ,table_name=?,entity_type=? 
+		</dbquery>
+		<dbquery name="qCustomFieldManager_getLastTableInsertId">
+		    select LAST_INSERT_ID()
+		</dbquery>
+		<dbquery name="qCustomFieldManager_insertCustomFieldTableColumnMapping">
+		    INSERT IGNORE INTO tp_tabular_custom_field_table_columns_mapping (table_id,custom_field_id) VALUES @@
+		</dbquery>
+		<dbquery name="qCustomFieldManager_updateCustomFieldTableColumns">
+		    UPDATE tp_custom_fields
+		    SET table_id = ?
+		    WHERE custom_field_id in (@@)
+		</dbquery>
+		<dbquery name="qCustomFieldManager_getAllCustomTablesForEntityType">
+		    SELECT table_id,table_name from tp_tabular_custom_fields where entity_type = ?
+		</dbquery>
+		<dbquery name="qCustomFieldManager_getCustomFieldTableData">
+		    SELECT td.table_id,td.table_name,group_concat(tdcf.custom_field_id separator ',') AS cols FROM tp_tabular_custom_fields td 
+		    LEFT JOIN tp_tabular_custom_field_table_columns_mapping tdcf ON (td.table_id = tdcf.table_id)
+			WHERE td.table_id = ? group by td.table_id
+		</dbquery>
+		<dbquery name="qCustomFieldManager_deleteCustomFieldTable">
+		    DELETE FROM tp_tabular_custom_fields WHERE table_id=?
+		</dbquery>
+		<dbquery name="qCustomFieldManager_deleteCustomFieldTableColumnMapping">
+		    DELETE FROM tp_tabular_custom_field_table_columns_mapping WHERE table_id=? @@
+		</dbquery>
+		<dbquery name="qCustomFieldManager_deleteCustomFieldTableMappingFromCustomApplicantValues">
+		    DELETE FROM tp_custom_field_values_applicant WHERE table_id=? @@
+		</dbquery>
+		<dbquery name="qCustomFieldManager_deleteUnusedCustomFieldTableColumnMapping">
+			DELETE FROM tp_tabular_custom_field_table_columns_mapping WHERE table_id=? AND custom_field_id NOT IN (@@)  
+		</dbquery>
+		<dbquery name="qCustomFieldManager_deleteCustomFieldTableColumns">
+		    UPDATE tp_custom_fields
+		    SET table_id = ?
+		    WHERE table_id = ?
+		</dbquery>
+		<dbquery name="qCustomFieldManager_getTableIdFromTableName">
+		    SELECT table_id from tp_tabular_custom_fields where table_name = ?
+		</dbquery>
+   </dbqueries>
+   <dataqueries>
+		<dataquery name="dCustomFieldManager_GetAllFields" dbquery="qCustomFieldManager_GetAllFields" object="com.talentPool.custom.dataobject.CustomFieldData">
+			<attribute name="fieldId"  column="custom_field_id" type="STRING" />
+			<attribute name="fieldName"  column="custom_field_name" type="STRING" />
+			<attribute name="fieldType"  column="custom_field_type" type="STRING" />
+			<attribute name="fieldOtherAttributes"  column="custom_field_other_attributes" type="STRING" />
+			<attribute name="fieldAttributes"  column="custom_field_attributes" type="STRING" />
+			<attribute name="fieldDisplayName"  column="custom_field_display_name" type="STRING" />
+			<attribute name="fieldDefaultValue"  column="custom_field_default_value" type="STRING" />
+			<attribute name="fieldOptions"  column="custom_field_options" type="STRING" />
+			<attribute name="fieldInputAllowed"  column="custom_field_input_allowed" type="INT" />
+			<attribute name="fieldRequired"  column="custom_field_required" type="INT" />
+			<attribute name="fieldRank"  column="custom_field_rank" type="INT" />
+			<attribute name="fieldSearchable"  column="custom_field_searchable" type="INT" />
+			<attribute name="fieldEntityType"  column="custom_field_entity_type" type="INT" />
+			<attribute name="tableId"  column="table_id" type="INT" />
+		</dataquery>
+	    <dataquery name="dCustomFieldManager_DeleteCustomFieldValues" dbquery="qCustomFieldManager_DeleteCustomFieldValues"/>
+	    <dataquery name="dCustomFieldManager_DeleteCustomFieldValuesForEntityAndField" dbquery="qCustomFieldManager_DeleteCustomFieldValuesForEntityAndField"/>
+	    <dataquery name="dCustomFieldManager_AddCustomFieldValues" dbquery="qCustomFieldManager_AddCustomFieldValues"/>
+	    <dataquery name="dCustomFieldManager_UpdateApplicantCustomFieldValues" dbquery="qCustomFieldManager_UpdateApplicantCustomFieldValues"/>
+		<dataquery name="dCustomFieldManager_GetCustomFieldValues" dbquery="qCustomFieldManager_GetCustomFieldValues" object="com.talentPool.custom.dataobject.CustomFieldData">
+			<attribute name="fieldId"  column="custom_field_id" type="STRING" />
+			<attribute name="fieldName"  column="custom_field_name" type="STRING" />
+			<attribute name="fieldType"  column="custom_field_type" type="STRING" />
+			<attribute name="fieldOtherAttributes"  column="custom_field_other_attributes" type="STRING" />
+			<attribute name="fieldAttributes"  column="custom_field_attributes" type="STRING" />
+			<attribute name="fieldDisplayName"  column="custom_field_display_name" type="STRING" />
+			<attribute name="fieldDefaultValue"  column="custom_field_default_value" type="STRING" />
+			<attribute name="fieldOptions"  column="custom_field_options" type="STRING" />
+			<attribute name="fieldInputAllowed"  column="custom_field_input_allowed" type="INT" />
+			<attribute name="fieldRequired"  column="custom_field_required" type="INT" />
+			<attribute name="fieldRank"  column="custom_field_rank" type="INT" />
+			<attribute name="fieldSearchable"  column="custom_field_searchable" type="INT" />
+			<attribute name="fieldEntityType"  column="custom_field_entity_type" type="INT" />
+			<attribute name="fieldStringValue"  column="string_value" type="STRING" />
+			<attribute name="fieldNumberValue"  column="number_value" type="STRING" />
+			<attribute name="fieldDateValue"  column="date_value" type="STRING" />
+			<attribute name="tableId"  column="table_id" type="STRING" />
+		</dataquery>
+		<dataquery name="dCustomFieldManager_GetTabularCustomFieldValues" dbquery="qCustomFieldManager_GetTabularCustomFieldValues" object="com.talentPool.custom.dataobject.CustomFieldData">
+			<attribute name="fieldId"  column="custom_field_id" type="STRING" />
+			<attribute name="fieldName"  column="custom_field_name" type="STRING" />
+			<attribute name="fieldType"  column="custom_field_type" type="STRING" />
+			<attribute name="fieldOtherAttributes"  column="custom_field_other_attributes" type="STRING" />
+			<attribute name="fieldAttributes"  column="custom_field_attributes" type="STRING" />
+			<attribute name="fieldDisplayName"  column="custom_field_display_name" type="STRING" />
+			<attribute name="fieldDefaultValue"  column="custom_field_default_value" type="STRING" />
+			<attribute name="fieldOptions"  column="custom_field_options" type="STRING" />
+			<attribute name="fieldInputAllowed"  column="custom_field_input_allowed" type="INT" />
+			<attribute name="fieldRequired"  column="custom_field_required" type="INT" />
+			<attribute name="fieldRank"  column="custom_field_rank" type="INT" />
+			<attribute name="fieldSearchable"  column="custom_field_searchable" type="INT" />
+			<attribute name="fieldEntityType"  column="custom_field_entity_type" type="INT" />
+			<attribute name="fieldStringValue"  column="string_value" type="STRING" />
+			<attribute name="fieldNumberValue"  column="number_value" type="STRING" />
+			<attribute name="fieldDateValue"  column="date_value" type="STRING" />
+			<attribute name="tableId"  column="table_id" type="STRING" />
+			<attribute name="tableName"  column="table_name" type="STRING" />
+			<attribute name="fieldDateValues"  column="date_values" type="STRING" />
+		</dataquery>
+		<dataquery name="dCustomFieldManager_GetTabularCustomFields" dbquery="qCustomFieldManager_GetTabularCustomFields" object="com.talentPool.custom.dataobject.CustomFieldData">
+			<attribute name="tableId"  column="table_id" type="STRING" />
+			<attribute name="tableName"  column="table_name" type="STRING" />
+		</dataquery>
+		<dataquery name="dCustomFieldManager_AddBulkCustomFieldValues" dbquery="qCustomFieldManager_AddBulkCustomFieldValues" />
+		<dataquery name="dCustomFieldManager_DeleteCustomFieldValuesForField" dbquery="qCustomFieldManager_DeleteCustomFieldValuesForField"/>
+				<dataquery name="dCustomFieldManager_GetValuesSearchableCustomFields" dbquery="qCustomFieldManager_GetValuesSearchableCustomFields" object="com.talentPool.custom.dataobject.CustomFieldData">
+			<attribute name="fieldId"  column="custom_field_id" type="STRING" />
+			<attribute name="fieldName"  column="custom_field_name" type="STRING" />
+			<attribute name="fieldType"  column="custom_field_type" type="STRING" />
+			<attribute name="fieldOtherAttributes"  column="custom_field_other_attributes" type="STRING" />
+			<attribute name="fieldDisplayName"  column="custom_field_display_name" type="STRING" />
+			<attribute name="fieldStringValue"  column="string_value" type="STRING" />
+			<attribute name="fieldNumberValue"  column="number_value" type="STRING" />
+			<attribute name="fieldDateValue"  column="date_value" type="STRING" />
+		</dataquery>		
+		<dataquery name="dCustomFieldManager_GetMaxRankForEntityType" dbquery="qCustomFieldManager_GetMaxRankForEntityType" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name="rank"  column="rank" type="STRING" />
+		</dataquery>		
+		<dataquery name="dCustomFieldManager_AddNewCustomField" dbquery="qCustomFieldManager_AddNewCustomField"/>
+		<dataquery name="dCustomFieldManager_GetMaxRankForImportField" dbquery="qCustomFieldManager_GetMaxRankForImportField">
+			<attribute name="rank"  column="rank" type="STRING" />
+		</dataquery>
+		<dataquery name="dCustomFieldManager_GetMaxRankForPositionField" dbquery="qCustomFieldManager_GetMaxRankForPositionField">
+			<attribute name="rank"  column="rank" type="STRING" />
+		</dataquery>
+		<dataquery name="dCustomFieldManager_GetMaxRankForPositionScreenField" dbquery="qCustomFieldManager_GetMaxRankForPositionScreenField">
+			<attribute name="rank"  column="rank" type="STRING" />
+		</dataquery>
+		<dataquery name="dCustomFieldManager_GetMaxRankForPositionDescriptionField" dbquery="qCustomFieldManager_GetMaxRankForPositionDescriptionField">
+			<attribute name="rank"  column="rank" type="STRING" />
+		</dataquery>
+		<dataquery name="dCustomFieldManager_AddCustomFieldToImportScreen" dbquery="qCustomFieldManager_AddCustomFieldToImportScreen" />
+		<dataquery name="dCustomFieldManager_AddCustomFieldToPositionScreen" dbquery="qCustomFieldManager_AddCustomFieldToPositionScreen" />
+		<dataquery name="dCustomFieldManager_AddCustomFieldToPositionScreenField" dbquery="qCustomFieldManager_AddCustomFieldToPositionScreenField" />
+				<dataquery name="dCustomFieldManager_AddCustomFieldToPositionDescriptionField" dbquery="qCustomFieldManager_AddCustomFieldToPositionDescriptionField" />
+		<dataquery name="dCustomFieldManager_UpdateCustomField" dbquery="qCustomFieldManager_UpdateCustomField"/>		
+		<dataquery name="dCustomFieldManager_UpdateCustomFieldToImportScreen" dbquery="qCustomFieldManager_UpdateCustomFieldToImportScreen" />
+		<dataquery name="dCustomFieldManager_UpdateCustomFieldToFeedbackFormField" dbquery="qCustomFieldManager_UpdateCustomFieldToFeedbackFormField" />
+		<dataquery name="dCustomFieldManager_UpdateCustomFieldToPositionScreen" dbquery="qCustomFieldManager_UpdateCustomFieldToPositionScreen" />
+		<dataquery name="dCustomFieldManager_UpdateCustomFieldToPositionScreenField" dbquery="qCustomFieldManager_UpdateCustomFieldToPositionScreenField" />
+		<dataquery name="dCustomFieldManager_UpdateCustomFieldToPositionDescriptionField" dbquery="qCustomFieldManager_UpdateCustomFieldToPositionDescriptionField" />
+		<dataquery name="dCustomFieldManager_UpdateCustomFieldRank" dbquery="qCustomFieldManager_UpdateCustomFieldRank"/>		
+		<dataquery name="dCustomFieldManager_DeleteCustomField" dbquery="qCustomFieldManager_DeleteCustomField"/>		
+		<dataquery name="dCustomFieldManager_DeleteCustomFieldFromImportScreen" dbquery="qCustomFieldManager_DeleteCustomFieldFromImportScreen" />
+		<dataquery name="dCustomFieldManager_DeleteCustomFieldFromPositionScreen" dbquery="qCustomFieldManager_DeleteCustomFieldFromPositionScreen" />		
+		<dataquery name="dCustomFieldManager_DeleteCustomFieldFromPositionScreenField" dbquery="qCustomFieldManager_DeleteCustomFieldFromPositionScreenField" />		
+		<dataquery name="dCustomFieldManager_DeleteCustomFieldFromPositionDescriptionField" dbquery="qCustomFieldManager_DeleteCustomFieldFromPositionDescriptionField" />
+		<dataquery name="dCustomFieldManager_DeleteAssociationFromFeedbackField" dbquery="qCustomFieldManager_DeleteAssociationFromFeedbackField" />
+	   <dataquery name="dCustomFieldManager_GetCustomField" dbquery="qCustomFieldManager_GetCustomField" object="com.talentPool.custom.dataobject.CustomFieldData">
+			<attribute name="fieldId"  column="custom_field_id" type="STRING" />
+			<attribute name="fieldName"  column="custom_field_name" type="STRING" />
+			<attribute name="fieldType"  column="custom_field_type" type="STRING" />
+			<attribute name="fieldOtherAttributes"  column="custom_field_other_attributes" type="STRING" />
+			<attribute name="fieldAttributes"  column="custom_field_attributes" type="STRING" />
+			<attribute name="fieldDisplayName"  column="custom_field_display_name" type="STRING" />
+			<attribute name="fieldDefaultValue"  column="custom_field_default_value" type="STRING" />
+			<attribute name="fieldOptions"  column="custom_field_options" type="STRING" />
+			<attribute name="fieldInputAllowed"  column="custom_field_input_allowed" type="INT" />
+			<attribute name="fieldRequired"  column="custom_field_required" type="INT" />
+			<attribute name="fieldRank"  column="custom_field_rank" type="INT" />
+			<attribute name="fieldSearchable"  column="custom_field_searchable" type="INT" />
+			<attribute name="fieldEntityType"  column="custom_field_entity_type" type="INT" />
+			<attribute name="tableId" column="table_id" type="STRING"/>
+		</dataquery>		
+		   <dataquery name="dCustomFieldManager_GetCustomFieldForDisplayName" dbquery="qCustomFieldManager_GetCustomFieldForDisplayName" object="com.talentPool.custom.dataobject.CustomFieldData">
+			<attribute name="fieldId"  column="custom_field_id" type="STRING" />
+			<attribute name="fieldName"  column="custom_field_name" type="STRING" />
+			<attribute name="fieldType"  column="custom_field_type" type="STRING" />
+			<attribute name="fieldOtherAttributes"  column="custom_field_other_attributes" type="STRING" />
+			<attribute name="fieldAttributes"  column="custom_field_attributes" type="STRING" />
+			<attribute name="fieldDisplayName"  column="custom_field_display_name" type="STRING" />
+			<attribute name="fieldDefaultValue"  column="custom_field_default_value" type="STRING" />
+			<attribute name="fieldOptions"  column="custom_field_options" type="STRING" />
+			<attribute name="fieldInputAllowed"  column="custom_field_input_allowed" type="INT" />
+			<attribute name="fieldRequired"  column="custom_field_required" type="INT" />
+			<attribute name="fieldRank"  column="custom_field_rank" type="INT" />
+			<attribute name="fieldSearchable"  column="custom_field_searchable" type="INT" />
+			<attribute name="fieldEntityType"  column="custom_field_entity_type" type="INT" />
+		</dataquery>	
+	   
+		<dataquery name="dCustomFieldManager_GetCustomFieldsForType" dbquery="qCustomFieldManager_GetCustomFieldsForType" object="com.talentPool.custom.dataobject.CustomFieldData">
+	  		<attribute name="fieldId"  column="custom_field_id" type="STRING" />
+	  		<attribute name="fieldDisplayName"  column="custom_field_display_name" type="STRING" />
+	  		<attribute name="fieldType"  column="custom_field_type" type="STRING" />	  		
+	   </dataquery>		
+	   <dataquery name="dCustomFieldManager_GetCustomFieldsForTableType" dbquery="qCustomFieldManager_GetCustomFieldsForTableType" object="com.talentPool.custom.dataobject.CustomFieldData">
+	  		<attribute name="fieldId"  column="custom_field_id" type="STRING" />
+	  		<attribute name="fieldDisplayName"  column="custom_field_display_name" type="STRING" />
+	  		<attribute name="fieldType"  column="custom_field_type" type="STRING" />	  		
+	  		<attribute name="fieldName" column="custom_field_name"/>  		
+	   </dataquery>	
+	    <!--  CRColumnCustomFieldMap starts -->
+		<dataquery name="dCustomFieldMapManager_GetAllFields" dbquery="qCustomFieldMapManager_GetAllFields" object="com.talentPool.custom.dataobject.CRColumnCustomFieldMapData">
+			<attribute name="columnProperty"  column="column_property" type="STRING" />
+			<attribute name="columnDisplayName"  column="column_display_name" type="STRING" />
+			<attribute name="customFieldId"  column="custom_field_id" type="STRING" />
+			<attribute name="entityType"  column="entity_type" type="STRING" />
+		</dataquery>
+		<dataquery name="dCustomFieldMapManager_GetCustomFieldsByProperty" dbquery="qCustomFieldMapManager_GetCustomFieldsByProperty" object="com.talentPool.custom.dataobject.CRColumnCustomFieldMapData">
+			<attribute name="columnProperty"  column="column_property" type="STRING" />
+			<attribute name="columnDisplayName"  column="column_display_name" type="STRING" />
+			<attribute name="customFieldId"  column="custom_field_id" type="STRING" />
+			<attribute name="entityType"  column="entity_type" type="STRING" />
+			<attribute name="customFieldDisplayName"  column="custom_field_display_name" type="STRING" />
+			<attribute name="customFieldType"  column="custom_field_type" type="STRING" />
+		</dataquery>
+		<dataquery name="dCustomFieldMapManager_UpdateCustomFieldMapping" dbquery="qCustomFieldMapManager_UpdateCustomFieldMapping" />		
+		<dataquery name="dCustomFieldMapManager_InsertPositionCustomFieldToReportTypeColumn" dbquery="qCustomFieldMapManager_InsertPositionCustomFieldToReportTypeColumn" />
+		<dataquery name="dCustomFieldMapManager_DeletePositionCustomFieldFromReportTypeColumn" dbquery="qCustomFieldMapManager_DeletePositionCustomFieldFromReportTypeColumn" />
+		<dataquery name="dCustomFieldMapManager_UpdatePositionCustomFieldOnReportColumn" dbquery="qCustomFieldMapManager_UpdatePositionCustomFieldOnReportColumn" />		
+		<!--  CRColumnCustomFieldMap ends -->
+		<dataquery name="dCustomFieldManager_insertCustomFieldTable" dbquery="qCustomFieldManager_insertCustomFieldTable"/>
+		<dataquery name="dCustomFieldManager_getLastTableInsertId" dbquery="qCustomFieldManager_getLastTableInsertId"/>
+		<dataquery name="dCustomFieldManager_insertCustomFieldTableColumnMapping" dbquery="qCustomFieldManager_insertCustomFieldTableColumnMapping"/>
+		<dataquery name="dCustomFieldManager_updateCustomFieldTableColumns" dbquery="qCustomFieldManager_updateCustomFieldTableColumns"/>
+		<dataquery name="dCustomFieldManager_deleteCustomFieldTableColumns" dbquery="qCustomFieldManager_deleteCustomFieldTableColumns"/>
+		<dataquery name="dCustomFieldManager_getAllCustomTablesForEntityType" dbquery="qCustomFieldManager_getAllCustomTablesForEntityType" object="com.talentPool.custom.dataobject.CustomFieldData">
+		   <attribute name="fieldId" column="table_id" type="STRING"/>
+		   <attribute name="fieldDisplayName" column="table_name" type="STRING"/> 
+		</dataquery>
+		<dataquery name="dCustomFieldManager_getCustomFieldTableData" dbquery="qCustomFieldManager_getCustomFieldTableData" object="com.talentPool.custom.dataobject.CustomFieldData">
+		    <attribute name="fieldId" column="table_id" type="STRING"/>
+		    <attribute name="fieldDisplayName" column="table_name" type="STRING"/>
+		    <attribute name="customFieldTableColumnIds" column="cols" type="STRING"/>
+		</dataquery>
+		<dataquery name="dCustomFieldManager_deleteCustomFieldTable" dbquery="qCustomFieldManager_deleteCustomFieldTable"/>
+		<dataquery name="dCustomFieldManager_deleteCustomFieldTableColumnMapping" dbquery="qCustomFieldManager_deleteCustomFieldTableColumnMapping"/>
+		<dataquery name="dCustomFieldManager_deleteCustomFieldTableMappingFromCustomApplicantValues" dbquery="qCustomFieldManager_deleteCustomFieldTableMappingFromCustomApplicantValues"/>
+		<dataquery name="dCustomFieldManager_deleteUnusedCustomFieldTableColumnMapping" dbquery="qCustomFieldManager_deleteUnusedCustomFieldTableColumnMapping"/>
+		<dataquery name="dCustomFieldManager_getTableIdFromTableName" dbquery="qCustomFieldManager_getTableIdFromTableName"/>
+   </dataqueries>   
+</dbmap>

@@ -1,0 +1,204 @@
+<!-- 
+Include filter for Users Filter. 
+
+Required:
+-->
+<script>
+var selectUserFilter	=	null;
+</script>
+<div id="slectUsersDiv">
+	<table class="innerReport">
+		<tr>
+			<td class="label">
+				<bean:message key="report.label.position_recruiters" />:
+			</td>
+			<td>
+				<script type="text/javascript">
+					var opts = new Array();
+					opts[0] = new SelectOption('<%=ReportConstants.FILTER_ALL%>','<bean:message key="common.all"/>');
+					opts[1] = new SelectOption('<%=ReportConstants.FILTER_SPECIFIC_USER%>','<bean:message key="report.label.select_recruiters"/>');
+					selectUserFilter = new SelectBox(opts,'<%=ReportConstants.FILTER_ALL%>','images/btn_dropdown.gif',{namesonly:false, width:'180px', size:20});
+					document.write(selectUserFilter.getHtml());
+					selectUserFilter.setOnChangeHandler('onChangeUserFilter');
+					selectUserFilter.init();
+				</script>
+			</td>
+		</tr>
+	</table>	
+</div>
+<div id="usersFilterDiv" style="display: none;">
+	<table class="usersFilterGrid" >
+		<tr>
+			<td>
+				<table cellpadding="0" cellspacing="0">
+					<tr>
+						<td>
+							<input class="usersTextFilter" id="usersTextFilter" name="usersTextFilter" type="text" value="Filter" style="color: grey; border-bottom: 0px;" onclick="onFilterFocus('usersTextFilter','Filter');" onblur="onFilterUnfocus('usersTextFilter','Filter')"/>
+						</td>
+					</tr>
+					<tr>
+						<td class="gridborder" >
+							<div class="leftGrid" id="USERS_FILTER_GRID"></div>
+						</td>
+					</tr>
+				</table>
+			</td>
+			<td class="arrows" align="center" >	
+				<a href="#" onclick="javascript: selectItem(usersFilter,selectedUsersFilter);return false;" title="<bean:message key='common.add' />" >
+					<img src="images/ico_rightarrow.gif"  border="0" />
+				</a>
+				<br/> 
+				<a href="#" onclick="javascript: deselectItem(selectedUsersFilter,usersFilter);return false;" title="<bean:message key='common.remove' />" >
+					<img src="images/ico_leftarrow.gif"  border="0" />
+				</a>  
+			</td>
+			<td >
+				<table cellpadding="0" cellspacing="0">
+					<tr>
+						<td class="gridborder">
+							<div class="rightGrid" id="SELECTED_USERS_FILTER_GRID" ></div>
+						</td>
+					</tr>
+				</table>
+			</td>
+		</tr>
+	</table>
+</div>
+<script>
+function onChangeUserFilter(){
+	val = selectUserFilter.getSelectedId();
+	if(val=="<%=ReportConstants.FILTER_ALL%>"){
+		hideUserFilter();		
+	}else if(val=="<%=ReportConstants.FILTER_SPECIFIC_USER%>"){
+		showUserFilter();
+	}
+}
+
+function showUserFilter(){
+	$("usersFilterDiv").style.display="";
+}
+
+function hideUserFilter(){
+	$("usersFilterDiv").style.display="none";
+}
+
+/**
+ * Users Filter Gird 
+ */
+
+var usersFilter = null;
+var selectedUsersFilter = null;
+function initUsersFilter() {	
+	usersFilter = new dhtmlXGridObject('USERS_FILTER_GRID'); 
+	usersFilter.imgURL = "images/"; 
+	usersFilter.setHeader("User Name"); 
+	usersFilter.setInitWidths("300");
+	usersFilter.setNoHeader(true);
+	usersFilter.setColAlign("left");
+	usersFilter.setColTypes("ro");
+	//usersFilter.enableMultiselect('false');	
+	usersFilter.init();
+	//usersFilter.sortRows(0,'str',"asc");
+	usersFilter.setSortImgState(true,0,"ASC");	
+	//usersFilter.attachEvent("onXLE",doOnLoadingEndRequisitioner);
+	usersFilter.attachEvent("onKeyPress",onUsersFilterKeyPressed);
+	usersFilter.attachEvent("onRowSelect",doOnUsersFilterGridRowSelectHandler);
+	usersFilter.attachEvent("onRowDblClicked",doOnUsersFilterGirdRowDblClicked);
+	
+	usersFilter.gridToGrid = function(rowId,sgrid,tgrid){
+	    var z=new Array();
+		for(var i=0;i<sgrid.hdr.rows[0].cells.length;i++)
+		z[i]=sgrid.cells(rowId,i).getValue();
+		return z;
+	}	
+	loadUsersFilterGrid();	
+}
+
+function initSelectedUsersFilter(){
+	selectedUsersFilter = new dhtmlXGridObject('SELECTED_USERS_FILTER_GRID'); 
+	selectedUsersFilter.imgURL = "images/"; 
+	selectedUsersFilter.setHeader("User Name"); 
+	selectedUsersFilter.setInitWidths("300");
+	selectedUsersFilter.setColAlign("left");
+	selectedUsersFilter.setColTypes("ro"); 	
+	//selectedUsersFilter.enableMultiselect('true');
+	selectedUsersFilter.setNoHeader(true);
+	selectedUsersFilter.init();
+	selectedUsersFilter.sortRows(0,'str',"asc");
+	selectedUsersFilter.setSortImgState(true,0,"ASC");	
+	selectedUsersFilter.gridToGrid = function(rowId,sgrid,tgrid){
+	    var z=new Array();
+		for(var i=0;i<sgrid.hdr.rows[0].cells.length;i++)
+		z[i]=sgrid.cells(rowId,i).getValue();
+		return z;
+	}
+	selectedUsersFilter.attachEvent("onKeyPress",onSelectedUsersFilterKeyPressed);
+	selectedUsersFilter.attachEvent("onRowSelect",doOnSelectedUsersFilterGridRowSelectHandler);
+	selectedUsersFilter.attachEvent("onRowDblClicked",doOnSelectedUsersFilterGridRowDblClicked);
+}
+
+function onUsersFilterKeyPressed(keyCode,ctrl,shift) {	
+	if(usersFilter.getSelectedId()){
+		var text = (usersFilter.cells(usersFilter.getSelectedId(),0)).getValue();
+		selectedUsersFilter.clearSelection();
+		onGridObjKeyPressed(usersFilter,selectedUsersFilter,4,keyCode,ctrl,shift);
+		if(keyCode=='13'){
+			removeIdFromBackUp(usersFilter, text);
+		}
+	}
+}
+
+function onSelectedUsersFilterKeyPressed(keyCode,ctrl,shift) {
+	usersFilter.clearSelection();
+	onGridObjKeyPressed(selectedUsersFilter,usersFilter,4,keyCode,ctrl,shift);
+	if(keyCode=='13'){
+		resetFilterBackUp(usersFilter);
+	}
+}
+
+function doOnUsersFilterGridRowSelectHandler() {
+	selectedUsersFilter.clearSelection();
+}
+function doOnSelectedUsersFilterGridRowSelectHandler() {
+	usersFilter.clearSelection();
+}
+
+function doOnUsersFilterGirdRowDblClicked() {	
+	var text = (usersFilter.cells(usersFilter.getSelectedId(),0)).getValue();
+	selectItem(usersFilter,selectedUsersFilter);
+	removeIdFromBackUp(usersFilter, text);	
+}
+
+function doOnSelectedUsersFilterGridRowDblClicked() {	
+	selectItem(selectedUsersFilter,usersFilter);
+	resetFilterBackUp(usersFilter);
+}
+
+function onUsersCriteriaChange(event){
+	var iKeyCode = event.keyCode;
+	switch(iKeyCode) {
+		case Event.KEY_UP:
+		case Event.KEY_DOWN: 
+		break;
+		case Event.KEY_PAGEUP:
+		case Event.KEY_PAGEDOWN:
+		break;
+		case Event.KEY_RETURN:
+		break;
+		default:
+		if((iKeyCode>=48 && iKeyCode<=90) || (iKeyCode>=96 && iKeyCode<=105) || iKeyCode==Event.KEY_BACKSPACE || iKeyCode==Event.KEY_DELETE){
+			usersFilter.filterBy(0, $('usersTextFilter').value, false);		
+		}
+	}
+}
+
+function initUsersFilterGrids(){
+	initUsersFilter();
+	initSelectedUsersFilter();
+	Event.observe($('usersTextFilter'), "keyup", onUsersCriteriaChange.bindAsEventListener(this));
+}
+
+/**
+ * END Users Filter Gird 
+ */
+</script>

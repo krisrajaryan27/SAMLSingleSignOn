@@ -1,0 +1,201 @@
+#application lavel settings
+system.name=@system.name@
+application.port=@application.port@
+application.alias=TalentPool
+application.external_IP=
+application.protocol=http
+
+# Path to the ui directory
+installation.path=@installation.path@
+application.path=@application.path@
+license.file.path=@license.file.path@
+ui.dir=TalentPool
+dbmap.folder.relative=WEB-INF/dbmaps/mysql/
+
+#db settings
+db.driver=com.mysql.jdbc.Driver
+db.url=jdbc:mysql://localhost:3306/talentpool?zeroDateTimeBehavior=convertToNull&characterEncoding=latin1
+db.username=@db.username@
+db.password=@db.password@
+
+
+#CONNECTION POOL PROPERTIES
+db.pool.initial_connections=10
+db.pool.max_connections=50
+db.pool.wait_if_busy=true
+
+#Template parameters
+config.dir=config
+templates.dir=templates
+
+documents.dir=documents
+icons.dir=icons
+
+redirect_on_session_expired=login.do?loginmode=login&isExpired=1
+
+# Parser constants, path to dictionary files
+jni.office.converters=Converter.exe
+parser.folder.jni=jni
+parser.file.dictionary=parser/dictionary.txt
+parser.file.commonwords=parser/commonwords.txt
+parser.dir.index=indexrepo
+parser.index.batch.size=500  
+parser.file.wordtohtml=WordToHtml.exe
+parser.file.techFetch=parser/techFetch.properties
+parser.file.dice=parser/dice.properties
+parser.file.naukri=parser/naukri.properties
+parser.file.monster=parser/monster.properties
+parser.file.timesjobs=parser/timesjobs.properties
+
+#reports src and desstination dir
+reports.src.folder=reports
+reports.dest.folder=reportsout
+custom_reports.file_path=customReports
+
+help.file.path=help/help.pdf
+mobile.help.file.path=help/help-mobile.pdf
+
+uploads.dir=upload
+office.version=2007
+bulk.import.ext.allowed=doc,docx,rtf,pdf,html,txt
+
+mapping.xml.folder=mapperxmls
+
+# For Master Report
+#master.report.custom_report=zensar
+master.report.custom_report=
+# For custom reports specific to clients
+#reports.custom.client_name=capita
+reports.custom.client_name=
+
+walk_in.module.client=
+
+use_naukri_parser=1
+use_dice_parser=1
+use_monster_parser=1
+use_timesjob_parser=1
+use_techfetch_parser=1
+
+label.folder.relative=WEB-INF/classes/
+recently.used.source.count=20
+
+nlp.benchmark.folder=NLPParser
+use_nlp_parser=1
+is_rchilli_integration=0
+
+indent.import.ext.allowed=doc,rtf,txt
+single.import.ext.allowed=doc,docx,rtf,pdf,html,txt
+offer.sheet.ext.allowed=doc,docx,xls,xlsx
+common.ext.allowed=doc,docx,xls,xlsx,pdf,html,ppt,pptx,rtf,txt,zip,rar
+# ,zip,rar are removed from common extensions allowed
+common.mimetypes.allowed=application/msword,application/pdf,application/vnd.ms-excel,application/excel,application/vndms-excel,application/x-excel,application/x-msexcel,text/html,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/mspowerpoint,application/vndms-powerpoint,application/powerpoint,application/x-mspowerpoint,image/jpeg,image/pjpeg,image/pjpeg,text/rtf,text/richtext,application/rtf,application/x-rtf,application/x-zip-compressed,application/zip,multipart/x-zip,application/x-compressed,application/x-rar
+# Mime types of zip and rar are not allowed, because content type of compressed content cannot be found, mime types if zip and rar are required are below
+#application/x-zip-compressed,application/zip,multipart/x-zip,application/x-compressed,application/x-rar
+
+jni.file.wordreplace=WordReplaceUtil.exe
+jni.file.excelToPDF=ExcelToPDF.exe
+
+archive.folder.logsPath=../logs
+archive.folder.zipsPath=archive
+archive.pattern.logFileDate=yyyy-MM-dd
+archive.pattern.zipFileDate=ddMMMyyyy
+archive.filesNames.logs=schedular, talentpool,audit
+
+mail.debug=0
+audit.max.file.size.notification=10
+
+plugin.folder.name=plugins
+plugin.file.name.ie_plugin=IEPlugin.zip
+plugin.file.name.firefox_plugin=FirefoxPlugin.zip
+plugin.file.name.outlook_plugin=OutlookPlugin.zip
+plugin.file.name.chrome_plugin=ChromePlugin.zip
+
+#This property is for synchronizing with another talentpooldb, just to alert the current db user about the 
+# candidates already in process at another db. By default this property should be 0(=no).  
+is_lookup.db.enabled=0
+
+#Customer HRMS Itegration
+is_customer.hrms_integrate=0
+customer.request_xml.dir=others/integration/
+customer.hrms_url=http://name:port/
+
+
+#Generate CSV of candidates on step level change schedule basis.
+#is_step_level_csv_schedule are 1 for Select;2 for Accept;3 for Join and 0 when no schedule.
+is_step_level_csv_schedule=0
+csv.scheduler_frequency.minutes=1440
+step_level_schedule_csv_name=CSVName
+customer.created_csv.dir=c:/others/
+
+# Master Tables' scheduler
+# 1. Scheduler run time : hour of the day per 24hr clock (e.g.)
+# 	 if given -1, scheduler will not run
+master.scheduler.runtime.hour_of_day=22
+# 2. scheduler frequency in minutes (default : 1 day = 24*60 minutes)
+#	 if given 0, scheduler will run only once at given start hour of the day
+master.scheduler.frequency.minutes=1440
+
+#Greytip integration is enable
+is_greytip_integrate=0
+
+# Secure Password
+#password.pattern=^(?=.*[^a-zA-Z])(?=.*[a-z])(?=.*[A-Z])\\S{8,}$
+password.pattern=((?\=.*\\d)(?\=.*[a-z])(?\=.*[A-Z])(?\=.*[~\!@\#$%^&*{};'\:]).{8,})
+
+# Captcha
+captcha_enabled=1
+forgotPassword_captcha_enabled=1
+
+#Connection pool timeout to get a connection.. default 0 means wait infinitely
+db.getConnection.timeout=0
+
+#Social Media
+social.hostname=localhost
+social.port=9090
+social.alias=SocialMedia/rest
+social.external_IP=
+social.protocol=http
+
+social.service.url=getAuthentication
+social.post.URL=positionService/postOnSocial
+oauth.token.append=?oAuthToken=
+social.post.companyURL=http://www.yourCompanyName.com
+social.graph.personNode.upload=person
+social.graph.personNode.delete=person/{person-id}/deleteRel
+candidate.profile.url=linkedInService/getProfile?token=
+social.connectionSearch=person/{person-id}/connections
+social.common.graphSearch=person/{person-id}/matches
+person.profile.url=person/
+social.credentials.update=getAuthentication/credentials
+
+#Rchilli Integration properties
+talentpool.rchilli.ServiceUrl=http://java.rchilli.com/RChilliParser/services/RChilliParser?wsdl
+talentpool.rchilli.userKey=9QNJPR52A1B
+talentpool.rchilli.version=5.0.0
+talentpool.rchilli.subUserId=Nitman
+
+#naukri integration properties
+naukri.url=https://jobfeeds.naukri.com/postHttpJob
+naukri.access_key=
+naukri.secret_key=
+naukri.positionposting.url=
+
+
+#indexer configuration
+run.index.onstartup=1
+#keep flush size almost 10 times the batch size
+index.batch.flush.size=100
+index.batch.fetch.size=10
+questinnaire_details_link=http://localhost:9090/web/#/home/my-applications
+default.naukri.pg.qualification=19
+default.naukri.pg.specialization=130
+#candidate portal
+candidate.portal.reset.appFields.url=http://localhost:8080/CandidatePortal/masters/cache/reset
+candidate.portal.resetPositionFieldMapCache.appFields.url=http://localhost:8080/CandidatePortal/position/resetCache
+#Secure cookie configuration==> to be turned 1 when SSL=true
+secure.cookie.flag=0
+
+
+common.newtalentpool.application_url=http://tenant1.talentpool.com:8080
+report.newtalentpool.get_oauthtoken_api=/oauth/token
+report.newtalentpool.post_XLSreport_api=/rest/report

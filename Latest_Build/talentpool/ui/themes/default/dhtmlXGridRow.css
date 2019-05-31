@@ -1,0 +1,10 @@
+div.gridboxwhite table.row20px tr  td{
+    height:30px;
+    white-space: nowrap;
+    padding:1px 0px 5px 3px;
+}
+div.gridbox table.row20px tr  td{
+    height:30px;
+    white-space: nowrap;
+    padding:6px 0px 3px 20px;
+}

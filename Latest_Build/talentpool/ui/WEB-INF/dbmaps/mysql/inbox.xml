@@ -1,0 +1,461 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+<dbqueries>
+	<!-- Inbox Manager  Section ****************************************************-->
+	<dbquery name="qFetchInboxSettings">
+		SELECT inbox_id, inbox_email, inbox_username, inbox_password, inbox_smtp_host, 
+		inbox_pop_host, inbox_polling_duration, inbox_display_name,
+		inbox_server_type, inbox_smtp_auth_required, inbox_smtp_auth_same,
+        inbox_smtp_username, inbox_smtp_password, inbox_incoming_port_no, inbox_incoming_ssl_enabled,
+        inbox_outgoing_port_no, inbox_outgoing_ssl_enabled, is_exchange_smtp,
+        exchange_server_name, domain_name, exchange_server_version
+		FROM tp_inbox_settings where inbox_status=? order by inbox_id
+	</dbquery>
+	<dbquery name="qFetchSingleInboxData">
+		SELECT inbox_id, inbox_email, inbox_username, inbox_password, inbox_smtp_host, 
+		inbox_pop_host, inbox_polling_duration, inbox_display_name ,
+		inbox_server_type, inbox_smtp_auth_required, inbox_smtp_auth_same,
+        inbox_smtp_username, inbox_smtp_password, inbox_incoming_port_no, inbox_incoming_ssl_enabled,
+        inbox_outgoing_port_no, inbox_outgoing_ssl_enabled, inbox_outgoing_tls_enabled,
+        exchange_server_name, domain_name, exchange_server_version, is_exchange_smtp
+		FROM tp_inbox_settings where inbox_status=? LIMIT 0,1
+	</dbquery>
+	<dbquery name="qInsertEmailInbox">
+		insert into tp_inbox_emails(email_from, email_from_address, email_to, email_cc, email_bcc, email_subject, email_date_send,
+		email_date_received, email_textBody, email_htmlBody, email_size, folder_id, auto_import_format, 
+		auto_import_tried,user_id, position_id, applicant_id, position_step_id) 
+		values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	</dbquery>
+	<dbquery name="qInsertEmailCommunication">
+		INSERT INTO tp_applicant_inbox_emails (email_from, email_to, email_cc, email_bcc, email_subject, email_date_send, 
+		email_date_received, email_textbody, email_htmlbody, email_size, folder_id, 
+		user_id, applicant_id, email_imported, entry_id) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	</dbquery>
+	<dbquery name="qInsertAttachmentInbox">
+		INSERT INTO tp_inbox_email_attachments(email_id, attachment_file_path, attachment_original_file_name, 
+		attachment_content_type, attachment_content_id, attachment_type, attachment_size)
+		VALUES(?, ?, ?, ?, ?, ?, ?)
+	</dbquery>
+	<dbquery name="qInsertAttachmentCommunication">
+		INSERT INTO tp_applicant_inbox_email_attachments (email_id, attachment_file_path, attachment_original_file_name, 
+		attachment_content_type, attachment_content_id, attachment_type, attachment_size) 
+		VALUES(?, ?, ?, ?, ?, ?, ?)
+	</dbquery>
+	<dbquery name="qFetchInbox">
+		SELECT inbox_id, inbox_email, inbox_username, inbox_password, inbox_smtp_host, 
+		inbox_pop_host, inbox_polling_duration, inbox_display_name,
+		exchange_server_name, domain_name, exchange_server_version 
+		FROM tp_inbox_settings where inbox_status=? order by inbox_id
+	</dbquery>
+	<dbquery name="qFetchEmailsForEmailFolder">
+		SELECT tem.email_id, tem.email_from, tem.email_to, tem.email_subject, tem.email_date_send, 
+		tem.email_date_received,  tem.auto_import_tried, 
+		count( attachment_id ) AS noOfAttachments, 
+		(select tif.is_system_defined from tp_inbox_folders tif where tif.folder_id = tem.folder_id) as folder_type, 
+		CASE WHEN ( SELECT count( * ) FROM tp_inbox_email_read WHERE email_id = tem.email_id) &gt; 0
+		THEN '1' ELSE '0' END AS readStatus, 
+		CASE WHEN ( ta.applicant_id IS NULL AND ta1.applicant_id IS NULL ) THEN '0' 
+         	 WHEN ta.applicant_id IS NULL THEN ta1.applicant_id 
+         	 ELSE ta.applicant_id 
+       	END AS applicant_id
+		FROM tp_inbox_emails tem
+		LEFT JOIN tp_inbox_email_attachments tat ON ( tem.email_id = tat.email_id AND tat.attachment_type=?) 
+		LEFT JOIN tp_applicants ta ON ( tem.email_from_address = ta.applicant_email1 ) 
+        LEFT JOIN tp_applicants ta1 ON ( tem.email_from_address = ta1.applicant_email2 ) 
+		WHERE tem.folder_id = ?
+		AND tem.email_from != ''
+		AND (tem.auto_import_format=? OR tem.auto_import_tried=?) @@
+		GROUP BY tem.email_id, tem.email_from, tem.email_to, tem.email_subject, tem.email_date_send, 
+		tem.email_date_received <!-- , tem.email_textbody, tem.email_htmlbody --> 
+		ORDER BY @@ , tem.email_id @@ 
+		@@
+	</dbquery>
+	<dbquery name="qFetchEmailCountForEmailSentFolder">
+		select SUM(cnt) as cnt from 
+		(
+			(
+				select count(taie.email_id) as cnt
+				from tp_applicant_inbox_emails taie
+				where taie.folder_id = ?
+				and timestampdiff(DAY, taie.email_date_send, now()) &lt;= ?
+			)UNION(
+				select count(tie.email_id) as cnt
+				from tp_inbox_emails tie
+				where tie.folder_id = ?
+				and timestampdiff(DAY, tie.email_date_send, now()) &lt;= ?
+			)
+		)as x
+	</dbquery>
+	<dbquery name="qInboxManager_FetchInboxFolders">
+		select tif.folder_id, tif.folder_name, tif.is_system_defined, case when folder_id = ? then (select SUM(cnt) as cnt from 
+		(
+			(
+				select count(taie.email_id) as cnt
+				from tp_applicant_inbox_emails taie
+				where taie.folder_id = ?
+				and timestampdiff(DAY, taie.email_date_send, now()) &lt;= ?
+			)UNION(
+				select count(tie.email_id) as cnt
+				from tp_inbox_emails tie
+				where tie.folder_id = ?
+				and timestampdiff(DAY, tie.email_date_send, now()) &lt;= ?
+			)
+		)as x) else (select count(tie.email_id) as cnt
+				from tp_inbox_emails tie
+				where tie.folder_id = tif.folder_id @@) end as cnt
+		from tp_inbox_folders tif
+		where tif.is_system_defined = ?
+	</dbquery>
+	<dbquery name="qFetchEmailsForEmailSentFolder">
+		(
+		select taie.email_id, taie.email_from, taie.email_to, taie.email_cc, 
+		taie.email_bcc, taie.email_subject, taie.email_date_send, 
+		count(taiea.attachment_id) as attCnt, taie.applicant_id, '1' as readStatus,
+		taie.user_id, ? as email_location
+		from tp_applicant_inbox_emails taie
+		left join tp_applicant_inbox_email_attachments taiea on (taie.email_id=taiea.email_id)
+		where taie.folder_id = ?
+		and timestampdiff(DAY, taie.email_date_send, now()) &lt;= ?
+		group by taie.email_id
+		)
+		UNION
+		(
+		select tie.email_id, tie.email_from, tie.email_to, tie.email_cc, 
+		tie.email_bcc, tie.email_subject, tie.email_date_send, 
+		count(tiea.attachment_id) as attCnt, '0' as applicant_id, '1' as readStatus,
+		tie.user_id, ? as email_location
+		from tp_inbox_emails tie
+		left join tp_inbox_email_attachments tiea on (tie.email_id=tiea.email_id)
+		where tie.folder_id = ?
+		and timestampdiff(DAY, tie.email_date_send, now()) &lt;= ?
+		group by tie.email_id
+		)
+		order by @@
+		@@
+	</dbquery>
+	<dbquery name="qGetEmailBody">
+		select tem.email_textbody, tem.email_htmlbody FROM tp_inbox_emails tem where tem.email_id=?
+	</dbquery>
+	<dbquery name="qGetCommunicationEmailBody">
+		select tem.email_textbody, tem.email_htmlbody FROM tp_applicant_inbox_emails tem where tem.email_id=?
+	</dbquery>
+	<dbquery name="qGetEmailHeader">
+		select tem.email_id, tem.email_from, tem.email_to, tem.email_cc, tem.email_bcc, tem.email_subject, tem.email_date_send, 
+		tem.email_date_received, tem.email_size, tem.auto_import_errors 
+		FROM tp_inbox_emails tem where tem.email_id=?
+	</dbquery>
+	<dbquery name="qGetCommunicationEmailHeader">
+		select tem.email_id, tem.email_from, tem.email_to, tem.email_cc, tem.email_bcc, tem.email_subject, tem.email_date_send, 
+		tem.email_date_received, tem.email_size
+		FROM tp_applicant_inbox_emails tem where tem.email_id=?
+	</dbquery>
+	<dbquery name="qGetEmailAtachments">
+		SELECT attachment_id, attachment_file_path, attachment_original_file_name,
+		attachment_content_type, attachment_content_id, attachment_type 
+		FROM tp_inbox_email_attachments	WHERE email_id in @@
+	</dbquery>
+	<dbquery name="qGetEmailAtachmentsOfType">
+		SELECT attachment_id, attachment_file_path, attachment_original_file_name,
+		attachment_content_type, attachment_content_id, attachment_type 
+		FROM tp_inbox_email_attachments	WHERE email_id=? AND attachment_type=?
+	</dbquery>
+	<dbquery name="qGetCommunicationEmailAtachmentsOfType">
+		SELECT attachment_id, attachment_file_path, attachment_original_file_name,
+		attachment_content_type, attachment_content_id, attachment_type 
+		FROM tp_applicant_inbox_email_attachments WHERE email_id=? AND attachment_type=?
+	</dbquery>
+	<dbquery name="qFetchAttachment">
+		select attachment_id,attachment_file_path, attachment_original_file_name,
+		attachment_content_type from tp_inbox_email_attachments
+		where attachment_id=?
+	</dbquery>
+	<dbquery name="qGetEmailReadCount">
+		select count(*) from tp_inbox_email_read where email_id=? and user_id=?
+	</dbquery>
+	<dbquery name="qInsertEmailRead">
+		insert into tp_inbox_email_read(email_id,user_id) values(?,?)
+	</dbquery>
+	<dbquery name="qRemoveEmailRead">
+		delete from tp_inbox_email_read where user_id =? and email_id in (@@)
+	</dbquery>
+	<dbquery name="qDeleteEmail">
+		DELETE FROM tp_inbox_emails WHERE email_id IN @@
+	</dbquery>
+	<dbquery name="qDeleteEmailAttachments">
+		DELETE FROM tp_inbox_email_attachments WHERE email_id IN @@
+	</dbquery>
+	<dbquery name="qDeleteEmailReadHistory">
+		DELETE FROM tp_inbox_email_read WHERE email_id IN @@
+	</dbquery>
+	<dbquery name="qInsertApplicantInboxEmail">
+		INSERT INTO tp_applicant_inbox_emails (email_from, email_to, email_cc, email_bcc, email_subject, email_date_send, 
+		email_date_received, email_textbody, email_htmlbody, email_size, folder_id, user_id, applicant_id,email_imported)
+		SELECT  email_from, email_to, email_cc, email_bcc, email_subject, email_date_send, email_date_received, email_textbody, 
+		email_htmlbody, email_size, ?, ?, ?, ? FROM tp_inbox_emails WHERE email_id=?
+	</dbquery>
+	<dbquery name="qInsertApplicantInboxEmailAttachment">
+		INSERT INTO tp_applicant_inbox_email_attachments (email_id, attachment_file_path, 
+		attachment_original_file_name, attachment_content_type, attachment_content_id, attachment_type) 
+		SELECT ?, attachment_file_path, attachment_original_file_name, attachment_content_type, 
+		attachment_content_id, attachment_type FROM tp_inbox_email_attachments WHERE email_id=?
+	</dbquery>
+	<dbquery name="qCopyEmailAttachments">
+		INSERT INTO tp_tmp_attachments (email_id, attachment_file_path, attachment_original_file_name, 
+		attachment_content_type, attachment_content_id, attachment_type, attachment_size, attachment_date, attachment_confirmed) 
+		SELECT ?, attachment_file_path, attachment_original_file_name, 
+		attachment_content_type, attachment_content_id, attachment_type, attachment_size, now(),? 
+		FROM tp_inbox_email_attachments WHERE email_id=? AND attachment_type=?
+	</dbquery>
+	<dbquery name="qCopyCommunicationEmailAttachments">
+		INSERT INTO tp_tmp_attachments (email_id, attachment_file_path, attachment_original_file_name, 
+		attachment_content_type, attachment_content_id, attachment_type, attachment_size, attachment_date, attachment_confirmed) 
+		SELECT ?, attachment_file_path, attachment_original_file_name, 
+		attachment_content_type, attachment_content_id, attachment_type, attachment_size, now() ,?
+		FROM tp_applicant_inbox_email_attachments  WHERE email_id=? AND attachment_type=?
+	</dbquery>
+	<dbquery name="qGetTmpAttachments">
+		SELECT attachment_id, attachment_file_path, attachment_original_file_name, 
+		attachment_content_type, attachment_content_id, attachment_type, attachment_size
+		FROM tp_tmp_attachments WHERE email_id=? AND attachment_confirmed=?
+	</dbquery>
+	<dbquery name="qInsertTmpAttachmentData">
+		INSERT INTO tp_tmp_attachments (email_id, attachment_file_path, attachment_original_file_name, 
+		attachment_content_type, attachment_type, attachment_size, attachment_date,attachment_confirmed) 
+		VALUES(?, ?, ?, ?, ?, ?, now(),?)
+	</dbquery>
+	<dbquery name="qConfirmAttachments">
+		UPDATE tp_tmp_attachments SET attachment_confirmed=? WHERE email_id=? @@
+	</dbquery>
+	<dbquery name="qDeleteTmpAttachments">
+		DELETE FROM tp_tmp_attachments WHERE email_id=? @@
+	</dbquery>
+	<dbquery name="qGetSizeForTmpAttachments">
+		SELECT IFNULL(SUM(attachment_size),0) as attachment_size FROM tp_tmp_attachments WHERE  email_id=? 
+	</dbquery>
+	<dbquery name="qGetSearchedApplicant">
+		SELECT 	applicant_id, applicant_name FROM tp_applicants WHERE applicant_joined=? @@
+		ORDER BY applicant_name
+	</dbquery>
+	<dbquery name="qInboxManager_MoveEmail">
+		update tp_inbox_emails
+		set folder_id=? where email_id in (@@)
+	</dbquery>
+	<dbquery name="qInboxManager_GetFolderIdOfSystemFolderDrafts">
+		select folder_id from tp_inbox_folders
+		where is_system_defined = ?
+		order by folder_id limit 0, 1
+	</dbquery>
+	<dbquery name="qInboxManager_TmpAttachment">
+		SELECT attachment_id, attachment_file_path, attachment_original_file_name, 
+		attachment_content_type, attachment_content_id, attachment_type, attachment_size
+		FROM tp_tmp_attachments
+		WHERE attachment_id = ?
+	</dbquery>
+	<!-- End Inbox Manager  Section ********************************************-->
+</dbqueries>
+<dataqueries>
+	<!-- Inbox Manager  Section ************************************************-->
+	<dataquery name="dFetchInboxSettings" dbquery="qFetchInboxSettings" object="com.talentPool.inbox.dataobject.InboxData">
+     	<attribute name="inboxId" column="inbox_id" type="INT"/>
+        <attribute name="inboxEmail" column="inbox_email" type="STRING"/>
+        <attribute name="userName" column="inbox_username" type="STRING"/>
+        <attribute name="password" column="inbox_password" type="STRING"/>
+        <attribute name="smtpHost" column="inbox_smtp_host" type="STRING"/>
+        <attribute name="popHost" column="inbox_pop_host" type="STRING"/>
+     	<attribute name="pollingDuration" column="inbox_polling_duration" type="INT"/>
+        <attribute name="inboxDisplayName" column="inbox_display_name" type="STRING"/>
+		<attribute name="inboxServerType" column="inbox_server_type" type="INT"/>
+        <attribute name="inboxSmtpAuthRequired" column="inbox_smtp_auth_required" type="INT"/>
+        <attribute name="inboxSmtpAuthSame" column="inbox_smtp_auth_same" type="INT"/>
+        <attribute name="inboxSmtpUserName" column="inbox_smtp_username" type="STRING"/>
+        <attribute name="inboxSmtpPassword" column="inbox_smtp_password" type="STRING"/>
+		<attribute name="inboxOutgoingPort" column="inbox_outgoing_port_no" type="STRING"/>
+		<attribute name="inboxOutgoingSSLEnabled" column="inbox_outgoing_ssl_enabled" type="INT"/>
+		<attribute name="inboxIncomingPort" column="inbox_incoming_port_no" type="STRING"/>
+		<attribute name="inboxIncomingSSLEnabled" column="inbox_incoming_ssl_enabled" type="INT"/>
+		<attribute name="exchangeServerName" column="exchange_server_name" type="STRING"/>
+		<attribute name="domainName" column="domain_name" type="STRING"/>
+		<attribute name="exchangeServerVersion" column="exchange_server_version" type="STRING"/>
+		<attribute name="exchangeSmtp" column="is_exchange_smtp" type="STRING"/>		
+	</dataquery>
+	<dataquery name="dFetchSingleInboxData" dbquery="qFetchSingleInboxData" object="com.talentPool.inbox.dataobject.InboxData">
+     	<attribute name="inboxId" column="inbox_id" type="INT"/>
+        <attribute name="inboxEmail" column="inbox_email" type="STRING"/>
+        <attribute name="userName" column="inbox_username" type="STRING"/>
+        <attribute name="password" column="inbox_password" type="STRING"/>
+        <attribute name="smtpHost" column="inbox_smtp_host" type="STRING"/>
+        <attribute name="popHost" column="inbox_pop_host" type="STRING"/>
+     	<attribute name="pollingDuration" column="inbox_polling_duration" type="INT"/>
+        <attribute name="inboxDisplayName" column="inbox_display_name" type="STRING"/>
+		<attribute name="inboxServerType" column="inbox_server_type" type="INT"/>
+        <attribute name="inboxSmtpAuthRequired" column="inbox_smtp_auth_required" type="INT"/>
+        <attribute name="inboxSmtpAuthSame" column="inbox_smtp_auth_same" type="INT"/>
+        <attribute name="inboxSmtpUserName" column="inbox_smtp_username" type="STRING"/>
+        <attribute name="inboxSmtpPassword" column="inbox_smtp_password" type="STRING"/>
+		<attribute name="inboxOutgoingPort" column="inbox_outgoing_port_no" type="STRING"/>
+		<attribute name="inboxOutgoingSSLEnabled" column="inbox_outgoing_ssl_enabled" type="INT"/>
+		<attribute name="inboxIncomingPort" column="inbox_incoming_port_no" type="STRING"/>
+		<attribute name="inboxIncomingSSLEnabled" column="inbox_incoming_ssl_enabled" type="INT"/>
+		<attribute name="inboxOutgoingTLSEnabled" column="inbox_outgoing_tls_enabled" type="INT"/>
+		<attribute name="exchangeServerName" column="exchange_server_name" type="STRING"/>
+		<attribute name="domainName" column="domain_name" type="STRING"/>
+		<attribute name="exchangeServerVersion" column="exchange_server_version" type="STRING"/>
+		<attribute name="exchangeSmtp" column="is_exchange_smtp" type="STRING"/>
+	</dataquery>
+	<dataquery name="dInsertEmailInbox" dbquery="qInsertEmailInbox"/>
+	<dataquery name="dInsertEmailCommunication" dbquery="qInsertEmailCommunication"/>
+	<dataquery name="dInsertAttachmentInbox" dbquery="qInsertAttachmentInbox"/>
+	<dataquery name="dInsertAttachmentCommunication" dbquery="qInsertAttachmentCommunication"/>
+	<dataquery name="dFetchInbox" dbquery="qFetchInbox" object="com.talentPool.inbox.dataobject.InboxData">
+     	<attribute name="inboxId" column="inbox_id" type="INT"/>
+        <attribute name="inboxEmail" column="inbox_email" type="STRING"/>
+        <attribute name="userName" column="inbox_username" type="STRING"/>
+        <attribute name="password" column="inbox_password" type="STRING"/>
+        <attribute name="smtpHost" column="inbox_smtp_host" type="STRING"/>
+        <attribute name="popHost" column="inbox_pop_host" type="STRING"/>
+     	<attribute name="pollingDuration" column="inbox_polling_duration" type="INT"/>
+        <attribute name="inboxDisplayName" column="inbox_display_name" type="STRING"/>
+        <attribute name="exchangeServerName" column="exchange_server_name" type="STRING"/>
+		<attribute name="domainName" column="domain_name" type="STRING"/>
+		<attribute name="exchangeServerVersion" column="exchange_server_version" type="STRING"/>
+	</dataquery>
+	<dataquery name="dFetchEmailsForEmailFolder" dbquery="qFetchEmailsForEmailFolder" object="com.talentPool.inbox.dataobject.MessageData">
+		<attribute name="messageId" column="email_id" type="INT"/>
+		<attribute name="from" column="email_from" type="STRING"/>
+		<attribute name="to" column="email_to" type="STRING"/>
+		<attribute name="subject" column="email_subject" type="STRING"/>
+		<attribute name="sendDate" column="email_date_send" type="STRING"/>
+		<attribute name="receivedDate" column="email_date_received" type="STRING"/>
+		<attribute name="noOfAttachments" column="noOfAttachments" type="INT"/>
+		<attribute name="readStatus" column="readStatus" type="STRING"/>
+		<attribute name="applicantId" column="applicant_id" type="STRING"/>
+		<attribute name="folderType" column="folder_type" type="STRING"/>		
+	</dataquery>
+	<dataquery name="dFetchEmailCountForEmailSentFolder" dbquery="qFetchEmailCountForEmailSentFolder" object="com.talentPool.common.db.SimpleDataObject">
+		<attribute name="count" column="cnt" type="INT"/>
+	</dataquery>
+	<dataquery name="dFetchEmailsForEmailSentFolder" dbquery="qFetchEmailsForEmailSentFolder" object="com.talentPool.inbox.dataobject.MessageData">
+		<attribute name="messageId" column="email_id" type="INT"/>
+		<attribute name="from" column="email_from" type="STRING"/>
+		<attribute name="to" column="email_to" type="STRING"/>
+		<attribute name="cc" column="email_cc" type="STRING"/>
+		<attribute name="bcc" column="email_bcc" type="STRING"/>
+		<attribute name="subject" column="email_subject" type="STRING"/>
+		<attribute name="sendDate" column="email_date_send" type="STRING"/>
+		<attribute name="noOfAttachments" column="attCnt" type="STRING"/>
+		<attribute name="readStatus" column="readStatus" type="STRING"/>
+		<attribute name="applicantId" column="applicant_id" type="STRING"/>
+		<attribute name="userId" column="user_id" type="STRING"/>
+		<attribute name="emailLocation" column="email_location" type="STRING"/>
+	</dataquery>
+	<dataquery name="dGetEmailBody" dbquery="qGetEmailBody" object="com.talentPool.inbox.dataobject.MessageData">
+		<attribute name="textBody" column="email_textbody" type="STRING"/>
+		<attribute name="htmlBody" column="email_htmlbody" type="STRING"/>
+	</dataquery>
+	<dataquery name="dGetCommunicationEmailBody" dbquery="qGetCommunicationEmailBody" object="com.talentPool.inbox.dataobject.MessageData">
+		<attribute name="textBody" column="email_textbody" type="STRING"/>
+		<attribute name="htmlBody" column="email_htmlbody" type="STRING"/>
+	</dataquery>
+	<dataquery name="dGetEmailHeader" dbquery="qGetEmailHeader" object="com.talentPool.inbox.dataobject.MessageData">
+		<attribute name="messageId" column="email_id" type="INT"/>
+		<attribute name="from" column="email_from" type="STRING"/>
+		<attribute name="to" column="email_to" type="STRING"/>
+		<attribute name="cc" column="email_cc" type="STRING"/>
+		<attribute name="bcc" column="email_bcc" type="STRING"/>
+		<attribute name="subject" column="email_subject" type="STRING"/>
+		<attribute name="sendDate" column="email_date_send" type="STRING"/>
+		<attribute name="receivedDate" column="email_date_received" type="STRING"/>
+		<attribute name="size" column="email_size" type="INT"/>
+		<attribute name="autoImportErrors" column="auto_import_errors" type="STRING"/>
+	</dataquery>
+	<dataquery name="dGetCommunicationEmailHeader" dbquery="qGetCommunicationEmailHeader" object="com.talentPool.inbox.dataobject.MessageData">
+		<attribute name="messageId" column="email_id" type="INT"/>
+		<attribute name="from" column="email_from" type="STRING"/>
+		<attribute name="to" column="email_to" type="STRING"/>
+		<attribute name="cc" column="email_cc" type="STRING"/>
+		<attribute name="bcc" column="email_bcc" type="STRING"/>
+		<attribute name="subject" column="email_subject" type="STRING"/>
+		<attribute name="sendDate" column="email_date_send" type="STRING"/>
+		<attribute name="receivedDate" column="email_date_received" type="STRING"/>
+		<attribute name="size" column="email_size" type="INT"/>
+	</dataquery>
+	<dataquery name="dGetEmailAtachments" dbquery="qGetEmailAtachments" object="com.talentPool.inbox.dataobject.AttachmentData">
+		<attribute name="attachmentId" column="attachment_id" type="INT"/>
+		<attribute name="attachmentFilePath" column="attachment_file_path" type="STRING"/>
+		<attribute name="originalFileName" column="attachment_original_file_name" type="STRING"/>
+		<attribute name="contentType" column="attachment_content_type" type="STRING"/>
+		<attribute name="contentId" column="attachment_content_id" type="STRING"/>
+		<attribute name="attachmentType" column="attachment_type" type="STRING"/>
+	</dataquery>
+	<dataquery name="dGetEmailAtachmentsOfType" dbquery="qGetEmailAtachmentsOfType" object="com.talentPool.inbox.dataobject.AttachmentData">
+		<attribute name="attachmentId" column="attachment_id" type="INT"/>
+		<attribute name="attachmentFilePath" column="attachment_file_path" type="STRING"/>
+		<attribute name="originalFileName" column="attachment_original_file_name" type="STRING"/>
+		<attribute name="contentType" column="attachment_content_type" type="STRING"/>
+		<attribute name="contentId" column="attachment_content_id" type="STRING"/>
+		<attribute name="attachmentType" column="attachment_type" type="STRING"/>
+	</dataquery>
+	<dataquery name="dGetCommunicationEmailAtachmentsOfType" dbquery="qGetCommunicationEmailAtachmentsOfType" object="com.talentPool.inbox.dataobject.AttachmentData">
+		<attribute name="attachmentId" column="attachment_id" type="INT"/>
+		<attribute name="attachmentFilePath" column="attachment_file_path" type="STRING"/>
+		<attribute name="originalFileName" column="attachment_original_file_name" type="STRING"/>
+		<attribute name="contentType" column="attachment_content_type" type="STRING"/>
+		<attribute name="contentId" column="attachment_content_id" type="STRING"/>
+		<attribute name="attachmentType" column="attachment_type" type="STRING"/>
+	</dataquery>
+	<dataquery name="dFetchAttachment" dbquery="qFetchAttachment" object="com.talentPool.inbox.dataobject.AttachmentData">
+		<attribute name="attachmentId" column="attachment_id" type="INT"/>
+		<attribute name="attachmentFilePath" column="attachment_file_path" type="STRING"/>
+		<attribute name="originalFileName" column="attachment_original_file_name" type="STRING"/>
+		<attribute name="contentType" column="attachment_content_type" type="STRING"/>
+	</dataquery>
+	<dataquery name="dGetEmailReadCount" dbquery="qGetEmailReadCount"/>
+	<dataquery name="dInsertEmailRead" dbquery="qInsertEmailRead"/>
+	<dataquery name="dRemoveEmailRead" dbquery="qRemoveEmailRead"/>
+	<dataquery name="dDeleteEmail" dbquery="qDeleteEmail"/>
+	<dataquery name="dDeleteEmailAttachments" dbquery="qDeleteEmailAttachments"/>
+	<dataquery name="dDeleteEmailReadHistory" dbquery="qDeleteEmailReadHistory"/>
+	<dataquery name="dInsertApplicantInboxEmail" dbquery="qInsertApplicantInboxEmail"/>
+	<dataquery name="dInsertApplicantInboxEmailAttachment" dbquery="qInsertApplicantInboxEmailAttachment"/>
+	<dataquery name="dCopyEmailAttachments" dbquery="qCopyEmailAttachments"/>
+	<dataquery name="dCopyCommunicationEmailAttachments" dbquery="qCopyCommunicationEmailAttachments"/>
+	<dataquery name="dGetTmpAttachments" dbquery="qGetTmpAttachments" object="com.talentPool.inbox.dataobject.AttachmentData">
+		<attribute name="attachmentId" column="attachment_id" type="INT"/>
+		<attribute name="attachmentFilePath" column="attachment_file_path" type="STRING"/>
+		<attribute name="originalFileName" column="attachment_original_file_name" type="STRING"/>
+		<attribute name="contentType" column="attachment_content_type" type="STRING"/>
+		<attribute name="contentId" column="attachment_content_id" type="STRING"/>
+		<attribute name="attachmentType" column="attachment_type" type="STRING"/>
+		<attribute name="attachmentSize" column="attachment_size" type="INT"/>
+	</dataquery>
+	<dataquery name="dInsertTmpAttachmentData" dbquery="qInsertTmpAttachmentData"/>
+	<dataquery name="dConfirmAttachments" dbquery="qConfirmAttachments"/>
+	<dataquery name="dDeleteTmpAttachments" dbquery="qDeleteTmpAttachments"/>
+	<dataquery name="dGetSizeForTmpAttachments" dbquery="qGetSizeForTmpAttachments"/>
+	<dataquery name="dGetSearchedApplicant" dbquery="qGetSearchedApplicant" object="com.talentPool.applicant.dataobject.ApplicantData">
+	    <attribute name= "applicantId" column="applicant_id" type ="INT" />
+	    <attribute name= "applicantName" column="applicant_name" type ="STRING" />
+	</dataquery>
+	<dataquery name="dInboxManager_FetchInboxFolders" dbquery="qInboxManager_FetchInboxFolders" object="com.talentPool.masters.dataobject.InboxFolderData">
+	    <attribute name= "folderId" column="folder_id" type ="INT" />
+	    <attribute name= "folderName" column="folder_name" type ="STRING" />
+	    <attribute name= "systemDefined" column="is_system_defined" type ="INT" />
+	    <attribute name= "emailCount" column="cnt" type ="STRING" />
+	</dataquery>	
+	<dataquery name="dInboxManager_MoveEmail" dbquery="qInboxManager_MoveEmail"/>	
+	<dataquery name="dInboxManager_GetFolderIdOfSystemFolderDrafts" dbquery="qInboxManager_GetFolderIdOfSystemFolderDrafts"/>
+	<dataquery name="dInboxManager_TmpAttachment" dbquery="qInboxManager_TmpAttachment" object="com.talentPool.inbox.dataobject.AttachmentData">
+		<attribute name="attachmentId" column="attachment_id" type="INT"/>
+		<attribute name="attachmentFilePath" column="attachment_file_path" type="STRING"/>
+		<attribute name="originalFileName" column="attachment_original_file_name" type="STRING"/>
+		<attribute name="contentType" column="attachment_content_type" type="STRING"/>
+		<attribute name="contentId" column="attachment_content_id" type="STRING"/>
+		<attribute name="attachmentType" column="attachment_type" type="STRING"/>
+		<attribute name="attachmentSize" column="attachment_size" type="INT"/>
+	</dataquery>		
+	<!-- End Inbox Manager  Section  ************************************************-->
+</dataqueries>   
+</dbmap>

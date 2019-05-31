@@ -1,0 +1,32 @@
+[Settings]
+NumFields=6
+
+[Field 1]
+Type=label
+Text=Username:
+Left=0
+Right=50
+Top=2
+Bottom=12
+
+[Field 2]
+Type=text
+Left=50
+Right=150
+Top=2
+Bottom=12
+
+[Field 3]
+Type=label
+Text=Password:
+Left=0
+Right=50
+Top=16
+Bottom=26
+
+[Field 4]
+Type=password
+Left=50
+Right=150
+Top=16
+Bottom=26

@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+<xs:complexType name="tpReportTemplate">
+</xs:complexType>
+<xs:complexType name="tpReportType">
+	<xs:sequence>
+	<xs:element name="type" type="xs:string" maxOccurs="2"/>
+	</xs:sequence>
+</xs:complexType>
+<xs:complexType name="field">
+	<xs:sequence>
+		<xs:element name="key" type="xs:string" />
+		<xs:element name="category" type="xs:string" />
+		<xs:element name="tableType" type="xs:string" />
+		<xs:element name="fieldValueType" type="xs:string"></xs:element>
+		<xs:element name="displayName" type="xs:string" />
+		<xs:element name="dbName" type="xs:string" />
+		<xs:element name="witdh" type="xs:int"></xs:element>
+		<xs:element name="binding" type="xs:string" minOccurs="0" />
+		<xs:element name="dataType" type="xs:string" />
+		<xs:element name="DefaultValue" type="xs:string" minOccurs="0" />
+		<xs:element name="AllowBlank" type="xs:boolean" minOccurs="0" />
+		<xs:element name="Visible" type="xs:boolean" minOccurs="0" />
+		<xs:element name="UsedInQuery" minOccurs="0" />
+		<xs:element name="ShowSubTotal" type="xs:boolean" />
+		<xs:element name="CellContent">
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:enumeration value="simplecount" />
+					<xs:enumeration value="multiple" />
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:element>
+		<xs:element name="CellContentFormat">
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:enumeration value="inline" />
+					<xs:enumeration value="blowout" />
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:element>
+	</xs:sequence>
+</xs:complexType>
+<xs:complexType name="datasetType">
+</xs:complexType>
+<xs:complexType name="reportFormatType">
+	<xs:sequence>
+	<xs:element name="format" type="xs:string" maxOccurs="3"/>
+	</xs:sequence>
+</xs:complexType>
+<xs:complexType name="filter">
+       <xs:annotation>
+       	<xs:documentation>filterId - Used for referencing filter
+			visibility- Flag which specifies whether to show in report or not
+			value- Default value applied to report at run time when visibility is false
+			value1- Used only when filter value cannot be defined in a single parameter (in case of as of date and date range filter)
+			value2- Used only when filter value cannot be defined in a two parameters (date range filter)
+		</xs:documentation>
+       </xs:annotation>
+       <xs:sequence>
+		<xs:element name="filterId" type="xs:string">
+			<xs:annotation>
+				<xs:documentation>Used for referencing filter</xs:documentation>
+			</xs:annotation></xs:element>
+           <xs:element name="visibility" type="xs:boolean">
+			<xs:annotation>
+				<xs:documentation>Flag which specifies whether to show in report or not</xs:documentation>
+			</xs:annotation></xs:element>
+           <xs:element name="value" type="xs:string" >
+			<xs:annotation>
+				<xs:documentation>Default value applied to report at run time when visibility is false</xs:documentation>
+			</xs:annotation></xs:element>
+		<xs:element name="value1" type="xs:string" >
+			<xs:annotation>
+				<xs:documentation>Used only when filter value cannot be defined in a single parameter (in case of as of date and date range filter)</xs:documentation>
+			</xs:annotation></xs:element>
+		<xs:element name="value2" type="xs:string" >
+			<xs:annotation>
+				<xs:documentation>Used only when filter value cannot be defined in a two parameters (date range filter)</xs:documentation>
+			</xs:annotation></xs:element>
+	</xs:sequence>
+</xs:complexType>
+<xs:complexType name="filters">
+	<xs:sequence>
+		<xs:element name="filter" type="filter" maxOccurs="unbounded" />
+	</xs:sequence>
+</xs:complexType>
+<xs:complexType name="datasetsType">
+	<xs:sequence>
+	<xs:element name="dataset" type="datasetType"/>
+	</xs:sequence>
+</xs:complexType>
+<xs:complexType name="datasourceType">
+	<xs:sequence>
+	<xs:element name="ConnectionString" type="xs:string"/>
+	<xs:element name="userid" type="xs:string"/>
+	<xs:element name="password" type="xs:string"/>
+	<xs:element name="timeout" type="xs:integer"/>
+	</xs:sequence>
+</xs:complexType>	
+<xs:complexType name="candNamesSpecifications">
+	<xs:sequence>
+		<xs:element name="showNames" type="xs:boolean"/>
+		<xs:element name="extraCandidateAttributes" type="xs:string"/>
+		<xs:element name="stepsToShowNames" type="xs:string"/>
+		<xs:element name="stepsToShowNamesAndAttributes" type="xs:string"/>
+	</xs:sequence>
+</xs:complexType>
+<xs:complexType name="customReport">
+	<xs:sequence>
+		<xs:element name="ReportName" type="xs:string" />
+		<xs:element name="ReportCategory" type="xs:string" />
+		<xs:element name="ReportSubCategory" type="xs:string" />
+		<xs:element name="Type" type="xs:string" />
+		<xs:element name="Description" type="xs:string" minOccurs="0" />
+		<xs:element name="Author" type="xs:string" minOccurs="0" />
+		<xs:element name="ReportTemplate" type="tpReportTemplate" />
+		<xs:element name="ReportType" type="tpReportType" />        <xs:element name="CreationTime" type="xs:dateTime" />
+        <xs:element name="Language" type="xs:string" minOccurs="0" />
+		<xs:element name="Columns" type="field" maxOccurs="unbounded" minOccurs="0" />
+		<xs:element name="Rows" type="field" maxOccurs="unbounded" minOccurs="0" />
+		<xs:element name="Measures" type="field" maxOccurs="unbounded" minOccurs="0" />
+		<xs:element name="candNamesSpecifications" type="candNamesSpecifications" />
+		<xs:element name="ReportFormat" type="xs:string" />
+		<xs:element name="Filters" type="filters" />
+		<xs:element name="Datasets" type="datasetsType" />
+		<xs:element name="Datasource" type="datasourceType" />
+		<xs:element name="showRowGrandTotal" type="xs:boolean" />
+		<xs:element name="LastModifiedTime" type="xs:dateTime" />
+	</xs:sequence>
+	<xs:attribute name="reportId" type="xs:string" use="required" />
+    <xs:attribute name="share" type="xs:string" use="required" />
+</xs:complexType>
+<xs:element name="report" type="customReport" />
+</xs:schema>

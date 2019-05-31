@@ -1,0 +1,121 @@
+package com.talentPool.requisition.scheduler;
+
+import java.util.Arrays;
+import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.List;
+
+import org.quartz.JobDetail;
+import org.quartz.Scheduler;
+import org.quartz.SchedulerException;
+import org.quartz.SimpleTrigger;
+import org.quartz.TriggerUtils;
+
+import com.talentPool.common.Logger.TPLogger;
+import com.talentPool.common.utils.Utils;
+import com.talentPool.customReports.scheduler.UpdateMasterTablesJob;
+import com.talentPool.positions.manager.PositionStatusScheduleManager;
+import com.talentPool.scheduler.SchedulerConstants;
+import com.talentPool.scheduler.TPDefaultScheduler;
+import com.talentPool.scheduler.dataobject.SchedulerData;
+import com.talentPool.scheduler.manager.SchedulerManager;
+
+public class UpdatePositionStatusScheduler {
+	private static Scheduler scheduler;
+	private static JobDetail requisitionAutoApprovalJob;
+	public static boolean JOB_STATUS_BUZY = false;
+	public static Long repeatInterval;
+	public static int startHour;
+	public static int startMin;
+
+	static {
+		try {
+			initSchedulerInfo();
+			initUpdateMasterTablesJob();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Unable to init schedular for updating master tables", e);
+		}
+	}
+	
+	public static void initUpdateMasterTablesJob() throws SchedulerException{
+		if (scheduler == null) {
+			scheduler = TPDefaultScheduler.getDefaultScheduler();
+		}
+		
+		String[] jobNames = scheduler.getJobNames(Scheduler.DEFAULT_GROUP);
+		List<String> jobList = Arrays.asList(jobNames);
+		if (!jobList.contains(SchedulerConstants.JOB_POSITION_AUTO_APPROVAL)) {
+			requisitionAutoApprovalJob = new JobDetail(SchedulerConstants.JOB_POSITION_AUTO_APPROVAL, Scheduler.DEFAULT_GROUP, RequisitionAutoApprovalJob.class, false, true, true);
+			scheduler.addJob(requisitionAutoApprovalJob, false);
+		}
+	}
+	
+	public static void initSchedulerInfo() {
+		PositionStatusScheduleManager schedulerManager = new PositionStatusScheduleManager();
+		SchedulerData schedulerData = schedulerManager.getSchedulerInfo();
+		
+		try {
+			startHour = Integer.parseInt(Utils.getDateStringConvertedToOtherDateFormat(schedulerData.getSchedulerStartHour(), Utils.regDDMMYYYYHHMMSSsssFromat, "HH"));
+			startMin = Integer.parseInt(Utils.getDateStringConvertedToOtherDateFormat(schedulerData.getSchedulerStartHour(), Utils.regDDMMYYYYHHMMSSsssFromat, "mm"));
+			repeatInterval = Long.parseLong(schedulerData.getSchedulerFrequency()) * 60 * 60 * 1000L;
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Unable to init master tables' schedular details ", e);
+		}
+	}
+	
+	public static void updateScheduler() {
+		initSchedulerInfo();
+		triggerPositionApprovalJob();
+	}
+	
+	public static void triggerPositionApprovalJob(){		
+		deleteTrigger();
+		addTrigger();
+	}
+	public static void addTrigger() {
+		TPLogger.getLogger().debug("*************************** - Add Trigger for Updating Master Tables ++++++++++++++++++++++++++++++ ");		
+		SimpleTrigger simpleTrigger = null;
+		try {			
+			TPLogger.getLogger().debug("Adding trigger for Updating Master Tables");
+
+			if(startHour < 0) {
+				TPLogger.getLogger().error("Start Hour for Scheduler not set, so not scheduling the " + SchedulerConstants.JOB_UPDATE_MASTER_TABLES);
+				return;
+			}
+			Date startTime = new Date(System.currentTimeMillis());
+			GregorianCalendar cal = new GregorianCalendar();
+			cal.setTime(startTime);
+			cal.set(java.util.Calendar.HOUR_OF_DAY, startHour);
+			cal.set(java.util.Calendar.MINUTE, startMin);
+			cal.set(java.util.Calendar.SECOND, 0);
+			cal.set(java.util.Calendar.MILLISECOND, 0);
+			startTime = cal.getTime();
+			simpleTrigger = new SimpleTrigger(SchedulerConstants.TRIGGER_POSITION_AUTO_APPROVAL, Scheduler.DEFAULT_GROUP, startTime);
+			simpleTrigger.setJobName(SchedulerConstants.JOB_POSITION_AUTO_APPROVAL);
+			simpleTrigger.setJobGroup(Scheduler.DEFAULT_GROUP);
+			if(repeatInterval > 0) {
+				simpleTrigger.setEndTime(null);
+				simpleTrigger.setRepeatCount(SimpleTrigger.REPEAT_INDEFINITELY);
+				simpleTrigger.setRepeatInterval(repeatInterval);
+			} 
+			scheduler.scheduleJob(simpleTrigger);
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while adding trigger for updating master tables", e);
+		}
+	}
+	
+	public static void deleteTrigger() {
+		TPLogger.getLogger().debug("************************* - deleting trigger for Updating Master Tables Scheduler *************************");
+		try {			
+			String[] triggerNames = scheduler.getTriggerNames(Scheduler.DEFAULT_GROUP);
+			List triggerList = Arrays.asList(triggerNames);
+			if (triggerList.contains(SchedulerConstants.TRIGGER_POSITION_AUTO_APPROVAL)) {
+				scheduler.unscheduleJob(SchedulerConstants.TRIGGER_POSITION_AUTO_APPROVAL, Scheduler.DEFAULT_GROUP);
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while deleting trigger for updating master tables",e);
+		}
+	}
+	
+	
+}

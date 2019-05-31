@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>
+		<dbquery name="qAuditManager_GetUserName">
+			SELECT concat(user_fname,' ',user_lname) FROM tp_users WHERE user_id=?
+		</dbquery>
+		<dbquery name="qAuditManager_GetPositionName">
+			SELECT position_title FROM tp_positions WHERE position_id=?
+		</dbquery>
+		<dbquery name="qAuditManager_GetCandidateName">
+			SELECT applicant_name FROM tp_applicants WHERE applicant_id=?
+		</dbquery>
+		<dbquery name="qAuditManager_GetRoleName">
+			SELECT ROLE_TITLE FROM tp_roles WHERE ROLE_ID=?
+		</dbquery>
+		<dbquery name="qAuditManager_GetReportLevelName">
+			SELECT ROLE_TITLE FROM tp_roles WHERE ROLE_ID=?
+		</dbquery>		
+		<dbquery name="qAuditManager_AddAudit">
+			INSERT INTO tp_audit_entries
+			(audit_desc, audit_type, entity_id, entity_type, entity_field,user_id,date_created, source_ip)
+			VALUES
+			(?,?,?,?,?,?,now(),?)
+		</dbquery>
+	</dbqueries>  
+	<dataqueries>
+	    <dataquery name="dAuditManager_GetUserName" dbquery="qAuditManager_GetUserName"/>
+	    <dataquery name="dAuditManager_GetPositionName" dbquery="qAuditManager_GetPositionName"/>
+	    <dataquery name="dAuditManager_GetCandidateName" dbquery="qAuditManager_GetCandidateName"/>
+	    <dataquery name="dAuditManager_AddAudit" dbquery="qAuditManager_AddAudit"/>
+	    <dataquery name="dAuditManager_GetRoleName" dbquery="qAuditManager_GetRoleName"/>
+	    <dataquery name="dAuditManager_GetReportLevelName" dbquery="qAuditManager_GetReportLevelName"/>
+	</dataqueries>   	
+</dbmap>

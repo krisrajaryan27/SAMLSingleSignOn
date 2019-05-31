@@ -1,0 +1,71 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>	
+		<!-- Start : Employee Management -->		
+		<dbquery name="qEmployeeDashboardManager_GetActivities">
+			SELECT tasp.applicant_id, ta.applicant_name, tasp.position_id, tp.position_title,tasp.process_moved_date,
+			CASE WHEN tasp.position_step_id_to = ? THEN 'Joined' 
+			WHEN tasp.position_step_id_to IN (?, ?, ?, ?) THEN 'Rejected'
+			WHEN tps.position_step_level=? THEN tps.position_step_title
+			WHEN (SELECT application_property_value FROM tp_application_properties 	WHERE application_property=?) = ? 
+				THEN 
+				CASE WHEN tps.position_step_isscheduled=? THEN concat('In Process', ' (', tps.position_step_title, ')') 
+				ELSE 'In Process' 
+				END
+			ELSE 'In Process'
+			END AS activity
+			FROM tp_applicant_selection_process tasp 
+			LEFT JOIN tp_position_steps tps ON(tasp.position_step_id_to=tps.position_step_id)
+			,tp_applicants ta ,tp_positions tp , tp_position_vendors tpv
+			WHERE
+			tasp.position_id=tp.position_id
+			AND tasp.applicant_id=ta.applicant_id
+			AND tp.position_id= tpv.position_id 
+			AND ta.source_id=tpv.source_id
+			AND ta.vendor_id=?
+			AND ta.source_id=?
+			@@ @@ @@
+			ORDER BY tasp.process_moved_date DESC			
+			LIMIT ?, ?
+		</dbquery>
+		<dbquery name="qEmployeeDashboardManager_GetActivitiesCount">
+			SELECT count(*) AS cnt
+			FROM tp_applicant_selection_process tasp ,tp_applicants ta ,tp_positions tp , tp_position_vendors tpv
+			WHERE
+			tasp.position_id=tp.position_id
+			AND tasp.applicant_id=ta.applicant_id
+			AND tp.position_id= tpv.position_id 
+			AND ta.source_id=tpv.source_id
+			AND ta.user_id=?
+			AND ta.source_id=?
+			@@ @@ @@
+		</dbquery>
+		<dbquery name="qEmployeeDashboardManager_GetPositions">
+			SELECT tp.position_id, tp.position_title			
+			FROM tp_positions tp 
+			WHERE tp.position_status = ?
+			ORDER BY tp.position_title
+		</dbquery>
+		<!-- End : Employee Management -->
+	</dbqueries>
+	<dataqueries>
+	    <!-- Start : Employee Management -->
+	    <dataquery name="dEmployeeDashboardManager_GetActivities" dbquery="qEmployeeDashboardManager_GetActivities" object="com.talentPool.common.db.SimpleDataObject">	   
+	    	<attribute name= "applicantId" column="applicant_id" type ="STRING" /> 	
+	    	<attribute name= "applicantName" column="applicant_name" type ="STRING" />
+	    	<attribute name= "positionId" column="position_id" type ="STRING" />
+	    	<attribute name= "positionTitle" column="position_title" type ="STRING" />
+	    	<attribute name= "activityDate" column="process_moved_date" type ="STRING" />	
+	    	<attribute name= "activity" column="activity" type ="STRING" />
+	    </dataquery>
+	    <dataquery name="dEmployeeDashboardManager_GetActivitiesCount" dbquery="qEmployeeDashboardManager_GetActivitiesCount" />
+	    <dataquery name="dEmployeeDashboardManager_GetPositions" dbquery="qEmployeeDashboardManager_GetPositions" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "positionId" column="position_id" type ="STRING" />    	
+	    	<attribute name= "positionTitle" column="position_title" type ="STRING" />    	
+	    </dataquery>
+	    <!-- End : Employee Management -->
+	</dataqueries>   
+</dbmap>

@@ -1,0 +1,19 @@
+/*
+*  basicinfo_email.jape
+*
+*/
+
+
+
+
+Phase: sentence_split
+Input: Token CustomSpaceToken
+Options: control = appelt
+
+Rule: sentence_split
+(
+ {CustomSpaceToken}
+ (({Token})+):sentence
+)
+-->
+:sentence.CustomSentence = {kind = "sentence", rule = "sentence_split"}

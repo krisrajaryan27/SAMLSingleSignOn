@@ -1,0 +1,608 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>
+  	<!-- Manage Users Section **********************************************-->
+	<dbquery name="qFetchUsers">
+  		SELECT tu.user_id, tu.user_name, tu.user_fname, tu.user_lname, tu.user_email, 
+  		tu.user_status, CONCAT(user_fname,' ',user_lname) as name, tur.role_id, tr.role_title,
+		tu.USER_SOURCE_ID, ts.employee_code as employee_code
+  		FROM tp_users tu
+  		LEFT JOIN tp_sources ts ON (ts.source_id = tu.user_source_id)
+  		LEFT JOIN tp_user_roles tur ON ( tu.user_id = tur.user_id)
+		JOIN tp_roles tr ON(tur.role_id = tr.role_id )
+  		WHERE 
+		tu.user_status !=?  AND tu.user_id != 1 
+		@@
+		ORDER BY tu.user_name
+  	</dbquery>
+  	<dbquery name="qFetchUserByName">
+  		SELECT tu.user_id, tu.user_name, tu.user_fname, tu.user_lname, tu.user_email, 
+  		tu.user_status, CONCAT(tu.user_fname,' ',tu.user_lname) as name,
+		tu.USER_SOURCE_ID
+  		FROM tp_users tu
+  		WHERE CONCAT(tu.user_fname,' ',tu.user_lname)=?		
+  	</dbquery>
+  	<dbquery name="qGetActivePositionsForUser">
+		SELECT count(*) FROM tp_positions tp, tp_position_steps tps, tp_position_step_users tpsu 
+		WHERE tp.position_id=tps.position_id 
+		AND tps.position_step_id= tpsu.position_step_id
+		AND tpsu.user_id=? 
+		AND tp.position_status=?
+		AND tps.position_step_status=?
+  	</dbquery>
+	<dbquery name="qDeleteUser">
+  		DELETE FROM tp_users WHERE user_id=?
+  	</dbquery>
+	<dbquery name="qUpdateUserStatus">
+  		update tp_users set user_status=? where user_id=? 
+  	</dbquery>
+  	<dbquery name="qUpdateUsersStatusBySourceId">
+  		update tp_users set user_status=? where user_source_id=? 
+  	</dbquery>
+  	<!-- End Manage Users Section **********************************************-->
+  	
+  	<!-- Add Edit Users Section ************************************************-->
+	<dbquery name="qFetchAllRoles">
+  		select r.role_id,  r.role_title from tp_roles r 
+  	</dbquery>
+  	<dbquery name="qCreateUser">
+	  	INSERT INTO tp_users(user_name, user_fname, user_lname, user_password, user_email,
+		user_home_phone, user_cell_phone, user_source_id, is_user_ldap_setting, 
+		dept_id, sub_dept_id, sub_sub_dept_id, sub3_dept_id, sub4_dept_id, location_id, 
+		grade_id, band_id, force_password_change, old_passwords, password_date_modified)
+		values(?,titleCase(?),titleCase(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,now())
+  	</dbquery>
+  	<dbquery name="qUpdateUser">
+		UPDATE tp_users 
+		SET user_name=?, user_fname=titleCase(?), user_lname=titleCase(?), user_email=?, 
+		user_home_phone=?, user_cell_phone=?,user_source_id=?, is_user_ldap_setting=?,
+		dept_id=?, sub_dept_id=?, sub_sub_dept_id=?, sub3_dept_id=?, sub4_dept_id=?, location_id=?, grade_id=?, band_id =?
+		WHERE user_id=?
+	</dbquery>
+  	<dbquery name="qUpdateUserAccount">
+		update tp_users set user_fname=titleCase(?), user_lname=titleCase(?), user_email=?, user_home_phone=?, user_cell_phone=?, time_zone=? where user_id=?
+	</dbquery>	
+	<dbquery name="qDeleteUserRoles">
+		delete from tp_user_roles where user_id=?  
+	</dbquery>
+	<dbquery name="qAddUserRole">
+		insert into tp_user_roles(user_id, role_id) values(?,?)
+	</dbquery>
+	<!-- End Add Edit Users Section ************************************************-->
+       <dbquery name="qSaveInboxSettings">
+        INSERT INTO tp_inbox_settings 
+        (inbox_email,inbox_username,inbox_password,inbox_smtp_host,inbox_pop_host,
+        inbox_polling_duration,inbox_display_name,
+        inbox_server_type, inbox_smtp_auth_required, inbox_smtp_auth_same,
+        inbox_smtp_username, inbox_smtp_password, inbox_incoming_port_no, inbox_incoming_ssl_enabled,
+        inbox_outgoing_port_no, inbox_outgoing_ssl_enabled, inbox_outgoing_tls_enabled,
+        exchange_server_name, domain_name, exchange_server_version,is_exchange_smtp)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+       </dbquery>
+       <dbquery name="qUpdateInboxSettings">
+         UPDATE tp_inbox_settings  set inbox_email=?,inbox_username=?,inbox_password=?,inbox_smtp_host=?,
+         inbox_pop_host=?,inbox_polling_duration=?,inbox_display_name=?, 
+         inbox_server_type=?, inbox_smtp_auth_required=?, inbox_smtp_auth_same=?,
+         inbox_smtp_username=?, inbox_smtp_password=?, inbox_incoming_port_no=?, inbox_incoming_ssl_enabled=?,
+         inbox_outgoing_port_no=?, inbox_outgoing_ssl_enabled=?, inbox_outgoing_tls_enabled=?,
+         exchange_server_name=?, domain_name=?, exchange_server_version=?, is_exchange_smtp=?
+       </dbquery>
+       <dbquery name="qGetNoOfRows">
+         select count(*) as x from tp_inbox_settings 
+       </dbquery>
+        <dbquery name="qGetInboxSettings">
+		   SELECT * from tp_inbox_settings
+	   </dbquery>
+       <!-- Start: SMS Settings -->
+       <dbquery name="qAdminManager_GetDefaultSMSProvider">
+       		select sms_provider, sms_provider_property, 
+			sms_provider_property_value, sms_provider_isdefault
+			from tp_sms_settings
+			where sms_provider_isdefault = ?
+       </dbquery>
+       <dbquery name="qAdminManager_SaveDefaultSMSProvider">
+       		update tp_sms_settings
+			set sms_provider = ?, sms_provider_property_value = ?
+			where sms_provider_isdefault = ?
+       </dbquery>
+       <!-- End: SMS Settings -->
+       <!-- Start: Application Settings -->
+       <dbquery name="qAdminManager_FetchApplicationProperties">
+        SELECT application_property, application_property_value FROM tp_application_properties
+       </dbquery>
+       <dbquery name="qAdminManager_UpdateApplicationProperties">
+        UPDATE tp_application_properties SET application_property_value=? WHERE application_property=?
+       </dbquery>
+       <!-- End: Application Settings -->	
+	<!--Manage permissions *******************************************************-->
+	<dbquery name="qAdminManager_FetchRoles">
+  		SELECT role_id, role_title  FROM tp_roles WHERE role_id != ? AND role_id != ? AND role_id != ?
+  	</dbquery>
+  	<dbquery name="qAdminManager_FetchRoleByTitle">
+  		SELECT role_id, role_title  FROM tp_roles WHERE role_title = ?
+  	</dbquery>
+  	<dbquery name="qAdminManager_FetchRolePermissions">
+		SELECT tper.permission_id, tper.permission_rank, tper.permission_desc, tper.parent_id, tper.is_permission,
+		CASE WHEN trp.permission_id is null then 0 else 1 end as permission_value
+		FROM tp_permissions tper LEFT JOIN tp_role_permissions trp ON (tper.permission_id = trp.permission_id AND trp.role_id=?)
+		ORDER BY permission_rank
+  	</dbquery>
+  	<dbquery name="qAdminManager_FetchUserPermissions">
+		SELECT tper.permission_id, tper.permission_rank, tper.permission_desc, tper.parent_id, tper.is_permission,
+		CASE WHEN tup.permission_id is null then 0 else 1 end as permission_value
+		FROM tp_permissions tper LEFT JOIN tp_user_permissions tup ON (tper.permission_id = tup.permission_id AND tup.user_id=?)
+		ORDER BY permission_rank
+  	</dbquery>
+  	<dbquery name="qAdminManager_InsertRolePermissions">  		
+		INSERT INTO tp_role_permissions (role_id,permission_id) VALUES (?,?)
+  	</dbquery>
+  	<dbquery name="qAdminManager_DeleteRolePermissions">  		
+		DELETE FROM tp_role_permissions WHERE role_id=?
+  	</dbquery>
+  	<dbquery name="qAdminManager_DeleteUserPermissions">  		
+		DELETE FROM tp_user_permissions WHERE user_id=?
+  	</dbquery>
+  	<dbquery name="qAdminManager_DeleteUserReports">  		
+		DELETE FROM tp_report_level_user WHERE user_id=?
+  	</dbquery>
+  	<dbquery name="qAdminManager_InsertLevelForRole">  		
+		INSERT INTO tp_report_level_roles (role_id,level_id) VALUES (?,?)
+  	</dbquery>
+  	<dbquery name="qAdminManager_DeleteLevelForRole">  		
+		DELETE FROM tp_report_level_roles WHERE role_id=?
+  	</dbquery>
+  	<dbquery name="qAdminManager_DeleteLevelForUser">  		
+		DELETE FROM tp_report_level_user WHERE user_id=?
+  	</dbquery>
+  	<dbquery name="qAdminManager_FetchModulePermissions">
+  		SELECT permission_id, module_id FROM tp_permission_module
+  	</dbquery>
+  	<dbquery name="qAdminManager_FetchReportLevelForRole">
+		SELECT tpl.level_id, tpl.level_name,
+		CASE WHEN trlr.level_id is NULL then 0 else 1 end as levelIsSelected
+		FROM tp_levels tpl LEFT JOIN tp_report_level_roles trlr ON (tpl.level_id=trlr.level_id AND trlr.role_id=?)
+  	</dbquery>
+  	<dbquery name="qAdminManager_FetchReportLevelForUser">
+		SELECT tpl.level_id, tpl.level_name,
+		CASE WHEN trlu.level_id is NULL then 0 else 1 end as levelIsSelected
+		FROM tp_levels tpl LEFT JOIN tp_report_level_user trlu ON (tpl.level_id=trlu.level_id AND trlu.user_id=?)
+  	</dbquery>
+  	<dbquery name="qAdminManager_FetchAllReportLevels">
+		SELECT level_id, level_name
+		FROM tp_levels
+  	</dbquery>
+  	<dbquery name="qAdminManager_FetchChangeInUserPermission">  		
+		SELECT perm.permission_id pId,  perm.permission_desc, perm.permission_rank, 
+		perm.user_id, CONCAT(perm.user_fname,' ', perm.user_lname) as name , 
+		CASE WHEN trp.permission_id is null THEN 1 else 0 end as isPermission
+		FROM
+		(
+		SELECT tp.permission_id, tp.permission_desc, tp.permission_rank, tu.user_id, tu.user_fname, tu.user_lname
+		FROM tp_permissions tp, tp_users tu WHERE tu.user_id IN(SELECT tur.user_id FROM tp_user_roles tur
+		WHERE tur.role_id=?)
+		AND tp.permission_id IN (@@)
+		AND tu.user_status=1
+		) as perm
+		LEFT JOIN tp_role_permissions trp ON (trp.permission_id=perm.permission_id AND trp.role_id=?)
+		LEFT JOIN tp_user_permissions tup ON (tup.user_id=perm.user_id and tup.permission_id=perm.permission_id)
+		WHERE trp.permission_id= tup.permission_id OR (trp.permission_id is null AND tup.permission_id is null)
+		ORDER BY perm.permission_id
+  	</dbquery>
+  	<dbquery name="qAdminManager_FetchChangeInReportLevel">  		
+		SELECT perm.level_id, perm.level_name, perm.user_id, 
+		CONCAT(perm.user_fname,' ', perm.user_lname) as name,trlr.level_id, trlu.level_id,
+		CASE WHEN trlr.level_id is null THEN 1 else 0 end as levelIsSelected
+		FROM (
+		SELECT tl.level_id, tl.level_name , tu.user_id, tu.user_fname, tu.user_lname
+		FROM tp_levels tl, tp_users tu WHERE tu.user_id IN(SELECT tur.user_id FROM tp_user_roles tur
+		WHERE tur.role_id=?)
+		AND tl.level_id IN (@@)
+		AND tu.user_status=1
+		) as perm
+		LEFT JOIN tp_report_level_roles trlr ON (trlr.level_id=perm.level_id AND trlr.role_id=?)
+		LEFT JOIN tp_report_level_user trlu ON (trlu.user_id=perm.user_id AND trlu.level_id=perm.level_id)
+		WHERE trlr.level_id= trlu.level_id OR (trlr.level_id is null AND trlu.level_id is null)
+		ORDER BY perm.level_id
+  	</dbquery>
+  	<dbquery name="qAdminManager_InsertNewUserPermissions">  		
+		INSERT INTO tp_user_permissions (user_id, permission_id) 
+		SELECT ?, permission_id FROM tp_role_permissions WHERE role_id=?	
+  	</dbquery>
+  	<dbquery name="qAdminManager_InsertNewUserReportLevel">  		
+		INSERT INTO tp_report_level_user (user_id, level_id) 
+		SELECT ?, level_id FROM tp_report_level_roles WHERE role_id=?
+  	</dbquery>
+  	<dbquery name="qAdminManager_FetchActiveUsersForRole">  		
+		SELECT tur.user_id FROM tp_user_roles tur , tp_users tpu 
+		WHERE tpu.user_status=1 AND tur.user_id=tpu.user_id AND tur.role_id=?
+  	</dbquery>
+  	<dbquery name="qAdminManager_DeletePermissionForUser">  		
+		DELETE FROM tp_user_permissions WHERE user_id=? AND permission_id=?
+  	</dbquery>
+  	<dbquery name="qAdminManager_InsertPermissionForUser">  		
+		INSERT INTO tp_user_permissions (user_id, permission_id) VALUES (?,?)
+  	</dbquery>
+  	<dbquery name="qAdminManager_DeleteReportLevelForUser">  		
+		DELETE FROM tp_report_level_user WHERE user_id=? AND level_id=?
+  	</dbquery>
+  	<dbquery name="qAdminManager_InsertReportLevelForUser">  		
+		INSERT INTO tp_report_level_user (user_id, level_id) VALUES (?,?)
+  	</dbquery>
+  	<!--End Manage permissions ***************************************************-->
+  	<!-- Start: Report Level Settings -->       
+       	<dbquery name="qAdminManager_FetchLevelDetails">
+        	SELECT level_id, level_name FROM tp_levels
+	    </dbquery>       
+  		<dbquery name="qAdminManager_GetLevelData">
+			SELECT level_id, level_name FROM tp_levels WHERE level_id=?
+		</dbquery>		
+		<dbquery name="qAdminManager_GetReportsForLevel">
+			SELECT report_id,report_type FROM tp_report_levels WHERE level_id=?
+		</dbquery>
+		<dbquery name="qAdminManager_AddNewLevel">
+	  		INSERT INTO tp_levels(level_name) VALUES(?)
+  		</dbquery>		
+  		<dbquery name="qAdminManager_AddLevelReport">
+	  		INSERT INTO tp_report_levels(level_id,report_id,report_type) VALUES(?,?,?)
+  		</dbquery>		
+  		
+	  	<dbquery name="qAdminManager_UpdateLevel">
+			UPDATE tp_levels set level_name=titleCase(?) where level_id=?
+		</dbquery>		
+		<dbquery name="qAdminManager_UpdateLevelReport">
+			UPDATE tp_levels set level_name=titleCase(?) where level_id=?
+		</dbquery>
+		<dbquery name="qAdminManager_deleteLevels">
+			DELETE FROM tp_levels WHERE level_id=?  
+		</dbquery>	
+		<dbquery name="qAdminManager_deleteLevelReport">
+			DELETE FROM tp_report_levels WHERE level_id=?  
+		</dbquery>
+		<dbquery name="qGetActivePositionsForUser">
+			SELECT count(*) FROM tp_positions tp, tp_position_steps tps, tp_position_step_users tpsu 
+			WHERE tp.position_id=tps.position_id 
+			AND tps.position_step_id= tpsu.position_step_id
+			AND tpsu.user_id=? 
+			AND tp.position_status=?
+			AND tps.position_step_status=?
+	  	</dbquery>
+    <!-- End: Report Level Settings -->	   
+    	<dbquery name="qAdminManager_GetEmployeeSource">
+			SELECT tps.source_id , tps.source_title FROM tp_sources tps, tp_source_types tpsy
+			WHERE tps.source_status ='1' 
+			AND tps.source_type_id=tpsy.source_type_id
+			AND tpsy.source_type_category=?
+		</dbquery>    
+    	<dbquery name="qAdminManager_GetEmployeeSourceType">
+			SELECT source_type_id, source_type, system_generated
+			FROM tp_source_types 
+			WHERE source_type_category=?
+		</dbquery> 
+		<dbquery name="qAdminManager_GetCompanyWebSiteSource">
+			select 	source_id, source_title from `tp_sources` where source_type_id = ( select source_type_id 
+			from tp_source_types where source_type_category=?) limit 0, 1 
+		</dbquery> 
+		<dbquery name="qAdminManager_GetEmployeeSourceUser">
+			SELECT count(*) FROM tp_users 
+			WHERE user_id!=? AND USER_SOURCE_ID=?
+		</dbquery>
+		<dbquery name="qAdminManager_AddOrUpdateLabel">
+			insert into tp_custom_labels (custom_label_key, custom_label_value) values (?,?)
+			on duplicate key update custom_label_value=?
+		</dbquery>
+		<dbquery name="qAdminManager_DeleteCustomLabels">  		
+			delete from tp_custom_labels
+  		</dbquery>	
+  		<dbquery name="qAdminManager_GetSourceIdForEmployeeCode">
+  			SELECT source_id FROM tp_sources WHERE employee_code=?
+  		</dbquery>
+  		<dbquery name="qAdminManager_DeleteFromReportLevel">
+  			DELETE FROM tp_report_level_user WHERE user_id=?
+  		</dbquery>
+  		<dbquery name="qAdminManager_UpdateScreenConfiguration">
+			UPDATE tp_screen_configurations 
+			SET field_import_show=?, field_edit_show=?, field_import_mandatory=?, 
+			field_vendor_show=?, field_vendor_mandatory=?, field_rank=?, 
+			field_employee_show=?, field_employee_mandatory=?,
+			field_applicant_show_on_site =?, field_applicant_mandatory_on_site =?,
+			field_confidential =?
+			WHERE field_id=?
+       </dbquery>
+       <dbquery name="qAdminManager_UpdateWebsitePositionListScreenConfiguration">
+			UPDATE tp_position_screen_configurations 
+			SET field_rank=?,
+			field_position_list_show=?,
+			field_list_is_filter=?,
+			field_list_is_filter_editable=?
+			WHERE field_id=?
+       </dbquery> 
+	      <dbquery name="qAdminManager_UpdatePositionScreenConfiguration">
+			UPDATE tp_position_screen
+			SET field_rank=?,
+			field_position_print_show=?		
+			WHERE field_id=?
+       </dbquery> 
+       <dbquery name="qAdminManager_UpdatePositionDescriptionScreenConfiguration">
+			UPDATE tp_position_screen_description
+			SET field_rank=?,
+			field_position_show=?,
+			field_position_mandatory=?,
+			field_vendor_show=?,
+			field_employee_show=?
+			WHERE field_id=?
+       </dbquery> 
+       <dbquery name="qAdminManager_UpdatePositionRequirementsScreenConfiguration">
+			UPDATE tp_position_screen_requirements
+			SET field_rank=?,
+			field_position_show=?,
+			field_position_mandatory=?,
+			field_vendor_show=?,
+			field_employee_show=?
+			WHERE field_id=?
+       </dbquery> 
+        <dbquery name="qAdminManager_UpdateWebsitePositionDetailsScreenConfiguration">
+			UPDATE tp_position_screen_configurations 
+			SET field_position_details_rank=?,
+			field_position_details_show=?
+			WHERE field_id=?
+       </dbquery> 
+       <dbquery name="qAdminManager_UpdatePositionVendorId">
+       		update tp_position_vendors
+			set source_id=?
+			where source_id=?
+       </dbquery>
+       <dbquery name="qIsUserSourceBlacklisted">
+			SELECT ts.source_blacklisted FROM tp_users tu
+			LEFT JOIN tp_sources ts ON (tu.user_source_id=ts.source_id) 
+			where tu.user_id=?
+	  	</dbquery>
+	   <dbquery name="qIsSourceBlacklisted">
+			SELECT ts.source_blacklisted FROM tp_sources ts where ts.source_id=?
+	  	</dbquery>
+	  	<dbquery name="qAdminManager_insertDeptFieldsOnWebsite">
+			INSERT INTO tp_position_screen_configurations (field_id, field_type, field_rank,field_position_details_rank)
+				select ?,?,(max(field_rank)+1),(max(field_position_details_rank)+1) from tp_position_screen_configurations;
+	  	</dbquery>
+	  	<dbquery name="qAdminManager_deleteFieldsOnWebsite">
+			delete from tp_position_screen_configurations where field_id=?
+	  	</dbquery>
+	  	<dbquery name="qAdminManager_updateFieldRankOnListPage">
+			update tp_position_screen_configurations set field_rank = field_rank - 1
+			where field_rank > ?
+	  	</dbquery>
+	  	<dbquery name="qAdminManager_updateFieldRankOnDetailsPage">
+			update tp_position_screen_configurations set field_position_details_rank = field_position_details_rank - 1
+			where field_position_details_rank > ?
+	  	</dbquery>
+	  	<dbquery name="qAdminManager_GetSystemDateTimePatterns">
+			SELECT pattern_id,pattern_value, db_pattern_value, pattern_type FROM tp_date_time_patterns 
+	  	</dbquery>
+	  	<dbquery name="qAdminManager_GetEmployeeSourceUserId">
+			SELECT user_id FROM tp_users 
+			WHERE USER_SOURCE_ID=?
+		</dbquery>
+  	</dbqueries>
+	<dataqueries>
+  	<!-- Manage Users Section ********************************************************************************************-->
+    <dataquery name="dFetchUsers" dbquery="qFetchUsers" object="com.talentPool.user.dataobject.LoginData">
+        <attribute name="userId" column="user_id" type="STRING"/>
+        <attribute name="userName" column="user_name" type="STRING"/>
+        <attribute name="firstName" column="user_fname" type="STRING"/>
+        <attribute name="lastName" column="user_lname" type="STRING"/>
+        <attribute name="email" column="user_email" type="STRING"/>
+        <attribute name="status" column="user_status" type="INT"/>
+        <attribute name="name" column="name" type="STRING"/>
+        <attribute name="roleId" column="role_id" type="STRING"/>
+        <attribute name="roleTitle" column="role_title" type="STRING"/>
+        <attribute name="userSourceId" column="USER_SOURCE_ID" type="STRING"/>
+        <attribute name="employeeCode" column="employee_code" type="STRING"/>
+    </dataquery>
+    <dataquery name="dFetchUserByName" dbquery="qFetchUserByName" object="com.talentPool.user.dataobject.LoginData">
+        <attribute name="userId" column="user_id" type="STRING"/>
+        <attribute name="userName" column="user_name" type="STRING"/>
+        <attribute name="firstName" column="user_fname" type="STRING"/>
+        <attribute name="lastName" column="user_lname" type="STRING"/>
+        <attribute name="email" column="user_email" type="STRING"/>
+        <attribute name="status" column="user_status" type="INT"/>
+        <attribute name="name" column="name" type="STRING"/>
+        <attribute name="userSourceId" column="USER_SOURCE_ID" type="STRING"/>
+    </dataquery>
+    <dataquery name="dGetActivePositionsForUser" dbquery="qGetActivePositionsForUser"/>
+    <dataquery name="dDeleteUser" dbquery="qDeleteUser"/>
+    <dataquery name="dUpdateUserStatus" dbquery="qUpdateUserStatus"/>
+    <dataquery name="dUpdateUsersStatusBySourceId" dbquery="qUpdateUsersStatusBySourceId"/>
+  	<!-- End Manage Users Section **************************************************************************************-->
+
+  	<!-- Add Edit Users Section ****************************************************************************************-->
+    <dataquery name="dFetchAllRoles" dbquery="qFetchAllRoles" object="com.talentPool.user.dataobject.RoleData">
+        <attribute name="roleId" column="role_id" type="STRING"/>
+        <attribute name="roleTitle" column="role_title" type="STRING"/>
+    </dataquery>
+    <dataquery name="dCreateUser" dbquery="qCreateUser"/>
+    <dataquery name="dUpdateUser" dbquery="qUpdateUser"/>
+    <dataquery name="dUpdateUserAccount" dbquery="qUpdateUserAccount"/>
+    <dataquery name="dDeleteUserRoles" dbquery="qDeleteUserRoles"/>
+    <dataquery name="dAddUserRole" dbquery="qAddUserRole"/>
+  	<!-- End Add Edit Users Section **********************************************************************************-->
+       <dataquery name="dSaveInboxSettings" dbquery="qSaveInboxSettings"/>
+       <dataquery name="dUpdateInboxSettings" dbquery="qUpdateInboxSettings"/>
+       <dataquery name="dGetNoOfRows" dbquery="qGetNoOfRows"/>
+       <dataquery name="dGetInboxSettings" dbquery="qGetInboxSettings" object="com.talentPool.common.db.SimpleDataObject">
+         <attribute name="inboxEmail"  column="inbox_email" type="INT" />
+         <attribute name="inboxUserName"  column="inbox_username" type="STRING" />
+         <attribute name="inboxPassword"  column="inbox_password" type="STRING" />
+         <attribute name="inboxSmtpHost"  column="inbox_smtp_host" type="STRING" />
+         <attribute name="inboxpopHost"  column="inbox_pop_host" type="STRING" />
+         <attribute name="inboxPollingDuration"  column="inbox_polling_duration" type="INT" />
+         <attribute name="inboxDisplayName" column="inbox_display_name" type="STRING"/>
+         <attribute name="inboxServerType" column="inbox_server_type" type="INT"/>
+         <attribute name="inboxSmtpAuthRequired" column="inbox_smtp_auth_required" type="INT"/>
+         <attribute name="inboxSmtpAuthSame" column="inbox_smtp_auth_same" type="INT"/>
+         <attribute name="inboxSmtpUserName" column="inbox_smtp_username" type="STRING"/>
+         <attribute name="inboxSmtpPassword" column="inbox_smtp_password" type="STRING"/>
+         <attribute name="inboxOutgoingPort" column="inbox_outgoing_port_no" type="STRING"/>
+         <attribute name="inboxOutgoingSSLEnabled" column="inbox_outgoing_ssl_enabled" type="INT"/>
+         <attribute name="inboxIncomingPort" column="inbox_incoming_port_no" type="STRING"/>
+         <attribute name="inboxIncomingSSLEnabled" column="inbox_incoming_ssl_enabled" type="INT"/>
+		 <attribute name="inboxOutgoingTLSEnabled" column="inbox_outgoing_tls_enabled" type="INT"/>		 
+		 <attribute name="exchangeServerName"  column="exchange_server_name" type="STRING" />
+		 <attribute name="domainName"  column="domain_name" type="STRING" />
+		 <attribute name="exchangeServerVersion"  column="exchange_server_version" type="STRING" />
+		 <attribute name="exchangeSmtp"  column="is_exchange_smtp" type="STRING" />
+      </dataquery>
+       <!-- Start: SMS Settings -->
+       <dataquery name="dAdminManager_GetDefaultSMSProvider" dbquery="qAdminManager_GetDefaultSMSProvider" object="com.talentPool.common.db.SimpleDataObject">
+       		<attribute name="provider"  column="sms_provider" type="STRING" />
+       		<attribute name="property"  column="sms_provider_property" type="STRING" />
+       		<attribute name="value"  column="sms_provider_property_value" type="STRING" />
+       		<attribute name="isDefault"  column="sms_provider_isdefault" type="STRING" />
+       </dataquery>
+       <dataquery name="dAdminManager_SaveDefaultSMSProvider" dbquery="qAdminManager_SaveDefaultSMSProvider"/>
+       
+       <!-- End: SMS Settings -->
+       <!-- Start: Application Settings -->
+       <dataquery name="dAdminManager_FetchApplicationProperties" dbquery="qAdminManager_FetchApplicationProperties" object="com.talentPool.common.db.SimpleDataObject">
+       		<attribute name="propertyName"  column="application_property" type="STRING" />
+       		<attribute name="propertyValue"  column="application_property_value" type="STRING" />
+       </dataquery>
+       <dataquery name="dAdminManager_UpdateApplicationProperties" dbquery="qAdminManager_UpdateApplicationProperties"/>
+       <!-- End: Application Settings -->
+      <!-- Start : Manage permissions -->
+      <dataquery name="dAdminManager_FetchRoles" dbquery="qAdminManager_FetchRoles" object="com.talentPool.user.dataobject.RoleData">
+	        <attribute name="roleId" column="role_id" type="STRING"/>
+	        <attribute name="roleTitle" column="role_title" type="STRING"/>
+      </dataquery>    
+      <dataquery name="dAdminManager_FetchRoleByTitle" dbquery="qAdminManager_FetchRoleByTitle" object="com.talentPool.user.dataobject.RoleData">
+	        <attribute name="roleId" column="role_id" type="STRING"/>
+	        <attribute name="roleTitle" column="role_title" type="STRING"/>
+      </dataquery>   
+      <dataquery name="dAdminManager_FetchRolePermissions" dbquery="qAdminManager_FetchRolePermissions" object="com.talentPool.admin.dataobject.PermissionData">
+        	<attribute name="permissionId" column="permission_id" type="STRING"/>
+	        <attribute name="permissionRank" column="permission_rank" type="STRING"/>
+    	    <attribute name="permissionDesc" column="permission_desc" type="STRING"/>
+        	<attribute name="parentId" column="parent_id" type="STRING"/>
+	        <attribute name="isPermission" column="is_permission" type="STRING"/>
+    	    <attribute name="permissionValue" column="permission_value" type="STRING"/>
+      </dataquery>
+      <dataquery name="dAdminManager_FetchUserPermissions" dbquery="qAdminManager_FetchUserPermissions" object="com.talentPool.admin.dataobject.PermissionData">
+        	<attribute name="permissionId" column="permission_id" type="STRING"/>
+	        <attribute name="permissionRank" column="permission_rank" type="STRING"/>
+    	    <attribute name="permissionDesc" column="permission_desc" type="STRING"/>
+        	<attribute name="parentId" column="parent_id" type="STRING"/>
+	        <attribute name="isPermission" column="is_permission" type="STRING"/>
+    	    <attribute name="permissionValue" column="permission_value" type="STRING"/>
+      </dataquery>
+      <dataquery name="dAdminManager_InsertRolePermissions" dbquery="qAdminManager_InsertRolePermissions" />
+      <dataquery name="dAdminManager_DeleteRolePermissions" dbquery="qAdminManager_DeleteRolePermissions" />
+      <dataquery name="dAdminManager_InsertPermissionForUser" dbquery="qAdminManager_InsertPermissionForUser" />
+      <dataquery name="dAdminManager_InsertLevelForRole" dbquery="qAdminManager_InsertLevelForRole" />
+      <dataquery name="dAdminManager_DeleteLevelForRole" dbquery="qAdminManager_DeleteLevelForRole" />
+      <dataquery name="dAdminManager_InsertReportLevelForUser" dbquery="qAdminManager_InsertReportLevelForUser" />
+      <dataquery name="dAdminManager_DeleteLevelForUser" dbquery="qAdminManager_DeleteLevelForUser" />
+      <dataquery name="dAdminManager_DeletePermissionForUser" dbquery="qAdminManager_DeletePermissionForUser" />      
+      <dataquery name="dAdminManager_DeleteReportLevelForUser" dbquery="qAdminManager_DeleteReportLevelForUser" />      
+      <dataquery name="dAdminManager_FetchModulePermissions" dbquery="qAdminManager_FetchModulePermissions" object="com.talentPool.admin.dataobject.PermissionData">
+	     	<attribute name="permissionId" column="permission_id" type="STRING"/>
+	     	<attribute name="moduleId" column="module_id" type="STRING"/>
+      </dataquery>
+      <dataquery name="dAdminManager_FetchReportLevelForRole" dbquery="qAdminManager_FetchReportLevelForRole" object="com.talentPool.admin.dataobject.ReportLevelData">
+	     	<attribute name="levelId" column="level_id" type="INT" />
+			<attribute name="levelName" column="level_name" type="STRING" />
+			<attribute name="levelIsSelected" column="levelIsSelected" type="STRING" />
+      </dataquery>
+      <dataquery name="dAdminManager_FetchReportLevelForUser" dbquery="qAdminManager_FetchReportLevelForUser" object="com.talentPool.admin.dataobject.ReportLevelData">
+	     	<attribute name="levelId" column="level_id" type="INT" />
+			<attribute name="levelName" column="level_name" type="STRING" />
+			<attribute name="levelIsSelected" column="levelIsSelected" type="STRING" />
+      </dataquery>    
+      <dataquery name="dAdminManager_FetchAllReportLevels" dbquery="qAdminManager_FetchAllReportLevels" object="com.talentPool.admin.dataobject.ReportLevelData">
+	     	<attribute name="levelId" column="level_id" type="INT" />
+			<attribute name="levelName" column="level_name" type="STRING" />
+      </dataquery>    
+      <dataquery name="dAdminManager_FetchChangeInUserPermission" dbquery="qAdminManager_FetchChangeInUserPermission" object="com.talentPool.admin.dataobject.PermissionData">
+			<attribute name="permissionId" column="pId" type="STRING" />
+			<attribute name="permissionDesc" column="permission_desc" type="STRING" />
+			<attribute name="permissionRank" column="permission_rank" type="STRING" />
+			<attribute name="userId" column="user_Id" type="STRING" />
+			<attribute name="name" column="name" type="STRING" />
+			<attribute name="isPermission" column="isPermission" type="STRING" />
+      </dataquery>
+      <dataquery name="dAdminManager_FetchChangeInReportLevel" dbquery="qAdminManager_FetchChangeInReportLevel" object="com.talentPool.admin.dataobject.ReportLevelData">
+			<attribute name="levelId" column="level_id" type="STRING" />
+			<attribute name="levelName" column="level_name" type="STRING" />
+			<attribute name="userId" column="user_Id" type="STRING" />
+			<attribute name="name" column="name" type="STRING" />
+			<attribute name="levelIsSelected" column="levelIsSelected" type="STRING" />
+      </dataquery>
+      <dataquery name="dAdminManager_InsertNewUserPermissions" dbquery="qAdminManager_InsertNewUserPermissions" />
+      <dataquery name="dAdminManager_InsertNewUserReportLevel" dbquery="qAdminManager_InsertNewUserReportLevel" />
+      <dataquery name="dAdminManager_FetchActiveUsersForRole" dbquery="qAdminManager_FetchActiveUsersForRole" object="com.talentPool.user.dataobject.LoginData">
+	     	<attribute name="userId" column="user_id" type="STRING"/>
+      </dataquery>
+      <!-- End : Manage permissions -->      
+      
+      <!-- Start: Report Level Settings -->       
+       <dataquery name="dAdminManager_FetchLevelDetails" dbquery="qAdminManager_FetchLevelDetails" object="com.talentPool.admin.dataobject.ReportLevelData">
+       		<attribute name="levelId"  column="level_id" type="INT" />
+       		<attribute name="levelName"  column="level_name" type="STRING" />
+       </dataquery>
+       <dataquery name="dAdminManager_GetLevelData" dbquery="qAdminManager_GetLevelData" object="com.talentPool.admin.dataobject.ReportLevelData">
+            <attribute name="levelId"  column="level_id" type="INT" />
+       		<attribute name="levelName"  column="level_name" type="STRING" />
+       </dataquery>
+
+       <dataquery name="dAdminManager_GetReportsForLevel" dbquery="qAdminManager_GetReportsForLevel" object="com.talentPool.common.db.SimpleDataObject">
+            <attribute name="reportId"  column="report_id" type="INT" />
+            <attribute name="reportType"  column="report_type" type="INT" />
+       </dataquery>
+       <dataquery name="dAdminManager_AddNewLevel" dbquery="qAdminManager_AddNewLevel"/>
+       <dataquery name="dAdminManager_AddLevelReport" dbquery="qAdminManager_AddLevelReport"/>
+       <dataquery name="dAdminManager_UpdateLevel" dbquery="qAdminManager_UpdateLevel"/>
+       <dataquery name="dAdminManager_deleteLevels" dbquery="qAdminManager_deleteLevels"/>
+       <dataquery name="dAdminManager_deleteLevelReport" dbquery="qAdminManager_deleteLevelReport"/>
+      <!-- End: Report Level Settings -->
+	   <dataquery name="dAdminManager_GetEmployeeSource" dbquery="qAdminManager_GetEmployeeSource" object="com.talentPool.common.db.SimpleDataObject">
+	  		<attribute name="itemId"  column="source_id" type="INT" />
+	        <attribute name="itemName"  column="source_title" type="STRING" />
+	   </dataquery>
+	   <dataquery name="dAdminManager_GetEmployeeSourceType" dbquery="qAdminManager_GetEmployeeSourceType" object="com.talentPool.masters.dataobject.SourceTypeData">
+	  		<attribute name="sourceTypeId"  column="source_type_id" type="STRING" />
+	  		<attribute name="sourceType"  column="source_type" type="STRING" />
+	        <attribute name="systemGenerated"  column="system_generated" type="STRING" />
+	   </dataquery>
+	   <dataquery name="dAdminManager_GetCompanyWebSiteSource" dbquery="qAdminManager_GetCompanyWebSiteSource" object="com.talentPool.masters.dataobject.SourceData">
+	  		<attribute name="sourceId"  column="source_id" type="STRING" />
+	  		<attribute name="sourceTitle"  column="source_title" type="STRING" />
+	   </dataquery>
+	   	<dataquery name="dAdminManager_GetEmployeeSourceUser" dbquery="qAdminManager_GetEmployeeSourceUser" />
+	   	<dataquery name="dAdminManager_DeleteUserPermissions" dbquery="qAdminManager_DeleteUserPermissions" />
+	   	<dataquery name="dAdminManager_DeleteUserReports" dbquery="qAdminManager_DeleteUserReports" />
+	  	<dataquery name="dAdminManager_AddOrUpdateLabel" dbquery="qAdminManager_AddOrUpdateLabel" />
+		<dataquery name="dAdminManager_DeleteCustomLabels" dbquery="qAdminManager_DeleteCustomLabels"/>
+		<dataquery name="dAdminManager_GetSourceIdForEmployeeCode" dbquery="qAdminManager_GetSourceIdForEmployeeCode" />
+		<dataquery name="dAdminManager_DeleteFromReportLevel" dbquery="qAdminManager_DeleteFromReportLevel" />
+		<dataquery name="dAdminManager_UpdateScreenConfiguration" dbquery="qAdminManager_UpdateScreenConfiguration" />
+		<dataquery name="dAdminManager_UpdateWebsitePositionListScreenConfiguration" dbquery="qAdminManager_UpdateWebsitePositionListScreenConfiguration" />
+		<dataquery name="dAdminManager_UpdateWebsitePositionDetailsScreenConfiguration" dbquery="qAdminManager_UpdateWebsitePositionDetailsScreenConfiguration" />
+		<dataquery name="dAdminManager_UpdatePositionScreenConfiguration" dbquery="qAdminManager_UpdatePositionScreenConfiguration" />
+		<dataquery name="dAdminManager_UpdatePositionDescriptionScreenConfiguration" dbquery="qAdminManager_UpdatePositionDescriptionScreenConfiguration" />
+		<dataquery name="dAdminManager_UpdatePositionRequirementsScreenConfiguration" dbquery="qAdminManager_UpdatePositionRequirementsScreenConfiguration" />
+		<dataquery name="dAdminManager_UpdatePositionVendorId" dbquery="qAdminManager_UpdatePositionVendorId"/>
+		<dataquery name="dIsSourceBlacklisted" dbquery="qIsSourceBlacklisted"/>
+		<dataquery name="dIsUserSourceBlacklisted" dbquery="qIsUserSourceBlacklisted"/>
+		<dataquery name="dAdminManager_insertDeptFieldsOnWebsite" dbquery="qAdminManager_insertDeptFieldsOnWebsite"/>
+		<dataquery name="dAdminManager_deleteFieldsOnWebsite" dbquery="qAdminManager_deleteFieldsOnWebsite"/>
+		<dataquery name="dAdminManager_updateFieldRankOnListPage" dbquery="qAdminManager_updateFieldRankOnListPage"/>
+		<dataquery name="dAdminManager_updateFieldRankOnDetailsPage" dbquery="qAdminManager_updateFieldRankOnDetailsPage"/>
+		<dataquery name="dAdminManager_GetSystemDateTimePatterns" dbquery="qAdminManager_GetSystemDateTimePatterns" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name="patternId"  	column="pattern_id" type="STRING" />
+	  		<attribute name="patternValue" 	column="pattern_value" type="STRING" />
+	  		<attribute name="patternType"  	column="pattern_type" type="STRING" />
+	  		<attribute name="dbPatternValue" column="db_pattern_value" type="STRING" />
+		</dataquery>
+		<dataquery name="dAdminManager_GetEmployeeSourceUserId" dbquery="qAdminManager_GetEmployeeSourceUserId" />
+   	</dataqueries>   
+</dbmap>

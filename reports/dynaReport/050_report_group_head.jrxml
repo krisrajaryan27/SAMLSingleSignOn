@@ -1,0 +1,4 @@
+<group  name="stageGroup" >
+			<groupExpression><![CDATA[$F{CV_0}]]></groupExpression>
+			<groupHeader>
+			<band height="20"  isSplitAllowed="true" >

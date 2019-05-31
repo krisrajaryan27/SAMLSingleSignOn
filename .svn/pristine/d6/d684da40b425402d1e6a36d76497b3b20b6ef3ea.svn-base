@@ -1,0 +1,84 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>
+		<dbquery name="qPositionHiringSummaryManager_AddSummaryRows">
+			INSERT INTO tp_cr_position_hiring_summary
+			(process_date, position_id, step_id, step_level,
+			 backlog, received, cleared, rejected, inprocess, 
+			 backlog_ids, received_ids, cleared_ids, rejected_ids, inprocess_ids,
+			  date_created) 
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())
+		</dbquery>
+		<dbquery name="qPositionHiringSummaryManager_GetSummaryRows">
+			<!--  After UNION of two sub queries (A- CLEARED & REJECTED, B - ADDED) which combines the two records aggregated with same group by clause to get ADDED, CLEARED, REJECTED in a single row -->
+			SELECT C.process_date, C.position_id, C.step_id, C.step_level,  
+					SUM(ADDED) AS ADDED, SUM(CLEARED) AS CLEARED, SUM(REJECTED) AS REJECTED,
+					GROUP_CONCAT(ADDED_IDS) AS ADDED_IDS, GROUP_CONCAT(CLEARED_IDS) AS CLEARED_IDS, 
+					GROUP_CONCAT(REJECTED_IDS) AS REJECTED_IDS
+			 FROM (
+				(
+				<!--  Following sub query (A) aggregates counts for CLEARED AND REJECTED -->
+				<!-- Following sub query also aggregates ADDED values for shortlist step beacause clearing from shortlist means adding to shortlist and then clearing from shortlist -->
+				SELECT A.process_date, A.position_id, A.step_id, A.step_level, SUM(ADDED) AS ADDED, SUM(CLEARED) AS CLEARED, SUM(REJECTED) AS REJECTED,
+						GROUP_CONCAT(ADDED_ID) AS ADDED_IDS, GROUP_CONCAT(CLEARED_ID) AS CLEARED_IDS, GROUP_CONCAT(REJECTED_ID) AS REJECTED_IDS FROM (
+					SELECT 	DATE(process_moved_date) as process_date,
+						position_id, step_id_from AS step_id, position_step_level_from AS step_level,
+						<!--  Following CASE Statements used for calculate counts -->
+						CASE WHEN step_id_from=? THEN 1 ELSE 0 END AS ADDED,
+						CASE WHEN step_id_to&gt;0 THEN 1 ELSE 0 END AS CLEARED,
+						CASE WHEN step_id_to IN (?,?,?,?) THEN 1 ELSE 0 END AS REJECTED,
+						<!--  Following CASE Statements used for calculate concated candidate ids -->
+						NULL AS ADDED_ID,
+						CASE WHEN position_step_level_from=? &amp;&amp; step_id_to&gt;0 THEN applicant_id ELSE NULL END AS CLEARED_ID,
+						CASE WHEN position_step_level_from=? &amp;&amp; step_id_to IN (?,?,?,?) THEN applicant_id ELSE NULL END AS REJECTED_ID
+					FROM 
+						tp_cr_event_log 
+					WHERE DATE(process_moved_date)=?
+				) A GROUP BY A.position_id, A.step_id, A.process_date)
+			    UNION
+				<!-- Following sub query (B) aggreagtes counts for ADDED except for step SHORTLIST (sub query A handles ADDED case for shortlist) -->
+				(SELECT B.process_date, B.position_id, B.step_id, B.step_level, SUM(B.ADDED) AS ADDED, 0 AS CLEARED, 0 AS REJECTED, 
+						GROUP_CONCAT(ADDED_ID) AS ADDED_IDS, NULL AS CLEARED_IDS, NULL AS REJECTED_IDS FROM (
+					SELECT 	DATE(process_moved_date) as process_date,
+						position_id, step_id_to AS step_id, position_step_level_to AS step_level,
+			      1 AS ADDED, CASE WHEN position_step_level_to=? THEN applicant_id
+                             ELSE NULL END AS ADDED_ID     
+					FROM 
+						tp_cr_event_log 
+					WHERE DATE(process_moved_date)=? AND step_id_to &gt; 0 
+				) B GROUP BY B.position_id, B.step_id, B.process_date )
+			) C GROUP BY C.position_id, C.step_id, C.process_date
+		</dbquery>
+		<dbquery name="qPositionHiringSummaryManager_DeleteAllRows">
+			DELETE FROM tp_cr_position_hiring_summary WHERE process_date between  ? AND ?
+		</dbquery>
+		<dbquery name="qPositionHiringSummaryManager_GetBacklog">
+			SELECT inprocess, inprocess_ids FROM tp_cr_position_hiring_summary 
+			WHERE position_id = ? AND step_id = ? AND process_date &lt; ?
+			ORDER BY process_date DESC LIMIT 1
+		</dbquery>
+	</dbqueries>
+	<dataqueries>
+	    <dataquery name="dPositionHiringSummaryManager_AddSummaryRows" dbquery="qPositionHiringSummaryManager_AddSummaryRows"/>
+	    <dataquery name="dPositionHiringSummaryManager_GetSummaryRows" dbquery="qPositionHiringSummaryManager_GetSummaryRows" object="com.talentPool.customReports.dataobject.PositionHiringSummaryData">
+	    	<attribute name= "processDate" 	column="process_date" 	type ="DATE" />
+	    	<attribute name= "positionId" 	column="position_id" 	type ="STRING" />
+	    	<attribute name= "stepId" 		column="step_id" 		type ="STRING" />
+	    	<attribute name= "stepLevel" 	column="step_level"	 	type ="STRING" />
+	    	<attribute name= "received" 	column="added" 		type ="INT" />
+	    	<attribute name= "cleared" 		column="cleared" 		type ="INT" />
+	    	<attribute name= "rejected" 	column="rejected" 		type ="INT" />
+	    	<attribute name= "receivedIds" 	column="added_ids" 	type ="STRING" />
+	    	<attribute name= "clearedIds" 	column="cleared_ids" 	type ="STRING" />
+	    	<attribute name= "rejectedIds" 	column="rejected_ids" 	type ="STRING" />
+	    </dataquery>
+	    <dataquery name="dPositionHiringSummaryManager_DeleteAllRows" dbquery="qPositionHiringSummaryManager_DeleteAllRows"/>
+	    <dataquery name="dPositionHiringSummaryManager_GetBacklog" dbquery="qPositionHiringSummaryManager_GetBacklog" object="com.talentPool.common.db.SimpleDataObject">
+		    <attribute name= "backlog" 		column="inprocess" 		type ="int" />
+	    	<attribute name= "backlogIds" 	column="inprocess_ids" 	type ="STRING" />
+	    </dataquery>
+	</dataqueries>   
+</dbmap>

@@ -1,0 +1,112 @@
+/*
+*  experiance_date_range.jape
+*
+*/
+
+Phase: experience_date_range
+Input: Lookup Token TempDateToken TempExperienceToken
+Options: control = appelt
+
+Macro: TO_TILL
+(
+	{Token.string ==~ "[Tt][Oo]"}|
+	{Token.string ==~ "[Tt][Ii][Ll][Ll]"}	
+)
+Macro: TO_TILL_DASH
+(
+	{Token.string ==~ "[Tt][Oo]"}|
+	{Token.string ==~ "[Tt][Ii][Ll][Ll]"}|
+	{Token.kind == punctuation, Token.subkind == dashpunct}	
+)
+Rule: date_range_fromDate_tillDate
+Priority: 100
+(
+({TempDateToken, !TempExperienceToken}):fromDate
+({Token})[0,5]
+{Lookup.majorType == experience, Lookup.minorType == till_date}
+):date_range
+-->
+{
+	gate.AnnotationSet fromDateSet = (gate.AnnotationSet)bindings.get("fromDate");
+	//gate.AnnotationSet toDateSet = (gate.AnnotationSet)bindings.get("toDate");
+	gate.AnnotationSet dateRangeSet = (gate.AnnotationSet)bindings.get("date_range");
+	gate.Annotation fromAnn = fromDateSet.iterator().next();
+	//gate.Annotation toAnn = toDateSet.iterator().next();
+	gate.FeatureMap features = Factory.newFeatureMap();
+  	features.put("kind", "date_range");
+  	features.put("fromDate",fromAnn.getFeatures().get("date").toString());
+  	features.put("isTillDate", true);
+  	java.text.SimpleDateFormat sdFormat2 = new java.text.SimpleDateFormat("dd-MM-yyyy");		
+  	Calendar cal = Calendar.getInstance();
+    features.put("toDate",sdFormat2.format(cal.getTime()));
+    features.put("rule", "date_range_fromDate_tillDate");
+	features.put("isYearOnly", false);		    
+    outputAS.add(dateRangeSet.firstNode(),
+    dateRangeSet.lastNode(), "TempExperienceToken", features);
+}
+
+Rule: date_range_fromDate_tillDate
+Priority: 100
+(
+({TempDateToken, !TempExperienceToken}):fromDate
+({Token})[0,5]
+ ({TempDateToken, !TempExperienceToken}):toDate
+):date_range
+-->
+{
+try{
+	gate.AnnotationSet fromDateSet = (gate.AnnotationSet)bindings.get("fromDate");
+	gate.AnnotationSet toDateSet = (gate.AnnotationSet)bindings.get("toDate");
+	gate.AnnotationSet dateRangeSet = (gate.AnnotationSet)bindings.get("date_range");
+	gate.Annotation fromAnn = fromDateSet.iterator().next();
+	gate.Annotation toAnn = toDateSet.iterator().next();
+	java.text.SimpleDateFormat sdFormat2 = new java.text.SimpleDateFormat("dd-MM-yyyy");		
+	Date fromDate = sdFormat2.parse(fromAnn.getFeatures().get("date").toString());
+	Date toDate = sdFormat2.parse(toAnn.getFeatures().get("date").toString());
+	if(fromDate.compareTo(toDate) < 0){
+		gate.FeatureMap features = Factory.newFeatureMap();
+		features.put("kind", "date_range");
+		features.put("fromDate",fromAnn.getFeatures().get("date").toString());
+		features.put("toDate",toAnn.getFeatures().get("date").toString());
+		features.put("rule", "date_lookupMonth_Year");
+		features.put("isYearOnly", false);		    
+		outputAS.add(dateRangeSet.firstNode(),dateRangeSet.lastNode(), "TempExperienceToken", features);	
+	}
+   }
+   catch(Exception e) {
+   e.printStackTrace();
+   }	
+}
+
+Rule: date_range_fromDate_toDate
+Priority: 100
+(
+ ({TempDateToken, !TempExperienceToken}):fromDate
+(({Token.kind == punctuation}|{Token.kind == space})[0,2](TO_TILL)?({Token.kind == punctuation}|{Token.kind == space})[0,2])
+ ({TempDateToken, !TempExperienceToken}):toDate
+):date_range
+-->
+{
+try{
+	gate.AnnotationSet fromDateSet = (gate.AnnotationSet)bindings.get("fromDate");
+	gate.AnnotationSet toDateSet = (gate.AnnotationSet)bindings.get("toDate");
+	gate.AnnotationSet dateRangeSet = (gate.AnnotationSet)bindings.get("date_range");
+	gate.Annotation fromAnn = fromDateSet.iterator().next();
+	gate.Annotation toAnn = toDateSet.iterator().next();
+	java.text.SimpleDateFormat sdFormat2 = new java.text.SimpleDateFormat("dd-MM-yyyy");		
+	Date fromDate = sdFormat2.parse(fromAnn.getFeatures().get("date").toString());
+	Date toDate = sdFormat2.parse(toAnn.getFeatures().get("date").toString());
+	if(fromDate.compareTo(toDate) < 0){
+		gate.FeatureMap features = Factory.newFeatureMap();
+		features.put("kind", "date_range");
+		features.put("fromDate",fromAnn.getFeatures().get("date").toString());
+		features.put("toDate",toAnn.getFeatures().get("date").toString());
+		features.put("rule", "date_lookupMonth_Year");
+		features.put("isYearOnly", false);		    
+		outputAS.add(dateRangeSet.firstNode(),dateRangeSet.lastNode(), "TempExperienceToken", features);
+	}
+   }
+   catch(Exception e) {
+   e.printStackTrace();
+   }	
+}

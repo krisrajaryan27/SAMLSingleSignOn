@@ -1,0 +1,28 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<title>Untitled Document</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<style>
+body{
+	font-family:Verdana;
+	font-size:12px;
+	color:#000000;
+}
+</style>
+</head>
+<body>
+<b>Cancelled event notification</b>
+<p>Dear $USER_FNAME, </p>
+<p>Following event has been cancelled</p>
+<p>Candidate: <a href="$LINK_TO_ORIGINAL_RESUME">$CANDIDATE_NAME</a></p>
+<p>If you are not able to access above link then please <a href="$LINK_TO_ORIGINAL_RESUME_EXTERNAL">Click here</a></p>
+<p>Date: $APPOINTMENT_DATE</p>
+<p>Time: $APPOINTMENT_TIME_FROM</p>
+<p>Position: $APPOINTMENT_POSITION_NAME</p>
+<p>Thanks,</p>
+<p>HR Team</p>
+<p><br/><br/><br/></p>
+</body>
+</html>

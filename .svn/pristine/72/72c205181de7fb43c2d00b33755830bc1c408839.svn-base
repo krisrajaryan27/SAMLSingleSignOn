@@ -1,0 +1,174 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>	
+		<!-- Start : Vendor Management -->
+		<dbquery name="qVendorPositionManager_GetPositionsOpenToVendor">
+			select tp.position_id, tp.position_title, tp.position_code,
+			(select group_concat(tpsk.skill) 
+			from tp_skills tpsk
+			where tpsk.skill_id in (select tppsk.skill_id
+						from tp_position_skills tppsk
+						where tppsk.position_id=tp.position_id 
+						and tppsk.skill_type=?)) as primary_skills,
+						(select group_concat(tpl.location_name)
+			from tp_location_ap tpl
+			where tpl.location_id in (select tppl.location_id
+						from tp_position_locations tppl
+						where tppl.position_id=tp.position_id 
+						)) as location,
+			(select group_concat(tu.user_fname, ' ', tu.user_lname separator ', ')
+			from tp_users tu left join tp_user_roles tur on (tu.user_id = tur.user_id)
+			where tu.user_id in (select tpsu.user_id
+								from tp_position_step_users tpsu
+								where tpsu.position_id=tp.position_id
+								)
+			and tur.role_id in (?, ?)
+			) as contact_person,
+			concat(case when ceil(tp.position_min_exp)=floor(tp.position_min_exp) 
+			then round(tp.position_min_exp, 0) 
+			else format(tp.position_min_exp, 1) 
+		       end, ' to ', 
+			case when ceil(tp.position_max_exp)=floor(tp.position_max_exp) 
+			then round(tp.position_max_exp, 0) 
+			else format(tp.position_max_exp, 1) 
+		       end, ' yrs') as experience,
+			(tp.position_no_of_openings - (select count(*) 
+							from tp_applicant_joining_history ta 
+							where ta.position_id = tp.position_id )
+			) as unfilled_vacancies,tp.requirements,tp.responsibilities
+			from tp_positions tp 
+			where tp.position_id in (select tpv.position_id 
+						from tp_position_vendors tpv
+						where tpv.source_id=(select tu.user_source_id
+									from tp_users tu where tu.user_id=?))
+			and tp.position_status = ?
+			and tp.vendor_publish_from_date &lt;= ?
+			and tp.vendor_publish_to_date &gt;= ?
+			order by tp.position_title 
+		</dbquery>
+		<dbquery name="qVendorPositionManager_GetPositionsOpenToVendor_search">
+			select tp.position_id, tp.position_title, tp.position_code,
+			(select group_concat(tpsk.skill) 
+			from tp_skills tpsk
+			where tpsk.skill_id in (select tppsk.skill_id
+						from tp_position_skills tppsk
+						where tppsk.position_id=tp.position_id 
+						and tppsk.skill_type=?)) as primary_skills,
+						(select group_concat(tpl.location_name)
+			from tp_location_ap tpl
+			where tpl.location_id in (select tppl.location_id
+						from tp_position_locations tppl
+						where tppl.position_id=tp.position_id 
+						)) as location,
+			(select group_concat(tu.user_fname, ' ', tu.user_lname separator ', ')
+			from tp_users tu left join tp_user_roles tur on (tu.user_id = tur.user_id)
+			where tu.user_id in (select tpsu.user_id
+								from tp_position_step_users tpsu
+								where tpsu.position_id=tp.position_id
+								)
+			and tur.role_id in (?, ?)
+			) as contact_person,
+			concat(case when ceil(tp.position_min_exp)=floor(tp.position_min_exp) 
+			then round(tp.position_min_exp, 0) 
+			else format(tp.position_min_exp, 1) 
+		       end, ' to ', 
+			case when ceil(tp.position_max_exp)=floor(tp.position_max_exp) 
+			then round(tp.position_max_exp, 0) 
+			else format(tp.position_max_exp, 1) 
+		       end, ' yrs') as experience,
+			(tp.position_no_of_openings - (select count(*) 
+							from tp_applicant_joining_history ta 
+							where ta.position_id = tp.position_id )
+			) as unfilled_vacancies,tp.requirements,tp.responsibilities
+			from tp_positions tp 
+			where tp.position_id in (select tpv.position_id 
+						from tp_position_vendors tpv
+						where tpv.source_id=(select tu.user_source_id
+									from tp_users tu where tu.user_id=?))
+			and tp.position_status = ?
+			and tp.vendor_publish_from_date &lt;= ?
+			and tp.vendor_publish_to_date &gt;= ?
+			@@
+			order by tp.position_title 
+		</dbquery>
+		<dbquery name="qVendorPositionManager_GetPositionDetailsForVendor">
+			select tp.position_id, tp.position_title,
+			(tp.position_no_of_openings - (select count(*) 
+							from tp_applicant_joining_history ta 
+							where ta.position_id = tp.position_id )
+			) as unfilled_vacancies,
+			date_format(tp.position_date_expiry, '%d-%b-%y') as expiry_date,
+			(select group_concat(tpsk.skill) 
+			from tp_skills tpsk
+			where tpsk.skill_id in (select tppsk.skill_id
+						from tp_position_skills tppsk
+						where tppsk.position_id=tp.position_id 
+						and tppsk.skill_type=?)) as primary_skills,
+			(select group_concat(tpsk.skill) 
+			from tp_skills tpsk
+			where tpsk.skill_id in (select tppsk.skill_id
+						from tp_position_skills tppsk
+						where tppsk.position_id=tp.position_id 
+						and tppsk.skill_type=?)) as secondary_skills,
+			concat(case when ceil(tp.position_min_exp)=floor(tp.position_min_exp) 
+			then round(tp.position_min_exp, 0) 
+			else format(tp.position_min_exp, 1) 
+		       end, ' to ', 
+			case when ceil(tp.position_max_exp)=floor(tp.position_max_exp) 
+			then round(tp.position_max_exp, 0) 
+			else format(tp.position_max_exp, 1) 
+		       end, ' yrs') as experience,
+			GROUP_CONCAT(DISTINCT tdgr.degree_title SEPARATOR ', ') AS education ,
+			tp.requirements,tp.responsibilities
+			from tp_positions tp 
+			LEFT JOIN tp_position_degrees tpd ON (tpd.position_id=tp.position_id)
+			LEFT JOIN tp_degrees tdgr ON (tdgr.degree_id=tpd.degree_id)
+			where tp.position_id=?
+			GROUP BY tp.position_id
+		</dbquery>
+		
+		<!-- End : Vendor Management -->
+	</dbqueries>
+	<dataqueries>
+	    <!-- Start : Vendor Management -->
+	    <dataquery name="dVendorPositionManager_GetPositionsOpenToVendor" dbquery="qVendorPositionManager_GetPositionsOpenToVendor" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "positionId" column="position_id" type ="STRING" /> 	
+	    	<attribute name= "positionTitle" column="position_title" type ="STRING" />
+	    	<attribute name= "positionCode" column="position_code" type ="STRING" />
+	    	<attribute name= "primarySkills" column="primary_skills" type ="STRING" />
+	    	<attribute name= "contactPerson" column="contact_person" type ="STRING" />
+	    	<attribute name= "experience" column="experience" type ="STRING" />
+	    	<attribute name= "noOfUnfilledVacancies" column="unfilled_vacancies" type ="STRING" />
+	    	<attribute name= "requirements" column="requirements" type ="STRING" />
+	    	<attribute name= "responsibilities" column="responsibilities" type ="STRING" />
+	    	<attribute name= "location" column="location" type ="STRING" />
+	    </dataquery>
+	      <dataquery name="dVendorPositionManager_GetPositionsOpenToVendor_search" dbquery="qVendorPositionManager_GetPositionsOpenToVendor_search" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "positionId" column="position_id" type ="STRING" /> 	
+	    	<attribute name= "positionTitle" column="position_title" type ="STRING" />
+	    	<attribute name= "positionCode" column="position_code" type ="STRING" />
+	    	<attribute name= "primarySkills" column="primary_skills" type ="STRING" />
+	    	<attribute name= "contactPerson" column="contact_person" type ="STRING" />
+	    	<attribute name= "experience" column="experience" type ="STRING" />
+	    	<attribute name= "noOfUnfilledVacancies" column="unfilled_vacancies" type ="STRING" />
+	    	<attribute name= "requirements" column="requirements" type ="STRING" />
+	    	<attribute name= "responsibilities" column="responsibilities" type ="STRING" />
+	    	<attribute name= "location" column="location" type ="STRING" />
+	    </dataquery>
+	    <dataquery name="dVendorPositionManager_GetPositionDetailsForVendor" dbquery="qVendorPositionManager_GetPositionDetailsForVendor" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "positionId" column="position_id" type ="STRING" /> 	
+	    	<attribute name= "positionTitle" column="position_title" type ="STRING" />
+	    	<attribute name= "noOfUnfilledVacancies" column="unfilled_vacancies" type ="STRING" />
+	    	<attribute name= "primarySkills" column="primary_skills" type ="STRING" />
+	    	<attribute name= "secondarySkills" column="secondary_skills" type ="STRING" />	    	
+	    	<attribute name= "experience" column="experience" type ="STRING" />	    	
+	    	<attribute name= "education" column="education" type ="STRING" />
+	    	<attribute name= "requirements" column="requirements" type ="STRING" />
+	    	<attribute name= "responsibilities" column="responsibilities" type ="STRING" />
+	    </dataquery>
+	    <!-- End : Vendor Management -->
+	</dataqueries>   
+</dbmap>

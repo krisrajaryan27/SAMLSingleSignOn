@@ -1,0 +1,210 @@
+<?xml version="1.0"?>
+<dbmap> 
+	<dbqueries>
+		<dbquery name="qRequisitionFeedbackManager_AddFeedback">
+			INSERT INTO tp_requisition_approval_feedback 
+			(position_id, from_step_id, to_step_id, by_user_id, to_user_id,feedback_decision, feedback_comment, feedback_date)
+			VALUES(?,?,?,?,?,?,?,now())
+		</dbquery>
+		<dbquery name="qRequisitionFeedbackManager_UpdateFeedback">
+			UPDATE tp_requisition_approval_feedback SET
+			from_step_id=?, to_step_id=?, by_user_id=?, to_user_id=?, 
+			feedback_decision=?, feedback_comment=?, feedback_date=now()
+			WHERE feedback_id=?
+		</dbquery>
+		<dbquery name="qRequisitionFeedbackManager_CheckLastFeedbackForPositionByUser">
+			SELECT * FROM
+			(
+				SELECT 
+				traf.feedback_id, traf.position_id, traf.from_step_id, traf.to_step_id,tpos.position_type_ext_int,
+				traf.by_user_id, traf.to_user_id, traf.feedback_decision, traf.feedback_comment, 
+				traf.feedback_date , tbi.budget_item_id, tbi.budget_item_name, tpos.position_date_approved
+				FROM tp_positions tpos 
+				LEFT JOIN tp_budget_items tbi ON(tbi.budget_item_id = tpos.budget_item_id) , tp_requisition_approval_feedback traf
+				WHERE  traf.position_id = tpos.position_id
+				AND tpos.position_status=?
+				AND tpos.position_id=?
+				ORDER BY feedback_id desc
+				LIMIT 0,1
+			)AS itraf
+			WHERE itraf.to_user_id=?
+			OR(itraf.to_user_id is null AND itraf.by_user_id=? AND itraf.position_date_approved IS NULL)
+		</dbquery>
+		<dbquery name="qRequisitionFeedbackManager_GetFeedbackData">
+			SELECT traf.feedback_id, traf.position_id, traf.from_step_id, traf.to_step_id,
+			traf.by_user_id, traf.to_user_id, traf.feedback_decision, traf.feedback_comment, traf.feedback_date , tbi.budget_item_name
+			FROM tp_requisition_approval_feedback traf, tp_positions tpos
+			LEFT JOIN tp_budget_items tbi ON(tbi.budget_item_id = tpos.budget_item_id) 
+			WHERE traf.feedback_id=?
+			AND tpos.position_id = traf.position_id
+		</dbquery>
+		<dbquery name="qRequisitionFeedbackManager_GetPositionApprovalHistory">
+			SELECT traf.feedback_id, traf.feedback_date, traf.by_user_id, traf.feedback_decision, tras.requisition_approval_step_name, 
+			CONCAT(USER_FNAME, ' ', USER_LNAME) as name
+			FROM tp_requisition_approval_feedback traf, tp_requisition_approval_steps tras,
+			tp_users tu
+			WHERE 
+			traf.by_user_id = tu.user_id AND
+			traf.from_step_id = tras.requisition_approval_step_id
+			AND traf.position_id=?
+			ORDER BY traf.feedback_id
+		</dbquery>
+		<dbquery name="qRequisitionFeedbackManager_GetLastFeedbackDataForPosition">
+			SELECT traf.feedback_id, traf.position_id, traf.from_step_id, traf.to_step_id,
+			traf.by_user_id, traf.to_user_id, traf.feedback_decision, traf.feedback_comment, traf.feedback_date 
+			FROM tp_requisition_approval_feedback traf
+			WHERE traf.position_id=?
+			ORDER BY traf.feedback_id DESC 
+			LIMIT 0,1
+		</dbquery>
+		<dbquery name="qRequisitionFeedbackManager_GetNextFeedbackDataForPosition">
+			SELECT tp.requisition_approval_step_id,
+       tpa.user_id
+FROM tp_requisition_approval_steps tp,
+     tp_requisition_approval_steps_users tpa
+WHERE tp.requisition_approval_template_id=
+    (SELECT tp.requisition_approval_template_id
+     FROM tp_positions tp
+     WHERE tp.position_id=?)
+  AND tp.requisition_approval_step_id=tpa.requisition_approval_step_id
+  AND tp.requisition_approval_step_rank=
+    (SELECT tpa.requisition_approval_step_rank
+     FROM tp_requisition_approval_steps tpa
+     WHERE tpa.requisition_approval_step_id=
+         (SELECT tp.to_step_id
+          FROM tp_requisition_approval_feedback tp
+          WHERE tp.feedback_id=
+              (SELECT max(feedback_id)
+               FROM tp_requisition_approval_feedback tpa
+               WHERE tpa.position_id=?)))+1 LIMIT 0,
+                                                   1
+		</dbquery>
+		<dbquery name="qRequisitionFeedbackManager_GetFirstFeedbackDataForPosition">
+			SELECT traf.feedback_id, traf.position_id, traf.from_step_id, traf.to_step_id,
+			traf.by_user_id, traf.to_user_id, traf.feedback_decision, traf.feedback_comment, traf.feedback_date 
+			FROM tp_requisition_approval_feedback traf
+			WHERE traf.position_id=?
+			ORDER BY traf.feedback_id ASC 
+			LIMIT 0,1
+		</dbquery>
+		<dbquery name="qRequisitionFeedbackManager_DeleteFeedback">
+			DELETE FROM tp_requisition_approval_feedback WHERE feedback_id =? 
+		</dbquery>
+		<dbquery name="qRequisitionFeedbackManager_GetFeedbackDataToView">
+			SELECT 
+			traf.feedback_id, traf.position_id, traf.from_step_id, traf.to_step_id,
+			traf.by_user_id, traf.to_user_id, traf.feedback_decision, traf.feedback_comment, traf.feedback_date, 
+			CONCAT(tu.user_fname, ' ' , tu.user_lname) AS fromUserName,
+			tras.requisition_approval_step_name AS fromStepName,
+			(SELECT CONCAT(tui.user_fname, ' ' , tui.user_lname) FROM tp_users tui WHERE 
+			tui.user_id= traf.to_user_id LIMIT 0,1) AS toUserName,
+			(SELECT trasi.requisition_approval_step_name FROM tp_requisition_approval_steps trasi WHERE 
+			trasi.requisition_approval_step_id=traf.to_step_id LIMIT 0,1) AS  toStepName,
+			tpos.position_title
+			FROM 
+			tp_requisition_approval_feedback traf, tp_requisition_approval_steps tras, tp_positions tpos, tp_users tu
+			WHERE 
+			traf.position_id=tpos.position_id AND
+			traf.from_step_id = tras.requisition_approval_step_id AND
+			traf.by_user_id = tu.user_id AND
+			traf.feedback_id=?
+		</dbquery>
+		<dbquery name="qRequisitionFeedbackManager_UpdatePositionApproveDate">
+			update tp_positions set position_date_approved=now() where position_id=?
+		</dbquery>
+		<dbquery name="qRequisitionFeedbackManager_EditPositionDescription">
+			UPDATE tp_positions SET @@ WHERE position_id=?
+		</dbquery>
+		<dbquery name="qRequisitionFeedbackManager_GetRequisitionCurrentStatus">
+				select tps.requisition_approval_step_name from tp_requisition_approval_feedback tpra ,tp_requisition_approval_steps tps where tpra.position_id=? and tpra.to_step_id=?
+				and tps.requisition_approval_step_id=tpra.to_step_id
+			</dbquery>	
+	</dbqueries>
+	<dataqueries>
+	    <dataquery name="dRequisitionFeedbackManager_AddFeedback" dbquery="qRequisitionFeedbackManager_AddFeedback" />
+	    <dataquery name="dRequisitionFeedbackManager_UpdateFeedback" dbquery="qRequisitionFeedbackManager_UpdateFeedback" />
+	    
+	    <dataquery name="dRequisitionFeedbackManager_CheckLastFeedbackForPositionByUser" dbquery="qRequisitionFeedbackManager_CheckLastFeedbackForPositionByUser" object="com.talentPool.requisition.dataobject.RequisitionFeedbackData">
+	    	<attribute name= "feedbackId" column="feedback_id" type ="STRING" />
+	    	<attribute name= "positionId" column="position_id" type ="STRING" />
+	    	<attribute name= "fromStepId" column="from_step_id" type ="STRING" />
+	    	<attribute name= "toStepId" column="to_step_id" type ="STRING" />
+	    	<attribute name= "byUserId" column="by_user_id" type ="STRING" />
+	    	<attribute name= "toUserId" column="to_user_id" type ="STRING" />
+	    	<attribute name= "feedbackDecision" column="feedback_decision" type ="STRING" />
+	    	<attribute name= "feedbackComment" column="feedback_comment" type ="STRING" />
+	    	<attribute name= "feedbackDate" column="feedback_date" type ="STRING" />
+	    	<attribute name= "budgetItemId" column="budget_item_id" type ="STRING" />
+	    	<attribute name= "budgetItemName" column="budget_item_name" type ="STRING" />
+	    	<attribute name= "positionTypeExtInt" column="position_type_ext_int" type ="STRING" />	    	
+	    </dataquery>
+	    <dataquery name="dRequisitionFeedbackManager_GetFeedbackData" dbquery="qRequisitionFeedbackManager_GetFeedbackData" object="com.talentPool.requisition.dataobject.RequisitionFeedbackData">
+	    	<attribute name= "feedbackId" column="feedback_id" type ="STRING" />
+	    	<attribute name= "positionId" column="position_id" type ="STRING" />
+	    	<attribute name= "fromStepId" column="from_step_id" type ="STRING" />
+	    	<attribute name= "toStepId" column="to_step_id" type ="STRING" />
+	    	<attribute name= "byUserId" column="by_user_id" type ="STRING" />
+	    	<attribute name= "toUserId" column="to_user_id" type ="STRING" />
+	    	<attribute name= "feedbackDecision" column="feedback_decision" type ="STRING" />
+	    	<attribute name= "feedbackComment" column="feedback_comment" type ="STRING" />
+	    	<attribute name= "feedbackDate" column="feedback_date" type ="STRING" />
+	    	<attribute name= "budgetItemName" column="budget_item_name" type ="STRING" />
+	    </dataquery>
+	    <dataquery name="dRequisitionFeedbackManager_GetPositionApprovalHistory" dbquery="qRequisitionFeedbackManager_GetPositionApprovalHistory" object="com.talentPool.requisition.dataobject.RequisitionFeedbackData">
+	    	<attribute name= "feedbackId" column="feedback_id" type ="STRING" />
+	    	<attribute name= "feedbackDate" column="feedback_date" type ="STRING" />
+	    	<attribute name= "feedbackDecision" column="feedback_decision" type ="STRING" />
+	    	<attribute name= "byUserId" column="by_user_id" type ="STRING" />
+	    	<attribute name= "fromUserName" column="name" type ="STRING" />
+	    	<attribute name= "fromStepName" column="requisition_approval_step_name" type ="STRING" />
+	    </dataquery>
+	    <dataquery name="dRequisitionFeedbackManager_DeleteFeedback" dbquery="qRequisitionFeedbackManager_DeleteFeedback" />
+	    <dataquery name="dRequisitionFeedbackManager_GetLastFeedbackDataForPosition" dbquery="qRequisitionFeedbackManager_GetLastFeedbackDataForPosition" object="com.talentPool.requisition.dataobject.RequisitionFeedbackData">
+	    	<attribute name= "feedbackId" column="feedback_id" type ="STRING" />
+	    	<attribute name= "positionId" column="position_id" type ="STRING" />
+	    	<attribute name= "fromStepId" column="from_step_id" type ="STRING" />
+	    	<attribute name= "toStepId" column="to_step_id" type ="STRING" />
+	    	<attribute name= "byUserId" column="by_user_id" type ="STRING" />
+	    	<attribute name= "toUserId" column="to_user_id" type ="STRING" />
+	    	<attribute name= "feedbackDecision" column="feedback_decision" type ="STRING" />
+	    	<attribute name= "feedbackComment" column="feedback_comment" type ="STRING" />
+	    	<attribute name= "feedbackDate" column="feedback_date" type ="STRING" />
+	    </dataquery>
+	    <dataquery name="dRequisitionFeedbackManager_GetFirstFeedbackDataForPosition" dbquery="qRequisitionFeedbackManager_GetFirstFeedbackDataForPosition" object="com.talentPool.requisition.dataobject.RequisitionFeedbackData">
+	    	<attribute name= "feedbackId" column="feedback_id" type ="STRING" />
+	    	<attribute name= "positionId" column="position_id" type ="STRING" />
+	    	<attribute name= "fromStepId" column="from_step_id" type ="STRING" />
+	    	<attribute name= "toStepId" column="to_step_id" type ="STRING" />
+	    	<attribute name= "byUserId" column="by_user_id" type ="STRING" />
+	    	<attribute name= "toUserId" column="to_user_id" type ="STRING" />
+	    	<attribute name= "feedbackDecision" column="feedback_decision" type ="STRING" />
+	    	<attribute name= "feedbackComment" column="feedback_comment" type ="STRING" />
+	    	<attribute name= "feedbackDate" column="feedback_date" type ="STRING" />
+	    </dataquery>
+	    <dataquery name="dRequisitionFeedbackManager_GetFeedbackDataToView" dbquery="qRequisitionFeedbackManager_GetFeedbackDataToView" object="com.talentPool.requisition.dataobject.RequisitionFeedbackData">
+	    	<attribute name= "feedbackId" column="feedback_id" type ="STRING" />
+	    	<attribute name= "positionId" column="position_id" type ="STRING" />
+	    	<attribute name= "fromStepId" column="from_step_id" type ="STRING" />
+	    	<attribute name= "toStepId" column="to_step_id" type ="STRING" />
+	    	<attribute name= "byUserId" column="by_user_id" type ="STRING" />
+	    	<attribute name= "toUserId" column="to_user_id" type ="STRING" />
+	    	<attribute name= "feedbackDecision" column="feedback_decision" type ="STRING" />
+	    	<attribute name= "feedbackComment" column="feedback_comment" type ="STRING" />
+	    	<attribute name= "feedbackDate" column="feedback_date" type ="STRING" />
+	    	<attribute name= "fromUserName" column="fromUserName" type ="STRING" />
+	    	<attribute name= "fromStepName" column="fromStepName" type ="STRING" />
+	    	<attribute name= "toUserName" column="toUserName" type ="STRING" />
+	    	<attribute name= "toStepName" column="toStepName" type ="STRING" />
+	    	<attribute name= "positionTitle" column="position_title" type ="STRING" />
+	    </dataquery>
+	    <dataquery name="dRequisitionFeedbackManager_UpdatePositionApproveDate" dbquery="qRequisitionFeedbackManager_UpdatePositionApproveDate"/>
+	    <dataquery name="dRequisitionFeedbackManager_EditPositionDescription" dbquery="qRequisitionFeedbackManager_EditPositionDescription"/>	 
+	     <dataquery name="dRequisitionFeedbackManager_GetNextFeedbackDataForPosition" dbquery="qRequisitionFeedbackManager_GetNextFeedbackDataForPosition" object="com.talentPool.requisition.dataobject.RequisitionFeedbackData">
+	    	<attribute name= "toStepId" column="requisition_approval_step_id" type ="STRING" />
+	    	<attribute name= "toUserId" column="user_id" type ="STRING" />
+	    </dataquery>   
+	      <dataquery name="dRequisitionFeedbackManager_GetRequisitionCurrentStatus" dbquery="qRequisitionFeedbackManager_GetRequisitionCurrentStatus" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "requisitionStatus" column="requisition_approval_step_name" type ="STRING" /> 	
+	    </dataquery>	
+	</dataqueries>
+</dbmap>

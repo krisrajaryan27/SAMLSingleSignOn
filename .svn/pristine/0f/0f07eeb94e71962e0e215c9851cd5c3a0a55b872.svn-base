@@ -1,0 +1,13 @@
+frmMultipleFileSelect = 151, 89, 747, 545, Z, 22, 29, 618, 485, C
+frmBulkImport = 66, 87, 598, 543, , 44, 58, 576, 514, C
+frmBulkImportParseResult = 0, 0, 532, 456, , 132, 174, 770, 697, C
+modBulkImport = 132, 174, 664, 630, 
+modCommon = 88, 116, 822, 514, 
+modSelectFiles = 66, 87, 585, 513, 
+frmLoginToTalentscout = 88, 116, 620, 572, , 66, 87, 598, 543, C
+cCommonDialog = 88, 116, 607, 542, 
+GCommonDialog = 132, 174, 651, 600, 
+cMemory = 110, 145, 629, 571, 
+mWinGeneral = 66, 87, 585, 513, 
+basCustomDlg = 22, 29, 541, 455, 
+mDialogHook = 44, 58, 563, 484, 

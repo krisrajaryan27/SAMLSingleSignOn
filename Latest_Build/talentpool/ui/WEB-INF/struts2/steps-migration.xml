@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE struts PUBLIC
+    "-//Apache Software Foundation//DTD Struts Configuration 2.0//EN" 
+    "http://struts.apache.org/dtds/struts-2.0.dtd">
+    <!-- Steps Migration is specific for old clients who are upgrading to new release. 
+    After some days this  should be deleted. -->
+<struts>
+    <package name="steps-migration" namespace="/" extends="pool-default">
+    
+		 <interceptors>
+			<interceptor name="stepsMigration" class="com.talentPool.stepsMigration.inerceptor.StepMigrationInterceptor" />
+            <interceptor-stack name="stepsMigrationStack">
+            	<interceptor-ref name="poolStack" />
+            	<interceptor-ref name="masters" />
+				<interceptor-ref name="stepsMigration" />
+            </interceptor-stack>
+        </interceptors>
+        
+        <default-interceptor-ref name="stepsMigrationStack" />
+    
+		<action name="stepsMigrationStatus" class="stepsMigrationWizardAction" method="stepsMigrationStatus" >
+	          <result type="tiles" >stepsMigrationStatus</result>
+		</action>
+		
+		<action name="migrationDisclaimer" class="stepsMigrationWizardAction" method="migrationDisclaimer" >
+	          <result type="tiles" >migrationDisclaimer</result>
+	          <result type="tiles" name="error"  >stepsMigrationStatus</result>
+		</action>
+		
+		<action name="stepsMigrationWizard" class="stepsMigrationWizardAction" method="stepsMigrationWizard" >
+	          <result type="tiles">stepsMigrationWizard</result>
+	          <result type="chain" name="groupSteps" >groupAllStepsForMigration</result>
+	          <result type="chain" name="stepMapping" >stepMapping</result>
+	          <result type="chain" name="migrationExcceptions" >migrationExceptionsScreen</result>
+	          <result type="tiles" name="error">migrationDisclaimer</result>
+		</action>
+		
+		<action name="groupAllStepsForMigration" class="stepsMigrationWizardAction" method="groupAllStepsForMigration" >
+	          <result type="chain">stepMapping</result>
+		</action>
+		
+		<action name="stepMapping" class="stepsMigrationWizardAction" method="stepMapping" >
+	          <result type="tiles">stepsMigrationWizard</result>
+		</action>
+		
+		<action name="validateMigration" class="stepsMigrationWizardAction" method="validateMigration" >
+	          <result type="chain">migrationExceptionsScreen</result>
+		</action>
+		
+		<action name="migrationExceptionsScreen" class="stepsMigrationWizardAction" method="migrationExceptionsScreen" >
+	          <result type="tiles">migrationExceptionsScreen</result>
+		</action>
+		
+		<action name="getExceptionPositionsXML" class="exceptionPositionMigrationAction" method="getExceptionPositionsXML" >
+	          <result>/common/xmlFile.jsp</result>
+		</action>
+		
+		<action name="positionMigrationScreen" class="exceptionPositionMigrationAction" method="positionMigrationScreen" >
+	          <result type="tiles">positionMigrationScreen</result>
+		</action>
+		
+		<action name="migratePosition" class="exceptionPositionMigrationAction" method="migratePosition" >
+	          <result type="tiles">hidePopUp</result>
+	          <result type="chain" name="error">positionMigrationScreen</result>
+		</action>
+		
+		<action name="saveTemporarily" class="stepsMigrationWizardAction" method="saveTemporarily" >
+	          <result type="chain">stepsMigrationStatus</result>
+		</action>
+		
+		<action name="cancelOrResetMigration" class="stepsMigrationWizardAction" method="cancelOrResetMigration" >
+	          <result type="chain">stepsMigrationStatus</result>
+		</action>
+		
+		<action name="confirmAndMigrate" class="stepsMigrationWizardAction" method="confirmAndMigrate" >
+	          <result type="chain">stepsMigrationStatus</result>
+		</action>
+		
+    </package>
+</struts>

@@ -1,0 +1,202 @@
+
+<table class="innerReport">
+				<tr>
+  			 		<td class="label">
+						<bean:message key="report.label.filter_steps" />:&nbsp;
+					</td>
+					<td>
+						<script type="text/javascript">
+							var opts = new Array();
+							opts[0] = new SelectOption('<%=ReportConstants.FILTER_ALL%>','<bean:message key="common.all"/>');
+							opts[1] = new SelectOption('<%=ReportConstants.FILTER_SPECIFIC_STEP%>','<bean:message key="report.label.filter_select_steps"/>');
+							var selectStepsFilter = new SelectBox(opts,'<%=ReportConstants.FILTER_ALL%>','images/btn_dropdown.gif',{namesonly:false, width:'180px', size:20});
+							document.write(selectStepsFilter.getHtml());
+							selectStepsFilter.setOnChangeHandler('onChangeStepsFilter');
+							selectStepsFilter.init();
+						</script>
+					</td>
+				</tr>
+			</table>	
+			<div id="stepsFilterDiv" style="display:none;padding: 0px;">	
+			<table class="innerCustomReport" cellspacing="0" cellpadding="0" border="0">
+				<tr>
+					<td style="height: 100px; padding-top: 10px;"  >
+						<table cellspacing="0" cellpadding="0" border="0">
+							<tr>
+								<td >
+									<table cellpadding="0" cellspacing="0">
+										<tr>
+											<td>
+												<input id="stepsFilter" name="stepsFilter" type="text" size="61" value="Filter" style="width:317px;color: grey; border-bottom: 0px;" onclick="onFilterFocus('stepsFilter','Filter');" onblur="onFilterUnfocus('stepsFilter','Filter')"/>
+											</td>
+										</tr>
+										<tr>
+											<td class="gridborder" width="300px;">
+												<div id="STEPS_FILTER_GRID" style="width:320px; height: 80px;overflow: visible;"></div>
+											</td>
+										</tr>
+									</table>
+								</td>
+								<td width="42px" align="center">
+									<a href="#" onclick="javascript: selectItem(stepsFilter,selectedStepsFilter);return false;" title="<bean:message key='common.add' />" >
+										<img src="images/ico_rightarrow.gif"  border="0" />
+									</a>
+									<br/> 
+									<a href="#" onclick="javascript: deselectItem(selectedStepsFilter,stepsFilter);return false;" title="<bean:message key='common.remove' />" >
+										<img src="images/ico_leftarrow.gif"  border="0" />
+									</a> </td>
+								<td >
+									<table cellpadding="0" cellspacing="0">
+										<tr>
+											<td class="gridborder">
+												<div id="SELECTED_STEPS_FILTER_GRID" style="width:320px;height: 100px;overflow: visible;"></div>
+											</td>
+										</tr>
+									</table>
+								</td>
+							</tr>
+						</table>
+					</td>
+				</tr>
+			</table>
+			</div>
+
+<script type="text/javascript">
+
+/**
+ * Steps Filter Gird 
+ */
+
+var stepsFilter = null;
+var selectedStepsFilter = null;
+
+function initStepsFilter() {	
+	stepsFilter = new dhtmlXGridObject('STEPS_FILTER_GRID'); 
+	stepsFilter.imgURL = "images/"; 
+	stepsFilter.setHeader("Steps"); 
+	stepsFilter.setInitWidths("300");
+	stepsFilter.setNoHeader(true);
+	stepsFilter.setColAlign("left");
+	stepsFilter.setColTypes("ro");
+	stepsFilter.setColSorting("requisition_userName_sort");
+	stepsFilter.enableMultiselect('true');	
+	stepsFilter.init();
+	loadStepsFilterGrid();	
+	//stepsFilter.sortRows(0,'str',"asc");
+	stepsFilter.attachEvent("onKeyPress",onStepsFilterKeyPressed);
+	stepsFilter.attachEvent("onRowSelect",doOnStepsFilterGridRowSelectHandler);
+	stepsFilter.attachEvent("onRowDblClicked",doOnStepsFilterGirdRowDblClicked);
+	
+	stepsFilter.gridToGrid = function(rowId,sgrid,tgrid){
+	    var z=new Array();
+		for(var i=0;i<sgrid.hdr.rows[0].cells.length;i++)
+		z[i]=sgrid.cells(rowId,i).getValue();
+		return z;
+	}	
+}
+
+function initSelectedStepsFilter(){
+	selectedStepsFilter = new dhtmlXGridObject('SELECTED_STEPS_FILTER_GRID'); 
+	selectedStepsFilter.imgURL = "images/"; 
+	selectedStepsFilter.setHeader("User Name"); 
+	selectedStepsFilter.setInitWidths("300");
+	selectedStepsFilter.setColAlign("left");
+	selectedStepsFilter.setColTypes("ro"); 	
+	selectedStepsFilter.enableMultiselect('true');
+	selectedStepsFilter.setNoHeader(true);
+	selectedStepsFilter.setColSorting("requisition_userName_sort");
+	selectedStepsFilter.init();
+	//selectedStepsFilter.sortRows(0,'str',"asc");
+	selectedStepsFilter.setSortImgState(true,0,"ASC");	
+	selectedStepsFilter.gridToGrid = function(rowId,sgrid,tgrid){
+	    var z=new Array();
+		for(var i=0;i<sgrid.hdr.rows[0].cells.length;i++)
+		z[i]=sgrid.cells(rowId,i).getValue();
+		return z;
+	}
+	selectedStepsFilter.attachEvent("onKeyPress",onSelectedStepsFilterKeyPressed);
+	selectedStepsFilter.attachEvent("onRowSelect",doOnSelectedStepsFilterGridRowSelectHandler);
+	selectedStepsFilter.attachEvent("onRowDblClicked",doOnSelectedStepsFilterGridRowDblClicked);
+}
+
+function loadStepsFilterGrid(){
+	stepsFilter.loadXML("reports.do?mode=getStepsFilterXML");
+}
+
+function onStepsFilterKeyPressed(keyCode,ctrl,shift) {	
+	var text = (stepsFilter.cells(usersFilter.getSelectedId(),0)).getValue();
+	selectedStepsFilter.clearSelection();
+	onGridObjKeyPressed(stepsFilter,selectedStepsFilter,4,keyCode,ctrl,shift);
+	if(keyCode=='13'){
+		removeIdFromBackUp(stepsFilter, text);
+	}
+}
+
+function onSelectedStepsFilterKeyPressed(keyCode,ctrl,shift) {
+	stepsFilter.clearSelection();
+	onGridObjKeyPressed(selectedStepsFilter,stepsFilter,4,keyCode,ctrl,shift);
+	if(keyCode=='13'){
+		resetFilterBackUp(stepsFilter);
+	}
+}
+
+function doOnStepsFilterGridRowSelectHandler() {
+	selectedStepsFilter.clearSelection();
+}
+function doOnSelectedStepsFilterGridRowSelectHandler() {
+	stepsFilter.clearSelection();
+}
+
+function doOnStepsFilterGirdRowDblClicked() {	
+	var text = (stepsFilter.cells(stepsFilter.getSelectedId(),0)).getValue();
+	selectItem(stepsFilter,selectedStepsFilter);
+	removeIdFromBackUp(stepsFilter, text);	
+}
+
+function doOnSelectedStepsFilterGridRowDblClicked() {	
+	selectItem(selectedStepsFilter,stepsFilter);
+	resetFilterBackUp(stepsFilter);
+}
+
+function onStepsCriteriaChange(event){
+	var iKeyCode = event.keyCode;
+	switch(iKeyCode) {
+		case Event.KEY_UP:
+		case Event.KEY_DOWN: 
+		break;
+		case Event.KEY_PAGEUP:
+		case Event.KEY_PAGEDOWN:
+		break;
+		case Event.KEY_RETURN:
+		break;
+		default:
+		if((iKeyCode>=48 && iKeyCode<=90) || (iKeyCode>=96 && iKeyCode<=105) || iKeyCode==Event.KEY_BACKSPACE || iKeyCode==Event.KEY_DELETE){
+			stepsFilter.filterBy(0, $('stepsFilter').value, false);		
+		}
+	}
+}
+
+/**
+ * END Steps Filter Gird 
+ */
+ 
+ function onChangeStepsFilter(){
+		var val = selectStepsFilter.getSelectedId();
+		if(val=="<%=ReportConstants.FILTER_ALL%>"){
+			hideStepsFilter();		
+		}else if(val=="<%=ReportConstants.FILTER_SPECIFIC_STEP%>"){
+			showStepsFilter();
+		}
+	}
+
+
+
+	function showStepsFilter(){
+		$("stepsFilterDiv").style.display="";
+	}
+
+	function hideStepsFilter(){
+		$("stepsFilterDiv").style.display="none";
+	}
+
+ </script>

@@ -1,0 +1,10 @@
+Connect = 44, 58, 563, 484, Z, 22, 29, 760, 722, C
+modCommon = 0, 0, 519, 426, 
+modAttachToCandidate = 0, 521, 1036, 708, 
+frmAttachToCandidate = 0, 471, 1036, 662, , 110, 145, 629, 571, C
+frmLoginToTalentPool = 88, 116, 607, 542, , 66, 87, 585, 513, C
+frmSingleImport = 132, 174, 651, 600, , 132, 174, 651, 600, C
+frmSettings = 132, 174, 651, 600, , 154, 203, 673, 629, C
+frmBulkImport = 88, 116, 607, 542, , 0, 0, 519, 426, C
+modBulkImport = 66, 87, 585, 513, 
+frmBulkImportParseResult = 66, 87, 585, 513, , 22, 29, 541, 455, C

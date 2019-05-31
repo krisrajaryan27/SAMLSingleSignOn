@@ -1,0 +1,29 @@
+/*
+*  location.jape
+*
+*/
+
+
+Phase:	location
+Input:  Lookup Token CustomSpaceToken
+Options: control = appelt
+
+Rule: salary_current
+Priority: 20
+(
+	{Lookup.majorType == salary_prefix, Lookup.minorType == current}
+	({Token.kind == punctuation}|{CustomSpaceToken})[0,4]
+	(({Token})[1,8]):salary
+)
+-->
+:salary.TempSalaryToken = {kind = "current", rule = "salary_current", priority="100"}
+
+Rule: salary_expected
+Priority: 20
+(
+	{Lookup.majorType == salary_prefix, Lookup.minorType == expected}
+	({Token.kind == punctuation}|{CustomSpaceToken})[0,4]
+	(({Token})[1,8]):salary
+)
+-->
+:salary.TempSalaryToken = {kind = "expected", rule = "salary_expected", priority="100"}

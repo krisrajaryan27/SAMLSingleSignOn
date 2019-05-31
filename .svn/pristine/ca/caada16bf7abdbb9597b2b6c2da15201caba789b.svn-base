@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<dbmap>
+	<dbqueries>
+		<dbquery name="qReportTemplates_getReportColumnList">
+			SELECT column_property_name, table_type, column_display_name, table_short_name, 
+			column_data_type, column_dbname, column_width FROM tp_custom_report_columns
+		</dbquery>
+		<dbquery name="qAdminManager_SaveCustomReportDetails">
+			INSERT INTO tp_custom_reports ( report_name, report_desc, created_by, date_created,
+  											modified_by, date_modified, report_file_path) VALUE (
+  											?, ?, ?, ?, ?, ?, ?);
+		</dbquery>
+		<dbquery name="qCustomReportManager_GetAllCustomReports">
+			SELECT tcr.report_id, tcr.report_name 
+			FROM tp_custom_reports tcr				
+		</dbquery>
+		<dbquery name="qCustomReportManager_getCustomReportListForUser">
+			SELECT DISTINCT tcr.report_id, tcr.report_name  
+			FROM tp_custom_reports tcr 
+				LEFT JOIN tp_report_levels trl ON (trl.report_id=tcr.report_id AND trl.report_type=2) 
+			WHERE (trl.level_id IN (SELECT level_id FROM tp_report_level_user WHERE user_id=?) 
+					OR tcr.created_by=?);
+		</dbquery>
+	</dbqueries>
+	<dataqueries>
+		<dataquery name="dReportTemplates_getReportColumnList" dbquery="qReportTemplates_getReportColumnList" 
+																object="com.talentPool.customReports.dataobject.CRColumn" >
+			<attribute name="propertyName"  column="column_property_name" type="STRING" />
+	  		<attribute name="displayName"  	column="column_display_name" type="STRING" />
+	  		<attribute name="dataType"  	column="column_data_type" type="STRING" />
+	  		<attribute name="dbName"  		column="column_dbname" type="STRING" />
+	  		<attribute name="columnWidth"  	column="column_width" type="STRING" />
+	  		<attribute name="tableShortName"  column="table_short_name" type="STRING" />
+	  		<attribute name="tableType"  	column="table_type" type="STRING" />
+		</dataquery>
+		<dataquery name="dAdminManager_SaveCustomReportDetails" dbquery="qAdminManager_SaveCustomReportDetails" />
+		<dataquery name="dCustomReportManager_GetAllCustomReports" dbquery="qCustomReportManager_GetAllCustomReports"
+										object="com.talentPool.customReports.dataobject.CustomReportData">
+			<attribute name="reportId"  column="report_id" type="STRING" />
+			<attribute name="reportName"  column="report_name" type="STRING" />
+		</dataquery>
+		<dataquery name="dCustomReportManager_getCustomReportListForUser" dbquery="qCustomReportManager_getCustomReportListForUser"
+										object="com.talentPool.customReports.dataobject.CustomReportData">
+			<attribute name="reportId"  column="report_id" type="STRING" />
+			<attribute name="reportName"  column="report_name" type="STRING" />
+		</dataquery>								
+	</dataqueries>
+</dbmap>

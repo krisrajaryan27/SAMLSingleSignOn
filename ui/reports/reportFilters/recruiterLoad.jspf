@@ -1,0 +1,240 @@
+<%@page import="com.talentPool.reports.ReportConstants"%>
+<script src="js/dhtmlxGrid/dhtmlXCommon.js"></script> 
+<script src="js/dhtmlxGrid/dhtmlXGrid.js"></script> 
+<script src="js/dhtmlxGrid/dhtmlXGridCell.js"></script>
+<script  src="js/dhtmlxGrid/dhtmlXGrid_excell_link.js"></script>
+<script src="js/dhtmlxGrid/dhtmlXGrid_drag.js"></script>
+<script src="js/dhtmlxGrid/dhtmlxgrid_filter.js"></script>
+<script src="js/dhtmlxGrid/dhtmlXGrid_pgn.js"></script>
+<script src="js/dhtmlxGrid/dhtmlXGrid_srnd.js"></script>
+
+
+<script type="text/javascript">
+var selectUserFilter = null;
+</script>
+
+<table class="innerReport">
+				<tr>
+  			 		<td class="label">
+						<bean:message key="report.label.position_recruiters" />:&nbsp;
+					</td>
+					<td>
+						<script type="text/javascript">
+							var opts = new Array();
+							opts[0] = new SelectOption('<%=ReportConstants.FILTER_ALL%>','<bean:message key="common.all"/>');
+							opts[1] = new SelectOption('<%=ReportConstants.FILTER_SPECIFIC_USER%>','<bean:message key="report.label.select_recruiters"/>');
+							selectUserFilter = new SelectBox(opts,'<%=ReportConstants.FILTER_ALL%>','images/btn_dropdown.gif',{namesonly:false, width:'180px', size:20});
+							document.write(selectUserFilter.getHtml());
+							selectUserFilter.setOnChangeHandler('onChangeUserFilter');
+							selectUserFilter.init();
+						</script>
+					</td>
+				</tr>
+			</table>	
+			<div id="usersFilterDiv" style="display:none;padding: 0px;">	
+			<table class="innerCustomReport" cellspacing="0" cellpadding="0" border="0">
+				<tr>
+					<td style="height: 100px; padding-top: 10px;"  >
+						<table cellspacing="0" cellpadding="0" border="0">
+							<tr>
+								<td>
+									<table cellpadding="0" cellspacing="0">
+										<tr>
+											<td>
+												<input id="userFilter" name="userFilter" type="text" size="61" value="Filter" style="width:317px;color: grey; border-bottom: 0px;" onclick="onFilterFocus('userFilter','Filter');" onblur="onFilterUnfocus('userFilter','Filter')"/>
+											</td>
+										</tr>
+										<tr>
+											<td class="gridborder">
+												<div id="USERS_FILTER_GRID" style="width:320px; height: 80px; overflow: visible;"></div>
+											</td>
+										</tr>
+									</table>
+								</td>
+								<td width="42px" align="center">	<a href="#" onclick="javascript: selectItem(usersFilter,selectedUsersFilter);return false;" title="<bean:message key='common.add' />" >
+										<img src="images/ico_rightarrow.gif"  border="0" />
+									</a>
+									<br/> 
+									<a href="#" onclick="javascript: deselectItem(selectedUsersFilter,usersFilter);return false;" title="<bean:message key='common.remove' />" >
+										<img src="images/ico_leftarrow.gif"  border="0" />
+									</a> </td>
+								<td >
+									<table cellpadding="0" cellspacing="0">
+										<tr>
+											<td class="gridborder">
+												<div id="SELECTED_USERS_FILTER_GRID" style="width:320px;height: 100px; overflow: visible;"></div>
+											</td>
+										</tr>
+									</table>
+								</td>
+							</tr>
+						</table>
+					</td>
+				</tr>
+			</table>
+			</div>
+			
+			
+<script type="text/javascript">
+
+var usersFilter = null;
+var selectedUsersFilter = null;
+
+
+
+function initUsersFilter() {	
+	usersFilter = new dhtmlXGridObject('USERS_FILTER_GRID'); 
+	usersFilter.imgURL = "images/"; 
+	usersFilter.setHeader("User Name"); 
+	usersFilter.setInitWidths("300");
+	usersFilter.setNoHeader(true);
+	usersFilter.setColAlign("left");
+	usersFilter.setColTypes("ro");
+	usersFilter.setColSorting("requisition_userName_sort");
+	usersFilter.enableMultiselect('true');	
+	usersFilter.init();
+	loadUsersFilterGrid();	
+	usersFilter.sortRows(0,'str',"asc");
+	usersFilter.attachEvent("onXLE",doOnLoadRecruiterList);
+	usersFilter.attachEvent("onKeyPress",onUsersFilterKeyPressed);
+	usersFilter.attachEvent("onRowSelect",doOnUsersFilterGridRowSelectHandler);
+	usersFilter.attachEvent("onRowDblClicked",doOnUsersFilterGirdRowDblClicked);
+	
+	usersFilter.gridToGrid = function(rowId,sgrid,tgrid){
+	    var z=new Array();
+		for(var i=0;i<sgrid.hdr.rows[0].cells.length;i++)
+		z[i]=sgrid.cells(rowId,i).getValue();
+		return z;
+	}	
+}
+
+function initSelectedUsersFilter(){
+	selectedUsersFilter = new dhtmlXGridObject('SELECTED_USERS_FILTER_GRID'); 
+	selectedUsersFilter.imgURL = "images/"; 
+	selectedUsersFilter.setHeader("User Name"); 
+	selectedUsersFilter.setInitWidths("300");
+	selectedUsersFilter.setColAlign("left");
+	selectedUsersFilter.setColTypes("ro"); 	
+	selectedUsersFilter.enableMultiselect('true');
+	selectedUsersFilter.setNoHeader(true);
+	selectedUsersFilter.setColSorting("requisition_userName_sort");
+	selectedUsersFilter.init();
+	selectedUsersFilter.sortRows(0,'str',"asc");
+	selectedUsersFilter.setSortImgState(true,0,"ASC");	
+	selectedUsersFilter.gridToGrid = function(rowId,sgrid,tgrid){
+	    var z=new Array();
+		for(var i=0;i<sgrid.hdr.rows[0].cells.length;i++)
+		z[i]=sgrid.cells(rowId,i).getValue();
+		return z;
+	}
+	selectedUsersFilter.attachEvent("onKeyPress",onSelectedUsersFilterKeyPressed);
+	selectedUsersFilter.attachEvent("onRowSelect",doOnSelectedUsersFilterGridRowSelectHandler);
+	selectedUsersFilter.attachEvent("onRowDblClicked",doOnSelectedUsersFilterGridRowDblClicked);
+}
+
+function doOnLoadRecruiterList() {
+	
+	usersFilter
+			.sortRows(0, 'str', "asc");
+	usersFilter.setSortImgState(true, 0,
+			"ASC");
+	var recruiter= document.getElementById("userFilter").value;
+	if (recruiter.length>0) {
+	selectItems(recruiter,
+			usersFilter,
+			selectedUsersFilter);
+
+} else {
+	selectItems("", usersFilter,
+			selectedUsersFilter);
+}
+
+	
+
+}
+function loadUsersFilterGrid(){
+	usersFilter.loadXML("reports.do?mode=getUserFilterXML");
+}
+
+function onUsersFilterKeyPressed(keyCode,ctrl,shift) {	
+	var text = (usersFilter.cells(usersFilter.getSelectedId(),0)).getValue();
+	
+	selectedUsersFilter.clearSelection();
+	onGridObjKeyPressed(usersFilter,selectedUsersFilter,4,keyCode,ctrl,shift);
+	if(keyCode=='13'){
+		removeIdFromBackUp(usersFilter, text);
+	}
+}
+
+function onSelectedUsersFilterKeyPressed(keyCode,ctrl,shift) {
+	usersFilter.clearSelection();
+	onGridObjKeyPressed(selectedUsersFilter,usersFilter,4,keyCode,ctrl,shift);
+	if(keyCode=='13'){
+		resetFilterBackUp(usersFilter);
+	}
+}
+
+function doOnUsersFilterGridRowSelectHandler() {
+	selectedUsersFilter.clearSelection();
+}
+function doOnSelectedUsersFilterGridRowSelectHandler() {
+	usersFilter.clearSelection();
+}
+
+function doOnUsersFilterGirdRowDblClicked() {	
+	var text = (usersFilter.cells(usersFilter.getSelectedId(),0)).getValue();
+	selectItem(usersFilter,selectedUsersFilter);
+	removeIdFromBackUp(usersFilter, text);	
+}
+
+function doOnSelectedUsersFilterGridRowDblClicked() {	
+	selectItem(selectedUsersFilter,usersFilter);
+	resetFilterBackUp(usersFilter);
+}
+
+function onUsersCriteriaChange(event){
+	var iKeyCode = event.keyCode;
+	switch(iKeyCode) {
+		case Event.KEY_UP:
+		case Event.KEY_DOWN: 
+		break;
+		case Event.KEY_PAGEUP:
+		case Event.KEY_PAGEDOWN:
+		break;
+		case Event.KEY_RETURN:
+		break;
+		default:
+		if((iKeyCode>=48 && iKeyCode<=90) || (iKeyCode>=96 && iKeyCode<=105) || iKeyCode==Event.KEY_BACKSPACE || iKeyCode==Event.KEY_DELETE){
+			usersFilter.filterBy(0, $('userFilter').value, false);		
+		}
+	}
+}
+
+
+
+
+
+function onChangeUserFilter(){
+	val = selectUserFilter.getSelectedId();
+	if(val=="<%=ReportConstants.FILTER_ALL%>"){
+		hideUserFilter();		
+	}else if(val=="<%=ReportConstants.FILTER_SPECIFIC_USER%>"){
+		showUserFilter();
+	}
+}
+
+function hideUserFilter(){
+	$("usersFilterDiv").style.display="none";
+}
+
+
+function showUserFilter(){
+	$("usersFilterDiv").style.display="";
+}
+
+
+</script>
+			
+			
+			
+			

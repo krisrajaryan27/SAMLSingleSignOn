@@ -1,0 +1,212 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+   <dbqueries>
+       <dbquery name="qSalaryStructureManager_getSalaryComponents">
+			SELECT tsc.salary_component_id, tsc.salary_component_name, tsc.salary_component_description,
+			tsc.salary_component_type, tscc.category_name AS salary_component_category_name,
+			tsc.system_defined  
+			FROM tp_salary_components tsc
+			LEFT JOIN tp_salary_component_categories tscc ON (tsc.salary_component_category_id=tscc.category_id)
+			ORDER BY tsc.salary_component_name ASC
+       </dbquery>
+       <dbquery name="qSalaryStructureManager_GetSalaryComponentById">
+       		SELECT tsc.salary_component_id, tsc.salary_component_name, tsc.salary_component_description,tsc.salary_component_type, tscc.category_id AS salary_component_category_id   
+			FROM tp_salary_components tsc
+			LEFT JOIN tp_salary_component_categories tscc ON (tsc.salary_component_category_id=tscc.category_id)
+			WHERE tsc.salary_component_id=? 
+       </dbquery>
+       <dbquery name="qSalaryStructureManager_AddSalaryComponent">
+	      INSERT INTO tp_salary_components (salary_component_name, salary_component_description,salary_component_type,salary_component_category_id) VALUES (?,?,?,?)
+       </dbquery>
+       <dbquery name="qSalaryStructureManager_UpdateSalaryComponent">
+	       UPDATE tp_salary_components SET salary_component_name=?, salary_component_description=?, salary_component_type=?, salary_component_category_id=? WHERE salary_component_id=?
+       </dbquery>
+       <dbquery name="qSalaryStructureManager_DeleteSalaryComponent">
+       		delete from tp_salary_components where salary_component_id=?
+       </dbquery>
+       <dbquery name="qSalaryStructureManager_getSalaryComponentsNotDefinedForAGrade" >
+			SELECT tsc.salary_component_id,tsc.salary_component_name 
+			FROM  tp_salary_components tsc 
+			LEFT JOIN tp_salary_formulae tsf ON (tsf.salary_component_id=tsc.salary_component_id and tsf.grade_id=?)
+			where tsf.salary_component_id is NULL
+		</dbquery>	
+       <!-- Salary Formula Related DB Queries -->
+       <dbquery name="qSalaryStructureManager_AddSalaryFormula">
+        	INSERT INTO tp_salary_formulae (grade_id,salary_component_id,max_limit,variable1,variable1_factor,
+     		constant_factor,is_adjustable, rounding_type, user_id,date_created) VALUES (?,?,?,?,?,?,?,?,?,?)
+       </dbquery>
+       <dbquery name="qSalaryStructureManager_UpdateSalaryFormula">
+     		UPDATE tp_salary_formulae SET
+	     		grade_id=?,
+	     		salary_component_id=?,
+	     		max_limit=?,
+	     		variable1=?,
+	     		variable1_factor=?,
+	     		constant_factor=?,
+	     		is_adjustable=?,
+	     		rounding_type=?
+     		WHERE 
+     			formula_id=? 
+       </dbquery>
+       <dbquery name="qSalaryStructureManager_DeleteSalaryFormula">
+       		DELETE FROM tp_salary_formulae WHERE formula_id=?
+       </dbquery>
+       <dbquery name="qSalaryStructureManager_getSalaryFormulae">
+	        SELECT tsf.formula_id,tsf.grade_id,tg.grade_name,tsf.salary_component_id,tcs.salary_component_name,
+				tcs.salary_component_type,tsf.max_limit,tsf.variable1,tsf.variable1_factor,tsf.constant_factor,
+				tsf.is_adjustable,tsf.user_id,tsf.date_created, tsf.system_defined
+			FROM tp_salary_formulae tsf
+			RIGHT JOIN tp_budget_grades tg ON (tsf.grade_id=tg.grade_id)   
+			LEFT JOIN tp_salary_components tcs ON (tsf.salary_component_id=tcs.salary_component_id)
+       </dbquery>
+       <dbquery name="qSalaryStructureManager_GetSalaryFormulaById">
+	       	SELECT tsf.formula_id,tsf.grade_id,tg.grade_name,tsf.salary_component_id,tcs.salary_component_name,
+				tcs.salary_component_type,tsf.max_limit,tsf.variable1,tsf.variable1_factor,tsf.constant_factor,
+				tsf.is_adjustable, tsf.rounding_type, tsf.user_id,tsf.date_created
+			FROM tp_salary_formulae tsf
+			LEFT JOIN tp_budget_grades tg ON (tsf.grade_id=tg.grade_id)   
+			LEFT JOIN tp_salary_components tcs ON (tsf.salary_component_id=tcs.salary_component_id)
+			WHERE
+			tsf.formula_id=?
+       </dbquery>
+       <dbquery name="qSalaryStructureManager_getSalaryFormulaeForaGrade">
+       		SELECT tsf.formula_id,tsf.grade_id,tg.grade_name,tsf.salary_component_id,tcs.salary_component_name,
+				   tcs.salary_component_type,tsf.max_limit,tsf.variable1,tsf.variable1_factor,
+				   tsf.constant_factor, tsf.is_adjustable, tsf.rounding_type,
+				   tsf.user_id, tsf.date_created, tcs.salary_component_category_id AS salary_category_id
+			FROM tp_salary_formulae tsf
+			LEFT JOIN tp_budget_grades tg ON (tsf.grade_id=tg.grade_id)   
+			LEFT JOIN tp_salary_components tcs ON (tsf.salary_component_id=tcs.salary_component_id)
+			WHERE
+			tsf.grade_id=? 
+       </dbquery>
+       <dbquery name="qSalaryStructureManager_getSalaryComponentsForGrade" >
+			select tsc.salary_component_id,tsc.salary_component_name 
+			from tp_salary_formulae tsf
+			LEFT JOIN tp_salary_components tsc ON (tsf.salary_component_id=tsc.salary_component_id)
+			where tsf.grade_id=?
+		</dbquery>	
+		<dbquery name="qSalaryStructureManager_getGradeHasAdjustable" >
+				select count(*) from tp_salary_formulae where grade_id=? and is_Adjustable=?
+		</dbquery>
+		<dbquery name="qSalaryStructureManager_getSalaryRoundingPolicy" >
+				SELECT rounding_type From tp_salary_rounding
+		</dbquery>	
+		<dbquery name="qSalaryStructureManager_saveSalaryRoundingPolicy" >
+				UPDATE tp_salary_rounding SET rounding_type=? WHERE component_name='CTC'
+		</dbquery>	
+		<dbquery name="qSalaryStructureManager_getExistingSalaryDetails" >
+			SELECT tscc.category_id, tscc.category_name, tesd.existing_value FROM 
+			tp_salary_component_categories tscc
+			LEFT JOIN tp_existing_salary_details tesd ON (tscc.category_id=tesd.sal_category_id AND applicant_id=?)
+		</dbquery>
+		<dbquery name="qSalaryStructureManager_deleteExistingSalaryDetails" >
+			DELETE FROM tp_existing_salary_details WHERE applicant_id=? 
+		</dbquery>	
+		<dbquery name="qSalaryStructureManager_insertExistingSalaryDetails" >
+			INSERT INTO tp_existing_salary_details (applicant_id, sal_category_id, existing_value) VALUES (?, ?, ?)
+		</dbquery>
+		<dbquery name="qSalaryStructureManager_insertDefaultBasicFormulaForGrade" >
+			INSERT INTO tp_salary_formulae 
+			(grade_id, salary_component_id, max_limit, variable1, variable1_factor, constant_factor, is_adjustable, user_id, date_created, system_defined)
+			VALUES
+			(?, ?, 0, 2, 1.0, 0, 0, 1, now(), 1)
+		</dbquery>
+   </dbqueries>
+   <dataqueries>   		   	   
+   	   <dataquery name="dSalaryStructureManager_getSalaryComponents" dbquery="qSalaryStructureManager_getSalaryComponents" object="com.talentPool.salaryStructure.databject.SalaryComponentsData">
+       		<attribute name="salaryComponentId" column="salary_component_id" type="String"/>
+			<attribute name="salaryComponentName" column="salary_component_name" type="String"/>
+			<attribute name="salaryComponentDescription" column="salary_component_description" type="String"/>
+			<attribute name="salaryComponentType" column="salary_component_type" type="String"/>
+			<attribute name="salaryComponentCategoryName" column="salary_component_category_name" type="String"/>
+			<attribute name="salaryComponentCategoryName" column="salary_component_category_name" type="String"/>
+			<attribute name="systemDefined" column="system_defined" type="String"/>
+       </dataquery>
+       <dataquery name="dSalaryStructureManager_GetSalaryComponentById" dbquery="qSalaryStructureManager_GetSalaryComponentById" object="com.talentPool.salaryStructure.databject.SalaryComponentsData">
+       		<attribute name="salaryComponentId" column="salary_component_id" type="String"/>
+			<attribute name="salaryComponentName" column="salary_component_name" type="String"/>
+			<attribute name="salaryComponentDescription" column="salary_component_description" type="String"/>
+			<attribute name="salaryComponentType" column="salary_component_type" type="String"/>
+			<attribute name="salaryComponentCategoryId" column="salary_component_category_id" type="String"/>
+       </dataquery>
+       <dataquery name="dSalaryStructureManager_AddSalaryComponent" dbquery="qSalaryStructureManager_AddSalaryComponent" />
+       <dataquery name="dSalaryStructureManager_UpdateSalaryComponent" dbquery="qSalaryStructureManager_UpdateSalaryComponent" />
+       <dataquery name="dSalaryStructureManager_DeleteSalaryComponent" dbquery="qSalaryStructureManager_DeleteSalaryComponent" />
+       <dataquery name="dSalaryStructureManager_getSalaryComponentsNotDefinedForAGrade" dbquery="qSalaryStructureManager_getSalaryComponentsNotDefinedForAGrade" object="com.talentPool.salaryStructure.databject.SalaryComponentsData">
+       		<attribute name="salaryComponentId" column="salary_component_id" type="String"/>
+			<attribute name="salaryComponentName" column="salary_component_name" type="String"/>
+       </dataquery>
+        <dataquery name="dSalaryStructureManager_getSalaryComponentsForGrade" dbquery="qSalaryStructureManager_getSalaryComponentsForGrade" object="com.talentPool.salaryStructure.databject.SalaryComponentsData">
+       		<attribute name="salaryComponentId" column="salary_component_id" type="String"/>
+			<attribute name="salaryComponentName" column="salary_component_name" type="String"/>
+       </dataquery>
+       <!-- Salary Formula Related Data Queries -->
+       <dataquery name="dSalaryStructureManager_AddSalaryFormula" dbquery="qSalaryStructureManager_AddSalaryFormula" />
+       <dataquery name="dSalaryStructureManager_UpdateSalaryFormula" dbquery="qSalaryStructureManager_UpdateSalaryFormula" />
+       <dataquery name="dSalaryStructureManager_DeleteSalaryFormula" dbquery="qSalaryStructureManager_DeleteSalaryFormula" />
+       <dataquery name="dSalaryStructureManager_getSalaryFormulae" dbquery="qSalaryStructureManager_getSalaryFormulae"  object="com.talentPool.salaryStructure.databject.SalaryFormulaData" >
+      		<attribute name="formulaId" column="formula_id" type="int"/>
+			<attribute name="gradeId" column="grade_id" type="int"/>
+			<attribute name="gradeName" column="grade_name" type="string"/>
+			<attribute name="salaryComponentId" column="salary_component_id" type="int"/>
+			<attribute name="salaryComponentName" column="salary_component_name" type="string"/>
+			<attribute name="salaryComponentType" column="salary_component_type" type="string"/>
+			<attribute name="maxLimit" column="max_limit" type="int"/>
+			<attribute name="variable1" column="variable1" type="int"/>
+			<attribute name="variable1Factor" column="variable1_factor" type="double"/>
+			<attribute name="constantFactor" column="constant_factor" type="double"/>
+			<attribute name="isAdjustable" column="is_adjustable" type="string"/>
+			<attribute name="userId" column="user_id" type="int"/>
+			<attribute name="dateCreated" column="date_created" type="string"/>
+			<attribute name="systemDefined" column="system_defined" type="string"/>
+       </dataquery>
+       <dataquery name="dSalaryStructureManager_GetSalaryFormulaById" dbquery="qSalaryStructureManager_GetSalaryFormulaById" object="com.talentPool.salaryStructure.databject.SalaryFormulaData" >
+       <attribute name="formulaId" column="formula_id" type="int"/>
+			<attribute name="gradeId" column="grade_id" type="int"/>
+			<attribute name="gradeName" column="grade_name" type="string"/>
+			<attribute name="salaryComponentId" column="salary_component_id" type="int"/>
+			<attribute name="salaryComponentName" column="salary_component_name" type="string"/>
+			<attribute name="salaryComponentType" column="salary_component_type" type="string"/>
+			<attribute name="maxLimit" column="max_limit" type="int"/>
+			<attribute name="variable1" column="variable1" type="int"/>
+			<attribute name="variable1Factor" column="variable1_factor" type="double"/>
+			<attribute name="constantFactor" column="constant_factor" type="double"/>
+			<attribute name="isAdjustable" column="is_adjustable" type="string"/>
+			<attribute name="roundingType" column="rounding_type" type="string"/>
+			<attribute name="userId" column="user_id" type="int"/>
+			<attribute name="dateCreated" column="date_created" type="string"/>
+       </dataquery>
+       <dataquery name="dSalaryStructureManager_getSalaryFormulaeForaGrade" dbquery="qSalaryStructureManager_getSalaryFormulaeForaGrade" object="com.talentPool.salaryStructure.databject.SalaryFormulaData" >
+       		<attribute name="formulaId" column="formula_id" type="int"/>
+			<attribute name="gradeId" column="grade_id" type="int"/>
+			<attribute name="gradeName" column="grade_name" type="string"/>
+			<attribute name="salaryComponentId" column="salary_component_id" type="int"/>
+			<attribute name="salaryComponentName" column="salary_component_name" type="string"/>
+			<attribute name="salaryComponentType" column="salary_component_type" type="string"/>
+			<attribute name="salaryCategoryId" column="salary_category_id" type="string"/>
+			<attribute name="maxLimit" column="max_limit" type="int"/>
+			<attribute name="variable1" column="variable1" type="int"/>
+			<attribute name="variable1Factor" column="variable1_factor" type="double"/>
+			<attribute name="constantFactor" column="constant_factor" type="double"/>
+			<attribute name="isAdjustable" column="is_adjustable" type="string"/>
+			<attribute name="roundingType" column="rounding_type" type="string"/>
+			<attribute name="userId" column="user_id" type="int"/>
+			<attribute name="dateCreated" column="date_created" type="string"/>
+       </dataquery>
+       <dataquery name="dalaryStructureManager_getGradeHasAdjustable" dbquery="qSalaryStructureManager_getGradeHasAdjustable" />
+       <dataquery name="dSalaryStructureManager_getSalaryRoundingPolicy" dbquery="qSalaryStructureManager_getSalaryRoundingPolicy" />
+       <dataquery name="dSalaryStructureManager_saveSalaryRoundingPolicy" dbquery="qSalaryStructureManager_saveSalaryRoundingPolicy" />
+       <dataquery name="dSalaryStructureManager_getExistingSalaryDetails" dbquery="qSalaryStructureManager_getExistingSalaryDetails" object="com.talentPool.common.db.SimpleDataObject" >
+       		<attribute name="categoryId" column="category_id" type="int"/>
+       		<attribute name="categoryName" column="category_name" type="int"/>
+       		<attribute name="existingValue" column="existing_value" type="int"/>
+       </dataquery>
+       <dataquery name="dSalaryStructureManager_deleteExistingSalaryDetails" dbquery="qSalaryStructureManager_deleteExistingSalaryDetails" />
+       <dataquery name="dSalaryStructureManager_insertExistingSalaryDetails" dbquery="qSalaryStructureManager_insertExistingSalaryDetails" />
+       <dataquery name="dSalaryStructureManager_insertDefaultBasicFormulaForGrade" dbquery="qSalaryStructureManager_insertDefaultBasicFormulaForGrade" />
+	</dataqueries>   
+</dbmap>

@@ -1,0 +1,79 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+<dbqueries>
+	<dbquery name="qGetAllExpressions">
+  		SELECT parser_expression_field_name, parser_expression, parser_expression_priority FROM tp_parser_expressions
+		ORDER BY parser_expression_field_name, parser_expression_priority
+  	</dbquery>
+	<dbquery name="qParserManager_LoadDegreesToParse">
+		SELECT degree_abbr,degree_expression FROM tp_parser_degrees 
+  	</dbquery>
+	<dbquery name="qParserManager_GetExpSections">
+		SELECT parser_section_heading, parser_section_expression FROM tp_parser_sections
+  	</dbquery>  	
+  	<dbquery name="qParserManager_GetAllDegrees">
+		SELECT degree_id, degree_title FROM tp_degrees WHERE degree_status='1'
+	</dbquery>
+	<dbquery name ="qSkillsParser_GetSkillsWithAliases">
+		SELECT ts.skill_id, ts.skill, tsa.skill_alias 
+		FROM tp_skills ts LEFT JOIN tp_skills_aliases tsa ON(ts.skill_id = tsa.skill_id) ORDER BY ts.skill
+	</dbquery>
+	<dbquery name ="qEducationParser_GetDegreesWithAliases">
+		(SELECT degree_id, degree_title FROM tp_degrees)
+		UNION 
+		(SELECT ta.degree_id, ta.alias as degree_title FROM tp_degree_aliases ta, tp_degrees td 
+		WHERE ta.degree_id=td.degree_id)
+		ORDER BY degree_title 
+	</dbquery>
+	<dbquery name ="qEducationParser_GetBranchesWithAliases">
+		(SELECT branch_id, branch_name FROM tp_branches)
+		UNION 
+		(SELECT branch_id, alias FROM tp_branch_aliases )
+		ORDER BY branch_name desc, branch_id
+	</dbquery>
+	<dbquery name ="qEducationParser_GetInstitutesWithAliases">
+		(SELECT institute_id, institute_name FROM tp_institutes)
+		UNION 
+		(SELECT institute_id, alias FROM tp_institute_aliases )
+		ORDER BY institute_name desc, institute_id	
+	</dbquery>
+</dbqueries>
+<dataqueries>
+    <dataquery name="dGetAllExpressions" dbquery="qGetAllExpressions" object="com.talentPool.common.db.SimpleDataObject">
+		<attribute name= "fieldName" column="parser_expression_field_name" type ="STRING" />    
+		<attribute name= "fieldExpression" column="parser_expression" type ="STRING" />   
+    </dataquery>
+    <dataquery name="dParserManager_GetAllDegrees" dbquery="qParserManager_GetAllDegrees" object="com.talentPool.common.db.SimpleDataObject">
+        <attribute name="degreeId" column="degree_id" type ="INT" />
+        <attribute name="title" column="degree_title" type ="STRING" />
+    </dataquery>
+    <dataquery name="dParserManager_LoadDegreesToParse" dbquery="qParserManager_LoadDegreesToParse" object="com.talentPool.common.db.SimpleDataObject">
+		<attribute name= "degree" column="degree_abbr" type ="STRING" />    
+		<attribute name= "degreeRegExp" column="degree_expression" type ="STRING" />
+    </dataquery>
+    <dataquery name="dParserManager_GetExpSections" dbquery="qParserManager_GetExpSections" object="com.talentPool.common.db.SimpleDataObject">
+		<attribute name= "fieldName" column="parser_section_heading" type ="STRING" />    
+		<attribute name= "fieldExpression" column="parser_section_expression" type ="STRING" />   
+    </dataquery>   
+    <dataquery name="dSkillsParser_GetSkillsWithAliases" dbquery="qSkillsParser_GetSkillsWithAliases" object="com.talentPool.common.db.SimpleDataObject">
+        <attribute name= "skillId" column="skill_id" type ="INT" />
+        <attribute name= "skillName" column="skill" type ="STRING" />
+        <attribute name= "skillAlias" column="skill_alias" type ="STRING" />
+    </dataquery>
+    <dataquery name="dEducationParser_GetDegreesWithAliases" dbquery="qEducationParser_GetDegreesWithAliases" object="com.talentPool.common.db.SimpleDataObject">
+        <attribute name= "id" column="degree_id" type ="INT" />
+        <attribute name= "name" column="degree_title" type ="STRING" />
+    </dataquery>
+    <dataquery name="dEducationParser_GetBranchesWithAliases" dbquery="qEducationParser_GetBranchesWithAliases" object="com.talentPool.common.db.SimpleDataObject">
+        <attribute name= "id" column="branch_id" type ="INT" />
+        <attribute name= "name" column="branch_name" type ="STRING" />
+    </dataquery>
+    <dataquery name="dEducationParser_GetInstitutesWithAliases" dbquery="qEducationParser_GetInstitutesWithAliases" object="com.talentPool.common.db.SimpleDataObject">
+        <attribute name= "id" column="institute_id" type ="INT" />
+        <attribute name= "name" column="institute_name" type ="STRING" />
+    </dataquery>
+</dataqueries>   
+</dbmap>

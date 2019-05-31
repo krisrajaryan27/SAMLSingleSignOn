@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<dbmap> 
+	<dbqueries>
+		<dbquery name="qWebsiteScreenManager_GetWebsiteSettings">
+			SELECT is_show_labels_on_list, first_line_field, is_other
+			FROM tp_website_screen_settings
+		</dbquery>
+		<dbquery name="qWebsiteScreenManager_UpdateWebsiteSettings">
+			UPDATE tp_website_screen_settings SET is_show_labels_on_list = ?,
+			first_line_field = ? ,is_other= ?
+		</dbquery>
+		<dbquery name="qWebsiteScreenManager_GetWebsitePositionsHomeHeader">
+			SELECT positions_home_header
+			FROM tp_website_screen_settings
+		</dbquery>
+		<dbquery name="qWebsiteScreenManager_UpdateWebsitePositionsHomeHeader">
+			UPDATE tp_website_screen_settings SET positions_home_header = ?
+		</dbquery>
+		<dbquery name="qWebsiteScreenManager_isFiltersAvailable">
+			Select count(*) as isFiltersAvailable from tp_position_screen_configurations where field_list_is_filter=?
+		</dbquery>
+	</dbqueries>
+	<dataqueries>
+		<dataquery name="dWebsiteScreenManager_GetWebsiteSettings" dbquery="qWebsiteScreenManager_GetWebsiteSettings" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name="isShowLabels"  column="is_show_labels_on_list" type="STRING" />
+       		<attribute name="fisrtFieldName"  column="first_line_field" type="STRING" />
+       		<attribute name="isOther"  column="is_other" type="STRING" />
+	    </dataquery>
+	    <dataquery name="dWebsiteScreenManager_GetWebsitePositionsHomeHeader" dbquery="qWebsiteScreenManager_GetWebsitePositionsHomeHeader">
+       		<attribute name="positionsHomeHeader"  column="positions_home_header" type="STRING" />
+	    </dataquery>
+	    <dataquery name="dWebsiteScreenManager_UpdateWebsiteSettings" dbquery="qWebsiteScreenManager_UpdateWebsiteSettings" >
+	    </dataquery>
+	    <dataquery name="dWebsiteScreenManager_UpdateWebsitePositionsHomeHeader" dbquery="qWebsiteScreenManager_UpdateWebsitePositionsHomeHeader" >
+	    </dataquery>
+	    <dataquery name="dWebsiteScreenManager_isFiltersAvailable" dbquery="qWebsiteScreenManager_isFiltersAvailable">
+       		<attribute name="isFiltersAvailable"  column="isFiltersAvailable" type="STRING" />
+	    </dataquery>
+	</dataqueries>   
+</dbmap>

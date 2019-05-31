@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mapping xmlns="http://castor.exolab.org/" xmlns:cst="http://castor.exolab.org/">
+    <description xmlns="">Castor generated mapping file</description>
+    <class name="com.talentPool.vendorservice.dataobject.VpositionData">
+        <description xmlns="">Default mapping for class com.talentPool.vendorservice.dataobject.VpositionData</description>
+        <map-to xml="vposition-data"/>
+        <field name="education" type="java.lang.String">
+            <bind-xml name="education" node="element"/>
+        </field>
+        <field name="responsibilities" type="java.lang.String">
+            <bind-xml name="responsibilities" node="element"/>
+        </field>
+        <field name="requirements" type="java.lang.String">
+            <bind-xml name="requirements" node="element"/>
+        </field>
+        <field name="primarySkills" type="java.lang.String">
+            <bind-xml name="primary-skills" node="element"/>
+        </field>
+        <field name="experience" type="java.lang.String">
+            <bind-xml name="experience" node="element"/>
+        </field>
+        <field name="noOfUnfilledVacancies" type="java.lang.String">
+            <bind-xml name="no-of-unfilled-vacancies" node="element"/>
+        </field>
+        <field name="positionTitle" type="java.lang.String">
+            <bind-xml name="position-title" node="element"/>
+        </field>
+        <field name="contactPerson" type="java.lang.String">
+            <bind-xml name="contact-person" node="element"/>
+        </field>
+        <field name="secondarySkills" type="java.lang.String">
+            <bind-xml name="secondary-skills" node="element"/>
+        </field>
+        <field name="positionId" type="java.lang.String">
+            <bind-xml name="position-id" node="element"/>
+        </field>
+    </class>
+    <class name="com.talentPool.vendorservice.dataobject.VitemData">
+        <description xmlns="">Default mapping for class com.talentPool.vendorservice.dataobject.VitemData</description>
+        <map-to xml="vitem-data"/>
+        <field name="itemName" type="java.lang.String">
+            <bind-xml name="item-name" node="element"/>
+        </field>
+        <field name="itemId" type="java.lang.String">
+            <bind-xml name="item-id" node="element"/>
+        </field>
+    </class>
+    <class name="com.talentPool.vendorservice.dataobject.VpositionList">
+        <description xmlns="">Default mapping for class com.talentPool.vendorservice.dataobject.VpositionList</description>
+        <map-to xml="vposition-list"/>
+        <field name="positions" type="java.lang.Object" collection="arraylist">
+            <bind-xml name="positions" node="element"/>
+        </field>
+    </class>
+</mapping>

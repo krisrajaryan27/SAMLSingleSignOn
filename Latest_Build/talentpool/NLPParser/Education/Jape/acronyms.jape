@@ -1,0 +1,64 @@
+/*
+*  basicinfo_email.jape
+*
+*/
+
+Phase: acronyms
+Input: Token Lookup SpaceToken TempEduWrongToken
+Options: control = appelt
+
+
+Rule: education_acronym_word
+(
+	{Token.orth == upperInitial, Token.length == 1}({SpaceToken})?({Token.string == "."}|{Token.string == "-"})({SpaceToken})?
+	{Token.length > 1, Token.length < 10}({Token.string == "."})?
+):acronym
+--> 
+:acronym.AcronymToken = {kind = "acronym_word", rule = "education_acronym_word"}
+
+Rule: education_acronym_letters
+(
+	({Token.orth == upperInitial, Token.length == 1}
+	(({SpaceToken})?{Token.string == "."}({SpaceToken})?{Token.orth == upperInitial, Token.length == 1})[1,10]):acronym
+	({SpaceToken})?({Token.string == "."})?
+)
+--> 
+:acronym.AcronymToken = {kind = "acronym_letters", rule = "education_acronym_letters"},
+{
+	// Remove M.L (Master of Laws) annotation from R.M.L.H.S
+	gate.AnnotationSet acronymToken = (gate.AnnotationSet)bindings.get("acronym");
+	long start = acronymToken.firstNode().getOffset();
+	long end = acronymToken.lastNode().getOffset();
+	gate.AnnotationSet tempSet = inputAS.get("Lookup", start, end);
+	if(!tempSet.isEmpty()){
+		for(Annotation ann : tempSet){
+			long iStart = ann.getStartNode().getOffset();
+			long iEnd = ann.getEndNode().getOffset();
+			gate.FeatureMap fm = ann.getFeatures();
+			if(fm.containsKey("majorType") && fm.get("majorType").toString().equals("degree")){
+				if( ((end -start) -(iEnd - iStart)) >  1){
+					outputAS.remove(ann);
+				}
+			}
+		}
+	}
+	//outputAS.removeAll(oldCollege);
+}
+
+Rule: education_acronym_allCaps
+(
+	{Token.orth == allCaps, Token.length > 1, Token.length < 7, !TempEduWrongToken}|
+	{Token.orth == mixedCaps, Token.length > 1, Token.length < 7, !TempEduWrongToken}
+	
+):acronym
+--> 
+:acronym.AcronymToken = {kind = "allCaps", rule = "education_acronym_allCaps"}
+
+//B-tech
+Rule: allCaps_length_2_small
+(
+	{Token.orth == allCaps, Token.length == 2}
+	{Token.length > 1, Token.length < 10}({Token.string == "."})?
+):acronym
+--> 
+:acronym.AcronymToken = {kind = "acronym_word", rule = "allCaps_length_2_small"}

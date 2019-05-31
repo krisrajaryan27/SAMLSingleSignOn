@@ -1,0 +1,15 @@
+ExchangeServer=mail.mse6.exchange.ms
+ExchangePath=exchange
+MailServer=ms11.mse6.exchange.ms
+DestinationAddress=jobs.mindteck@mindteck.com
+Username=jobs.mindteck
+Password=jobs@321
+Domain=ms11.mse6.exchange.ms
+MboxFile=D:/Projects/talentpool/Branches/v_2_6_0/email.mbox
+Delete=true
+All=false
+Secure=true
+FBApath=/exchweb/bin/auth/owaauth.dll
+ForceFrom=false
+ForceFromAddr=fake.sender@yyy.dddddd.com
+NoEightBitMime=false

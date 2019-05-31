@@ -1,0 +1,156 @@
+<?xml version="1.0"?>
+<dbmap> 
+	<dbqueries>
+		<dbquery name="qToDoManager_AddToDo">
+			INSERT INTO tp_todo
+			(user_id, process_id, position_id, applicant_id, budget_item_id, current_step_id, 
+			step_isscheduled, user_responsible_for_scheduling,  user_is_decision_maker, 
+			user_is_interviewer, interviewer_can_confirm, appointment_id, appointment_time, 
+			appointment_status_id, feedback_present, todo_type, due_date, date_created)
+			VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())
+		</dbquery>
+		<dbquery name="qToDoManager_DeleteToDo">
+			DELETE FROM tp_todo
+			@@
+		</dbquery>
+		<dbquery name="qToDoManager_GetPositionStatus">
+			SELECT position_status FROM tp_positions WHERE position_id=?
+		</dbquery>
+		<dbquery name="qToDoManager_GetProcessDataToAddToDo">
+			SELECT *,IF(SUM(is_authorized_to_move)>0,1,0) AS isAuthorizedToMove
+					,IF(SUM(is_responsible_for_scheduling)>0,1,0) AS isResponsibleForScheduling
+					,IF(SUM(attendee)>0,1,0) AS isInterviewer,
+				(SELECT CASE WHEN count(*) &gt; 0 AND todo.position_step_id_to &lt; ? THEN 1
+					ELSE 0 END
+					FROM tp_applicant_selection_process_traits taspt 
+					WHERE todo.process_id=taspt.process_id 
+					AND todo.user_id = taspt.user_id
+				)AS feedback
+			FROM (
+				SELECT tal.process_id, tal.applicant_id, tal.position_id, tal.process_moved_date, 
+				tal.current_step_id, tal.position_step_id_to,
+				tapp.appointment_id, tapp.appointment_from_date,
+				tapp.appointment_status_id, tpsu.user_id, tpsu.is_responsible_for_scheduling, 
+				tps.position_step_isscheduled, tps.is_interviewer_can_confirm, 
+				tpsu.is_authorized_to_move, IF(tpaa.attendee_id=tpsu.user_id, 1, 0) AS attendee
+				FROM
+				(
+					SELECT * FROM (
+						SELECT process_id, applicant_id, position_id, process_moved_date,
+						position_step_id_from, position_step_id_to,
+						CASE WHEN position_step_id_to &gt; ? THEN
+							position_step_id_to
+						ELSE
+							position_step_id_from
+						END AS current_step_id
+						FROM
+						(
+							SELECT tasp.process_id as process_id, 
+                                       tasp.applicant_id, 
+                                       tasp.position_id, 
+                                      tasp.position_step_id_from, 
+                                       tasp.position_step_id_to, 
+                                       tasp.process_moved_date 
+                                FROM   tp_applicant_selection_process tasp
+								INNER JOIN (SELECT p1.applicant_id,p1.position_id,max(p1.process_id) AS maxprocessId 
+								FROM tp_applicant_selection_process p1 GROUP BY p1.applicant_id,p1.position_id) p2 ON (tasp.process_id = p2.maxprocessId)
+							@@
+						) AS tmp_process 
+						GROUP BY applicant_id, position_id
+					) AS tmp_process
+					 WHERE tmp_process.position_step_id_to!=? 
+					 AND tmp_process.position_step_id_to!=?
+					 AND tmp_process.position_step_id_to!=? 
+					 AND tmp_process.position_step_id_to!=? 
+					 AND tmp_process.position_step_id_to!=?
+				) AS tal
+				LEFT JOIN tp_appointments tapp ON (tal.applicant_id=tapp.applicant_id 
+					AND tal.current_step_id=tapp.position_step_id
+					AND tapp.appointment_status_id!=?
+					)
+				LEFT JOIN tp_appointment_attendees tpaa ON (tapp.appointment_id = tpaa.appointment_id)
+				LEFT JOIN tp_users tua ON (tpaa.attendee_id=tua.user_id)
+				LEFT JOIN tp_position_step_users tpsu ON(tal.current_step_id=tpsu.position_step_id)
+				,tp_positions tpos, tp_position_steps tps
+				WHERE tpos.position_id=tal.position_id 
+				AND position_status=?
+				AND tal.current_step_id=tps.position_step_id
+			) AS todo
+			
+			GROUP BY process_id, user_id
+		</dbquery>
+		<dbquery name="qToDoManager_GetApprovalData">
+			SELECT 
+			CASE WHEN traf.to_user_id IS NULL THEN traf.by_user_id
+			ELSE traf.to_user_id END AS user_id, 
+			tp.position_id, traf.to_step_id AS current_step_id, 
+			traf.feedback_date AS date_created
+			FROM tp_positions tp, ( 
+				select * from (SELECT traf.* FROM tp_requisition_approval_feedback traf
+				LEFT JOIN tp_positions tpos ON (traf.position_id = tpos.position_id)
+				WHERE tpos.position_status = ? ) t 
+				INNER JOIN (SELECT p1.position_id as position_id1,max(p1.feedback_id) as feedback_id1 from tp_requisition_approval_feedback p1 group by position_id1 ) t1 on (t1.feedback_id1 = t.feedback_id)
+			)as traf
+			WHERE tp.position_id = traf.position_id 
+			AND traf.to_step_id IS NOT NULL
+			@@
+		</dbquery>
+		<dbquery name="qToDoManager_DeleteToDoForAppointment">
+			DELETE FROM tp_todo WHERE appointment_id = ?
+		</dbquery>
+		<dbquery name="qToDoManager_GetBudgetApprovalData">
+			SELECT budget_item_id, owner_id, user_id, date_created
+			FROM tp_budget_items tbi
+			WHERE status = ?
+			@@
+		</dbquery>
+		<dbquery name="qToDoManager_GetOverdueApprovalData">
+			SELECT position_id, current_step_id, user_id, due_date
+			FROM tp_todo
+			WHERE todo_type = 0
+			AND due_date &lt; ?
+		</dbquery>		
+	</dbqueries>
+	<dataqueries>
+		<dataquery name="dToDoManager_AddToDo" dbquery="qToDoManager_AddToDo" />
+		<dataquery name="dToDoManager_DeleteToDo" dbquery="qToDoManager_DeleteToDo" />
+		<dataquery name="dToDoManager_GetPositionStatus" dbquery="qToDoManager_GetPositionStatus" />
+		<dataquery name="dToDoManager_GetProcessDataToAddToDo" dbquery="qToDoManager_GetProcessDataToAddToDo" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name="userId" column="user_id" type ="STRING" />
+			<attribute name="processId" column="process_id" type ="STRING" />
+			<attribute name="applicantId" column="applicant_id" type ="STRING" />
+			<attribute name="positionId" column="position_id" type ="STRING" />
+			<attribute name="dateModified" column="process_moved_date" type ="STRING" />
+			<attribute name="currentStepId" column="current_step_id" type ="STRING" />
+			<attribute name="positionStepIdTo" column="position_step_id_to" type ="STRING" />
+			<attribute name="appointmentId" column="appointment_id" type ="STRING" />
+			<attribute name="appointmentFromDate" column="appointment_from_date" type ="STRING" />
+			<attribute name="appointmentStatusId" column="appointment_status_id" type ="STRING" />
+			<attribute name="userResponsibleForScheduling" column="isResponsibleForScheduling" type ="STRING" />
+			<attribute name="stepIsscheduled" column="position_step_isscheduled" type ="STRING" />
+			<attribute name="interviewerCanConfirm" column="is_interviewer_can_confirm" type ="STRING" />
+			<attribute name="isAuthorizedToMove" column="isAuthorizedToMove" type ="STRING" />
+			<attribute name="isInterviewer" column="isInterviewer" type ="STRING" />
+			<attribute name="feedback" column="feedback" type ="STRING" />
+		</dataquery>
+		<dataquery name="dToDoManager_GetApprovalData" dbquery="qToDoManager_GetApprovalData" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name="positionId" column="position_id" type ="STRING" />
+			<attribute name="userId" column="user_id" type ="STRING" />
+			<attribute name="currentStepId" column="current_step_id" type ="STRING" />
+			<attribute name="dateCreated" column="date_created" type ="STRING" />
+		</dataquery>
+		<dataquery name="dToDoManager_DeleteToDoForAppointment" dbquery="qToDoManager_DeleteToDoForAppointment" />
+		<dataquery name="dToDoManager_GetBudgetApprovalData" dbquery="qToDoManager_GetBudgetApprovalData" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name="budgetItemId" column="budget_item_id" type ="STRING" />
+			<attribute name="userId" column="user_id" type ="STRING" />
+			<attribute name="ownerId" column="owner_id" type ="STRING" />
+			<attribute name="dateCreated" column="date_created" type ="STRING" />
+		</dataquery>
+		<dataquery name="dToDoManager_GetOverdueApprovalData" dbquery="qToDoManager_GetOverdueApprovalData" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name="positionId" column="position_id"  type ="STRING" />
+			<attribute name="currentStepId" column="current_step_id"  type ="STRING" />
+			<attribute name="dueDate" column="due_date"  type ="STRING" />
+			<attribute name="userId" column="user_id"  type ="STRING" />
+		</dataquery>
+	</dataqueries>   
+</dbmap>

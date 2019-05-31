@@ -1,0 +1,297 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>	
+		<!-- Start : Employee Management -->		
+		<dbquery name="qEmployeeApplicantManager_GetApplicants">
+			SELECT ta.applicant_id, ta.applicant_name, ta.applicant_working_since, 
+			ta.applicant_date_created, ta.applicant_current_employer,  
+			ta.position_title, ta.position_referal_fees,
+			CASE WHEN ta.position_step_id_to = ? THEN 'Joined'
+			WHEN ta.position_step_id_to = '-1' THEN 'On Hold'
+			WHEN ta.applicant_joined='1' THEN 'Joined'
+			WHEN ta.position_step_id_to IN (?,?,?,?) THEN 'Rejected'
+			WHEN ta.position_step_id_to &gt; ? THEN concat('In Process', ' (', ta.position_step_title, ')')		
+			WHEN (SELECT application_property_value FROM tp_application_properties 	WHERE application_property=?) = ? 
+					THEN 
+				CASE WHEN ta.position_step_isscheduled=? THEN concat('In Process', ' (', ta.position_step_title, ')')
+				ELSE concat('In Process', ' (', ta.position_step_title, ')')
+				END
+			ELSE concat('In Process', ' (', ta.position_step_title, ')')
+			END AS currentStatus
+			FROM (
+			SELECT tasp.position_step_id_to, ta.applicant_id, ta.applicant_name, ta.applicant_working_since, 
+			ta.applicant_date_created, ta.applicant_current_employer,  
+			tp.position_title,tp.position_referal_fees ,tps.position_step_title,tps.position_step_isscheduled,ta.applicant_joined
+			FROM tp_applicants ta
+			LEFT JOIN tp_positions tp ON(ta.applicant_position_id=tp.position_id )
+			LEFT JOIN tp_position_steps tps ON(ta.applicant_step_id=tps.position_step_id )
+			LEFT JOIN tp_applicant_selection_process tasp ON (ta.applicant_id=tasp.applicant_id)
+			LEFT JOIN tp_position_locations tpl ON(tp.position_id=tpl.position_id)
+			WHERE ta.vendor_id = ?  
+			AND ta.source_id=? AND ifnull(ta.is_employee_apply,0) = ?
+			@@
+			ORDER BY tasp.process_id DESC
+			) AS ta
+			GROUP BY ta.applicant_id
+			ORDER BY @@
+			LIMIT ?, ?
+		</dbquery>
+		<dbquery name="qEmployeeApplicantManager_GetApplicantsForEmployee">
+			SELECT ta.applicant_id, ta.applicant_name, ta.applicant_working_since, 
+			ta.applicant_date_created, ta.applicant_current_employer,  
+			ta.position_title, ta.position_referal_fees,
+			CASE WHEN ta.position_step_id_to = ? THEN 'Joined'
+			WHEN ta.position_step_id_to = '-1' THEN 'On Hold'
+			WHEN ta.position_step_id_to IN (?,?,?,?) THEN 'Rejected'
+			WHEN ta.position_step_id_to &gt; ? THEN concat('In Process', ' (', ta.position_step_title, ')')		
+			WHEN (SELECT application_property_value FROM tp_application_properties 	WHERE application_property=?) = ? 
+					THEN 
+				CASE WHEN ta.position_step_isscheduled=? THEN concat('In Process', ' (', ta.position_step_title, ')')
+				ELSE concat('In Process', ' (', ta.position_step_title, ')')
+				END
+			ELSE concat('In Process', ' (', ta.position_step_title, ')')
+			END AS currentStatus
+			FROM
+				  (SELECT tasp.position_step_id_to,
+				          tasp.process_id,
+				          ta.applicant_id,
+				          ta.applicant_name,
+				          ta.applicant_working_since,
+				          ta.applicant_date_created,
+				          ta.applicant_current_employer,
+				          tp.position_title,
+				          tp.position_referal_fees,
+				          tps.position_step_title,
+					  tp.position_id,
+				          tps.position_step_isscheduled
+				   FROM tp_applicant_selection_process tasp  
+				   LEFT JOIN tp_positions tp ON(tasp.position_id=tp.position_id)
+				   LEFT JOIN tp_applicants ta  ON(tasp.applicant_id=ta.applicant_id)
+				   LEFT JOIN tp_position_steps tps ON(tasp.position_step_id_to=tps.position_step_id)
+				   WHERE ta.vendor_id = ?
+				     AND ta.source_id=?
+				     AND ta.is_employee_apply=?
+				     AND tp.position_id=?
+				     AND tasp.process_id=?
+				   ORDER BY tasp.process_id DESC) AS ta
+		</dbquery>
+		<dbquery name="qEmployeeApplicantion_details">
+			SELECT ta.applicant_id, ta.applicant_name, ta.applicant_working_since, 
+			ta.applicant_date_created, ta.applicant_current_employer,  
+			ta.position_title, ta.position_referal_fees,
+			CASE WHEN ta.position_step_id_to = ? THEN 'Joined'
+			WHEN ta.position_step_id_to = '-1' THEN 'On Hold'
+			WHEN ta.position_step_id_to IN (?,?,?,?) THEN 'Rejected'
+			WHEN ta.position_step_id_to &gt; ? THEN concat('In Process', ' (', ta.position_step_title, ')')		
+			WHEN (SELECT application_property_value FROM tp_application_properties 	WHERE application_property=?) = ? 
+					THEN 
+				CASE WHEN ta.position_step_isscheduled=? THEN concat('In Process', ' (', ta.position_step_title, ')')
+				ELSE concat('In Process', ' (', ta.position_step_title, ')')
+				END
+			ELSE concat('In Process', ' (', ta.position_step_title, ')')
+			END AS currentStatus
+			FROM
+				  (SELECT tasp.position_step_id_to,
+				          tasp.process_id,
+				          ta.applicant_id,
+				          ta.applicant_name,
+				          ta.applicant_working_since,
+				          ta.applicant_date_created,
+				          ta.applicant_current_employer,
+				          tp.position_title,
+				          tp.position_referal_fees,
+				          tps.position_step_title,
+					  tp.position_id,
+				          tps.position_step_isscheduled
+				   FROM tp_applicant_selection_process tasp  
+				   LEFT JOIN tp_positions tp ON(tasp.position_id=tp.position_id)
+				   LEFT JOIN tp_applicants ta  ON(tasp.applicant_id=ta.applicant_id)
+				   LEFT JOIN tp_position_steps tps ON(tasp.position_step_id_to=tps.position_step_id)
+				   WHERE ta.vendor_id = ?
+				     AND ta.source_id=?
+				     AND ta.is_employee_apply=?
+				   ORDER BY tasp.process_id DESC Limit 1) AS ta where ta.process_id=(select max(tpsad.process_id) from tp_applicant_selection_process
+				tpsad where tpsad.applicant_id=ta.applicant_id and tpsad.position_id=ta.position_id)
+		</dbquery>
+		<dbquery name="qEmployeeApplicantManager_GetApplicantsCount">
+			SELECT count(*) as cnt
+			FROM tp_applicants ta
+			LEFT JOIN tp_positions tp ON(ta.applicant_position_id=tp.position_id )
+			WHERE ta.vendor_id=?
+			AND ta.source_id=?
+			@@
+		</dbquery>
+		<dbquery name="qEmployeeApplicantManager_GetApplicantDisplayData">
+			SELECT 
+			ta.applicant_id, ta.applicant_name, ta.applicant_city, 
+			ta.applicant_date_created, ta.applicant_original_resume_path,
+			ta.applicant_current_employer, ta.applicant_working_since, 
+			case when (select count(*) 
+			from tp_applicant_joining_history tajh
+			where tajh.applicant_id=ta.applicant_id) > 0 then ? else ? end as applicant_joined,
+			ta.current_ctc, 
+			ta.expected_ctc, ta.current_ctc_date, ta.expected_ctc_date,
+			ta.applicant_position_id, ta.applicant_step_id,
+			(select group_concat(iss.skill ORDER BY iss.skill SEPARATOR ', ') from 
+			tp_skills iss, tp_applicant_skills ias 
+			where ias.skill_id=iss.skill_id and ias.applicant_id = ta.applicant_id group by
+			ias.applicant_id) as skills
+			FROM tp_applicants ta 
+			WHERE ta.user_id = ? AND 
+			ta.source_id=? AND
+			ta.applicant_id= ?
+		</dbquery>
+		<dbquery name="qEmployeeApplicantManager_GetApplicantInteractions">
+			SELECT interaction_id, interaction_type, interaction_date, interaction_subject FROM(
+				(
+					SELECT process_id as interaction_id, ? as interaction_type, process_moved_date as interaction_date,
+					CONCAT(position_title, ' (', activity, ')') as interaction_subject FROM
+					(
+						SELECT tasp.process_id, tp.position_title,tasp.process_moved_date,
+						CASE WHEN tasp.position_step_id_to = ? THEN 'Joined' 
+						WHEN tasp.position_step_id_to = '-1' THEN 'On Hold'
+						WHEN tasp.position_step_id_to IN (?,?,?,?) THEN 'Rejected'
+						WHEN tps.position_step_level=? THEN tps.position_step_title
+						WHEN (SELECT application_property_value FROM tp_application_properties 	WHERE application_property=?) = ? 
+							THEN 
+							CASE WHEN tps.position_step_isscheduled=? THEN concat('In Process', ' (', tps.position_step_title, ')') 
+							ELSE 'In Process' 
+							END
+						ELSE 'In Process'
+						END AS activity
+						FROM tp_applicant_selection_process tasp 
+						LEFT JOIN tp_position_steps tps ON(tasp.position_step_id_to=tps.position_step_id)
+						,tp_applicants ta ,tp_positions tp , tp_position_vendors tpv
+						WHERE
+						tasp.position_id=tp.position_id
+						AND tasp.applicant_id=ta.applicant_id
+						AND tp.position_id= tpv.position_id 
+						AND ta.source_id=tpv.source_id
+						AND ta.user_id=?
+						AND ta.source_id=?
+						AND tasp.applicant_id=?
+					) as talias_process
+				)
+				UNION
+				(
+					SELECT communication_id AS interaction_id, communication_type_id AS interaction_type, 
+					communication_date_created AS interaction_date, communication_text AS interaction_subject
+					FROM tp_communications WHERE applicant_id =? AND communication_type_id=? AND user_id=?
+				)
+			) AS interactions 
+			ORDER BY interaction_date desc
+		</dbquery>
+			<dbquery name="q_EmployeePortal_applicantId">
+			select ta.applicant_id from tp_applicants ta where ta.source_id=? and ta.vendor_id=? and ta.is_employee_apply=? and
+			ta.applicant_name= (select ts.source_title from tp_sources ts where ts.source_id=?)
+		</dbquery>
+		<dbquery name="q_EmployeePortal_processId">
+			select max(process_id) as process_id from tp_applicant_selection_process tps where tps.applicant_id=? and tps.position_id=?
+		</dbquery>
+		<dbquery name="q_EmployeePortal_positionId">
+		select tp.position_id from tp_positions tp where  tp.position_title=?
+		</dbquery>
+		<dbquery name="q_EmployeePortal_locationId">
+		select tpl.location_id from tp_location_ap tpl where  tpl.location_name=?
+		</dbquery>
+		 <dbquery name="qEmployeeApplicantManager_GetPositions">
+			select position_title from tp_positions where position_title like ? and is_published_for_emp_portal=? 
+	    </dbquery> 
+	    <dbquery name="qEmployeeApplicantManager_GetPositions_vendor">
+			select position_title from tp_positions tp where position_title like ? 
+			and tp.position_status = ?
+			and tp.position_id in (select tpv.position_id 
+						from tp_position_vendors tpv
+						where tpv.source_id=(select tu.user_source_id
+									from tp_users tu where tu.user_id=?))
+			and tp.vendor_publish_from_date &lt;= ?
+			and tp.vendor_publish_to_date &gt;= ?
+	    </dbquery> 
+	    <dbquery name="qEmployeeApplicantManager_GetPositions_Location">
+			select location_name from tp_location_ap where location_name like ?
+	    </dbquery>
+		<!-- End : Employee Management -->
+		
+	</dbqueries>
+	<dataqueries>
+	    <!-- Start : Employee Management -->
+	    <dataquery name="dEmployeeApplicantManager_GetApplicants" dbquery="qEmployeeApplicantManager_GetApplicants" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name= "applicantId" column="applicant_id" type ="STRING" /> 	
+			<attribute name= "applicantName" column="applicant_name" type ="STRING" />
+			<attribute name= "applicantWorkingSince" column="applicant_working_since" type ="STRING" />
+			<attribute name= "currentEmployer" column="applicant_current_employer" type ="STRING" />	
+			<attribute name= "dateUploaded" column="applicant_date_created" type ="STRING" />
+			<attribute name= "positionTitle" column="position_title" type ="STRING" />
+			<attribute name= "currentStatus" column="currentStatus" type ="STRING" />
+			<attribute name= "positionReferalFees" column="position_referal_fees" type ="STRING" />
+			
+	    </dataquery>
+	    <dataquery name="dEmployeeApplicantManager_GetApplicantsCount" dbquery="qEmployeeApplicantManager_GetApplicantsCount" />
+	    <dataquery name="dEmployeeApplicantManager_GetApplicantDisplayData" dbquery="qEmployeeApplicantManager_GetApplicantDisplayData" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name= "applicantId" column="applicant_id" type ="STRING" /> 	
+			<attribute name= "applicantName" column="applicant_name" type ="STRING" />
+			<attribute name= "currentLocation" column="applicant_city" type ="STRING" />
+			<attribute name= "dateUploaded" column="applicant_date_created" type ="STRING" />
+			<attribute name= "originalResumePath" column="applicant_original_resume_path" type ="STRING" />
+			<attribute name= "currentEmployer" column="applicant_current_employer" type ="STRING" />	
+			<attribute name= "applicantWorkingSince" column="applicant_working_since" type ="STRING" />
+			<attribute name= "applicantJoined" column="applicant_joined" type ="STRING" />
+			<attribute name= "currentCTC" column="current_ctc" type ="STRING" />
+			<attribute name= "expectedCTC" column="expected_ctc" type ="STRING" />
+			<attribute name= "cureentCTCDate" column="current_ctc_date" type ="STRING" />
+			<attribute name= "expectedCTCDate" column="expected_ctc_date" type ="STRING" />
+			<attribute name= "applicantPositionId" column="applicant_position_id" type ="STRING" />
+			<attribute name= "applicantStepId" column="applicant_step_id" type ="STRING" />
+			<attribute name= "skills" column="skills" type ="STRING" />
+	    </dataquery>
+		<dataquery name="dEmployeeApplicantManager_GetApplicantInteractions" dbquery="qEmployeeApplicantManager_GetApplicantInteractions" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "interactionId" column="interaction_id" type ="INT" />
+			<attribute name= "interactionType" column="interaction_type" type ="INT" />
+			<attribute name= "interactionDate" column="interaction_date" type ="STRING" />
+			<attribute name= "interactionSubject" column="interaction_subject" type ="STRING" />
+		</dataquery>
+	    
+		 <dataquery name="dEmployeeApplicantManager_GetApplicantsForEmployee" dbquery="qEmployeeApplicantManager_GetApplicantsForEmployee" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name= "applicantId" column="applicant_id" type ="STRING" /> 	
+			<attribute name= "applicantName" column="applicant_name" type ="STRING" />
+			<attribute name= "applicantWorkingSince" column="applicant_working_since" type ="STRING" />
+			<attribute name= "currentEmployer" column="applicant_current_employer" type ="STRING" />	
+			<attribute name= "dateUploaded" column="applicant_date_created" type ="STRING" />
+			<attribute name= "positionTitle" column="position_title" type ="STRING" />
+			<attribute name= "currentStatus" column="currentStatus" type ="STRING" />
+			<attribute name= "positionReferalFees" column="position_referal_fees" type ="STRING" />
+			
+	    </dataquery>
+	     <dataquery name="dEmployeeApplicantion_details" dbquery="qEmployeeApplicantion_details" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name= "applicantId" column="applicant_id" type ="STRING" /> 	
+			<attribute name= "applicantName" column="applicant_name" type ="STRING" />
+			<attribute name= "applicantWorkingSince" column="applicant_working_since" type ="STRING" />
+			<attribute name= "currentEmployer" column="applicant_current_employer" type ="STRING" />	
+			<attribute name= "dateUploaded" column="applicant_date_created" type ="STRING" />
+			<attribute name= "positionTitle" column="position_title" type ="STRING" />
+			<attribute name= "currentStatus" column="currentStatus" type ="STRING" />
+			<attribute name= "positionReferalFees" column="position_referal_fees" type ="STRING" />
+			
+	    </dataquery>
+	    <dataquery name="d_EmployeePortal_applicantId" dbquery="q_EmployeePortal_applicantId"/>
+	    <dataquery name="d_EmployeePortal_processId" dbquery="q_EmployeePortal_processId"/>
+	     <dataquery name="d_EmployeePortal_positionId" dbquery="q_EmployeePortal_positionId"/>
+	      <dataquery name="d_EmployeePortal_locationId" dbquery="q_EmployeePortal_locationId"/>
+	     <dataquery name="dEmployeeApplicantManager_GetPositions" dbquery="qEmployeeApplicantManager_GetPositions" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "positionTitle" column="position_title" type ="STRING" />
+			
+		</dataquery>
+		<dataquery name="dEmployeeApplicantManager_GetPositions_vendor" dbquery="qEmployeeApplicantManager_GetPositions_vendor" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "positionTitle" column="position_title" type ="STRING" />
+			
+		</dataquery>
+		  <dataquery name="dEmployeeApplicantManager_GetPositions_Location" dbquery="qEmployeeApplicantManager_GetPositions_Location" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "location" column="location_name" type ="STRING" />
+			
+		</dataquery>
+	    <!-- End : Employee Management -->
+	</dataqueries>   
+</dbmap>

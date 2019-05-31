@@ -1,0 +1,77 @@
+/*
+*  education_degree.jape
+*  Lookups are stored in custom_education_degree.list
+*/
+
+Phase: education_year
+Input: Token Lookup Percent
+Options: control = all
+
+
+Rule: token_numer_length_4
+(
+	{Token.kind == number, Token.length == 4}
+):year
+--> 
+{
+	gate.AnnotationSet yearSet = (gate.AnnotationSet)bindings.get("year");
+ 	Long yearStart = yearSet.firstNode().getOffset();
+ 	Long yearEnd = yearSet.lastNode().getOffset();
+ 
+   try {
+	     String firstTwoChars = doc.getContent().getContent(yearSet.firstNode().getOffset(),yearSet.firstNode().getOffset() + 2).toString();
+    	 if("19".equals(firstTwoChars)||"20".equals(firstTwoChars)) {
+      		 // create the new annotation
+    		gate.FeatureMap features = Factory.newFeatureMap();
+    		features.put("kind", "year");
+    		features.put("year",doc.getContent().getContent(yearSet.firstNode().getOffset(),yearSet.lastNode().getOffset()).toString());
+   			features.put("rule", "token_numer_length_4");                 
+    		outputAS.add(yearSet.firstNode(),yearSet.lastNode(), "TempEduToken", features);
+		}
+   }
+   catch(InvalidOffsetException e) {
+     // not possible
+     throw new LuckyException("Invalid offset from annotation");
+   }
+}
+
+Rule: token_numer_length_2
+(
+	({Lookup.majorType == year}|{Lookup.majorType == date})({Token.kind == punctuation})[0,4]({Token.kind == number, Token.length == 2, !Percent}):year
+)
+--> 
+{
+	gate.AnnotationSet yearSet = (gate.AnnotationSet)bindings.get("year");
+	// get the offsets
+ 	Long yearStart = yearSet.firstNode().getOffset();
+ 	Long yearEnd = yearSet.lastNode().getOffset();
+ 
+// check the number is longer than or equal to 2 characters (just in case)
+   try {
+   Calendar cal = Calendar.getInstance();
+   int currentYear = cal.get(Calendar.YEAR);
+   String currentYearFirstTwoChars =  Integer.toString(currentYear).substring(0,2);
+   String yearString = doc.getContent()
+         .getContent(yearSet.firstNode().getOffset(),
+                     yearSet.lastNode().getOffset()).toString();
+	int year = Integer.parseInt(currentYearFirstTwoChars+yearString);
+	String finalYear = "";
+	if(year < (currentYear+10))
+	{
+		finalYear = Integer.toString(year);
+	}
+	else{
+		finalYear = Integer.toString((Integer.parseInt(currentYearFirstTwoChars)-1))+yearString;
+	}
+    gate.FeatureMap features = Factory.newFeatureMap();
+    features.put("kind", "year");
+    features.put("year",finalYear);
+    features.put("rule", "token_numer_length_2");
+    outputAS.add(yearSet.firstNode(),
+                           yearSet.lastNode(), "TempEduToken", features);
+   }
+   catch(InvalidOffsetException e) {
+     // not possible
+     throw new LuckyException("Invalid offset from annotation");
+   }
+}

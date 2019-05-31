@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<dbmap> 
+   <dbqueries>
+		<dbquery name="qCustomPagesManager_GetAllPages">
+			SELECT custom_page_type, custom_page_name FROM tp_custom_pages
+		</dbquery>
+   </dbqueries>
+   <dataqueries>
+		<dataquery name="dCustomPagesManager_GetAllPages" dbquery="qCustomPagesManager_GetAllPages" object="com.talentPool.custom.dataobject.CustomPageData">
+			<attribute name="pageType"  column="custom_page_type" type="STRING" />
+			<attribute name="pageName"  column="custom_page_name" type="STRING" />
+		</dataquery>
+   </dataqueries>   
+</dbmap>

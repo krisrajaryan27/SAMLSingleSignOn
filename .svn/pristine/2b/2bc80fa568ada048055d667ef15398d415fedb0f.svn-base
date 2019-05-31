@@ -1,0 +1,18 @@
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true" evaluationTime="Now" hyperlinkType="None"  hyperlinkTarget="Self" >
+					<reportElement
+						style="detail_style"
+						x="0"
+						y="0"
+						width="120"
+						height="20"
+						key="textField-15"
+						stretchType="RelativeToTallestObject"
+						isRemoveLineWhenBlank="false">
+							<printWhenExpression><![CDATA[Boolean.valueOf($P{no_report_data_message}==null)]]></printWhenExpression>
+						</reportElement>
+					
+					<textElement>
+						<font/>
+					</textElement>
+				<textFieldExpression   class="java.lang.String"><![CDATA[$F{CV_0}]]></textFieldExpression>
+				</textField>

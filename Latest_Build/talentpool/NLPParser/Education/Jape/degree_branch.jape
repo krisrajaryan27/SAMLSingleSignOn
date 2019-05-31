@@ -1,0 +1,23 @@
+/*
+*  basicinfo_email.jape
+*
+*/
+
+Phase: education_degree_branch
+Input: Lookup TempEduWrongToken
+Options: control = appelt
+
+
+Rule: education_degree_lookup
+(
+	{Lookup.majorType == degree, !TempEduWrongToken}
+):degree
+--> 
+:degree.TempEduToken = {kind = "degree", rule = "education_degree_lookup"}
+
+Rule: education_branch_lookup
+(
+	{Lookup.majorType == branch, !TempEduWrongToken}
+):branch
+--> 
+:branch.TempEduToken = {kind = "branch", rule = "education_branch_lookup"}

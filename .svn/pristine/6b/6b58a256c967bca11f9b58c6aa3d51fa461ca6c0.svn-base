@@ -1,0 +1,19 @@
+/*
+*  basicinfo_dob.jape
+*
+*/
+
+
+Phase:	dob
+Input:  Token Lookup SpaceToken Date
+Options: control = once
+
+Rule:datewithsuffix
+Priority: 20
+(
+{Lookup.majorType == prefix, Lookup.minorType == dob}
+({SpaceToken})*({Token.kind == punctuation})?({SpaceToken})*
+({Date.kind == date}):dob
+)
+-->
+ :dob.ResumeToken = {category = "basicInfo", kind = "dob", rule = "dob", priority="100"}

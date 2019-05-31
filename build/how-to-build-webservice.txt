@@ -1,0 +1,16 @@
+Edit build_web_service.bat to point correct url and correct branch locations
+
+execute build_web_service.bat from command prompt. It will generate all java files in the com folder
+
+Copy the content of vendorservice.java into vendorservice.java.bak in project folder.
+Copy all generated classes from com folder to project folder
+
+Copy all methods and imports from vendorservice.java.bak file to VendorServiceSoapBindingImpl.java file
+
+
+To publish service execute build_web_service1.bat (Make modifications in the path before executing)
+
+
+To test with vendor branch 
+Copy all generated content to tvendor com folder so you will have 2 folders tvendor and talentpool in tvendor com folder
+

@@ -1,0 +1,154 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+   <dbqueries>
+       <dbquery name="qApplicantExportManager_GetData">
+            SELECT fld0, fld1, fld2, fld3, fld4, fld5, fld6, fld7, fld8, fld9, fld10, fld11, fld12, fld13, fld14, fld15, fld16, fld17, fld18,
+			fld19, fld20, fld21, fld22, fld23, fld24, fld25, @rownum:=@rownum+1 AS fld26, fld27, fld28,fld29,fld30 from
+			(SELECT ta.applicant_id AS fld0, ta.applicant_name AS fld1, ta.applicant_city AS fld2, ta.applicant_email1 AS fld3, ta.applicant_email2 AS fld4, 
+			ta.applicant_home_phone AS fld5, ta.applicant_cell_phone AS fld6, ta.applicant_work_phone AS fld7,
+			CONCAT(YEAR(FROM_DAYS(DATEDIFF(CURDATE() , ta.applicant_working_since))),' ','yrs',' ', MONTH(FROM_DAYS(DATEDIFF(CURDATE(), ta.applicant_working_since))),' ','mos') AS fld8, 
+			tp.position_code AS fld9, tp.position_title AS fld10, td.dept_name AS fld11, tps.position_step_title AS fld12, 
+			DATE_FORMAT(ta.applicant_date_created, '%d-%b-%y') AS fld13,
+			@@ AS fld14, DATE_FORMAT(ta.applicant_date_joined, '%d-%b-%y') AS fld15, ta.applicant_current_employer AS fld16, 
+			CONCAT(tu.USER_FNAME, ' ', tu.USER_LNAME) AS fld17,
+			CASE WHEN ? THEN 
+				ta.current_ctc
+			ELSE
+				?
+			END AS fld18,
+			CASE WHEN ? THEN 
+				ta.expected_ctc
+			ELSE
+				?
+			END AS fld19, 
+			ta.applicant_notice_period AS fld20,
+			CASE WHEN ? THEN 
+				ta.applicant_level_offered
+			ELSE
+				?
+			END AS fld21,
+			CASE WHEN ? THEN 
+				ta.applicant_designation_offered
+			ELSE
+				?
+			END AS fld22,
+			CASE WHEN ? THEN 
+				ta.offered_ctc
+			ELSE
+				?
+			END AS fld23,
+			ta.employee_code AS fld24, ta.date_of_birth AS fld25,
+			tdp.dept_name as fld27, (SELECT status_message FROM tp_applicant_status_messages tpsm 
+			WHERE tpsm.applicant_id = ta.applicant_id ORDER BY status_message_id DESC LIMIT 0,1) as fld28,ta.joining_Bonus as fld29,ta.variable_Offered as fld30
+			FROM tp_applicants ta LEFT JOIN tp_positions tp ON (ta.applicant_position_id = tp.position_id)
+			LEFT JOIN tp_departments td ON (td.dept_id = tp.dept_id)
+			LEFT JOIN tp_position_steps tps ON (tps.position_step_id = ta.applicant_step_id)
+			LEFT JOIN tp_sources ts ON (ta.source_id=ts.source_id)
+			LEFT JOIN tp_users tu ON (tu.USER_ID = ta.user_id)
+			LEFT JOIN tp_departments tdp ON (tdp.dept_id = tp.sub_dept_id) 
+			@@
+			ORDER BY td.dept_name, ta.applicant_date_joined, ta.applicant_name
+			) tbl, (SELECT @rownum:=0) r
+       </dbquery>
+       <dbquery name="qRejectedApplicantExportManager_GetData">
+			SELECT ta.applicant_id AS fld0, ta.applicant_name AS fld1, ta.applicant_city AS fld2, ta.applicant_email1 AS fld3, ta.applicant_email2 AS fld4, 
+			ta.applicant_home_phone AS fld5, ta.applicant_cell_phone AS fld6, ta.applicant_work_phone AS fld7,
+			CONCAT(YEAR(FROM_DAYS(DATEDIFF(CURDATE() , ta.applicant_working_since))),' ','yrs',' ', MONTH(FROM_DAYS(DATEDIFF(CURDATE(), ta.applicant_working_since))),' ','mos') AS fld8, 
+			tp.position_code AS fld9, tp.position_title AS fld10, td.dept_name AS fld11, tps.position_step_title AS fld12, 
+			DATE_FORMAT(ta.applicant_date_created, '%d-%b-%y') AS fld13,
+			@@ AS fld14, ta.applicant_current_employer AS fld15, 
+			(select (CONCAT(tusr.USER_FNAME, ' ', tusr.USER_LNAME)) from tp_users tusr
+			where tusr.user_id=ta.user_id) AS fld16,
+			CASE WHEN ? THEN 
+				ta.current_ctc
+			ELSE
+				?
+			END AS fld17,
+			CASE WHEN ? THEN 
+				ta.expected_ctc
+			ELSE
+				?
+			END AS fld18, 
+			ta.applicant_notice_period AS fld19,
+			CONCAT(tu.user_fname,' ',tu.user_lname) AS fld20,
+			DATE_FORMAT(tasp.process_moved_date, '%d-%b-%y') AS fld21,
+			tsl.step_level_name AS fld22
+			FROM tp_applicant_selection_process tasp, 
+			tp_applicants ta, tp_positions tp, 
+			tp_position_steps tps, tp_step_level tsl, tp_users tu, tp_departments td,tp_sources ts
+			WHERE tasp.position_step_id_to IN (?,?,?,?)
+			AND tasp.applicant_id = ta.applicant_id
+			AND tasp.position_id = tp.position_id
+			AND tasp.position_step_id_from=tps.position_step_id
+			AND tps.position_step_level=tsl.step_level
+			AND tasp.user_id = tu.user_id
+			AND td.dept_id = tp.dept_id
+			AND ta.source_id = ts.source_id
+			@@
+			@@ 
+       </dbquery>
+   </dbqueries>
+   <dataqueries>   		   	   
+   	   <dataquery name="dApplicantExportManager_GetData" dbquery="qApplicantExportManager_GetData" object="com.talentPool.common.db.SimpleDataObject">
+       		<attribute name="fld0" column="fld0" type="INT"/>
+			<attribute name="fld1" column="fld1" type="INT"/>
+			<attribute name="fld2" column="fld2" type="INT"/>
+			<attribute name="fld3" column="fld3" type="INT"/>
+			<attribute name="fld4" column="fld4" type="INT"/>
+			<attribute name="fld5" column="fld5" type="INT"/>
+			<attribute name="fld6" column="fld6" type="INT"/>
+			<attribute name="fld7" column="fld7" type="INT"/>
+			<attribute name="fld8" column="fld8" type="INT"/>
+			<attribute name="fld9" column="fld9" type="INT"/>
+			<attribute name="fld10" column="fld10" type="INT"/>
+			<attribute name="fld11" column="fld11" type="INT"/>
+			<attribute name="fld12" column="fld12" type="INT"/>
+			<attribute name="fld13" column="fld13" type="INT"/>
+			<attribute name="fld14" column="fld14" type="INT"/>
+			<attribute name="fld15" column="fld15" type="INT"/>
+			<attribute name="fld16" column="fld16" type="INT"/>
+			<attribute name="fld17" column="fld17" type="INT"/>
+			<attribute name="fld18" column="fld18" type="INT"/>
+			<attribute name="fld19" column="fld19" type="INT"/>
+			<attribute name="fld20" column="fld20" type="INT"/>
+			<attribute name="fld21" column="fld21" type="INT"/>
+			<attribute name="fld22" column="fld22" type="INT"/>
+			<attribute name="fld23" column="fld23" type="INT"/>
+			<attribute name="fld24" column="fld24" type="INT"/>
+			<attribute name="fld25" column="fld25" type="INT"/>
+			<attribute name="fld26" column="fld26" type="INT"/>
+			<attribute name="fld27" column="fld27" type="INT"/>
+			<attribute name="fld28" column="fld28" type="INT"/>
+			<attribute name="fld29" column="fld29" type="INT"/>
+			<attribute name="fld30" column="fld30" type="INT"/>
+       </dataquery>
+       <dataquery name="dRejectedApplicantExportManager_GetData" dbquery="qRejectedApplicantExportManager_GetData" object="com.talentPool.common.db.SimpleDataObject">
+       		<attribute name="fld0" column="fld0" type="INT"/>
+			<attribute name="fld1" column="fld1" type="INT"/>
+			<attribute name="fld2" column="fld2" type="INT"/>
+			<attribute name="fld3" column="fld3" type="INT"/>
+			<attribute name="fld4" column="fld4" type="INT"/>
+			<attribute name="fld5" column="fld5" type="INT"/>
+			<attribute name="fld6" column="fld6" type="INT"/>
+			<attribute name="fld7" column="fld7" type="INT"/>
+			<attribute name="fld8" column="fld8" type="INT"/>
+			<attribute name="fld9" column="fld9" type="INT"/>
+			<attribute name="fld10" column="fld10" type="INT"/>
+			<attribute name="fld11" column="fld11" type="INT"/>
+			<attribute name="fld12" column="fld12" type="INT"/>
+			<attribute name="fld13" column="fld13" type="INT"/>
+			<attribute name="fld14" column="fld14" type="INT"/>
+			<attribute name="fld15" column="fld15" type="INT"/>
+			<attribute name="fld16" column="fld16" type="INT"/>
+			<attribute name="fld17" column="fld17" type="INT"/>
+			<attribute name="fld18" column="fld18" type="INT"/>
+			<attribute name="fld19" column="fld19" type="INT"/>
+			<attribute name="fld20" column="fld20" type="INT"/>
+			<attribute name="fld21" column="fld21" type="INT"/>
+			<attribute name="fld22" column="fld22" type="INT"/>
+       </dataquery>
+   </dataqueries>   
+</dbmap>

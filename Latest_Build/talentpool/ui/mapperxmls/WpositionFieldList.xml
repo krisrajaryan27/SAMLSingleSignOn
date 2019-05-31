@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mapping xmlns="http://castor.exolab.org/" xmlns:cst="http://castor.exolab.org/">
+    <description xmlns="">Castor generated mapping file</description>
+    <class name="com.talentPool.websiteservice.dataobject.WpositionFieldList">
+        <description xmlns="">Default mapping for class com.talentPool.websiteservice.dataobject.WpositionFieldList</description>
+        <map-to xml="wposition-field-list"/>
+        <field name="positionFieldList" type="java.lang.Object" collection="arraylist">
+            <bind-xml name="position-field-list" node="element"/>
+        </field>
+    </class>
+    <class name="com.talentPool.websiteservice.dataobject.WpositionFieldData">
+        <description xmlns="">Default mapping for class com.talentPool.websiteservice.dataobject.WpositionFieldData</description>
+        <map-to xml="wposition-field-data"/>
+        <field name="fieldWebsitePositionDetailsShow" type="java.lang.String">
+            <bind-xml name="field-website-position-details-show" node="element"/>
+        </field>
+        <field name="fieldType" type="java.lang.String">
+            <bind-xml name="field-type" node="element"/>
+        </field>
+        <field name="fieldId" type="java.lang.String">
+            <bind-xml name="field-id" node="element"/>
+        </field>
+        <field name="fieldRank" type="java.lang.String">
+            <bind-xml name="field-rank" node="element"/>
+        </field>
+        <field name="fieldWebsitePositionListShow" type="java.lang.String">
+            <bind-xml name="field-website-position-list-show" node="element"/>
+        </field>
+        <field name="fieldWebsitePositionIsFilter" type="java.lang.String">
+            <bind-xml name="field-website-position-isfilter" node="element"/>
+        </field>
+        <field name="fieldTitle" type="java.lang.String">
+            <bind-xml name="field-title" node="element"/>
+        </field>
+    </class>
+</mapping>

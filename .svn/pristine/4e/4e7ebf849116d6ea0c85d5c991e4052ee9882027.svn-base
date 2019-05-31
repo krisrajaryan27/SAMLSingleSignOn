@@ -1,0 +1,4 @@
+	<parameter name="report_title" isForPrompting="false" class="java.lang.String"/>
+	<parameter name="no_report_data_message" isForPrompting="false" class="java.lang.String"/>
+	<parameter name="date_criteria" isForPrompting="false" class="java.lang.String"/>
+	<parameter name="other_criteria" isForPrompting="false" class="java.lang.String"/>

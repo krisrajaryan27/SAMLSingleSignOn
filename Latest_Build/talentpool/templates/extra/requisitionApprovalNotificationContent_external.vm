@@ -1,0 +1,37 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<title>Untitled Document</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<style>
+body {
+font-family:Verdana;
+font-size:12px;
+color:#000000;
+}
+</style>
+</head>
+
+<body>
+<b>Requisition approval feedback reminder</b>
+<br/>
+<br/>
+Dear $USER_FNAME,
+<br/><br/>
+Following requisition is pending for your approval.
+<br/>
+To submit your feedback <a href="$LINK_TO_REQUISITION_APPROVAL_FEEDBACK">Click here</a>
+<br/>
+<br/>
+If you are not able to access above link then please <a href="$LINK_TO_REQUISITION_APPROVAL_FEEDBACK_EXTERNAL">Click here</a>
+<br/>
+<br/>
+Position: $REQUISITION_TITLE
+<br/>
+Stage: $REQUISITION_STEP_TITLE
+<br/>
+<br/>
+<b>Note:</b> This auto generated email, please do not reply to this email
+</body>
+</html>

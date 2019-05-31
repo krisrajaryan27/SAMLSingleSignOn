@@ -1,0 +1,445 @@
+<%@ taglib uri="/WEB-INF/tld/struts-bean.tld" prefix="bean"%>
+<%@page import="com.talentPool.reports.ReportConstants"%>
+<script type="text/javascript">
+var selectDepartmentFilter=null;
+var selectPositionFilter=null;
+</script>
+<table>
+<tr>
+ 	<td class="label">
+ 		<bean:message key="common.department"/>:
+ 	</td>
+ 	<td>	
+		<script type="text/javascript">
+			var opts = new Array();			
+			opts[0] = new SelectOption('<%=ReportConstants.FILTER_ALL_DEPARTMENTS%>','<bean:message key="common.all"/> <bean:message key="common.department"/>');				
+			opts[1] = new SelectOption('<%=ReportConstants.FILTER_SPECIFIC_DEPARTMENT%>','<bean:message key="common.specific"/> <bean:message key="common.department"/>');
+			
+			selectDepartmentFilter = new SelectBox(opts,'<%=ReportConstants.FILTER_ALL_DEPARTMENTS%>','images/btn_dropdown.gif',{namesonly:false, width:'160px', size:20});
+			document.write(selectDepartmentFilter.getHtml());
+			selectDepartmentFilter.setOnChangeHandler('onChangeDepartmentFilter');
+			selectDepartmentFilter.init();
+		</script>
+	</td>		
+</tr>
+</table>
+<div id="divSelectSpecificDepartment" style="display:none;">	
+	<table>
+	<tr>
+		<td style="height: 100px; padding-top: 10px; vertical-align: top;" colspan="3">
+			<table cellspacing="0" cellpadding="0" border="0">
+			<tr>
+				<td>
+					<table cellpadding="0" cellspacing="0">
+					<tr>
+						<td>
+							<input id="department" name="department" type="text" size="45" onfocus="setGridTextSelection('department')" value="Filter" style="color: grey; border-bottom: 0px;margin-bottom: -3px;" onclick="onFilterFocus('department','Filter');" onblur="onFilterUnfocus('department','Filter');"/>							
+						</td>
+					</tr>
+					<tr>
+						<td class="gridborder">
+							<div id="DEPARTMENT_LEFT" style="width:320px; height: 80px; overflow: visible;"></div>
+						</td>
+					</tr>
+					</table>
+				</td>
+				<td width="42px" align="center">
+					<a href="#"	onclick="javascript: selectItem(departmentLeftGrid,departmentRightGrid);return false;"
+						title="Add"><img src="images/ico_rightarrow.gif" border="0" /></a><br />
+					<a href="#"	onclick="javascript: deselectItem(departmentRightGrid,departmentLeftGrid);return false;"
+						title="Remove"><img src="images/ico_leftarrow.gif" border="0" style="margin-top: 10px;" /></a>
+				</td>
+				<td>
+					<table cellpadding="0" cellspacing="0">
+					<tr>
+						<td class="gridborder">
+							<div id="DEPARTMENT_RIGHT" style="width:320px;height: 100px; overflow: visible;"></div>
+						</td>
+					</tr>
+					</table>
+				</td>
+			</tr>
+			</table>
+		</td>
+	</tr>
+	</table>
+</div>
+<table>
+<tr>
+ 	<td class="label">
+ 		<bean:message key="common.position"/>:
+ 	</td>
+ 	<td>	
+		<script type="text/javascript">
+			var opts = new Array();
+			opts[0] = new SelectOption('<%=ReportConstants.FILTER_ALL_POSITIONS%>','<bean:message key="common.positions_all"/>');
+			opts[1] = new SelectOption('<%=ReportConstants.FILTER_SPECIFIC_POSITION%>','<bean:message key="common.specific_position"/>');
+			
+			selectPositionFilter = new SelectBox(opts,'<%=ReportConstants.FILTER_ALL_POSITIONS%>','images/btn_dropdown.gif',{namesonly:false, width:'160px', size:20});
+			document.write(selectPositionFilter.getHtml());
+			selectPositionFilter.setOnChangeHandler('onChangePositionFilter');
+			selectPositionFilter.init();
+		</script>
+	</td>		
+</tr>
+</table>
+<div id="divSelectSpecificPosition" style="display:none;">	
+	<table>
+	<tr>
+		<td style="height: 100px; padding-top: 10px; vertical-align: top;" colspan="3">
+			<table cellspacing="0" cellpadding="0" border="0">
+			<tr>
+				<td>
+					<table cellpadding="0" cellspacing="0">
+					<tr>
+						<td>
+							<input id="position" name="position" type="text" size="45" onfocus="setGridTextSelection('position')" value="Filter" style="color: grey; border-bottom: 0px;margin-bottom: -3px;" onclick="onFilterFocus('position','Filter');" onblur="onFilterUnfocus('position','Filter');"/>
+						</td>
+					</tr>
+					<tr>
+						<td class="gridborder">
+							<div id="POSITION_LEFT" style="width:320px; height: 80px; overflow: visible;"></div>
+						</td>
+					</tr>
+					</table>
+				</td>
+				<td width="42px" align="center">
+					<a href="#"	onclick="javascript: selectItem(positionLeftGrid,positionRightGrid);return false;"
+						title="Add"><img src="images/ico_rightarrow.gif" border="0" /></a><br />
+					<a href="#"	onclick="javascript: deselectItem(positionRightGrid,positionLeftGrid);return false;"
+						title="Remove"><img src="images/ico_leftarrow.gif" border="0" style="margin-top: 10px;" /></a>
+				</td>
+				<td>
+					<table cellpadding="0" cellspacing="0">
+					<tr>
+						<td class="gridborder">
+							<div id="POSITION_RIGHT" style="width:320px; height: 100px; overflow: visible;"></div>
+						</td>
+					</tr>
+					</table>
+				</td>
+			</tr>
+			</table>
+		</td>
+	</tr>
+	</table>
+</div>
+<script language="JavaScript">
+
+//Start : GRID For Department
+var departmentLeftGrid;
+var departmentRightGrid;
+
+function initDepartmentGrids() {	
+	departmentLeftGrid = new dhtmlXGridObject('DEPARTMENT_LEFT'); 
+	departmentLeftGrid.imgURL = "images/"; 
+	departmentLeftGrid.setHeader("department"); 
+	departmentLeftGrid.setInitWidths("295");
+	departmentLeftGrid.setNoHeader(true);
+	departmentLeftGrid.setColAlign("left");
+	departmentLeftGrid.setColTypes("ro");
+	departmentLeftGrid.setColSorting("department_name_sort");
+	//departmentLeftGrid.enableMultiselect('true');	
+	departmentLeftGrid.init();
+	loadGridDepartment();
+	//departmentLeftGrid.enableSmartRendering(true);
+	departmentLeftGrid.setSortImgState(true,0,"ASC");	
+	//departmentLeftGrid.sortRows(0,'str',"asc");
+	departmentLeftGrid.attachEvent("onKeyPress",onDepartmentLeftGridKeyPressed);
+	departmentLeftGrid.attachEvent("onRowSelect",doOnDepartmentLeftGridRowSelectHandler);
+	departmentLeftGrid.attachEvent("onRowDblClicked",doOnDepartmentLeftGridRowDblClicked);
+	
+	departmentLeftGrid.gridToGrid = function(rowId,sgrid,tgrid){
+	    var z=new Array();
+		for(var i=0;i<sgrid.hdr.rows[0].cells.length;i++)
+		z[i]=sgrid.cells(rowId,i).getValue();
+		return z;
+	}
+	
+	departmentRightGrid = new dhtmlXGridObject('DEPARTMENT_RIGHT'); 
+	departmentRightGrid.imgURL = "images/"; 
+	departmentRightGrid.setHeader("department"); 
+	departmentRightGrid.setInitWidths("295");
+	departmentRightGrid.setColAlign("left");
+	departmentRightGrid.setColTypes("ro"); 	
+	//departmentRightGrid.enableMultiselect('true');
+	departmentRightGrid.setNoHeader(true);
+	departmentRightGrid.setColSorting("department_name_sort");
+	departmentRightGrid.init();
+	departmentRightGrid.sortRows(0,'str',"asc");
+	departmentRightGrid.setSortImgState(true,0,"ASC");
+	
+	departmentRightGrid.gridToGrid = function(rowId,sgrid,tgrid){
+	    var z=new Array();
+		for(var i=0;i<sgrid.hdr.rows[0].cells.length;i++)
+		z[i]=sgrid.cells(rowId,i).getValue();
+		return z;
+	}
+	departmentRightGrid.attachEvent("onKeyPress",onDepartmentRightGridKeyPressed);
+	departmentRightGrid.attachEvent("onRowSelect",doOnDepartmentRightGridRowSelectHandler);
+	departmentRightGrid.attachEvent("onRowDblClicked",doOnDepartmentRightGridRowDblClicked);
+	initPositionGrids();
+}
+function loadGridDepartment(){	
+	departmentLeftGrid.loadXML("reports.do?mode=getDepartmentsXML");	
+}
+
+function department_name_sort(a,b,order,aId,bId) {
+	a0 = departmentLeftGrid.getUserData(aId,"departmentName");
+	b0 = departmentLeftGrid.getUserData(bId,"departmentName");	
+	return sort_data(a0,b0,order);
+}
+
+function onDepartmentLeftGridKeyPressed(keyCode,ctrl,shift) {	
+	var text = (departmentLeftGrid.cells(departmentLeftGrid.getSelectedId(),0)).getValue();
+	departmentRightGrid.clearSelection();
+	onGridObjKeyPressed(departmentLeftGrid,departmentRightGrid,4,keyCode,ctrl,shift);
+	if(keyCode=='13'){
+		removeIdFromBackUp(departmentLeftGrid, text);
+	}
+}
+
+function doOnDepartmentLeftGridRowSelectHandler() {	
+	departmentRightGrid.clearSelection();
+}
+
+function doOnDepartmentLeftGridRowDblClicked() {	
+	var text = (departmentLeftGrid.cells(departmentLeftGrid.getSelectedId(),0)).getValue();
+	selectItem(departmentLeftGrid,departmentRightGrid);
+	removeIdFromBackUp(departmentLeftGrid);
+	loadPositionsForDepartment();
+}
+
+function onDepartmentRightGridKeyPressed(keyCode,ctrl,shift) {
+	departmentLeftGrid.clearSelection();
+	onGridObjKeyPressed(departmentRightGrid,departmentLeftGrid,4,keyCode,ctrl,shift);
+	if(keyCode=='13'){
+		resetFilterBackUp(departmentLeftGrid);
+	}
+}
+
+function doOnDepartmentRightGridRowSelectHandler() {
+	departmentLeftGrid.clearSelection();
+}
+
+function doOnDepartmentRightGridRowDblClicked() {	
+	selectItem(departmentRightGrid,departmentLeftGrid);
+	resetFilterBackUp(departmentLeftGrid);
+	loadPositionsForDepartment();
+}
+//End : GRID For Department
+
+//Start : GRID For Position
+var positionLeftGrid;
+var positionRightGrid;
+
+function initPositionGrids() {	
+	positionLeftGrid = new dhtmlXGridObject('POSITION_LEFT'); 
+	positionLeftGrid.imgURL = "images/"; 
+	positionLeftGrid.setHeader("position"); 
+	positionLeftGrid.setInitWidths("295");
+	positionLeftGrid.setNoHeader(true);
+	positionLeftGrid.setColAlign("left");
+	positionLeftGrid.setColTypes("ro");
+	positionLeftGrid.setColSorting("position_name_sort");
+	//positionLeftGrid.enableMultiselect('true');	
+	positionLeftGrid.init();
+	loadGridPosition();
+	//positionLeftGrid.enableSmartRendering(true);
+	positionLeftGrid.setSortImgState(true,0,"ASC");	
+	//positionLeftGrid.sortRows(0,'str',"asc");
+	positionLeftGrid.attachEvent("onKeyPress",onPositionLeftGridKeyPressed);
+	positionLeftGrid.attachEvent("onRowSelect",doOnPositionLeftGridRowSelectHandler);
+	positionLeftGrid.attachEvent("onRowDblClicked",doOnPositionLeftGridRowDblClicked);
+	
+	positionLeftGrid.gridToGrid = function(rowId,sgrid,tgrid){
+	    var z=new Array();
+		for(var i=0;i<sgrid.hdr.rows[0].cells.length;i++)
+		z[i]=sgrid.cells(rowId,i).getValue();
+		return z;
+	}	
+	
+	positionRightGrid = new dhtmlXGridObject('POSITION_RIGHT'); 
+	positionRightGrid.imgURL = "images/"; 
+	positionRightGrid.setHeader("position"); 
+	positionRightGrid.setInitWidths("295");
+	positionRightGrid.setColAlign("left");
+	positionRightGrid.setColTypes("ro"); 	
+	//positionRightGrid.enableMultiselect('true');
+	positionRightGrid.setNoHeader(true);
+	positionRightGrid.setColSorting("position_name_sort");
+	positionRightGrid.init();
+	positionRightGrid.sortRows(0,'str',"asc");
+	positionRightGrid.setSortImgState(true,0,"ASC");
+	
+	positionRightGrid.gridToGrid = function(rowId,sgrid,tgrid){
+	    var z=new Array();
+		for(var i=0;i<sgrid.hdr.rows[0].cells.length;i++)
+		z[i]=sgrid.cells(rowId,i).getValue();
+		return z;
+	}
+	positionRightGrid.attachEvent("onKeyPress",onPositionRightGridKeyPressed);
+	positionRightGrid.attachEvent("onRowSelect",doOnPositionRightGridRowSelectHandler);
+	positionRightGrid.attachEvent("onRowDblClicked",doOnPositionRightGridRowDblClicked);
+}
+// method for position start
+function loadGridPosition(){	
+	positionLeftGrid.loadXML("reports.do?mode=getPositionsXML");	
+}
+
+function position_name_sort(a,b,order,aId,bId) {
+	a0 = positionLeftGrid.getUserData(aId,"positionName");
+	b0 = positionLeftGrid.getUserData(bId,"positionName");	
+	return sort_data(a0,b0,order);
+}
+
+function onPositionLeftGridKeyPressed(keyCode,ctrl,shift) {	
+	var text = (positionLeftGrid.cells(positionLeftGrid.getSelectedId(),0)).getValue();
+	positionRightGrid.clearSelection();
+	onGridObjKeyPressed(positionLeftGrid,positionRightGrid,4,keyCode,ctrl,shift);
+	if(keyCode=='13'){
+		removeIdFromBackUp(positionLeftGrid, text);
+	}	
+}
+
+function doOnPositionLeftGridRowSelectHandler() {	
+	positionRightGrid.clearSelection();
+}
+
+function doOnPositionLeftGridRowDblClicked() {	
+	var text = (positionLeftGrid.cells(positionLeftGrid.getSelectedId(),0)).getValue();
+	selectItem(positionLeftGrid,positionRightGrid);
+	removeIdFromBackUp(positionLeftGrid);
+}
+
+function onPositionRightGridKeyPressed(keyCode,ctrl,shift) {
+	positionLeftGrid.clearSelection();
+	onGridObjKeyPressed(positionRightGrid,positionLeftGrid,4,keyCode,ctrl,shift);
+	if(keyCode=='13'){
+		resetFilterBackUp(positionLeftGrid);
+	}
+}
+
+function doOnPositionRightGridRowSelectHandler() {
+	positionLeftGrid.clearSelection();
+}
+
+function doOnPositionRightGridRowDblClicked() {	
+	selectItem(positionRightGrid,positionLeftGrid);
+	resetFilterBackUp(positionLeftGrid);	
+}
+
+//Common Function
+function sort_data(a,b,order) {
+	if(order=="asc")
+		return a.toLowerCase()>b.toLowerCase()?1:-1;
+	else
+		return a.toLowerCase()<b.toLowerCase()?1:-1;
+}
+
+function onChangeDepartmentFilter(){	
+	val = selectDepartmentFilter.getSelectedId();
+	if(val=="<%=ReportConstants.FILTER_ALL_DEPARTMENTS%>"){
+		$("divSelectSpecificDepartment").style.display="none";		
+	}else if(val=="<%=ReportConstants.FILTER_SPECIFIC_DEPARTMENT%>"){		
+		$("divSelectSpecificDepartment").style.display="block";		
+	}
+	initDepartmentGrids();
+	loadPositionsForDepartment();
+}
+
+function onChangePositionFilter(){	
+	val = selectPositionFilter.getSelectedId();
+	if(val=="<%=ReportConstants.FILTER_ALL_POSITIONS%>"){
+		$("divSelectSpecificPosition").style.display="none";		
+	}else if(val=="<%=ReportConstants.FILTER_OPEN_POSITIONS%>"){
+		$("divSelectSpecificPosition").style.display="none";		
+	}else if(val=="<%=ReportConstants.FILTER_OPEN_AND_ONHOLD_POSITIONS%>"){
+		$("divSelectSpecificPosition").style.display="none";		
+	}else if(val=="<%=ReportConstants.FILTER_SPECIFIC_POSITION%>"){		
+		$("divSelectSpecificPosition").style.display="block";
+		initPositionGrids();
+		loadPositionsForDepartment();
+	}	
+}
+
+
+function validatePositionFilter(){
+	var deptFilterVal = selectDepartmentFilter.getSelectedId();						
+	var posFilterVal = selectPositionFilter.getSelectedId();	
+	document.reportForm.departmentFilter.value=deptFilterVal;
+	document.reportForm.positionFilter.value=posFilterVal;
+	document.reportForm.departmentId.value='';
+	document.reportForm.positionId.value='';
+	if(deptFilterVal=="<%=ReportConstants.FILTER_SPECIFIC_DEPARTMENT%>"){
+		var selectedDepts = departmentRightGrid.getAllItemIds(',');
+		if(!selectedDepts){
+			alert('<bean:message key="common.please_select"/> <bean:message key="common.department"/>');
+			return false;
+		}
+		document.reportForm.departmentId.value=selectedDepts;
+	}
+	if(posFilterVal=="<%=ReportConstants.FILTER_SPECIFIC_POSITION%>"){
+		var selectedPos = positionRightGrid.getAllItemIds(',');
+		if(!selectedPos){
+			alert('<bean:message key="common.please_select"/> <bean:message key="common.position"/>');
+			return false;
+		}		
+		document.reportForm.positionId.value=selectedPos;
+	}
+
+	return true;
+}
+
+var gridTextSelection='';
+
+function setGridTextSelection(text){	
+	gridTextSelection=text;
+}
+
+function onDepartmentPositionCriteriaChange(event){
+	var iKeyCode = event.keyCode;
+	switch(iKeyCode) {
+		case Event.KEY_UP:
+		case Event.KEY_DOWN: 
+		break;
+		case Event.KEY_PAGEUP:
+		case Event.KEY_PAGEDOWN:
+		break;
+		case Event.KEY_RETURN:
+		break;
+		default:
+		if((iKeyCode>=48 && iKeyCode<=90) || (iKeyCode>=48 && iKeyCode<=90) || iKeyCode==Event.KEY_BACKSPACE || iKeyCode==Event.KEY_DELETE){
+			if(gridTextSelection=='department'){				
+				departmentLeftGrid.filterBy(0, $('department').value, false);
+			}
+			if(gridTextSelection=='position'){				
+				positionLeftGrid.filterBy(0, $('position').value, false);
+			}
+			
+		}
+	}
+}
+
+function loadPositionsForDepartment(){
+	var selectedDepartment='';
+	positionRightGrid.clearAll();
+	positionLeftGrid.clearAll();	
+	if(selectPositionFilter.getSelectedId()=="<%=ReportConstants.FILTER_SPECIFIC_POSITION%>"){
+		if(selectDepartmentFilter.getSelectedId()=="<%=ReportConstants.FILTER_SPECIFIC_DEPARTMENT%>"){
+			selectedDepartment= departmentRightGrid.getAllItemIds();
+			if(selectedDepartment==''){
+				positionLeftGrid.loadXML("reports.do?mode=getPositionsXML");		
+			}else{
+				//positionLeftGrid.loadXML("reports.do?mode=getPositionsXML&departmentId="+selectedDepartment+"&filterId"+);
+				positionLeftGrid.loadXML("reports.do?mode=getPositionsXML&departmentId="+selectedDepartment);
+			}
+		}else{
+			positionLeftGrid.loadXML("reports.do?mode=getPositionsXML");
+		}
+	}else{
+		positionLeftGrid.loadXML("reports.do?mode=getPositionsXML");
+	}
+}
+
+</script>

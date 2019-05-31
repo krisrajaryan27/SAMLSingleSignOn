@@ -1,0 +1,374 @@
+/**
+ * 
+ */
+package com.talentPool.user.action;
+
+import java.io.IOException;
+import java.security.KeyPair;
+import java.util.BitSet;
+
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+import org.apache.struts.Globals;
+import org.apache.struts.action.ActionError;
+import org.apache.struts.action.ActionErrors;
+import org.apache.struts.action.ActionForm;
+import org.apache.struts.action.ActionForward;
+import org.apache.struts.action.ActionMapping;
+
+import com.talentPool.audit.action.AuditAction;
+import com.talentPool.audit.constants.AuditConstants;
+import com.talentPool.common.Logger.TPLogger;
+import com.talentPool.common.base.TPDispatchAction;
+import com.talentPool.common.properties.GlobalApplicationProperties;
+import com.talentPool.common.properties.GlobalConstants;
+import com.talentPool.common.properties.TPApplicationProperties;
+import com.talentPool.common.properties.TPLabels;
+import com.talentPool.common.utils.EncryptionUtils;
+import com.talentPool.common.utils.Utils;
+import com.talentPool.common.utils.Exception.CaptchaException;
+import com.talentPool.common.utils.Exception.RSADecryptionException;
+import com.talentPool.encryption.JCryptionUtil;
+import com.talentPool.license.exception.LicenseException;
+import com.talentPool.license.manager.LicenseObj;
+import com.talentPool.recaptcha.ReCaptchaImpl;
+import com.talentPool.recaptcha.ReCaptchaResponse;
+import com.talentPool.user.UserConstants;
+import com.talentPool.user.dataobject.LoginData;
+import com.talentPool.user.exception.InvalidLoginException;
+import com.talentPool.user.exception.UserDisabledException;
+import com.talentPool.user.form.LoginForm;
+import com.talentPool.user.helper.LoginHelper;
+import com.talentPool.user.manager.LoginManager;
+import com.talentPool.user.manager.PermissionSet;
+import com.talentPool.user.manager.SessionManager;
+import com.talentPool.user.manager.SingleSignOnManager;
+
+/**
+ * @author shivprasad
+ * 
+ */
+public class LoginAction extends TPDispatchAction {
+	
+	/**
+	 * @param mapping
+	 * @param actionForm
+	 * @param request
+	 * @param response
+	 * @return
+	 */
+	public ActionForward login(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		LoginData loginData 		= null;
+		LoginManager loginManager 	= new LoginManager();
+		LoginHelper loginHelper 	= new LoginHelper();
+		LoginForm loginForm 		= (LoginForm) actionForm;
+		String forward 				= "loginpage";
+		String userId               = "";
+		String forgotPassword = loginForm.getForgotPassword();
+		KeyPair keys = null;
+		if (Utils.isBlankOrNull(loginForm.getIgnoreSignedOn())) {
+			String userName = loginForm.getUserName();
+			String userPassword = loginForm.getUserPassword();
+			int rnd = loginForm.getRnd();
+			ActionErrors errors = (ActionErrors) (request.getAttribute(Globals.ERROR_KEY));
+			if (errors == null) {
+				errors = new ActionErrors();
+			}
+			if (!Utils.isBlankOrNull(userName) && !("1").equals(forgotPassword)) {
+				keys = (KeyPair) request.getSession().getAttribute("keys");
+				try {
+					if("1".equals(TPApplicationProperties.getProperty("captcha_enabled")) 
+							&& request.getParameterMap().containsKey("recaptcha_challenge_field")) {
+						//validate Recaptcha Security code
+						ReCaptchaImpl recaptcha = new ReCaptchaImpl();
+						ReCaptchaResponse recResponse = recaptcha.checkAnswer(request.getRemoteAddr(),
+								request.getParameter("recaptcha_challenge_field"), request.getParameter("recaptcha_response_field"));
+						if(!recResponse.isValid()){
+							throw new CaptchaException(TPLabels.getLabel("add_applicant.errors.challenge_not_valid"));
+						}
+					}					
+					// RSA decryption					
+					userPassword = JCryptionUtil.decrypt(userPassword, keys);
+					// Regular decryption for encryt.js
+					userPassword = EncryptionUtils.decryptPassword(userPassword, rnd);
+					loginForm.setUserPassword(userPassword);				
+					loginData = loginHelper.isValidlogin(userName, userPassword);
+				} catch (InvalidLoginException e) {
+					errors.add("userNameAndPassword", new ActionError("login.errors.username.password.nomatch"));
+					TPLogger.getLogger().debug("Could not login loginName=" + userName);
+					loginData = null;
+				} catch (UserDisabledException e) {
+					errors.add("login.error.exceeded_login_atttempts", new ActionError("login.error.exceeded_login_atttempts"));
+					errors.add("login.error.user_disabled", new ActionError("login.error.user_disabled"));
+					TPLogger.getLogger().debug("Exceeded allowed no of right attempts. User disabled=" + userName);
+					loginData = null;
+				}  catch (RSADecryptionException e) {
+					errors.add("userNameAndPassword", new ActionError("login.errors.password.decrypt"));
+					TPLogger.getLogger().debug("Could not mask password for user =" + userName);
+					loginData = null;
+				} catch (CaptchaException e) {
+					errors.add("add_applicant.errors.challenge_not_valid", new ActionError("add_applicant.errors.challenge_not_valid"));
+					TPLogger.getLogger().debug(e.getMessage());
+					loginData = null;
+				} catch (Exception e) {
+					errors.add("userNameAndPassword", new ActionError("common.error.unable_to_process_request"));
+					TPLogger.getLogger().debug("Error While Getting Login Info for " + userName);
+					loginData = null;
+				}
+			}
+			if (loginData != null && loginData.isValidLdapUser() && loginData.getStatus() == UserConstants.ACTIVE){
+				if (!LicenseObj.getLicenseObject().isValidLicence()) {
+					errors.add("license.error",new ActionError("license.error"));
+					loginData = null;
+					forward = "error";
+				} else {
+					forward = "postLogin";
+					createSession(request, response, loginData, loginManager, userPassword);
+					// Set Session variables
+					userId = (String) request.getSession().getAttribute("userId");
+					if (SingleSignOnManager.isUserLoggedInFromDifferentIP(userId, getClientIpAddr(request))) {
+						loginForm.setSinglesignonerror("1");
+						return mapping.findForward("confirmSingleSignOn");
+					} else {
+						SingleSignOnManager.addUserIp(userId,getClientIpAddr(request));
+					}
+					/*
+					 * The below line is added to avoid CSRF attack Whenever a
+					 * session is created a TOKEM is saved in session and is
+					 * validated whenever a form is submitted. TOKEN is reset
+					 * when session is expired.
+					 */
+					if (Utils.isBlankOrNull(loginData.getTimeZone())){
+						forward = "showTimeZone";
+					}
+					saveToken(request);
+					return mapping.findForward(forward);
+				}
+			}else if (loginData != null && loginData.isValidLdapUser() && !(loginData.getStatus() == UserConstants.ACTIVE)){
+				errors.add("login.error.user_disabled", new ActionError("login.error.user_disabled"));
+			}
+			if ((loginData != null && !loginData.isValidLdapUser())) {
+				try {
+					if (!LicenseObj.getLicenseObject().isValidLicence()) {
+						throw new LicenseException("Your evaluation period is expired");
+					}
+					if (loginData.getStatus() == UserConstants.ACTIVE) { 
+						// If user is active
+						int passwordAgeLeft = Integer.parseInt(GlobalApplicationProperties.getProperty("default_password_expiry_duration"))
+								- Integer.parseInt(Utils.getDateDiffenence(loginData.getPasswordDateModified(), new java.util.Date()));
+						if (!Utils.isBlankOrNull(loginData.getForcePasswordChange())
+						&& loginData.getForcePasswordChange().equals("1")) {
+							forward = "setPassword";
+							request.setAttribute("forcePasswordChange","1");
+							request.setAttribute("userId",loginData.getUserId());
+							loginForm.setForcePasswordChange("1");
+							loginForm.setUserId(loginData.getUserId());
+							request.setAttribute("userId", loginData.getUserId());
+						} else if (passwordAgeLeft < 0) {
+							forward = "setPassword";
+							request.setAttribute("userId",loginData.getUserId());
+							request.setAttribute("passwordExpired",true);
+							loginForm.setUserId(loginData.getUserId());
+							loginForm.setPasswordExpired(true);
+							request.setAttribute("userId", loginData.getUserId());
+						} else {
+							if (passwordAgeLeft < 7) {
+								request.setAttribute("passwordExpired",passwordAgeLeft + 1);
+								loginForm.setPasswordAgeLeft(passwordAgeLeft + 1);
+							}
+							forward = "postLogin";
+							TPLogger.getLogger().info("before session");
+							try{
+							createSession(request, response, loginData, loginManager, userPassword);
+							}catch(Exception e){
+								TPLogger.getLogger().info(e);
+							}catch(Error e){
+								TPLogger.getLogger().error(e.getMessage(), e);
+							}
+							TPLogger.getLogger().info("After session");
+							// Set Session variables
+							userId = (String) request.getSession().getAttribute("userId");
+							if (SingleSignOnManager.isUserLoggedInFromDifferentIP(userId,getClientIpAddr(request))) {
+								loginForm.setSinglesignonerror("1");
+								return mapping.findForward("confirmSingleSignOn");
+							} else {
+								SingleSignOnManager.addUserIp(userId,getClientIpAddr(request));
+							}
+							/*
+							 * The below line is added to avoid CSRF attack
+							 * Whenever a session is created a TOKEM is saved in
+							 * session and is validated whenever a form is
+							 * submitted. TOKEN is reset when session is
+							 * expired.
+							 */
+							if (Utils.isBlankOrNull(loginData.getTimeZone())){
+								forward = "showTimeZone";
+							}
+							saveToken(request);
+							return mapping.findForward(forward);
+						}
+					} else {
+						errors.add("login.error.user_disabled", new ActionError("login.error.user_disabled"));
+					}
+				} catch (LicenseException e) {
+					errors.add("license.error", new ActionError("license.error"));
+					loginData = null;
+					forward = "error";
+				} catch (Exception e) {
+					TPLogger.getLogger().error("error while performing updates after login", e);
+				}
+			}
+			if (errors.size() > 0) {
+				request.setAttribute(Globals.ERROR_KEY, errors);
+			} /*else if(errors.size()==0 && loginData==null){
+				return mapping.findForward("spinitiator");
+			
+			}*/
+		} else if ("1".equals(loginForm.getIgnoreSignedOn())) {
+			userId = (String) request.getSession().getAttribute("userId");
+			SingleSignOnManager.addUserIp(userId, getClientIpAddr(request));
+			forward = "postLogin";
+		} else if ("0".equals(loginForm.getIgnoreSignedOn())) {
+			userId = (String) request.getSession().getAttribute("userId");
+			SessionManager.invalidateSession(request, response, userId);
+			return mapping.findForward("loginpage");
+		}
+		return mapping.findForward(forward);
+	}
+	
+	/**
+	 * @param mapping
+	 * @param actionForm
+	 * @param request
+	 * @param response
+	 * @return 
+	 * @author PraveenK
+	 */
+	public ActionForward postLogin(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		String forward = "dashboard";
+		String userId = (String)request.getSession().getAttribute("userId");
+		AuditAction auditAction 	= new AuditAction();
+		LoginManager loginManager 	= new LoginManager();
+		try {
+			if (!Utils.isBlankOrNull(userId)) {
+				/*
+				 * Validations for Single Sign On has
+				 * been removed from here and added to login method.
+				 * This is done to remove direct entry in postLogin method
+				 * by setting some other user's session Id without
+				 * entering login credentials. (Session Hijacking)
+				 */  
+				ActionForward actionForward = SessionManager.continuePreviousSession(mapping, actionForm, request, response);
+				if (actionForward != null)
+					return actionForward;
+			} else {
+				SessionManager.sessionExpireRedirect(mapping, actionForm, request, response, this, false);
+				return null;
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		loginManager.updateLastLogin(userId);
+		String clientIpAddr = getClientIpAddr(request);
+		auditAction.insertAuditInfo(TPLabels.getLabel("common.type_logged_in"), AuditConstants.TYPE_LOGGED_IN, userId, AuditConstants.AUDIT_LOGGED_IN, 
+				userId, null, null, null, true, clientIpAddr);
+		return mapping.findForward(forward);
+	}
+
+	/**
+	 * @param request
+	 * @param response
+	 * @param loginData
+	 * @param userPassword
+	 * @param userRoles
+	 * @param validLdapUser
+	 * @param loginManager
+	 */
+	private void createSession(HttpServletRequest request,
+			HttpServletResponse response, LoginData loginData,
+			LoginManager loginManager, String userPassword) {
+		BitSet permissions = loginManager.getUserPermissionsBitSet(loginData.getUserId());
+		BitSet reportBitSet = loginManager.getUserReportsBitSet(loginData.getUserId());
+		PermissionSet permissionSet = new PermissionSet(permissions);
+
+		HttpSession sessionPrev = request.getSession();
+		boolean prevSessionPresent = false;
+		ActionMapping prevMap = null;
+		ActionForm prevForm = null;
+		Object prevAction = null;
+		String methodName=null;
+		String t=null;
+		String st=null;
+		String it=null;
+		if(null!=sessionPrev.getAttribute("prevForm")){
+			prevSessionPresent = true;
+			prevMap = (ActionMapping) (sessionPrev.getAttribute("prevMap"));
+			prevForm = (ActionForm)(sessionPrev.getAttribute("prevForm"));
+			prevAction = sessionPrev.getAttribute("prevAction");
+			methodName = (String) (sessionPrev.getAttribute("prevMethod"));
+			t = (String) sessionPrev.getAttribute("t");
+			st = (String)sessionPrev.getAttribute("st");
+			it = (String) sessionPrev.getAttribute("it");
+		}
+		
+		HttpSession session = request.getSession(false);
+		if(session!=null){
+			session.invalidate();
+			session = request.getSession(true);
+		}else{
+			session = request.getSession(true);
+		}
+		SessionManager sessionManager = new SessionManager();
+		if (!Utils.isBlankOrNull(loginData.getTimeZone())){
+			sessionManager.setSessionVariables(session, loginData, permissionSet, reportBitSet, loginData.isValidLdapUser(), loginData.getRoleId(), userPassword, loginData.getTimeZone());
+		}else{
+			sessionManager.setSessionVariables(session, loginData, permissionSet, reportBitSet, loginData.isValidLdapUser(), loginData.getRoleId(), userPassword);
+		}
+		
+		if(prevSessionPresent){
+			session.setAttribute("prevMap", prevMap);
+			session.setAttribute("prevForm", prevForm);
+			session.setAttribute("prevAction", prevAction);
+			session.setAttribute("prevMethod", methodName);
+			// save t st and it
+			session.setAttribute("t", t);
+			session.setAttribute("st", st);
+			session.setAttribute("it", it);
+		}
+		
+		// set cookie for logged in user
+		Cookie cookie = new Cookie("tal" + loginData.getUserId(), loginData.getUserId());
+		cookie.setMaxAge(24 * 60 * 60);
+		cookie.setSecure(true);
+		cookie.setHttpOnly(true);
+		response.addCookie(cookie);
+	}
+
+	public ActionForward logout(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		String forward = "loginpage";
+		try {
+			AuditAction auditAction = new AuditAction();
+			
+			String uId = (String) request.getSession().getAttribute("userId");
+			HttpSession session = request.getSession();
+			String userInfo = session.getAttribute("userFirstName") + " "
+					+ session.getAttribute("userLastName") + "("
+					+ session.getAttribute("userId") + ")";
+			SessionManager.invalidateSession(request, response, uId);
+			SingleSignOnManager.removeUserIp(uId);
+			String clientIpAddr = getClientIpAddr(request);
+			if(!Utils.isBlankOrNull(uId)) {
+				auditAction.insertAuditInfo(TPLabels.getLabel("common.type_logged_out"),AuditConstants.TYPE_LOGGED_OUT, uId, 
+						AuditConstants.AUDIT_LOGGED_OUT, uId,null,null,null,true, clientIpAddr);
+				TPLogger.getLogger().info("[" + clientIpAddr + "] " + userInfo + " Has logged out");
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("error while logout", e);
+		}
+		return mapping.findForward(forward);
+	}
+
+}

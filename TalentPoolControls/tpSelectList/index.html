@@ -1,0 +1,107 @@
+<html>
+	<head>
+		<title>Talentpool</title>		
+		<link rel="stylesheet" type="text/css" href="css/dhtmlXGrid.css"/> 	
+		<script src="js/dhtmlXCommon.js"></script> 
+		<script src="js/dhtmlXGrid.js"></script> 
+		<script src="js/dhtmlXGridCell.js"></script>
+		<script  src="js/dhtmlXGrid_excell_link.js"></script>
+		<script src="js/dhtmlXGrid_drag.js"></script>
+		<script src="js/tpSelectListFunctions.js"></script> 		
+	</head>
+	<body>
+	  <table border="0" cellpadding="0" cellspacing="0">
+	    <tr>
+	      <td align="left" valign="top">
+			<div class="contentDiv" style="height:120px;">
+				<table cellspacing="5" cellpadding="5">
+					<tr>
+						<td><div id="GRD1" height="100" width="425"></div></td>
+						<td>
+							<a href="#" onclick="javascript: selectItem(dataGrid,dataGrid2);return false;" title="Add" ><img src="img/ico_rightarrow.gif"  border="0" /></a> 
+							<br/>
+							<a href="#" onclick="javascript: deselectItem(dataGrid2,dataGrid);return false;" title="Remove" ><img src="img/ico_leftarrow.gif"  border="0" /></a> 
+						</td>
+						<td><div id="GRD2" height="100" width="425"></div></td>
+					</tr>
+				</table>
+			</div>
+		  </td>
+	    </tr>
+	  </table>	 
+	 </body> 
+</html>
+<script language="JavaScript">
+var dataGrid;
+var dataGrid2;
+function doOnLoad() {	
+	dataGrid = new dhtmlXGridObject('GRD1'); 
+	dataGrid.imgURL = "img/"; 
+	dataGrid.setHeader("Department,Position"); 
+	dataGrid.setInitWidths("200,200");
+	dataGrid.setColAlign("left,left");
+	dataGrid.setColTypes("ro,ro"); 
+	dataGrid.setColSorting("str,str");	
+	dataGrid.init();     
+	dataGrid.setOnLoadingEnd("doOnLoadingEnd");
+	dataGrid.setOnKeyPressed(onGrid1KeyPressed);
+	dataGrid.setOnRowDblClickedHandler(doOnRowDblClicked);	
+	dataGrid.setOnRowSelectHandler(doOnDataGridRowSelectHandler);
+	dataGrid.loadXMLString("<rows><row id=\"1\"><cell>Accounts</cell><cell>Junior Accounts Executive</cell></row><row id=\"2\"><cell>Accounts</cell><cell>Senior Accounts Executive</cell></row><row id=\"3\"><cell>Accounts</cell><cell>Accounts Manager</cell></row><row id=\"4\"><cell>Sales</cell><cell>Sales Executive</cell></row><row id=\"5\"><cell>Sales</cell><cell>Sales Manager</cell></row><row id=\"6\"><cell>Marketing</cell><cell>Marketing Executive</cell></row><row id=\"7\"><cell>Marketing</cell><cell>Marketing Manager</cell></row><row id=\"8\"><cell>Development</cell><cell>Project Manager</cell></row><row id=\"9\"><cell>Development</cell><cell>Team Lead</cell></row><row id=\"10\"><cell>Development</cell><cell>Software Developer</cell></row></rows>");
+	
+	dataGrid.gridToGrid = function(rowId,sgrid,tgrid){
+	    var z=new Array();
+		for(var i=0;i<sgrid.hdr.rows[0].cells.length;i++)
+		z[i]=sgrid.cells(rowId,i).getValue();
+		return z;
+	}
+		
+	dataGrid2 = new dhtmlXGridObject('GRD2'); 
+	dataGrid2.imgURL = "img/"; 
+	dataGrid2.setHeader("Department,Position"); 
+	dataGrid2.setInitWidths("200,200");
+	dataGrid2.setColAlign("left,left");
+	dataGrid2.setColTypes("ro,ro"); 
+	dataGrid2.setColSorting("str,str");	
+	dataGrid2.init();     
+	dataGrid2.sortRows(0,'str',"asc");
+	dataGrid2.setSortImgState(true,0,"ASC");
+	dataGrid2.setOnRowSelectHandler(doOnDataGrid2RowSelectHandler);
+	dataGrid2.gridToGrid = function(rowId,sgrid,tgrid){
+	    var z=new Array();
+		for(var i=0;i<sgrid.hdr.rows[0].cells.length;i++)
+		z[i]=sgrid.cells(rowId,i).getValue();
+		return z;
+	}
+	dataGrid2.setOnKeyPressed(onGrid2KeyPressed);
+	selectItems("5,8",dataGrid,dataGrid2);
+}
+
+function doOnDataGrid2RowSelectHandler() {
+	dataGrid.clearSelection();
+}
+
+function doOnDataGridRowSelectHandler() {
+	dataGrid2.clearSelection();
+}
+
+function doOnRowDblClicked() {
+	selectItem(dataGrid,dataGrid2);
+}
+
+function onGrid1KeyPressed(keyCode,ctrl,shift) {
+	dataGrid2.clearSelection();
+	onGridObjKeyPressed(dataGrid,dataGrid2,4,keyCode,ctrl,shift);
+}
+
+function onGrid2KeyPressed(keyCode,ctrl,shift) {
+	dataGrid.clearSelection();
+	onGridObjKeyPressed(dataGrid,dataGrid2,4,keyCode,ctrl,shift);
+}
+
+function doOnLoadingEnd() {
+	dataGrid.sortRows(0,'str',"asc");
+	dataGrid.setSortImgState(true,0,"ASC");
+}
+window.onload=doOnLoad;
+</script>

@@ -1,0 +1,188 @@
+div.gridbox_gray{
+	overflow:hidden;
+	scrollbar-arrow-color: #99CC33;
+	scrollbar-3dlight-color: #FFFFFF;
+	scrollbar-darkshadow-color: #FFFFFF;
+	scrollbar-face-color: #FFFFFF;
+	scrollbar-highlight-color: #99CC33;
+	scrollbar-shadow-color: #99CC33;
+	scrollbar-track-color: #F2F2F2;
+	
+	background-Color:#F2F2F2;
+	border:0pt;
+	
+}
+/*
+.dhx_sub_row
+{
+	background-color:white;
+}
+*/
+div.gridbox_gray .xhdr{
+	background-color:#cccccc;
+	border-left: 1px solid #999;
+	border-right: 1px solid #999;
+	border-top: 1px solid #999;
+}
+
+div.gridbox_gray table.hdr td {
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size: 11px;
+	font-weight:normal;
+	color:#666666;
+	background-Color:#cccccc;
+	border: 0px solid;
+	border-color : white white white white;
+	text-align: left;
+	margin:0px;
+	padding:0px 4px 0px 6px ;
+	font-weight:normal;
+    -moz-user-select:none;
+	-moz-user-select:-moz-none;    
+    overflow:hidden;
+    height:25px;
+    empty-cells:show;
+	}
+div.gridbox_gray table.hdr td div.hdrcell{
+	overflow:hidden;
+}
+div.gridbox_gray table.obj td {
+	-moz-user-select:none;
+    -moz-user-select:-moz-none;   
+    overflow:hidden;
+    empty-cells:show;
+    vertical-align:middle;
+
+   	border-bottom: 1px dashed #bbb;
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size:11px;
+    padding:0px 4px 0px 6px ;
+    height:20px;
+    
+	}
+div.gridbox_gray table.obj th, div.gridbox table.hdr th{
+	padding:0px 0px 0px 0px ;
+	margin:0px 0px 0px 0px ;
+	}
+
+div.gridbox_gray table.row20px tr  td{
+    height:20px;
+    white-space: nowrap;
+    padding:0px 4px 0px 6px ;
+}
+/*	
+div.gridbox .objbox {
+	background-color:white;
+	position:relative;
+	border: 1px solid #99cc33;
+	}
+div.gridbox table.obj td span.space, div.gridbox table.obj td img.space{
+	width:18px;
+	}
+div.gridbox table.obj tr.rowselected td.cellselected, div.gridbox table.obj td.cellselected {
+	background-color:whitesmoke;
+	color:black;
+	}
+div.gridbox table.obj tr.rowselected td{
+	background-color:whitesmoke;
+	color:black;
+	}
+
+div.gridbox table.obj td.editable{
+    -moz-user-select:text;
+    }
+div.gridbox table.obj td.group_row{
+    vertical-align:middle; font-family:Tahoma; font-size:10pt; font-weight:bold; height:30px;  border:0px;  border-bottom: 2px solid navy; 
+    }    
+
+.dragSpanDiv{ 	font-size : 12px; 	border: 1px gray solid; background-color:white; }
+.dhx_combo_select{
+    font-family:arial;
+    font-size:12px;
+    border:1px solid;
+    border-color:black silver silver black;
+    background-color:white;
+    overflow:hidden;
+    cursor:default;
+    position:absolute;
+    height:auto;
+    z-index:600;
+}
+.dhx_combo_edit{
+    width:100%;
+    border:0px;
+    padding:0px;
+    padding-right:1px !ie;
+    margin:0px;
+    font:12px arial;
+    overflow:hidden;
+}
+
+.dhx_textarea{
+    border:1px solid;
+    border-color:black silver silver black;
+    position:absolute;
+	height:100px;
+}
+.dhx_clist{
+    background-color:white;
+    border:1px solid black;
+    padding:2px 2px 2px 2px;
+    z-index:300;
+}
+.gridDragLine{
+   position:absolute;
+   top:10px; left:0px;
+   width:100%;
+   height:2px;
+   background-color:black;
+   overflow:hidden;
+}
+
+
+DIV.pagingBlock{
+	font-size:12px;
+	font-family:verdana,arial;
+}
+DIV.pagingBlock .pagingCurrentPage{
+	font-weight:bold;
+	cursor:default;
+}
+DIV.pagingBlock .pagingPage{
+	cursor:pointer;
+	text-decoration:underline;
+}
+SPAN.recordsInfoBlock {
+	font-size:12px;
+	font-family:verdana,arial;
+}
+DIV.pagingBlock a{
+	text-decoration:none;
+	padding-right:2px;
+	color:black;
+}
+.toolbar_select{
+	font-size:10px;
+}
+
+.dhtmlxGrid_selection {
+   -moz-opacity: 0.5;
+   filter: alpha(opacity = 50);
+   background-color:yellow;
+   opacity:0.5;
+   border: 1px dotted black;
+}
+
+.disabledrow td{
+	color:#999;
+}
+
+
+.disabledrow A{
+	color:#999;
+}
+
+.onholdrow td{
+	color:#669900;
+}
+*/

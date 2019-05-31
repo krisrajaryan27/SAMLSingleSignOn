@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mapping xmlns="http://castor.exolab.org/" xmlns:cst="http://castor.exolab.org/">
+    <description xmlns="">Castor generated mapping file</description>
+    <class name="com.talentPool.employeeservice.dataobject.EloginData">
+        <description xmlns="">Default mapping for class com.talentPool.employeeservice.dataobject.EloginData</description>
+        <map-to xml="elogin-data"/>
+        <field name="employeeCode" type="java.lang.String">
+            <bind-xml name="employee-code" node="element"/>
+        </field>
+        <field name="sourceName" type="java.lang.String">
+            <bind-xml name="source-name" node="element"/>
+        </field>
+        <field name="emailAddress" type="java.lang.String">
+            <bind-xml name="email-address" node="element"/>
+        </field>
+        <field name="userLocationName" type="java.lang.String">
+            <bind-xml name="user-location-name" node="element"/>
+        </field>
+        <field name="lastLoginDate" type="java.lang.String">
+            <bind-xml name="last-login-date" node="element"/>
+        </field>
+        <field name="sourceTypeId" type="java.lang.String">
+            <bind-xml name="source-type-id" node="element"/>
+        </field>
+        <field name="homePhone" type="java.lang.String">
+            <bind-xml name="home-phone" node="element"/>
+        </field>
+        <field name="userId" type="java.lang.String">
+            <bind-xml name="user-id" node="element"/>
+        </field>
+        <field name="cellPhone" type="java.lang.String">
+            <bind-xml name="cell-phone" node="element"/>
+        </field>
+        <field name="userName" type="java.lang.String">
+            <bind-xml name="user-name" node="element"/>
+        </field>
+        <field name="password" type="java.lang.String">
+            <bind-xml name="password" node="element"/>
+        </field>
+        <field name="sourceId" type="java.lang.String">
+            <bind-xml name="source-id" node="element"/>
+        </field>
+        <field name="firstName" type="java.lang.String">
+            <bind-xml name="first-name" node="element"/>
+        </field>
+        <field name="lastName" type="java.lang.String">
+            <bind-xml name="last-name" node="element"/>
+        </field>
+        <field name="userRoleId" type="java.lang.String">
+            <bind-xml name="user-role-id" node="element"/>
+        </field>
+        <field name="securityQuestion" type="java.lang.String">
+            <bind-xml name="security-question" node="element"/>
+        </field>
+        <field name="securityQuestionId" type="java.lang.String">
+            <bind-xml name="security-question-id" node="element"/>
+        </field>
+        <field name="answer" type="java.lang.String">
+            <bind-xml name="security-question-answer" node="element"/>
+        </field>
+        <field name="userStatus" type="int">
+            <bind-xml name="user-status" node="element"/>
+        </field>
+        <field name="passwordDateModified" type="java.sql.Date">
+            <bind-xml name="password-dateModified" node="element"/>
+        </field>
+        <field name="forcePasswordChange" type="java.lang.String">
+            <bind-xml name="force-passwordChange" node="element"/>
+        </field>
+        <field name="passwordAge" type="java.lang.String">
+            <bind-xml name="password-age" node="element"/>
+        </field>
+        <field name="isLDAPEnabled" type="java.lang.String">
+            <bind-xml name="isLDAP-enabled" node="element"/>
+        </field>
+         <field name="timeZone" type="java.lang.String">
+            <bind-xml name="time-zone" node="element"/>
+        </field>
+        <field name="sourceTitle" type="java.lang.String">
+            <bind-xml name="source-Title" node="element"/>
+        </field>
+        <field name="sourceEmail" type="java.lang.String">
+            <bind-xml name="source-Email" node="element"/>
+        </field>
+    </class>
+</mapping>

@@ -1,0 +1,225 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>
+		<dbquery name="qChangeUserPassword">
+			update tp_users set user_password = ?, password_date_modified =NOW()  where user_id = ?
+		</dbquery>
+		<dbquery name="qChangeCandidatePassword">
+			update tp_onboarding_candidates set candidate_password = ?, password_date_modified =NOW()  where candidate_id = ?
+		</dbquery>
+		<dbquery name="qSaveUserUUID">
+			INSERT INTO tp_user_uuid_map (user_id, uuid, date_created) VALUES (?,?,now())
+		</dbquery>
+		<dbquery name="qSaveCandidateUUID">
+			INSERT INTO tp_candidate_uuid_map (candidate_id, uuid, date_created) VALUES (?,?,now())
+		</dbquery>
+		<dbquery name="qCreateCandidate">
+			INSERT INTO tp_onboarding_candidates (candidate_user_name, candidate_first_name, candidate_last_name, candidate_password,candidate_email,candidate_cell_phone) 
+			VALUES (?,?,?,?,?,?)
+		</dbquery>
+		<dbquery name="qDeleteUserUUID">
+			DELETE FROM tp_user_uuid_map where user_id = ?
+		</dbquery>
+		<dbquery name="qDeleteCandidateUUID">
+			DELETE FROM tp_candidate_uuid_map where candidate_id = ?
+		</dbquery>
+		<dbquery name="qUser_GetUserIdForUuid">
+			SELECT user_id FROM tp_user_uuid_map WHERE uuid=? and now()&lt;DATE_ADD(date_created, INTERVAL 1 DAY)
+		</dbquery>
+		<dbquery name="qUser_GetCandidateIdForUuid">
+			SELECT candidate_id FROM tp_candidate_uuid_map WHERE uuid=? and now()&lt;DATE_ADD(date_created, INTERVAL 1 DAY)
+		</dbquery>
+		<dbquery name="qUser_GetUserIdForEmail">
+			SELECT user_id FROM tp_users WHERE user_email=?  LIMIT 0,1
+		</dbquery>
+		<dbquery name="qUser_GetUserIdForEmailOtherThenUserId">
+			SELECT user_id FROM tp_users WHERE user_email=? AND user_id!=? LIMIT 0,1
+		</dbquery>
+		
+		<dbquery name="qUser_GetUsersLike">  	
+			select user_id, name, concat(name, ' ', '&lt;', user_email, '&gt;') as user_email from (
+			select tu.user_id, CONCAT(tu.user_fname,' ',tu.user_lname) as name, tu.user_email
+			from tp_users tu where 
+			tu.user_status=?
+			and tu.user_id not in (select tur.user_id from tp_user_roles tur where tur.role_id in (@@))
+			) as users
+			where @@
+			order by name
+		</dbquery>
+		<dbquery name="qUser_GetUserEmail">
+			SELECT USER_EMAIL FROM tp_users WHERE USER_ID=?
+		</dbquery>
+		<dbquery name="qUser_GetUserIdForName">
+			SELECT USER_ID
+			FROM tp_users
+			WHERE CONCAT(USER_FNAME, ' ', USER_LNAME) = ?
+			OR USER_FNAME = ?
+			OR USER_LNAME = ?
+			LIMIT 0,1
+		</dbquery>		
+		<dbquery name="qUser_GetUserIdFromName">
+			SELECT USER_ID FROM tp_users WHERE USER_NAME=?
+		</dbquery>
+		<dbquery name="qUserManager_GetUserViewDataConfig">
+			SELECT user_id,view_type, column_1,column_2 FROM tp_data_view_config WHERE user_id =?
+		</dbquery>
+		<dbquery name="qUserManager_SaveDataViewConfig">
+			INSERT INTO tp_data_view_config	(user_id,view_type,column_1,column_2) 
+			VALUES (?,?,?,?)
+		</dbquery>
+		<dbquery name="qUserManager_DeleteDataViewConfig">
+			DELETE FROM tp_data_view_config WHERE user_id = ?
+		</dbquery>
+		<dbquery name="qUserManager_GetUserViewConfigData">
+			SELECT user_id,view_type,column_1,column_2  FROM tp_data_view_config
+		</dbquery>
+		<dbquery name="qUserManager_GetRoleForUser">
+			SELECT role_id FROM tp_user_roles WHERE user_id=?
+		</dbquery>
+		
+		<dbquery name="qUserManager_DeleteUserBU">
+			DELETE FROM tp_user_business_unit WHERE user_id=?
+		</dbquery>
+		<dbquery name="qUserManager_InsertUserBU">
+			INSERT INTO tp_user_business_unit (user_id,bu_id) VALUES (?,?)
+		</dbquery>
+	    
+	    <dbquery name="qUserManager_DeleteUserCostCenter">
+	    	DELETE FROM tp_user_cost_center WHERE user_id=?
+	    </dbquery>
+	    <dbquery name="qUserManager_InsertUserCostCenter">
+	    	INSERT INTO tp_user_cost_center (user_id,cost_center_id) VALUES (?,?)
+	    </dbquery>
+		<dbquery name="qUserManager_GetUsersForPermissions">
+			SELECT tu.user_id, tu.user_fname, tu.user_lname,  
+			td.dept_name as department, tds.dept_name as sub_department, tdss.dept_name as sub_sub_department,
+			tl.location_name, ts.employee_code as employee_id, tr.role_title
+			FROM tp_user_permissions tup,
+			tp_users tu 
+			LEFT JOIN tp_departments td ON( td.dept_id=tu.dept_id)
+			LEFT JOIN tp_departments tds ON( tds.dept_id=tu.sub_dept_id)
+			LEFT JOIN tp_departments tdss ON( tdss.dept_id=tu.sub_sub_dept_id)
+			LEFT JOIN tp_location_ap tl ON (tl.location_id = tu.location_id)
+			LEFT JOIN tp_sources ts ON (ts.source_id = tu.user_source_id)
+			LEFT JOIN tp_user_roles tur ON (tur.user_id=tu.USER_ID)
+			LEFT JOIN tp_roles tr ON (tur.ROLE_ID=tr.ROLE_ID)
+			WHERE 
+			tu.USER_ID=tup.user_id
+			AND permission_id=?
+			AND tu.user_status=?
+			ORDER BY tu.user_fname, tu.user_lname
+		</dbquery>		
+		<dbquery name="qUserManager_UserDataToPopulateApplicantDetails">
+	  		SELECT tu.user_id, tu.user_fname, tu.user_lname, tu.user_email,
+	  		tu.user_cell_phone, tu.user_home_phone, tl.location_name,ts.source_title,ts.source_email,tur.role_id 
+	  		FROM tp_users tu 
+			LEFT JOIN tp_location_ap tl ON (tu.location_id = tl.location_id)
+			Left JOIN tp_sources ts ON(ts.source_id=tu.user_source_id)
+			LEFT JOIN tp_user_roles tur ON (tur.user_id=tu.user_id)
+	  		WHERE tu.user_id=? 
+  		</dbquery>
+  		<dbquery name="qUserManager_GetAllRoles">
+  			SELECT role_id,role_title FROM tp_roles 
+  		</dbquery>
+  		<dbquery name="qUserManager_isUserDisabled">
+			SELECT user_status FROM tp_users WHERE user_id=?
+		</dbquery>
+		<dbquery name="qUserManager_deleteSecurityQuestion">
+			DELETE FROM tp_user_security_question_answer WHERE user_id=?
+		</dbquery>
+		<dbquery name="qUserManager_insertSecurityQuestion">
+			INSERT INTO tp_user_security_question_answer (user_id, security_question_id, answer) VALUES (?,?,?)
+		</dbquery>
+		<dbquery name="qUserManager_updateForcePassword">
+			update tp_users set force_password_change = ? where user_id = ?
+		</dbquery>
+		<dbquery name="qUserManager_updateOldPasswords">
+			UPDATE tp_users SET old_passwords =? WHERE user_id =?
+		</dbquery>
+		<dbquery name="qUserManager_fetchOldPasswords">
+			SELECT old_passwords FROM tp_users WHERE user_id =?
+		</dbquery>
+		<dbquery name="qUserManager_getLatestCreatedCandidateId">
+		    SELECT candidate_id from tp_onboarding_candidates where candidate_user_name=? AND candidate_email=? AND candidate_password=?
+		</dbquery>
+	</dbqueries>
+	<dataqueries>
+		<dataquery name="dChangeUserPassword" dbquery="qChangeUserPassword" />
+		<dataquery name="dChangeCandidatePassword" dbquery="qChangeCandidatePassword" />
+		<dataquery name="dSaveUserUUID" dbquery="qSaveUserUUID" />
+		<dataquery name="dSaveCandidateUUID" dbquery="qSaveCandidateUUID" />
+		<dataquery name="dCreateCandidate" dbquery="qCreateCandidate" />
+		<dataquery name="dDeleteUserUUID" dbquery="qDeleteUserUUID" />
+		<dataquery name="dDeleteCandidateUUID" dbquery="qDeleteCandidateUUID" />
+		<dataquery name="dUser_GetUserIdForEmail" dbquery="qUser_GetUserIdForEmail" />
+		<dataquery name="dUser_GetUserIdForUuid" dbquery="qUser_GetUserIdForUuid" />
+		<dataquery name="dUser_GetCandidateIdForUuid" dbquery="qUser_GetCandidateIdForUuid" />
+		<dataquery name="dUser_GetUserIdForEmailOtherThenUserId" dbquery="qUser_GetUserIdForEmailOtherThenUserId" />
+	    <dataquery name="dUser_GetUsersLike" dbquery="qUser_GetUsersLike" object="com.talentPool.common.db.SimpleDataObject">
+	        <attribute name="userId" column="user_id" type="STRING"/>
+	        <attribute name="name" column="name" type="STRING"/>
+	        <attribute name="email" column="user_email" type="STRING"/>
+	    </dataquery>
+	    <dataquery name="dUser_GetUserEmail" dbquery="qUser_GetUserEmail" />
+	    <dataquery name="dUser_GetUserIdForName" dbquery="qUser_GetUserIdForName" object="com.talentPool.positions.dataobject.UserData">
+	        <attribute name="userId" column="USER_ID" type="STRING"/>
+	    </dataquery>	    
+	    <dataquery name="dUser_GetUserIdFromName" dbquery="qUser_GetUserIdFromName"/>
+	    <dataquery name="dUserManager_GetUserViewDataConfig" dbquery="qUserManager_GetUserViewDataConfig" object="com.talentPool.user.dataobject.ViewData">
+			<attribute name="viewType" column="view_type" type="STRING" />
+			<attribute name="column1" column="column_1" type="STRING" />
+			<attribute name="column2" column="column_2" type="STRING" />
+		</dataquery>
+		<dataquery name="dUserManager_SaveDataViewConfig" dbquery="qUserManager_SaveDataViewConfig" />
+		<dataquery name="dUserManager_DeleteDataViewConfig" dbquery="qUserManager_DeleteDataViewConfig" />
+		<dataquery name="dUserManager_GetUserViewConfigData" dbquery="qUserManager_GetUserViewConfigData" object="com.talentPool.user.dataobject.ViewData">
+			<attribute name="userId" column="user_id" type="STRING" />
+			<attribute name="viewType" column="view_type" type="STRING" />
+			<attribute name="column1" column="column_1" type="STRING" />
+			<attribute name="column2" column="column_2" type="STRING" />
+		</dataquery>
+		<dataquery name="dUserManager_GetRoleForUser" dbquery="qUserManager_GetRoleForUser"/>
+				
+		<dataquery name="dUserManager_DeleteUserBU" dbquery="qUserManager_DeleteUserBU"/>
+		<dataquery name="dUserManager_InsertUserBU" dbquery="qUserManager_InsertUserBU"/>
+			     
+		<dataquery name="dUserManager_DeleteUserCostCenter" dbquery="qUserManager_DeleteUserCostCenter"/>
+		<dataquery name="dUserManager_InsertUserCostCenter" dbquery="qUserManager_InsertUserCostCenter"/>
+		<dataquery name="dUserManager_GetUsersForPermissions" dbquery="qUserManager_GetUsersForPermissions" object="com.talentPool.user.dataobject.LoginData">
+			<attribute name="userId" column="user_id" type="STRING"/>
+	        <attribute name="firstName" column="user_fname" type="STRING"/>
+	        <attribute name="lastName" column="user_lname" type="STRING"/>
+	        <attribute name="roleTitle" column="role_title" type="STRING"/>
+	        <attribute name="department" column="department" type="STRING"/>
+	        <attribute name="subDepartment" column="sub_department" type="STRING"/>
+	        <attribute name="subSubDepartment" column="sub_sub_department" type="STRING"/>
+	        <attribute name="location" column="location_name" type="STRING"/>
+	        <attribute name="employeeId" column="employee_id" type="STRING"/>
+		</dataquery>
+		<dataquery name="dUserManager_UserDataToPopulateApplicantDetails" dbquery="qUserManager_UserDataToPopulateApplicantDetails" object="com.talentPool.user.dataobject.LoginData">
+	        <attribute name="firstName" column="user_fname" type="STRING"/>
+	        <attribute name="lastName" column="user_lname" type="STRING"/>
+	        <attribute name="email" column="user_email" type="STRING"/>
+	        <attribute name="homePhone" column="user_home_phone" type="STRING"/>
+	        <attribute name="cellPhone" column="user_cell_phone" type="STRING"/>
+	        <attribute name="location" column="location_name" type="STRING"/>
+	        <attribute name="sourceTitle" column="source_title" type="STRING"/>
+	        <attribute name="sourceEmail" column="source_email" type="STRING"/>
+	        <attribute name="roleId" column="role_id" type="STRING"/>
+		</dataquery>		
+		<dataquery name="dUserManager_GetAllRoles" dbquery="qUserManager_GetAllRoles" object="com.talentPool.common.db.SimpleDataObject">
+	        <attribute name="roleId" column="role_id" type="STRING"/>
+	        <attribute name="roleTitle" column="role_title" type="STRING"/>	        
+	    </dataquery>
+	    <dataquery name="dUserManager_isUserDisabled" dbquery="qUserManager_isUserDisabled"/>
+	    <dataquery name="dUserManager_deleteSecurityQuestion" dbquery="qUserManager_deleteSecurityQuestion"/>
+	    <dataquery name="dUserManager_insertSecurityQuestion" dbquery="qUserManager_insertSecurityQuestion"/>
+	    <dataquery name="dUserManager_updateForcePassword" dbquery="qUserManager_updateForcePassword"/>
+	    <dataquery name="dUserManager_updateOldPasswords" dbquery="qUserManager_updateOldPasswords"/>
+	    <dataquery name="dUserManager_fetchOldPasswords" dbquery="qUserManager_fetchOldPasswords"/>
+	    <dataquery name="dUserManager_getLatestCreatedCandidateId" dbquery="qUserManager_getLatestCreatedCandidateId"/>
+	</dataqueries>   
+</dbmap>

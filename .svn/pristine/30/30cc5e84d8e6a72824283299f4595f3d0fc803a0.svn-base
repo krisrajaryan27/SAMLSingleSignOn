@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mapping xmlns="http://castor.exolab.org/" xmlns:cst="http://castor.exolab.org/">
+    <description xmlns="">Castor generated mapping file</description>
+    <class name="com.talentPool.websiteservice.dataobject.WeducationalData">
+        <description xmlns="">Default mapping for class com.talentPool.websiteservice.dataobject.WeducationalData</description>
+        <map-to xml="weducational-data"/>
+        <field name="major" type="java.lang.String">
+            <bind-xml name="major" node="element"/>
+        </field>
+        <field name="degreeId" type="java.lang.String">
+            <bind-xml name="degree-id" node="element"/>
+        </field>
+        <field name="majorId" type="java.lang.String">
+            <bind-xml name="major-id" node="element"/>
+        </field>
+        <field name="grade" type="java.lang.String">
+            <bind-xml name="grade" node="element"/>
+        </field>
+        <field name="yearOfPassing" type="java.util.Date">
+            <bind-xml name="year-of-passing" node="element"/>
+        </field>
+        <field name="degreeTitle" type="java.lang.String">
+            <bind-xml name="degree-title" node="element"/>
+        </field>
+        <field name="institute" type="java.lang.String">
+            <bind-xml name="institute" node="element"/>
+        </field>
+    </class>
+    <class name="com.talentPool.websiteservice.dataobject.WapplicantData">
+        <description xmlns="">Default mapping for class com.talentPool.websiteservice.dataobject.WapplicantData</description>
+        <map-to xml="wapplicant-data"/>
+        <field name="applicantJoined" type="boolean">
+            <bind-xml name="applicant-joined" node="attribute"/>
+        </field>
+        <field name="applicantPositionId" type="java.lang.String">
+            <bind-xml name="applicant-position-id" node="element"/>
+        </field>
+        <field name="applicantHomePhone" type="java.lang.String">
+            <bind-xml name="applicant-home-phone" node="element"/>
+        </field>
+        <field name="customFields" type="java.lang.Object" collection="arraylist">
+            <bind-xml name="custom-fields" node="element"/>
+        </field>
+        <field name="applicantCellPhone" type="java.lang.String">
+            <bind-xml name="applicant-cell-phone" node="element"/>
+        </field>
+        <field name="expectedCTCDate" type="java.util.Date">
+            <bind-xml name="expected-cTCDate" node="element"/>
+        </field>
+        <field name="applicantWorkPhone" type="java.lang.String">
+            <bind-xml name="applicant-work-phone" node="element"/>
+        </field>
+        <field name="applicantEmail2" type="java.lang.String">
+            <bind-xml name="applicant-email2" node="element"/>
+        </field>
+        <field name="applicantEmail1" type="java.lang.String">
+            <bind-xml name="applicant-email1" node="element"/>
+        </field>
+         <field name="totalExperience" type="java.lang.String">
+            <bind-xml name="total-Experience" node="element"/>
+        </field>
+        <field name="passport" type="java.lang.String">
+            <bind-xml name="passport" node="element"/>
+        </field>
+        <field name="dateOfBirth" type="java.lang.String">
+            <bind-xml name="date-Of-Birth" node="element"/>
+        </field>
+        <field name="educationalDetails" type="java.lang.Object" collection="arraylist">
+            <bind-xml name="educational-details" node="element"/>
+        </field>
+        <field name="empHistoryData" type="java.lang.Object" collection="arraylist">
+            <bind-xml name="emp-historyData" node="element"/>
+        </field>
+        <field name="applicantName" type="java.lang.String">
+            <bind-xml name="applicant-name" node="element"/>
+        </field>
+        <field name="currentCTC" type="java.lang.String">
+            <bind-xml name="current-cTC" node="element"/>
+        </field>
+        <field name="currentLocation" type="java.lang.String">
+            <bind-xml name="current-location" node="element"/>
+        </field>
+        <field name="applicantWorkingSince" type="java.util.Date">
+            <bind-xml name="applicant-working-since" node="element"/>
+        </field>
+        <field name="expectedCTC" type="java.lang.String">
+            <bind-xml name="expected-cTC" node="element"/>
+        </field>
+        <field name="positionTitle" type="java.lang.String">
+            <bind-xml name="position-title" node="element"/>
+        </field>
+        <field name="experience" type="java.lang.String">
+            <bind-xml name="experience" node="element"/>
+        </field>
+        <field name="currentStatus" type="java.lang.String">
+            <bind-xml name="current-status" node="element"/>
+        </field>
+        <field name="currentEmployer" type="java.lang.String">
+            <bind-xml name="current-employer" node="element"/>
+        </field>
+        <field name="noticePeriod" type="java.lang.String">
+            <bind-xml name="notice-period" node="element"/>
+        </field>
+        <field name="currentCTCDate" type="java.util.Date">
+            <bind-xml name="current-cTCDate" node="element"/>
+        </field>
+        <field name="applicantId" type="java.lang.String">
+            <bind-xml name="applicant-id" node="element"/>
+        </field>
+        <field name="skills" type="java.lang.String">
+            <bind-xml name="skills" node="element"/>
+        </field>
+        <field name="originalResumePath" type="java.lang.String">
+            <bind-xml name="original-resume-path" node="element"/>
+        </field>
+        <field name="applicantStepId" type="java.lang.String">
+            <bind-xml name="applicant-step-id" node="element"/>
+        </field>
+        <field name="dateUploaded" type="java.util.Date">
+            <bind-xml name="date-uploaded" node="element"/>
+        </field>
+        <field name="uuid" type="java.lang.String">
+            <bind-xml name="uuid" node="element"/>
+        </field>
+        <field name="source" type="java.lang.String">
+            <bind-xml name="source" node="element"/>
+        </field>
+        <field name="userName" type="java.lang.String">
+            <bind-xml name="user-name" node="element"/>
+        </field>
+        <field name="note" type="java.lang.String">
+            <bind-xml name="note" node="element"/>
+        </field>
+        <field name="resumeType" type="java.lang.String">
+            <bind-xml name="resume-type" node="element"/>
+        </field>
+    </class>
+    <class name="com.talentPool.websiteservice.dataobject.WcustomFieldData">
+        <description xmlns="">Default mapping for class com.talentPool.websiteservice.dataobject.WcustomFieldData</description>
+        <map-to xml="wcustom-field-data"/>
+        <field name="fieldRequired" type="int">
+            <bind-xml name="field-required" node="attribute"/>
+        </field>
+        <field name="fieldSearchable" type="int">
+            <bind-xml name="field-searchable" node="attribute"/>
+        </field>
+        <field name="fieldNumberValue" type="double">
+            <bind-xml name="field-number-value" node="attribute"/>
+        </field>
+        <field name="fieldInputAllowed" type="int">
+            <bind-xml name="field-input-allowed" node="attribute"/>
+        </field>
+        <field name="fieldRank" type="int">
+            <bind-xml name="field-rank" node="attribute"/>
+        </field>
+        <field name="fieldEntityType" type="int">
+            <bind-xml name="field-entity-type" node="attribute"/>
+        </field>
+        <field name="fieldName" type="java.lang.String">
+            <bind-xml name="field-name" node="element"/>
+        </field>
+        <field name="fieldStringValue" type="java.lang.String">
+            <bind-xml name="field-string-value" node="element"/>
+        </field>
+        <field name="fieldOptions" type="java.lang.String">
+            <bind-xml name="field-options" node="element"/>
+        </field>
+        <field name="fieldDisplayName" type="java.lang.String">
+            <bind-xml name="field-display-name" node="element"/>
+        </field>
+        <field name="fieldType" type="java.lang.String">
+            <bind-xml name="field-type" node="element"/>
+        </field>
+        <field name="fieldValues" type="java.lang.String" collection="array">
+            <bind-xml name="field-values" node="element"/>
+        </field>
+        <field name="fieldDefaultValue" type="java.lang.String">
+            <bind-xml name="field-default-value" node="element"/>
+        </field>
+        <field name="fieldId" type="java.lang.String">
+            <bind-xml name="field-id" node="element"/>
+        </field>
+        <field name="fieldDateValue" type="java.sql.Date">
+            <bind-xml name="field-date-value" node="element"/>
+        </field>
+        <field name="toValues" type="java.lang.String" collection="array">
+            <bind-xml name="to-values" node="element"/>
+        </field>
+        <field name="fieldOtherAttributes" type="java.lang.String">
+            <bind-xml name="field-other-attributes" node="element"/>
+        </field>
+    </class>
+     <class name="com.talentPool.websiteservice.dataobject.WemploymentHistoryData">
+        <description xmlns="">Default mapping for class com.talentPool.websiteservice.dataobject.WeducationalData</description>
+        <map-to xml="wemploymentHistory-data"/>
+        <field name="employerId" type="java.lang.String">
+            <bind-xml name="employer-id" node="element"/>
+        </field>
+        <field name="employerName" type="java.lang.String">
+            <bind-xml name="employer-name" node="element"/>
+        </field>
+        <field name="designationId" type="java.lang.String">
+            <bind-xml name="designation-id" node="element"/>
+        </field>
+        <field name="designationName" type="java.lang.String">
+            <bind-xml name="designation-name" node="element"/>
+        </field>
+        <field name="employerExperience" type="java.lang.String">
+            <bind-xml name="employer-experience" node="element"/>
+        </field>
+        <field name="employerFromDate" type="java.lang.String">
+            <bind-xml name="employer-fromDate" node="element"/>
+        </field>
+        <field name="employerToDate" type="java.lang.String">
+            <bind-xml name="employer-toDate" node="element"/>
+        </field>
+    </class>
+</mapping>

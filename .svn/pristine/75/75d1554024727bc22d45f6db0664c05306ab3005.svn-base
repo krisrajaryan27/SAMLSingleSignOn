@@ -1,0 +1,36 @@
+enc_B.A.lst:degree:B.A
+enc_B.Arch.lst:degree:B.Arch
+enc_B.B.A.lst:degree:B.B.A
+enc_BCA.lst:degree:BCA
+enc_B.Com.lst:degree:B.Com
+enc_BDS.lst:degree:BDS
+enc_B.E_B.Tech.lst:degree:B.E/B.Tech
+enc_B.Ed.lst:degree:B.Ed
+enc_BHM.lst:degree:BHM
+enc_BL_LLB.lst:degree:BL/LLB
+enc_B.Pharm.lst:degree:B.Pharm
+enc_B.Sc.lst:degree:B.Sc
+enc_CA.lst:degree:CA
+enc_Diploma.lst:degree:Diploma
+enc_ICWA.lst:degree:ICWA
+enc_M.A.lst:degree:M.A
+enc_M.Arch.lst:degree:M.Arch
+enc_MBA.lst:degree:MBA
+enc_MBBS.lst:degree:MBBS
+enc_MCA.lst:degree:MCA
+enc_MD.lst:degree:MD
+enc_M.Com.lst:degree:M.Com
+enc_MS.lst:degree:MS
+enc_M.Ed.lst:degree:M.Ed
+enc_M.E_M.Tech.lst:degree:M.E/M.Tech
+enc_ML_LLM.lst:degree:ML/LLM
+enc_M.Pharm.lst:degree:M.Pharm
+enc_Mphil.lst:degree:Mphil
+enc_M.Sc.lst:degree:M.Sc
+enc_PGDCA.lst:degree:PGDCA
+enc_PG Diploma.lst:degree:PG Diploma
+enc_PGDM.lst:degree:PGDM
+enc_Phd.lst:degree:Phd
+enc_Other_Bachelor.lst:degree:Other Graduation
+enc_Other_Master.lst:degree:Other Post Graduation
+enc_branches.lst:branch

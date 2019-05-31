@@ -1,0 +1,78 @@
+<?xml version="1.0"?>
+
+<dbmap> 
+	<dbqueries>
+		<dbquery name="qPositionConfigurationManager_GetAllFieldsOfPositionListView">
+			SELECT field_id, field_type,field_rank, field_position_list_show, field_position_details_show,
+			field_list_is_filter,field_list_is_filter_editable
+			FROM tp_position_screen_configurations ORDER BY field_rank
+		</dbquery>
+		<dbquery name="qPositionConfigurationManager_GetAllFieldsOfPositionScreenView">
+			SELECT field_id, field_type, field_position_print_show
+			FROM tp_position_screen ORDER BY field_rank
+		</dbquery>
+		<dbquery name="qPositionConfigurationManager_GetAllFieldsOfPositionDetailsView">
+			SELECT field_id, field_type, field_position_details_show, field_position_details_rank
+			FROM tp_position_screen_configurations ORDER BY field_position_details_rank
+		</dbquery>
+		<dbquery name="qPositionConfigurationManager_GetWebsiteSettings">
+			SELECT is_show_labels_on_list, first_line_field, is_other
+			FROM tp_website_screen_settings
+		</dbquery>
+		<dbquery name="qPositionConfigurationManager_GetAllFieldsOfPositionScreenDescription">
+			SELECT field_id, field_type,field_position_show, field_position_mandatory,
+				field_vendor_show, field_employee_show
+			FROM tp_position_screen_description 
+			@@ 
+			ORDER BY field_rank
+		</dbquery>
+		<dbquery name="qPositionConfigurationManager_GetAllFieldsOfPositionScreenRequirements">
+			SELECT field_id, field_type,  field_position_show, field_position_mandatory,
+				field_vendor_show, field_employee_show
+			FROM tp_position_screen_requirements ORDER BY field_rank
+		</dbquery>
+	</dbqueries>
+	<dataqueries>
+	    <dataquery name="dPositionConfigurationManager_GetAllFieldsOfPositionListView" dbquery="qPositionConfigurationManager_GetAllFieldsOfPositionListView" object="com.talentPool.positions.dataobject.PositionFieldData">
+	    	<attribute name="fieldId"  column="field_id" type="STRING" />
+       		<attribute name="fieldType"  column="field_type" type="STRING" />
+       		<attribute name="fieldRank"  column="field_rank" type="STRING" />
+       		<attribute name="fieldOnPositionListShow"  column="field_position_list_show" type="STRING" />
+       		<attribute name="fieldOnPositionListIsFilter"  column="field_list_is_filter" type="STRING" />
+       		<attribute name="fieldOnPositionListIsFilterEditable"  column="field_list_is_filter_editable" type="STRING" />
+       		<attribute name="fieldOnPositionDetailsShow"  column="field_position_details_show" type="STRING" />
+	    </dataquery>
+		<dataquery name="dPositionConfigurationManager_GetAllFieldsOfPositionScreenView" dbquery="qPositionConfigurationManager_GetAllFieldsOfPositionScreenView" object="com.talentPool.positions.dataobject.PositionFieldData">
+	    	<attribute name="fieldId"  column="field_id" type="STRING" />
+       		<attribute name="fieldType"  column="field_type" type="STRING" />
+       		<attribute name="fieldOnPositionPrintShow"  column="field_position_print_show" type="STRING" />
+	    </dataquery>
+	    <dataquery name="dPositionConfigurationManager_GetAllFieldsOfPositionDetailsView" dbquery="qPositionConfigurationManager_GetAllFieldsOfPositionDetailsView" object="com.talentPool.positions.dataobject.PositionFieldData">
+	    	<attribute name="fieldId"  column="field_id" type="STRING" />
+       		<attribute name="fieldType"  column="field_type" type="STRING" />
+       		<attribute name="fieldOnPositionDetailsShow"  column="field_position_details_show" type="STRING" />
+       		<attribute name="fieldPositionDetailsRank"  column="field_position_details_rank" type="STRING" />
+	    </dataquery>
+		<dataquery name="dPositionConfigurationManager_GetWebsiteSettings" dbquery="qPositionConfigurationManager_GetWebsiteSettings" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name="isShowLabels"  column="is_show_labels_on_list" type="STRING" />
+       		<attribute name="fisrtFieldName"  column="first_line_field" type="STRING" />
+       		<attribute name="isOther"  column="is_other" type="STRING" />
+	    </dataquery>
+	    <dataquery name="dPositionConfigurationManager_GetAllFieldsOfPositionScreenDescription" dbquery="qPositionConfigurationManager_GetAllFieldsOfPositionScreenDescription" object="com.talentPool.positions.dataobject.PositionFieldData">
+	    	<attribute name="fieldId"  column="field_id" type="STRING" />
+       		<attribute name="fieldType"  column="field_type" type="STRING" />
+       		<attribute name="fieldPositionShow"  column="field_position_show" type="STRING" />
+       		<attribute name="fieldPositionMandatory"  column="field_position_mandatory" type="STRING" />
+       		<attribute name="fieldVendorShow"  column="field_vendor_show" type="STRING" />
+       		<attribute name="fieldEmployeeShow"  column="field_employee_show" type="STRING" />
+	    </dataquery>
+	    <dataquery name="dPositionConfigurationManager_GetAllFieldsOfPositionScreenRequirements" dbquery="qPositionConfigurationManager_GetAllFieldsOfPositionScreenRequirements" object="com.talentPool.positions.dataobject.PositionFieldData">
+	    	<attribute name="fieldId"  column="field_id" type="STRING" />
+       		<attribute name="fieldType"  column="field_type" type="STRING" />
+       		<attribute name="fieldPositionShow"  column="field_position_show" type="STRING" />
+       		<attribute name="fieldPositionMandatory"  column="field_position_mandatory" type="STRING" />
+       		<attribute name="fieldVendorShow"  column="field_vendor_show" type="STRING" />
+       		<attribute name="fieldEmployeeShow"  column="field_employee_show" type="STRING" />
+	    </dataquery>
+	</dataqueries>   
+</dbmap>

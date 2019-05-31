@@ -1,0 +1,20 @@
+Steps to follow for Building and Compiling of TEmployee
+1.	Go to the project src\com\talentPool\services copy all content from EmployeeService.java.bak and paste it on EmployeeService.java
+2.	Open \Projects\TalentPool\Branches\v_3_6_0\build for the files "temployee_build_web_service.bat" "temployee_build_web_service1.bat" and check whether all the paths and project versions are mapped to the current version.
+3.	Now go to command prompt go to Projects\TalentPool\Branches\v_3_6_0 \build>temployee_build_web_service.bat and run.
+4.	It will generate all java files in the com folder in \Projects\TalentPool\Branches \v_3_6_0\build.
+5.	Copy all generated classes from com folder to project folder.
+6.	Copy all methods and imports from EmployeeService.java.bak file to EmployeeServiceSoapBindingImpl.java file.
+7.	Start Tomcat.
+8.	To publish service execute "temployee_build_web_service1.bat" (Make sure tomcat is started)
+9.	Copy all generated content at "talentPool" in  \Projects\TalentPool\Branches\v_3_6_0\build\com to temployee com folder so you will have 2 folders temployee and talentpool in temployee com folder.
+10.	Now check temployee.
+
+
+1.	Go to the project src\com\talentPool\services copy all content from VendorService.java.bak* and paste it on VendorService.java
+2.	Now go to command prompt go to \Projects\TalentPool\Branches\v_3_6_0\build>build_web_service.bat and run.
+
+NOTE: 
+1. If you have any changes in data object files then run JavaToXMLMapping.java class to reflect the changes in mapper xml files.
+2. If you add new data object files then add new entry in  JavaToXMLMapping.java and run the class.
+3. Same process need to be followed on portal side also if there are any changes in data object files.

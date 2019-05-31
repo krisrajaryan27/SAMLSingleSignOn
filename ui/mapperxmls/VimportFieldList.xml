@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mapping xmlns="http://castor.exolab.org/" xmlns:cst="http://castor.exolab.org/">
+    <description xmlns="">Castor generated mapping file</description>
+    <class name="com.talentPool.vendorservice.dataobject.VimportFieldData">
+        <description xmlns="">Default mapping for class com.talentPool.vendorservice.dataobject.VimportFieldData</description>
+        <map-to xml="vimport-field-data"/>
+        <field name="fieldType" type="java.lang.String">
+            <bind-xml name="field-type" node="element"/>
+        </field>
+        <field name="fieldId" type="java.lang.String">
+            <bind-xml name="field-id" node="element"/>
+        </field>
+        <field name="fieldVendorShow" type="java.lang.String">
+            <bind-xml name="field-vendor-show" node="element"/>
+        </field>
+        <field name="fieldVendorMandatory" type="java.lang.String">
+            <bind-xml name="field-vendor-mandatory" node="element"/>
+        </field>
+        <field name="fieldTitle" type="java.lang.String">
+            <bind-xml name="field-title" node="element"/>
+        </field>
+    </class>
+    <class name="com.talentPool.vendorservice.dataobject.VimportFieldList">
+        <description xmlns="">Default mapping for class com.talentPool.vendorservice.dataobject.VimportFieldList</description>
+        <map-to xml="vimport-field-list"/>
+        <field name="importFieldList" type="java.lang.Object" collection="arraylist">
+            <bind-xml name="import-field-list" node="element"/>
+        </field>
+    </class>
+</mapping>

@@ -1,0 +1,55 @@
+# Set root category priority to INFO and its only appender to CONSOLE.
+##################### Log4J Levels Description ##################
+#	  			T 	D 	I 	W 	E 	F 
+# TRACE Level	Y	Y	Y	Y	Y	Y
+# DEBUG Level	N	Y	Y	Y	Y	Y
+# INFO Level	N	N	Y	Y	Y	Y
+# WARN Level	N	N	N	Y	Y	Y
+# ERROR Level	N	N	N	N	Y	Y
+# FATAL Level	N	N	N	N	N	Y
+# ALL Level		Y	Y	Y	Y	Y	Y
+# OFF Level		N	N	N	N	N	N
+#
+# T-TRACE Level
+# D-DEBUG Level
+# I-INFO Level
+# W-WARN Level
+# E-ERROR Level
+# F-FATAL Level
+###############################################################
+
+log4j.rootCategory=FATAL, CONSOLE
+
+log4j.logger.com.talentPool=INFO,POOLFILE
+
+log4j.logger.com.talentPool.audit=DEBUG,POOLAUDITFILE
+
+log4j.logger.org.quartz=INFO,QUARTZFILE
+
+# POOLFILE is set to be a FileAppender using a PatternLayout.
+log4j.appender.POOLFILE=org.apache.log4j.rolling.RollingFileAppender
+log4j.appender.POOLFILE.rollingPolicy=org.apache.log4j.rolling.TimeBasedRollingPolicy
+log4j.appender.POOLFILE.rollingPolicy.FileNamePattern=../logs/talentpool.%d{yyyy-MM-dd}.log
+log4j.appender.POOLFILE.layout=org.apache.log4j.PatternLayout
+log4j.appender.POOLFILE.layout.ConversionPattern=[%t] %d{dd MMM yyyy HH:mm:ss,SSS} [%p] %C{1}.%M:%L %m%n
+
+# POOLAUDITFILE is set to be a FileAppender using a PatternLayout.
+log4j.appender.POOLAUDITFILE=org.apache.log4j.DailyRollingFileAppender
+log4j.appender.POOLAUDITFILE.DatePattern='.'yyyy-MM-dd
+log4j.appender.POOLAUDITFILE.File=../logs/audit.log
+log4j.appender.POOLAUDITFILE.layout=org.apache.log4j.PatternLayout
+log4j.appender.POOLAUDITFILE.layout.ConversionPattern=[%t] %d{dd MMM yyyy HH:mm:ss,SSS} [%p] %C{1}.%M:%L %m%n
+
+
+# QUARTZFILE is set to be a FileAppender using a PatternLayout.
+log4j.appender.QUARTZFILE=org.apache.log4j.DailyRollingFileAppender
+log4j.appender.QUARTZFILE.DatePattern='.'yyyy-MM-dd
+log4j.appender.QUARTZFILE.File=../logs/schedular.log
+log4j.appender.QUARTZFILE.layout=org.apache.log4j.PatternLayout
+log4j.appender.QUARTZFILE.layout.ConversionPattern=[%t] %d{dd MMM yyyy HH:mm:ss,SSS} [%p] %C{1}.%M:%L %m%n
+
+
+# CONSOLE is set to be a ConsoleAppender using a PatternLayout.
+log4j.appender.CONSOLE=org.apache.log4j.ConsoleAppender
+log4j.appender.CONSOLE.layout=org.apache.log4j.PatternLayout
+log4j.appender.CONSOLE.layout.ConversionPattern=[%t] %d{dd MMM yyyy HH:mm:ss,SSS} [%p] %C{1}.%M:%L %m%n

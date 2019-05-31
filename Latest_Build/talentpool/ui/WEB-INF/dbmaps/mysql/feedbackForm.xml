@@ -1,0 +1,159 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+   <dbqueries>
+	   <dbquery name="qFeedbackForm_GetAllFeedbackForms">
+			SELECT  tff.feedback_form_id, tff.feedback_form_title, tff.feedback_form_header, 
+			tff.feedback_form_status, tff.last_modified,
+			tu.user_id, CONCAT(USER_FNAME,' ', USER_LNAME) AS createdBy
+			FROM tp_feedback_forms tff, tp_users tu
+			WHERE tff.user_id=tu.user_id
+			AND tff.feedback_form_status=?
+			ORDER BY feedback_form_title
+       </dbquery>
+	   <dbquery name="qFeedbackForm_GetFeedbackFormFields">
+			SELECT tfff.feedback_form_field_id, tfff.feedback_form_id, tfff.feedback_field_id, tfff.feedback_form_field_desc, 
+			tfff.feedback_form_field_rank, tfff.feedback_form_field_type, tfff.rating_id, tfff.select_id, tfff.feedback_form_field_comment_required,
+			tfff.feedback_form_field_display_type, tfff.feedback_form_field_is_mandatory,
+			all_fields.feedback_field_title, all_fields.feedback_field_type, all_fields.applicant_field_id, all_fields.system_generated
+			FROM tp_feedback_form_fields tfff,
+				(
+				SELECT category_id as feedback_field_id,
+				CASE WHEN summary_field = ? 
+					  THEN CONCAT(category_name,?)
+					  ELSE category_name
+					END as feedback_field_title, 
+				? as feedback_form_field_type, 
+				? AS feedback_field_type, NULL AS applicant_field_id, system_generated
+				FROM tp_feedback_field_categories
+				UNION
+				SELECT feedback_field_id, feedback_field_title, ? as feedback_form_field_type,
+				feedback_field_type, applicant_field_id, system_generated
+				FROM tp_feedback_fields
+				) AS all_fields
+			
+			WHERE 
+			tfff.feedback_field_id = all_fields.feedback_field_id
+			AND tfff.feedback_form_field_type=all_fields.feedback_form_field_type
+			AND tfff.feedback_form_id=?
+			ORDER BY tfff.feedback_form_field_rank
+       </dbquery>
+	   <dbquery name="qFeedbackForm_GetFeedbackFormData">
+			SELECT  feedback_form_id, feedback_form_title, feedback_form_header, user_id, feedback_form_status, feedback_form_display_type 
+			FROM tp_feedback_forms WHERE feedback_form_id=?
+       </dbquery>
+	   <dbquery name="qFeedbackForm_CountOpenPositionsForForm">
+			SELECT count(*) FROM tp_position_steps tps ,tp_positions tp 
+			WHERE tp.position_id=tps.position_id
+			AND tp.position_status=?
+			AND position_step_status=?
+			AND tps.feedback_form_id=?
+       </dbquery>
+	   <dbquery name="qFeedbackForm_ChangeFeedbackFormStatus">
+			UPDATE 	tp_feedback_forms SET feedback_form_status=? WHERE feedback_form_id=?
+       </dbquery>
+	   <dbquery name="qFeedbackForm_CountCommentsAgainstFields">
+			SELECT count(*) FROM tp_applicant_selection_process_traits WHERE  feedback_form_field_id IN (@@)
+       </dbquery>
+       <dbquery name="qFeedbackForm_isFeedbackFormUsed">			
+			SELECT count(*) FROM tp_applicant_selection_process_traits WHERE feedback_form_id IN (@@)
+       </dbquery>
+	   <dbquery name="qFeedbackForm_AddForm">
+			INSERT INTO tp_feedback_forms (feedback_form_title,feedback_form_header,feedback_form_display_type,user_id,
+			date_created,feedback_form_status,last_modified) VALUES(?,?,?,?,now(),?,now())
+       </dbquery>
+	   <dbquery name="qFeedbackForm_AddFormField">
+			INSERT INTO tp_feedback_form_fields(feedback_form_id, feedback_field_id, feedback_form_field_desc,
+			feedback_form_field_rank, feedback_form_field_type, rating_id,select_id, feedback_form_field_comment_required,feedback_form_field_display_type,feedback_form_field_is_mandatory)
+			VALUES(?,?,?,?,?,?,?,?,?,?)
+       </dbquery>
+	   <dbquery name="qFeedbackForm_UpdateForm">
+			UPDATE tp_feedback_forms SET feedback_form_title=?, feedback_form_header=?, last_modified=now()
+			WHERE feedback_form_id=?
+       </dbquery>
+	   <dbquery name="qFeedbackForm_DeleteFormField">
+	   		DELETE FROM tp_feedback_form_fields WHERE feedback_form_field_id=? 
+       </dbquery>
+	   <dbquery name="qFeedbackForm_UpdateFormField">
+	   		UPDATE tp_feedback_form_fields SET 
+	   		feedback_form_field_desc=?,
+	   		feedback_form_field_rank=?, rating_id=?, select_id=?, feedback_form_field_comment_required=?,
+	   		feedback_form_field_display_type = ?, feedback_form_field_is_mandatory = ?
+	   		WHERE feedback_form_field_id=?
+       </dbquery>
+       <dbquery name="qFeedbackForm_GetDefaultFeedbackFormFields">
+       		SELECT category_id as feedback_field_id, category_name as feedback_field_title, 
+			? as feedback_form_field_type, '' as feedback_form_field_desc, system_generated,
+			0 as feedback_form_field_comment_required,
+			1 as feedback_form_field_display_type, 0 as feedback_form_field_is_mandatory
+			FROM tp_feedback_field_categories WHERE system_generated=?
+			UNION
+			SELECT feedback_field_id, feedback_field_title, ? as feedback_form_field_type,
+			feedback_field_desc as feedback_form_field_desc, system_generated,
+			1 as feedback_form_field_comment_required,
+			? as feedback_form_field_display_type, 0 as feedback_form_field_is_mandatory
+			FROM tp_feedback_fields WHERE system_generated=?
+       </dbquery>              
+   </dbqueries>
+   <dataqueries>
+      <dataquery name="dFeedbackForm_GetAllFeedbackForms" dbquery="qFeedbackForm_GetAllFeedbackForms" object="com.talentPool.masters.dataobject.FeedbackFormData">
+         <attribute name="feedbackFormId"  column="feedback_form_id" type="STRING" />
+         <attribute name="feedbackFormTitle"  column="feedback_form_title" type="STRING" />
+         <attribute name="feedbackFormHeader"  column="feedback_form_header" type="STRING" />
+         <attribute name="userId"  column="user_id" type="STRING" />
+         <attribute name="feedbackFormStatus"  column="feedback_form_status" type="STRING" />
+         <attribute name="lastModified"  column="last_modified" type="STRING" />
+         <attribute name="createdBy"  column="createdBy" type="STRING" />
+      </dataquery>
+      <dataquery name="dFeedbackForm_GetFeedbackFormFields" dbquery="qFeedbackForm_GetFeedbackFormFields" object="com.talentPool.masters.dataobject.FeedbackFormFieldData">
+         <attribute name="feedbackFormFieldId"  column="feedback_form_field_id" type="STRING" />
+         <attribute name="feedbackFormId"  column="feedback_form_id" type="STRING" />
+         <attribute name="feedbackFieldId"  column="feedback_field_id" type="STRING" />
+         <attribute name="feedbackFieldTitle"  column="feedback_field_title" type="STRING" />
+         <attribute name="feedbackFormFieldDesc"  column="feedback_form_field_desc" type="STRING" />
+         <attribute name="feedbackFormFieldRank"  column="feedback_form_field_rank" type="INT" />
+         <attribute name="feedbackFormFieldType"  column="feedback_form_field_type" type="STRING" />
+         <attribute name="ratingId"  column="rating_id" type="STRING" />
+         <attribute name="multipleSelectId"  column="select_id" type="STRING" />
+         <attribute name="feedbackFormFieldCommentRequired"  column="feedback_form_field_comment_required" type="STRING" />
+         <attribute name="fieldDisplayType"  column="feedback_form_field_display_type" type="STRING" />
+         <attribute name="fieldIsMandatory"  column="feedback_form_field_is_mandatory" type="STRING" />
+         <attribute name="feedbackFieldType"  column="feedback_field_type" type="STRING" />
+         <attribute name="applicantFieldId"  column="applicant_field_id" type="STRING" />
+         <attribute name="systemGenerated"  column="system_generated" type="STRING" />
+      </dataquery>
+      <dataquery name="dFeedbackForm_GetFeedbackFormData" dbquery="qFeedbackForm_GetFeedbackFormData" object="com.talentPool.masters.dataobject.FeedbackFormData">
+         <attribute name="feedbackFormId"  column="feedback_form_id" type="STRING" />
+         <attribute name="feedbackFormTitle"  column="feedback_form_title" type="STRING" />
+         <attribute name="feedbackFormHeader"  column="feedback_form_header" type="STRING" />
+         <attribute name="userId"  column="user_id" type="STRING" />
+         <attribute name="feedbackFormStatus"  column="feedback_form_status" type="STRING" />
+         <attribute name="displayType"  column="feedback_form_display_type" type="STRING" />         
+      </dataquery>
+      
+      <dataquery name="dFeedbackForm_CountOpenPositionsForForm" dbquery="qFeedbackForm_CountOpenPositionsForForm"/>
+      <dataquery name="dFeedbackForm_ChangeFeedbackFormStatus" dbquery="qFeedbackForm_ChangeFeedbackFormStatus"/>
+      
+      <dataquery name="dFeedbackForm_CountCommentsAgainstFields" dbquery="qFeedbackForm_CountCommentsAgainstFields"/>
+      <dataquery name="dFeedbackForm_isFeedbackFormUsed" dbquery="qFeedbackForm_isFeedbackFormUsed"/>
+      
+      <dataquery name="dFeedbackForm_AddForm" dbquery="qFeedbackForm_AddForm"/>
+      <dataquery name="dFeedbackForm_AddFormField" dbquery="qFeedbackForm_AddFormField"/>
+      <dataquery name="dFeedbackForm_UpdateForm" dbquery="qFeedbackForm_UpdateForm"/>
+      
+      <dataquery name="dFeedbackForm_DeleteFormField" dbquery="qFeedbackForm_DeleteFormField"/>
+      <dataquery name="dFeedbackForm_UpdateFormField" dbquery="qFeedbackForm_UpdateFormField"/>
+      <dataquery name="dFeedbackForm_GetDefaultFeedbackFormFields" dbquery="qFeedbackForm_GetDefaultFeedbackFormFields" object="com.talentPool.masters.dataobject.FeedbackFormFieldData">
+         <attribute name="feedbackFieldId"  column="feedback_field_id" type="STRING" />
+         <attribute name="feedbackFieldTitle"  column="feedback_field_title" type="STRING" />
+         <attribute name="feedbackFormFieldDesc"  column="feedback_form_field_desc" type="STRING" />
+         <attribute name="feedbackFormFieldType"  column="feedback_form_field_type" type="STRING" />
+         <attribute name="feedbackFormFieldCommentRequired"  column="feedback_form_field_comment_required" type="STRING" />
+         <attribute name="fieldDisplayType"  column="feedback_form_field_display_type" type="STRING" />
+         <attribute name="fieldIsMandatory"  column="feedback_form_field_is_mandatory" type="STRING" />
+         <attribute name="systemGenerated"  column="system_generated" type="STRING" />
+      </dataquery>
+   </dataqueries>   
+</dbmap>

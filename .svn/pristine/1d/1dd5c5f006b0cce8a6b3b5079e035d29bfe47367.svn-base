@@ -1,0 +1,2531 @@
+<%@page import="java.net.URLEncoder"%>
+<%@page import="com.talentPool.custom.dataobject.CustomFieldCell"%>
+<%@page import="com.talentPool.custom.dataobject.CustomFieldRow"%>
+<%@page import="com.talentPool.custom.dataobject.CustomFieldTable"%>
+<%@ taglib uri="/WEB-INF/tld/struts-html.tld" prefix="html"%>
+<%@ taglib uri="/WEB-INF/tld/struts-bean.tld" prefix="bean"%>
+<%@ taglib uri="/WEB-INF/tld/struts-logic.tld" prefix="logic"%>
+<%@ page import="org.apache.struts.Globals"%>
+<%@ page import="com.talentPool.applicant.form.ApplicantForm,com.talentPool.applicant.ApplicantConstants,com.talentPool.common.utils.CommonUtils,com.talentPool.common.NavigationConstants,com.talentPool.common.properties.TPApplicationProperties"%>
+<%@ page import="java.util.ArrayList"%>
+<%@ page import="com.talentPool.custom.dataobject.CustomFieldData"%>
+<%@page import="com.talentPool.applicant.manager.ImportConfigurationManager"%>
+<%@page import="com.talentPool.applicant.dataobject.ImportFieldData"%>
+<%@page import="com.talentPool.applicant.constants.ImportConfigurationConstants"%>
+<%@page import="com.talentPool.custom.constants.CustomFieldConstants"%>
+<%@page import="com.talentPool.custom.utils.CustomFieldUtils"%>
+<%@page import="com.talentPool.common.properties.GlobalApplicationProperties" %>
+<%@page import="com.talentPool.common.utils.Utils"%>
+<%@page import="com.talentPool.masters.constants.RecentlyUsedSourceConstants"%>
+<%@page import="com.talentPool.common.db.SimpleDataObject"%>
+<%@page import="com.talentPool.common.properties.GlobalConstants"%>
+<%@page import="com.talentPool.user.manager.PermissionSet"%><style>
+	.educationT {border:1px solid #99CC33;border-left:0px; border-collapse: collapse;}
+	.educationT TD{padding-left:1px; padding-right:1px;background:#FFFFFF; padding-top: 2px; padding-bottom: 1px;}
+	.educationT TD.header{border-bottom:1px solid #F9FCF3;color: #666666;background:#D0E4A3;}
+	.educationT TD.headerBottom{background:#99CC33;height:2px;}
+	.tabinput td {
+	position:relative;
+	}
+
+.tabinput td .calDiv {
+	top: 20px !important;
+}
+</style>
+<link rel="stylesheet" type="text/css" href="themes/default/calender.css"/>
+<link rel="stylesheet" type="text/css" href="themes/default/autoComplete.css"/>
+<link rel="stylesheet" type="text/css" href="themes/default/CalendarPopup.css"/>
+<script language="JavaScript" src="js/calender/CalendarPopup.js"></script>		
+<script language="JavaScript" src="js/scripta/lib/prototype.js" type="text/javascript"></script>
+<script language="JavaScript" src="js/scripta/src/effects.js" type="text/javascript"></script>
+<script language="JavaScript" src="js/scripta/src/controls.js" type="text/javascript"></script>
+
+<script language="JavaScript" src="js/commonFunctions.js" type="text/javascript"></script>
+<script language="JavaScript" src="js/ajaxfunctions.js" type="text/javascript"></script>
+<script language="JavaScript" src="js/calender/dateFormatter.js" type="text/javascript"></script>
+<script language="JavaScript" src="js/calender/monthYearCalender.js" type="text/javascript"></script>
+<script language="JavaScript" src="js/selectoption.js" type="text/javascript"></script>
+<script language="JavaScript" src="js/selectbox/selectbox.js" type="text/javascript"></script>
+<script language="JavaScript" src="js/utils/updater.js" type="text/javascript"></script>
+<script language="JavaScript" src="js/customfields/customfield.js"></script>
+<script language="JavaScript" src="js/customfields/customfieldvalidator.js"></script>
+<script language="JavaScript" src="js/checkboxlist/checkboxlist.js" type="text/javascript"></script>
+<script language="JavaScript" src="js/checkboxandradiogroup/checkboxradiogroup.js" type="text/javascript"></script>
+<% ArrayList customFields = (ArrayList)request.getAttribute("customFields"); %>
+<% ArrayList customTables = (ArrayList)request.getAttribute("customTables"); %>
+<script>
+<%=CustomFieldUtils.getArrayForCustomFields(customFields)%>
+</script>
+<%
+	ApplicantForm applicantForm = (ApplicantForm) request.getAttribute("applicantForm");
+
+	PermissionSet permissionSet 		= (PermissionSet)request.getSession(false).getAttribute("permissionSet");
+	boolean currentCTCViewable 			= true;
+	boolean expectedCTCViewable 		= true;
+	
+	if("add".equals(applicantForm.getSubMode())){
+		currentCTCViewable  = true;
+		expectedCTCViewable = true;
+	}else if("edit".equals(applicantForm.getSubMode())){
+		currentCTCViewable  = ImportConfigurationManager.isCurrentCTCViewable(permissionSet);
+		expectedCTCViewable = ImportConfigurationManager.isExpectedCTCViewable(permissionSet);
+	}
+	
+	pageContext.setAttribute("currentCTCViewable",currentCTCViewable);
+	pageContext.setAttribute("expectedCTCViewable",expectedCTCViewable);
+	
+	int totalEduRows = 0;
+	int totalEmpHistRows = 0;
+	ArrayList importFields = ImportConfigurationManager.getImportFields();
+	ArrayList degreeIds = applicantForm.getDegreeIds();
+	ArrayList degreeNames = applicantForm.getDegreeNames();
+	ArrayList branchIds = CommonUtils.getBranchIds();
+	ArrayList branchNames = CommonUtils.getBranchNames();
+	
+		
+%>
+<script language="JavaScript">
+var selectBoxSource=null;
+var selectBoxDegree=null;
+var selectBoxBranch=null;
+var selectBoxResumeType=null;
+var selectBoxEmployeeSource=null;
+
+var degreeControls = new Array();
+var degreeOptions = <%=CommonUtils.getListJavaScriptArray(degreeIds,degreeNames)%>;
+var m = [new SelectOption('-1','')];
+degreeOptions = m.concat(degreeOptions);
+
+var branchControls = new Array();
+var branchOptions = <%=CommonUtils.getListJavaScriptArray(branchIds,branchNames)%>;
+m = [new SelectOption('-1','')];
+
+var frm = document.applicantForm;
+branchOptions = m.concat(branchOptions);
+
+function submitForm(saveAndContinue){
+	if(validateForm()){
+		setFormFields(saveAndContinue);
+		showUpdater('submit',{setHeight: false, setWidth: false, offsetLeft: -50});
+		if($('saveandcontinue')){
+			Element.hide('saveandcontinue');					
+		}
+		if($('checkForDuplicates')){
+			Element.hide('checkForDuplicates');					
+		}
+		frm.submit();
+	}
+	return;
+}
+
+function setFormFields(saveAndContinue) {
+		if(degreeControls.length>1){
+			for(var i=0; i<degreeControls.length; i++){
+				frm.educationDegreeId[i].value=degreeControls[i][1].getSelectedId();
+				frm.educationMajorId[i].value=branchControls[i][1].getSelectedId();
+			}
+		}else{
+			if(degreeControls[0]!=null){
+			frm.educationDegreeId.value=degreeControls[0][1].getSelectedId();
+			frm.educationMajorId.value=branchControls[0][1].getSelectedId();
+			}
+		}
+		
+		<logic:equal property="subMode" name="applicantForm" value="add">
+		<%if(ImportConfigurationManager.isImportFieldShow(ImportConfigurationConstants.FIELD_SOURCE)){%>
+			var srcId = selectBoxSource.getSelectedId();
+			if(srcId=='0'){
+				srcId = frm.sourceId.value;
+				frm.isEmployeeSource.value='1';
+				frm.vendorId.value='';
+			}else{
+				if(selectBoxEmployeeSource.getSelectedId() &&  selectBoxEmployeeSource.getSelectedId()!='-1'){
+					frm.vendorId.value=selectBoxEmployeeSource.getSelectedId();
+				}else{
+					frm.vendorId.value='';
+				}
+			}
+			frm.sourceId.value=srcId;
+		<%}%>
+		<%if(ImportConfigurationManager.isImportFieldShow(ImportConfigurationConstants.FIELD_RESUME_TYPE)){%>
+			if(selectBoxResumeType.getSelectedId()!='-1'){
+				frm.resumeTypeId.value = selectBoxResumeType.getSelectedId();
+			}
+		<%}%>
+		</logic:equal>
+		
+		<logic:equal property="subMode" name="applicantForm" value="edit">
+		<%if(ImportConfigurationManager.isEditFieldShow(ImportConfigurationConstants.FIELD_SOURCE)){%>
+			var srcId = selectBoxSource.getSelectedId();
+			if(srcId=='0'){
+				srcId = frm.sourceId.value;
+				frm.isEmployeeSource.value='1';
+				frm.vendorId.value='';
+			}else{
+				if(selectBoxEmployeeSource.getSelectedId() &&  selectBoxEmployeeSource.getSelectedId()!='-1'){
+					frm.vendorId.value=selectBoxEmployeeSource.getSelectedId();
+				}else{
+					frm.vendorId.value='';
+				}
+			}
+			frm.sourceId.value=srcId;
+		<%}%>
+		<%if(ImportConfigurationManager.isImportFieldShow(ImportConfigurationConstants.FIELD_RESUME_TYPE)){%>
+			if(selectBoxResumeType.getSelectedId()!='-1'){
+				frm.resumeTypeId.value = selectBoxResumeType.getSelectedId();
+			}
+		<%}%>
+		</logic:equal>
+	frm.saveNcontinue.value=saveAndContinue;
+}
+
+function checkForDuplicates() {
+	validCustomfields('<%=CustomFieldConstants.DEFAULT_SELECT_OPTION%>', '<%=CustomFieldConstants.TYPE_DROPDOWN%>', '<%=CustomFieldConstants.TYPE_LISTBOX%>', '<%=CustomFieldConstants.TYPE_CHECKBOX%>', '<%=CustomFieldConstants.TYPE_RADIO%>', false);
+	setFormFields('2');
+	frm.mode.value='checkForDuplicates';
+	showUpdater('submit',{setHeight: false, setWidth: false, offsetLeft: -50});
+	if($('saveandcontinue')){
+		Element.hide('saveandcontinue');					
+	}
+	if($('checkForDuplicates')){
+		Element.hide('checkForDuplicates');					
+	}
+	frm.submit();
+	return true;
+}
+
+function validateForm(){
+	validCustomfields('<%=CustomFieldConstants.DEFAULT_SELECT_OPTION%>', '<%=CustomFieldConstants.TYPE_DROPDOWN%>', '<%=CustomFieldConstants.TYPE_LISTBOX%>', '<%=CustomFieldConstants.TYPE_CHECKBOX%>', '<%=CustomFieldConstants.TYPE_RADIO%>', false);
+	if(document.applicantForm.isEmpApply.value == "1" && $("employeeCode") && $("employeeCode").value.trim() == "") {
+		alert("<bean:message key="common.please_enter" /> <bean:message key="common.emp_code" />");
+		return false;
+	}
+	if(!validateFieldLengths()){
+		return false;
+	}
+	var matchedPositionPhone = frm.applicantHomePhone.value.trim().search(/[a-z]/i);
+	
+	if(matchedPositionPhone != -1) {
+	    alert("<bean:message key="common.please_enter" /> correct <bean:message key="common.phone1" />");
+	    frm.applicantHomePhone.focus();
+		return false;
+	}
+	
+	matchedPositionPhone = frm.applicantWorkPhone.value.trim().search(/[a-z]/i);
+	
+	if(matchedPositionPhone != -1) {
+	    alert("<bean:message key="common.please_enter" /> correct <bean:message key="common.phone2" />");
+	    frm.applicantHomePhone.focus();
+		return false;
+	}
+	
+	matchedPositionPhone = frm.applicantCellPhone.value.trim().search(/[a-z]/i);
+	
+	if(matchedPositionPhone != -1) {
+	    alert("<bean:message key="common.please_enter" /> correct <bean:message key="common.mobile" />");
+	    frm.applicantHomePhone.focus();
+		return false;
+	}
+	<%
+	for(int j=0; j<importFields.size();j++){
+		ImportFieldData fieldData = (ImportFieldData)importFields.get(j);
+		String fieldId = fieldData.getFieldId();
+		String fieldType = fieldData.getFieldType();
+		String showValue = fieldData.getFieldImportShow();
+		String mandatory = fieldData.getFieldImportMandatory();
+		%>
+		<logic:equal property="subMode" name="applicantForm" value="edit">
+		<% showValue = fieldData.getFieldEditShow(); %>
+		</logic:equal>
+		<%
+		if(showValue.equals(ImportConfigurationConstants.FIELD_SHOW) && mandatory.equals(ImportConfigurationConstants.FIELD_MANDATORY)){						
+			if(fieldType.equals(ImportConfigurationConstants.FIELD_TYPE_NORMAL)){
+				if(fieldId.equals(ImportConfigurationConstants.FIELD_NAME)){
+					%>
+					if(frm.applicantName.value.trim()==""){
+						alert("<bean:message key="common.please_enter" /> <bean:message key="common.name" />");
+						frm.applicantName.focus();
+						return false;
+					}
+					<%
+				}
+				if(fieldId.equals(ImportConfigurationConstants.FIELD_EMAIL1)){
+					%>
+					if(frm.applicantEmail1.value.trim()==""){
+						alert("<bean:message key="common.please_enter" /> <bean:message key="common.email1" />");
+						frm.applicantEmail1.focus();
+						return false;
+					}
+					<%
+				}
+				if(fieldId.equals(ImportConfigurationConstants.FIELD_EMAIL2)){
+					%>
+					if(frm.applicantEmail2.value.trim()==""){
+						alert("<bean:message key="common.please_enter" /> <bean:message key="common.email2" />");
+						frm.applicantEmail2.focus();
+						return false;
+					}
+					<%
+				}
+				if(fieldId.equals(ImportConfigurationConstants.FIELD_PHONE1)){
+					%>
+				
+					if(frm.applicantHomePhone.value.trim()==""){
+						alert("<bean:message key="common.please_enter" /> <bean:message key="common.phone1" />");
+						frm.applicantHomePhone.focus();
+						return false;
+					}
+					var matchedPosition = frm.applicantHomePhone.value.trim().search(/[a-z]/i);
+		
+					if(matchedPosition != -1) {
+					    alert("<bean:message key="common.please_enter" /> correct <bean:message key="common.phone1" />");
+					    frm.applicantHomePhone.focus();
+						return false;
+					}
+					<%
+				}
+				if(fieldId.equals(ImportConfigurationConstants.FIELD_PHONE2)){
+					%>
+					if(frm.applicantWorkPhone.value.trim()==""){
+						alert("<bean:message key="common.please_enter" /> <bean:message key="common.phone2" />");
+						frm.applicantWorkPhone.focus();
+						return false;
+					}
+					var matchedPosition = frm.applicantWorkPhone.value.trim().search(/[a-z]/i);
+					
+					if(matchedPosition != -1) {
+					    alert("<bean:message key="common.please_enter" /> correct <bean:message key="common.phone2" />");
+					    frm.applicantHomePhone.focus();
+						return false;
+					}
+					<%
+				}
+				if(fieldId.equals(ImportConfigurationConstants.FIELD_MOBILE)){
+					%>
+					if(frm.applicantCellPhone.value.trim()==""){
+						alert("<bean:message key="common.please_enter" /> <bean:message key="common.mobile" />");
+						frm.applicantCellPhone.focus();
+						return false;
+					}
+					var matchedPosition = frm.applicantCellPhone.value.trim().search(/[a-z]/i);
+					
+					if(matchedPosition != -1) {
+					    alert("<bean:message key="common.please_enter" /> correct <bean:message key="common.mobile" />");
+					    frm.applicantHomePhone.focus();
+						return false;
+					}
+					<%
+				}
+				if(fieldId.equals(ImportConfigurationConstants.FIELD_SOURCE)){
+					%>
+					if(selectBoxSource.getSelectedId()=="-1"){
+						alert('<bean:message key="common.please_select" /> <bean:message key="common.source" />');
+						selectBoxSource.setFocus();
+						return false;
+					}
+					if(selectBoxSource.getSelectedId()=="0"){
+						if(frm.sourceId.value==""){
+							alert('<bean:message key="create_applicant.error.select_employee_referrals" />');
+							return false;
+						}
+					}
+	
+					<%
+				}
+				if(fieldId.equals(ImportConfigurationConstants.FIELD_CURRENT_LOCATION)){
+					%>
+					if(frm.applicantCity.value.trim()==""){
+						alert("<bean:message key="common.please_enter" /> <bean:message key="common.current_location" />");
+						frm.applicantCity.focus();
+						return false;
+					}
+					<%
+				}
+				if(fieldId.equals(ImportConfigurationConstants.FIELD_SKILLS)){
+					%>
+					if(frm.primarySkillIds.value.trim()==""){
+						alert("<bean:message key="common.please_enter" /> <bean:message key="common.skills" />");
+						frm.rawPrimarySkills.focus();
+						return false;
+					}
+					<%
+				}
+				if(fieldId.equals(ImportConfigurationConstants.FIELD_EDUCATION)){
+					%>
+					var rowPresent = false;
+					ctlcnt=0;
+					for(var z=0; z<=eduCount; z++){
+						if($('educationYearOfPassing['+z+']')){
+							if($('educationYearOfPassing['+z+']').value.trim()!='' || 
+								$('educationInstitute['+z+']').value.trim()!='' ||
+								degreeControls[ctlcnt][1].getSelectedId()!='-1' ||
+								branchControls[ctlcnt][1].getSelectedId()!='-1' ||
+								$('educationalGrade['+z+']').value.trim()!='' ||
+								$('fromYear['+z+']').value.trim()!='' /* ||
+								$('remarks['+z+']').value.trim()!='' */){
+								ctlcnt++;
+								rowPresent = true;
+							}
+						}
+					}
+					if(!rowPresent){
+						alert("<bean:message key="common.please_enter" /> <bean:message key="common.education" />");
+						return false;
+					}
+					<%
+				}
+				if(fieldId.equals(ImportConfigurationConstants.FIELD_EXPERIENCE)){
+					%>
+					if(document.applicantForm.fresher.value!="1"){
+						if(document.applicantForm.applicantWorkingSince.value==""){
+							//alert("<bean:message key="common.please_enter" /> <bean:message key="common.working_since" /> <bean:message key="common.date" /> ");
+							alert("<bean:message key="common.please_enter" /> <bean:message key="common.total_experience" /> in yy.mm years");
+							document.applicantForm.applicantWorkingSince.focus();
+							return false;
+						}
+					}
+					<%
+				}				
+				if(fieldId.equals(ImportConfigurationConstants.FIELD_CURRENT_CTC)){
+					%>
+					if(frm.currentCTC && frm.currentCTC.value.trim()==""){
+						alert("<bean:message key="common.please_enter" /> <bean:message key="common.current_ctc" />");
+						frm.currentCTC.focus();
+						return false;
+					}
+					<%
+				}
+				if(fieldId.equals(ImportConfigurationConstants.FIELD_EXPECTED_CTC)){
+					%>
+					if(frm.expectedCTC && frm.expectedCTC.value.trim()==""){
+						alert("<bean:message key="common.please_enter" /> <bean:message key="common.expected_ctc" />");
+						frm.expectedCTC.focus();
+						return false;
+					}
+					<%
+				}
+				if(fieldId.equals(ImportConfigurationConstants.FIELD_NOTICE_PERIOD)){
+					%>
+					if(frm.timeToJoin.value.trim()==""){
+						alert("<bean:message key="common.please_enter" /> <bean:message key="common.notice_period" />");
+						frm.timeToJoin.focus();
+						return false;
+					}
+					<%
+				}
+				
+				if(fieldId.equals(ImportConfigurationConstants.FIELD_DATE_OF_BIRTH)){
+					%>
+					if(frm.dateOfBirth.value.trim()==""){
+						alert("<bean:message key="common.please_enter" /> <bean:message key="common.date_of_birth" />");
+						frm.dateOfBirth.focus();
+						return false;
+					}
+					<%
+				}
+				
+				if(fieldId.equals(ImportConfigurationConstants.FIELD_PASSPORT_NUMBER)){
+					%>
+					if(frm.passportNumber.value.trim()==""){
+						alert("<bean:message key="common.please_enter" /> <bean:message key="common.passport_number" />");
+						frm.passportNumber.focus();
+						return false;
+					}
+					<%
+				}
+				
+				if(fieldId.equals(ImportConfigurationConstants.FIELD_RESUME_TYPE)){
+					%>
+					if(selectBoxResumeType.getSelectedId()=="-1"){
+						alert('<bean:message key="common.please_select" /> <bean:message key="common.resume_type" />');
+						selectBoxResumeType.setFocus();
+						return false;
+					}
+					<%
+				}
+				
+				if(fieldId.equals(ImportConfigurationConstants.FIELD_NOTE)){
+					%>
+					<logic:equal property="subMode" name="applicantForm" value="add">
+					if(frm.applicantNote.value.trim()==""){
+						alert("<bean:message key="common.please_enter" /> <bean:message key="common.note" />");
+						frm.applicantNote.focus();
+						return false;
+					}
+					</logic:equal>
+					<%
+				}
+				
+				if(fieldId.equals(ImportConfigurationConstants.FIELD_EMPLOYMENT_HISTORY)){
+					%>
+					var rowPresent = false;
+					ctlcnt=0;
+					for(var k=0; k<=empHistoryCount; k++){
+						if($('employmentFromDate['+k+']')){
+							if($('employmentToDate['+k+']').value.trim()!='' || 
+								$('employmentEmployerId['+k+']').value.trim()!='' ||
+								$('employmentDesignationId['+k+']').value.trim()!='' ||
+								$('employmentExperience['+k+']').value.trim()!='' ||
+							/* 	$('grossSalary['+k+']').value.trim()!='' ||
+								$('allowance['+k+']').value.trim()!='' || */
+								/* $('reasonForLeaving['+k+']').value.trim()!=''||
+								$('dutiesInvolved['+k+']').value.trim()!=''|| */
+							){
+								ctlcnt++;
+								rowPresent = true;
+							}
+						}
+					}
+					if(!rowPresent){
+						alert("<bean:message key="common.please_enter" /> <bean:message key="common.employer" />");
+						return false;
+					}
+					<%
+				}
+			}else {
+				//validate custom fields			
+				for (int c = 0; customFields != null && c < customFields.size(); c++) {
+					CustomFieldData data = (CustomFieldData)customFields.get(c);
+					if (fieldId.equals(data.getFieldName()) && showValue.equals(ImportConfigurationConstants.FIELD_SHOW) && mandatory.equalsIgnoreCase(ImportConfigurationConstants.FIELD_MANDATORY)) {						
+						%>
+						if($('<%=data.getFieldName()%>').value == '') {
+							alert("<bean:message key="common.please_enter" /> <%=data.getFieldDisplayName()%>");
+							return false;
+						}		
+						<%
+					}
+				}
+			}
+		}
+	}
+	%>	
+	for(var z=0;z<=eduCount;z++){
+		if($('fromYear['+z+']')!=null && $('educationYearOfPassing['+z+']') != null &&  $('fromYear['+z+']').value.trim()!='' && $('educationYearOfPassing['+z+']').value.trim()!='' && $('fromYear['+z+']').value > $('educationYearOfPassing['+z+']').value){
+			alert("from year should be less than year of passing");
+			$('fromYear['+z+']').focus();
+			return false;
+		}	
+	}
+	return true;	
+}
+
+function validateFieldLengths(){
+	var errors = '';
+	errors = validateFieldLength(100,frm.applicantName,'<bean:message key="common.name" />',errors);
+	errors =validateFieldLength(50,frm.applicantEmail1,'<bean:message key="common.email1" />',errors);
+	errors =validateFieldLength(50,frm.applicantEmail2,'<bean:message key="common.email2" />',errors);
+	errors =validateFieldLength(25,frm.applicantHomePhone,'<bean:message key="common.phone1" />',errors);
+	errors =validateFieldLength(25,frm.applicantWorkPhone,'<bean:message key="common.phone2" />',errors);
+	errors =validateFieldLength(25,frm.applicantCellPhone,'<bean:message key="common.mobile" />',errors);
+	errors =validateFieldLength(50,frm.applicantCity,'<bean:message key="common.current_location" />',errors);	
+	errors =validateFieldLength(10,frm.currentCTC,'<bean:message key="common.current_ctc" />',errors);
+	errors =validateFieldLength(10,frm.expectedCTC,'<bean:message key="common.expected_ctc" />',errors);
+	errors =validateFieldLength(10,frm.passportNumber,'<bean:message key="common.passport_number" />',errors);
+	if(errors.length>0){
+		alert(errors);
+		return false;
+	}
+	else{
+		return true;
+	}	
+}
+function validateFieldData(){
+	
+}
+function addError(errors, error) {
+	if (errors.length > 0) {
+		errors += '\n';
+	}
+	errors += error;
+	return errors;
+}
+
+function validateFieldLength(length, field,fieldLabel,errors){
+	if(field != undefined && field.value.length > length){
+			errors = addError(errors, '- '+'<bean:message key="add_applicant.errors.max_characters_allowed" /> '+fieldLabel+" is equal to "+length);
+			field.focus();
+	}
+	return errors;
+}
+
+function cancelForm(){
+	window.close();
+}
+
+var eduStr = '';
+var empHistoryStr = '';
+</script>
+
+	<div class="contentDiv" style="margin: 20px 0px 0px 10px;">
+	<%
+	if (request.getAttribute(Globals.ERROR_KEY) != null) {
+		System.out.println(request.getAttribute(Globals.ERROR_KEY));
+	%>
+	<table id="m_errortable">
+		<tr>
+			<td class="header"><b><bean:message
+				key="errors.following_errors" /></b></td>
+		</tr>
+		<tr>
+			<td><html:errors /></td>
+		</tr>
+	</table>
+	<br/>
+	<%
+	}
+	%>
+	<%
+	if (request.getAttribute("parsingError") != null) {
+		System.out.println(request.getAttribute(Globals.ERROR_KEY));
+	%>
+	<table id="m_errortable">
+		<tr>
+			<td class="header"><b><bean:message
+				key="errors.following_errors" /></b></td>
+		</tr>
+		<tr>
+			<td></br></br><%=(String)request.getAttribute("parsingError") %></td>
+		</tr>
+	</table>
+	<br/>
+	<%
+	}
+	%>
+	<table border="0" cellspacing="0" cellpadding="0">
+		<tr>
+			<td>
+			<div style="width:140px;" class="boxTab"><span class="rightC"></span><span
+				class="leftC"></span>&nbsp;<strong><bean:message
+				key="add_applicant.label.import" /></strong></div>
+			</td>
+			<td style="padding-left:10px;" valign="top">
+				<logic:present name="messageData" scope="request">
+				<strong>
+					<bean:message key="create_applicant.label.use_as_resume" />				
+				</strong>
+				<img src="images/checkedradiobutton.gif" name="rdo" id="img_0" onclick="onRadioChange('rdo',0)" />&nbsp;
+					<bean:message key="inbox.import.content1" />&nbsp;&nbsp;
+				<logic:iterate id="att" name="messageData" property="attachments" scope="request">
+					<img src="images/radiobutton.gif" name="rdo" id='img_<bean:write name="att" property="attachmentId"/>' onclick="onRadioChange('rdo','<bean:write name="att" property="attachmentId"/>');"/>&nbsp;
+					<bean:write name="att" property="originalFileName" />&nbsp;&nbsp;
+				</logic:iterate>
+				</logic:present>
+				<logic:present name="documents" scope="request">
+					<strong>Use as resume : </strong>
+					<logic:iterate id="document" name="documents" scope="request" indexId="cnt" type="SimpleDataObject">					
+						<img 
+							<logic:equal name="applicantForm" property="originalResumePath" value='<%=document.getString("documentPath").substring(0, document.getString("documentPath").lastIndexOf(".")) + ".html"%>'>
+							src="images/checkedradiobutton.gif" 
+							</logic:equal>
+							<logic:notEqual name="applicantForm" property="originalResumePath" value='<%=document.getString("documentPath")%>'>
+							src="images/radiobutton.gif" 
+							</logic:notEqual>
+						name="rdo" id='img_<%=document.getString("documentPath")%>' onclick="onRadioChange('rdo','<%=document.getString("documentPath")%>');"/>&nbsp;
+						<logic:equal name="cnt" value="0">
+							<bean:message key="inbox.import.content3" />&nbsp;&nbsp;		
+						</logic:equal>
+						<logic:notEqual name="cnt" value="0">
+							<bean:message key="inbox.import.content4" />&nbsp;&nbsp;	
+						</logic:notEqual>
+					</logic:iterate>
+				</logic:present>
+			</td>
+		</tr>
+	</table>
+	<table cellspacing="0" cellpadding="0" border="0">
+		<tr>
+			<td>
+			<html:form action="/importResume" focus="sourceId">
+				<div class="bottomDiv">
+				<div class="outerDiv" style="width:500px;height:620px; overflow: auto; ">
+
+				<div id="divCalender" class="myCalender"></div>
+				<div id="autocomplete" class="autocomplete"></div>
+
+			<html:hidden property="mode" value="addApplicant" /> 
+			<html:hidden property="t" name="applicantForm" /> 
+			<html:hidden property="selAttachment" name="applicantForm" /> 
+			<html:hidden property="emailId" name="applicantForm" /> 
+			<html:hidden property="applicantId" name="applicantForm" /> 
+			<html:hidden property="cancelled" name="applicantForm" /> 
+			<html:hidden property="sourceId" name="applicantForm" />
+			<html:hidden property="resumeTypeId" name="applicantForm" /> 
+			<html:hidden property="primarySkillIds" name="applicantForm" /> 
+			<html:hidden property="primarySkills" name="applicantForm" /> 
+			<html:hidden property="originalResumePath" name="applicantForm" /> 
+			<html:hidden property="fresher" name="applicantForm" />
+			<html:hidden property="confidential" name="applicantForm" /> 
+			<html:hidden property="subMode" name="applicantForm" /> 
+			<html:hidden property="saveNcontinue" name="applicantForm" value="0" />
+			<html:hidden property="uploadedFilePath" name="applicantForm"/>
+			<html:hidden property="vendorId" name="applicantForm" />
+			<html:hidden property="isEmployeeSource" name="applicantForm" />
+			<html:hidden property="parse" name="applicantForm" value=""/>
+			<html:hidden property="requestSource" name="applicantForm"/>
+			<html:hidden property="resultId" name="applicantForm"/>
+			<html:hidden property="sessionId" name="applicantForm"/>
+			<html:hidden property="ieImport" name="applicantForm"/>
+			<html:hidden property="isEmpApply" name="applicantForm"/>
+			<html:hidden property="uuid" name="applicantForm"/>
+			<html:hidden property="applicantTextResume" name="applicantForm"/>
+		
+			<logic:equal property="subMode" name="applicantForm" value="edit">
+				<%
+
+					for(int j=0; j<importFields.size();j++){
+						ImportFieldData fieldData = (ImportFieldData)importFields.get(j);
+						String fieldId = fieldData.getFieldId();
+						String fieldType = fieldData.getFieldType();
+						String showValue = fieldData.getFieldImportShow();
+						String editValue = fieldData.getFieldEditShow();
+						if(showValue.equals(ImportConfigurationConstants.FIELD_SHOW) && editValue.equals(ImportConfigurationConstants.FIELD_NOT_EDIT)){
+							if(fieldId.equals(ImportConfigurationConstants.FIELD_CURRENT_LOCATION)){
+							%>
+								<html:hidden property="applicantCity" name="applicantForm"/>				
+							<%
+							}							
+							if(fieldId.equals(ImportConfigurationConstants.FIELD_CURRENT_CTC)){
+							%>
+								<html:hidden property="currentCTC" name="applicantForm"/>				
+							<%
+							}
+							if(fieldId.equals(ImportConfigurationConstants.FIELD_EXPECTED_CTC)){
+							%>
+								<html:hidden property="expectedCTC" name="applicantForm"/>				
+							<%
+							}
+							if(fieldId.equals(ImportConfigurationConstants.FIELD_NOTICE_PERIOD)){
+							%>
+								<html:hidden property="noticePeriod" name="applicantForm"/>				
+							<%
+							}
+							if(fieldId.equals(ImportConfigurationConstants.FIELD_EDUCATION)){
+								String[] educationYearOfPassing = applicantForm.getEducationYearOfPassing();
+								String[] educationInstitute = applicantForm.getEducationInstitute();
+								String[] educationDegreeId = applicantForm.getEducationDegreeId();
+								String[] educationMajorId = applicantForm.getEducationMajorId();
+								String[] educationalGrade = applicantForm.getEducationalGrade();
+								/* String[] fromYear = applicantForm.getFromYear(); */
+								/* String[] remarks = applicantForm.getRemarks(); */
+								for (int i = 0; educationYearOfPassing != null && i < educationYearOfPassing.length; i++) {
+									%>
+									<%-- <input type="hidden" name="fromYear"
+										value="<%=fromYear[i] %>" /> --%>
+									<input type="hidden" name="educationYearOfPassing"
+										value="<%=educationYearOfPassing[i] %>" />
+									<input type="hidden" name="educationInstitute"
+										value="<%=educationInstitute[i] %>" />
+									<input type="hidden" name="educationDegreeId"
+										value="<%=educationDegreeId[i] %>" />
+									<input type="hidden" name="educationMajorId"
+										value="<%=educationMajorId[i] %>" />
+									<input type="hidden" name="educationalGrade"
+										value="<%=educationalGrade[i] %>" />
+									<%-- <input type="hidden" name="remarks"
+										value="<%=remarks[i] %>" /> --%>
+									<%}}
+								if(fieldId.equals(ImportConfigurationConstants.FIELD_EMPLOYMENT_HISTORY)){								
+									String[] employmentFromDate = applicantForm.getEmploymentFromDate();
+								 	String[] employmentToDate = applicantForm.getEmploymentToDate();
+								 	String[] employmentEmployerId = applicantForm.getEmploymentEmployerId();
+								 	String[] employmentDesignationId = applicantForm.getEmploymentDesignationId();
+								 	String[] employmentExperience = applicantForm.getEmploymentExperience();
+								 /* 	String[] allowance = applicantForm.getAllowance(); */
+								 	/* String[] reasonForLeaving = applicantForm.getReasonForLeaving(); */
+								 	/* String[] grossSalary = applicantForm.getGrossSalary(); */
+								 	/* String[] dutiesInvolved = applicantForm.getDutiesInvolved(); */
+								 	for (int i = 0; employmentFromDate != null && i < employmentFromDate.length; i++){
+								%>
+							 		<input type="hidden" name="employmentFromDate" value="<%=employmentFromDate[i]%>" />
+							 		<input type="hidden" name="employmentToDate" value="<%=employmentToDate[i]%>" />
+							 		<input type="hidden" name="employmentEmployerId" value="<%=employmentEmployerId[i]%>" />
+							 		<input type="hidden" name="employmentDesignationId" value="<%=employmentDesignationId[i]%>" />
+							 		<input type="hidden" name="employmentExperience" value="<%=employmentExperience[i]%>" />
+							 		<%-- <input type="hidden" name="grossSalary" value="<%=grossSalary[i]%>" />
+							 		<input type="hidden" name="allowance" value="<%=allowance[i]%>" /> --%>
+							 		<%-- <input type="hidden" name="dutiesInvolved" value="<%=dutiesInvolved[i]%>" />
+							 		<input type="hidden" name="reasonForLeaving" value="<%=reasonForLeaving[i]%>" /> --%>
+							 	<% }
+								}
+							}
+						}	%>
+				</logic:equal>
+				
+			<br />
+			<%
+				if(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_EMPLOYEE_CAN_APPLY_FOR_JOB).equalsIgnoreCase(GlobalConstants.ENABLED)) {
+			%>
+			<table class="tabinput">
+				<tr>
+					<td class="label" style="width: 130px;height:20px;" >
+						<bean:message key="common.is_emp_apply" />
+						:
+					</td>
+					<td width="250px;">
+						<img src="images/checkboxunchecked.gif" id="cboIsEmpApply" onclick="toggleEmployeeApply()" style="margin-bottom: -2px;" />						
+					</td>
+				</tr>
+				<tr id="empCodeDiv" style="display:none;">	
+					<td class="label" style="width: 130px;" >
+						<bean:message key="common.emp_code" />
+						:
+					</td>
+					<td width="250px;">
+						<html:text property="employeeCode" styleId="employeeCode" name="applicantForm" size="5" styleClass="Grey" maxlength="100" />
+					</td>
+				</tr>
+			</table>
+			<%
+				}
+			%>
+			<%
+				for(int j=0; j<importFields.size();j++){
+					ImportFieldData fieldData = (ImportFieldData)importFields.get(j);
+					String fieldId = fieldData.getFieldId();
+					String fieldType = fieldData.getFieldType();
+					String showValue = fieldData.getFieldImportShow();
+					String isMandatory = fieldData.getFieldImportMandatory();
+			%>
+						<logic:equal property="subMode" name="applicantForm" value="edit">
+						<%
+							showValue = fieldData.getFieldEditShow();
+						%>
+						</logic:equal>
+						<%if(showValue.equals(ImportConfigurationConstants.FIELD_SHOW)){						
+							if(fieldType.equals(ImportConfigurationConstants.FIELD_TYPE_NORMAL)){
+								if(fieldId.equals(ImportConfigurationConstants.FIELD_NAME)){
+						%>
+								<table class="tabinput">
+								<tr>
+									<td	style="width: 130px;" <html:errormap property="name_required" errorStyleClass="labelError" styleClass="label"/>>
+											<bean:message key="common.name" />
+											<span class="star">*</span>
+											:
+									</td>
+									<td>
+										<html:text property="applicantName" name="applicantForm" size="25" styleClass="Grey" maxlength="100"/>
+									</td>
+								</tr>
+								</table>
+								<%}if(fieldId.equals(ImportConfigurationConstants.FIELD_EMAIL1)){	%>
+								<table class="tabinput">
+								<tr>
+									<td	style="width: 130px;" <html:errormap property="email_required|email1_not_valid" errorStyleClass="labelError" styleClass="label"/>>
+										<bean:message key="common.email1" />
+										<%
+											if(isMandatory.equalsIgnoreCase(ImportConfigurationConstants.FIELD_MANDATORY)){
+										%>
+										<span class="star">*</span>
+										<%
+											}
+										%>
+										:
+									</td>
+									<td>
+										<html:text property="applicantEmail1" name="applicantForm" size="35" styleClass="Grey" maxlength="50"></html:text>							
+									</td>
+								</tr>
+								</table>
+								<%	}if(fieldId.equals(ImportConfigurationConstants.FIELD_EMAIL2)){	%>
+								<table class="tabinput">
+								<tr>
+									<td	style="width: 130px;" <html:errormap property="email_required|email2_not_valid" errorStyleClass="labelError" styleClass="label"/>>
+										<bean:message key="common.email2" />
+										<%
+											if(isMandatory.equalsIgnoreCase(ImportConfigurationConstants.FIELD_MANDATORY)){
+										%>
+										<span class="star">*</span>
+										<% } %>
+										:
+									</td>
+									<td>
+										<html:text property="applicantEmail2" name="applicantForm" size="35" styleClass="Grey" maxlength="50"></html:text>
+									</td>
+								</tr>
+								</table>
+								<%}	if(fieldId.equals(ImportConfigurationConstants.FIELD_PHONE1)){	%>
+								<table class="tabinput">
+								<tr>
+									<td class="label" style="width: 130px;"><bean:message key="common.phone1" />
+									<%if(isMandatory.equalsIgnoreCase(ImportConfigurationConstants.FIELD_MANDATORY)){%>
+										<span class="star">*</span>
+									<%	}%>
+										:</td>
+									<td class="label">
+										<html:text property="applicantHomePhone" name="applicantForm" size="22" maxlength="25" styleClass="Grey" />
+									</td>
+								</tr>
+								</table>
+								<%}	if(fieldId.equals(ImportConfigurationConstants.FIELD_PHONE2)){%>
+								<table class="tabinput">
+								<tr>
+									<td class="label" style="width: 130px;"><bean:message key="common.phone2" />
+									<%
+										if(isMandatory.equalsIgnoreCase(ImportConfigurationConstants.FIELD_MANDATORY)){
+									%>
+										<span class="star">*</span>
+										<%
+											}
+										%>
+									:</td>
+									<td class="label">
+										<html:text property="applicantWorkPhone" name="applicantForm" size="22" maxlength="25" styleClass="Grey" />
+									</td>
+								</tr>
+								</table>
+								<%}if(fieldId.equals(ImportConfigurationConstants.FIELD_MOBILE)){%>
+								<table class="tabinput">
+								<tr>
+									<td class="label" style="width: 130px;"><bean:message key="common.mobile" />
+									<%
+										if(isMandatory.equalsIgnoreCase(ImportConfigurationConstants.FIELD_MANDATORY)){
+									%>
+										<span class="star">*</span>
+									<%
+										}
+									%>
+									:</td>
+									<td class="label">
+										<html:text property="applicantCellPhone" name="applicantForm" size="22" maxlength="25" styleClass="Grey" />
+									</td>
+								</tr>
+								</table>
+								<%}if(fieldId.equals(ImportConfigurationConstants.FIELD_SOURCE)){%>
+								<table class="tabinput">
+								<tr>
+									<td	style="width: 130px;" <html:errormap property="add_applicant.errors.source_required" errorStyleClass="labelError" styleClass="label"/>>
+										<bean:message key="common.source" />
+										<span class="star">*</span>
+										:</td>
+									<td>
+										<script type="text/javascript">
+											var opts = <%=CommonUtils.getJavaScriptArrayForRecentlyUsed()%>;
+											var m = [new SelectOption('-1','<bean:message key="add_applicant.label.select_source"/>')];
+												var n = [new SelectOption('0','<bean:write name="applicantForm" property="employeeSourceName" filter="false"/>',0,null,false,{cs:'mnuGreen'})];
+												
+												opts = m.concat(opts);
+												opts = opts.concat(n);
+												if(opts.length ><%=RecentlyUsedSourceConstants.noOfRecentlyUsedSources%>){
+												var o = [new SelectOption('-2','More Sources>>',0,null,false,{cs:'mnuRed'})];
+												opts = opts.concat(o);
+												}
+												selectBoxSource = new SelectBox(opts,'<%=applicantForm.getSourceId()%>','images/btn_dropdown.gif',{namesonly:false, width:'140px', size:25, textboxclass:'Grey'});
+												selectBoxSource.setOnChangeHandler('onChangeSelectBoxSource');
+												document.write(selectBoxSource.getHtml());
+												selectBoxSource.init();
+											</script>
+										</td>
+										<td>
+											<div id="employeeSourceAndVendorUser" style="display: none;">
+												<script>
+													var opts = [new SelectOption('-1','<bean:message key="common.selectlist.default"/>')];
+													selectBoxEmployeeSource = new SelectBox(opts,'<%=applicantForm.getSourceId()%>','images/btn_dropdown.gif',{namesonly:false, width:'152px', size:20, textboxclass:'Grey'});
+													document.write(selectBoxEmployeeSource.getHtml());
+													selectBoxEmployeeSource.init();
+												</script>
+											</div>
+											<div id="employeeSourceDiv" style="display: none;">
+					 			               <html:text property="source" name="applicantForm" size="28" styleId="source" onblur="setSourceId();"></html:text>
+						   					</div>
+										</td>
+									</tr>
+								</table>
+								<%}	if(fieldId.equals(ImportConfigurationConstants.FIELD_CATEGORY)){%>
+								<table class="tabinput">
+								<tr>
+									<td class="label" style="width: 130px;"><bean:message key="common.employee.category" />
+								
+									:</td>					
+									<td class="label">
+										<html:text property="category"	name="applicantForm" size="35" styleId="category" styleClass="Grey" maxlength="50" />
+										
+									</td>
+									</tr>
+								</table>
+								<%}if(fieldId.equals(ImportConfigurationConstants.FIELD_SUB_CATEGORY)){%>
+									<table class="tabinput">
+								<tr>
+									<td class="label" style="width: 130px;"><bean:message key="common.employee.subCategory" />
+								
+									:</td>					
+									<td class="label">
+										<html:text property="subCategory"	name="applicantForm" size="35" styleId="subCategory" styleClass="Grey" maxlength="50" />
+										
+									</td>
+									</tr>
+								</table>
+								<%}
+								
+								if(fieldId.equals(ImportConfigurationConstants.FIELD_CURRENT_LOCATION)){%>
+								<table class="tabinput">
+								<tr>
+									<td class="label" style="width: 130px;"><bean:message key="common.current_location" />
+									<%
+										if(isMandatory.equalsIgnoreCase(ImportConfigurationConstants.FIELD_MANDATORY)){
+									%>
+										<span class="star">*</span>
+									<%
+										}
+									%>
+									:</td>					
+									<td class="label">
+										<html:text property="applicantCity"	name="applicantForm" size="35" styleId="applicantCity" styleClass="Grey" maxlength="50" />
+										<script>
+											new Ajax.Autocompleter("applicantCity", "autocomplete", "importResume.do?mode=getAutoCompleteList&fld=<%=ApplicantConstants.AUTOCOMPLETE_CURRENT_LOCATION %>", {frequency: 0.001});
+										</script>
+									</td>
+									</tr>
+								</table>
+								<%}if(fieldId.equals(ImportConfigurationConstants.FIELD_SKILLS)){%>
+								<span class="heading">
+									<bean:message key="common.skills" />
+									<%if(isMandatory.equalsIgnoreCase(ImportConfigurationConstants.FIELD_MANDATORY)){%>
+										<span class="star">*</span>
+									<%}%>
+									</span>
+								<table class="tabinput">
+								<tr>
+									<td valign="top">
+										<html:textarea property="rawPrimarySkills" name="applicantForm" rows="3" cols="36" onfocus="javascript:getExtractedSkills();" onkeyup="javascript:getExtractedSkills();" styleClass="Grey"></html:textarea>
+									</td>
+									<td class="hgap"></td>
+									<td valign="top">
+										<table class="tabinput">
+										<tr>
+											<td id="divPrimarySkills" style="font-weight:bold; height: 38px;vertical-align: top;">
+												<bean:write	name="applicantForm" property="primarySkills" />
+											</td>
+										</tr>
+										<tr>
+											<td valign="bottom">
+												<a href="#" class="green" onclick="JavaScript:clearExtractedSkills();return false;"><bean:message key="create_applicant.label.clear_extracted_skills" /></a>
+											</td>
+										</tr>
+										</table>
+									</td>
+								</tr>
+								</table>
+								<%}if(fieldId.equals(ImportConfigurationConstants.FIELD_EDUCATION)){%>
+								<span class="heading">
+									<bean:message key="common.education" />
+									<%
+										if(isMandatory.equalsIgnoreCase(ImportConfigurationConstants.FIELD_MANDATORY)){
+									%>
+										<span class="star">*</span>
+									<%
+										}
+									%> </span>
+								<%
+									/* String[] fromYear = applicantForm.getFromYear(); */
+									String[] educationYearOfPassing = applicantForm.getEducationYearOfPassing();
+								 	String[] educationInstitute = applicantForm.getEducationInstitute();
+								 	String[] educationDegreeId = applicantForm.getEducationDegreeId();
+								 	String[] educationMajorId = applicantForm.getEducationMajorId();
+								 	String[] educationalGrade = applicantForm.getEducationalGrade();
+								 	/* String[] remarks = applicantForm.getRemarks(); */
+								%>
+								<table class="tabinput">
+								<tr>
+									<td>
+										<html:textarea property="rawEducationText"	styleId="rawEducationText[0]" name="applicantForm" rows="3"	cols="66" onfocus="JavaScript:getExtractedEducation(this.value,0);"	onkeyup="JavaScript:getExtractedEducation(this.value,0);" styleClass="Grey"></html:textarea>
+									</td>
+								</tr>
+								</table>
+								<table class="educationT" id="tblEdu" width="503">
+								<tbody>
+								<tr>
+									<td class="header"></td>
+									<%-- <td class="header"><bean:message key="common.fromYear" /></td> --%>
+									<td class="header"><bean:message key="common.year" /></td>
+									<td class="header"><bean:message key="common.institute" /></td>
+									<td class="header"><bean:message key="common.degree" /></td>
+									<td class="header"><bean:message key="common.branch" /></td>
+									<td class="header"><bean:message key="common.class" /></td>
+									<%-- <td class="header"><bean:message key="common.Remarks" /></td> --%>
+								</tr>
+								
+								<%for (int i = 0; educationYearOfPassing!=null && i < educationYearOfPassing.length; i++) {
+									totalEduRows++;
+								%>
+								<tr id="<%=i%>">
+									<td><img src="images/radiobutton.gif" name="edu" id='img_<%=i%>' onclick="onOptionChange('edu','<%=i%>');" />
+									</td>
+									<%-- <td>
+									<input type="text" name="fromYear" size="4"  id="fromYear[<%=i%>]" class="Grey" value="<%=(fromYear[i]==null)?"":fromYear[i]%>"  onblur="getFormattedYear(this);"/>
+									</td> --%>
+									<td><input type="text" name="educationYearOfPassing" size="4" value="<%=(educationYearOfPassing[i]==null)?"":educationYearOfPassing[i]%>" onblur="getFormattedYear(this);" id="educationYearOfPassing[<%=i%>]" class="Grey" />
+									</td>
+									<td><input type="text" name="educationInstitute" size="27" maxlength="150" value="<%=(educationInstitute[i]==null)?"":educationInstitute[i]%>" id="educationInstitute[<%=i%>]" class="Grey" /> 
+										<script	language="JavaScript">
+											new Ajax.Autocompleter("educationInstitute[<%=i%>]", "autocomplete", "importResume.do?mode=getAutoCompleteList&fld=<%=ApplicantConstants.AUTOCOMPLETE_INSTITUTE%>", {frequency: 0.001});
+										</script>
+									</td>
+									<td><input type="hidden" name="educationDegreeId" /> 
+										<script type="text/javascript">
+										selectBoxDegree = new SelectBox(degreeOptions,'<%=educationDegreeId[i]%>','images/btn_dropdown.gif',{namesonly:false, width:'75px', size:10, textboxclass:'Grey'});
+										document.write(selectBoxDegree.getHtml());
+										selectBoxDegree.init();
+										degreeControls[degreeControls.length]=[<%=i%>,selectBoxDegree];															
+										</script>
+									</td>
+									<td><input type="hidden" name="educationMajorId" /> 
+										<script language="JavaScript">
+										selectBoxBranch = new SelectBox(branchOptions,'<%=educationMajorId[i]%>','images/btn_dropdown.gif',{namesonly:false, width:'120px', size:10, textboxclass:'Grey'});
+										document.write(selectBoxBranch.getHtml());
+										selectBoxBranch.init();
+										branchControls[branchControls.length]=[<%=i%>,selectBoxBranch];															
+										</script>
+									</td>
+									<td><input type="text" name="educationalGrade" size="6"	maxlength="100"	value="<%=(educationalGrade[i]==null)?"":educationalGrade[i]%>" id="educationalGrade[<%=i%>]" class="Grey" />
+									</td>
+									<%-- <td>
+										<textarea id="remarks[<%=i%>]" name="remarks" rows="3" cols="8" class="Grey"><%=remarks[i]%></textarea>
+									</td> --%>
+								</tr>
+								<script language="JavaScript">
+									<%-- eduStr += ',' + formatString('<%=fromYear[i]%>') + '|hl5';	 --%>
+									eduStr += ',' + formatString('<%=educationYearOfPassing[i]%>') + '|hl5';
+									eduStr += ',' + formatString('<%=educationInstitute[i]%>') + '|hl5';
+									eduStr += ',' + formatString(selectBoxDegree.getText(selectBoxDegree.getIndexWithId(selectBoxDegree.getSelectedId()))) + '|hl5';
+									eduStr += ',' + formatString(selectBoxBranch.getText(selectBoxBranch.getIndexWithId(selectBoxBranch.getSelectedId()))) + '|hl5';
+									eduStr += ',' + formatString('<%=educationalGrade[i]%>') + '|hl5';							
+									<%-- eduStr += ',' + formatString('<%=remarks[i]%>') + '|hl5';	 --%>
+								</script>
+								<% } %>
+								</tbody>
+								</table>
+								<table class="tabinput" width="500">
+								<tr>
+									<td style="text-align: right;" class="Grey">
+										<a href="#"	onclick="deleteEducation();" class="green"><bean:message key="common.delete" /> <bean:message key="common.selected" /></a>&nbsp;|&nbsp;
+										<a href="#" onclick="addEducation();" class="green"><b><bean:message key="common.more" />>></b></a>
+									</td>
+								</tr>
+								</table>								
+							<%}if(fieldId.equals(ImportConfigurationConstants.FIELD_EMPLOYMENT_HISTORY)){%>
+								<span class="heading">
+									<bean:message key="common.employment_history" />
+									<% if(isMandatory.equalsIgnoreCase(ImportConfigurationConstants.FIELD_MANDATORY)){	%>
+										<span class="star">*</span>
+									<%	} %> 
+									</span>
+								<%
+									String[] employmentFromDate = applicantForm.getEmploymentFromDate();
+								 	String[] employmentToDate = applicantForm.getEmploymentToDate();
+								 	String[] employmentEmployerId = applicantForm.getEmploymentEmployerId();
+								 	String[] employmentDesignationId = applicantForm.getEmploymentDesignationId();
+								 	String[] employmentExperience = applicantForm.getEmploymentExperience();
+								/*  	String[] allowance = applicantForm.getAllowance(); */
+								/*   */	/* String[] reasonForLeaving = applicantForm.getReasonForLeaving(); */
+								 /* 	String[] grossSalary = applicantForm.getGrossSalary(); */
+								 	/* String[] dutiesInvolved = applicantForm.getDutiesInvolved(); */
+								%>
+								<table class="tabinput">
+								<tr>
+									<td>
+										<html:textarea property="rawEmploymentHistoryText"	styleId="rawEmploymentHistoryText[0]" name="applicantForm" rows="3"	cols="66" styleClass="Grey" onfocus="JavaScript:getExtractedEmploymentHistory(this.value,0);"	onkeyup="JavaScript:getExtractedEmploymentHistory(this.value,0);" ></html:textarea>
+										
+									</td>
+								</tr>
+								</table>
+								<table class="educationT" id="tableEmpHistory" width="503">
+								<tbody>
+								<tr>
+									<td class="header"></td>
+									<td class="header"><bean:message key="common.employment_from_date" /></td>
+									<td class="header"><bean:message key="common.employment_to_date" /></td>
+									<td class="header"><bean:message key="common.employer" /></td>
+									<td class="header"><bean:message key="common.designation" /></td>
+									<td class="header"><bean:message key="common.employmentExperience" /></td>
+									<%-- <td class="header"><bean:message key="common.gross_salary"/></td>
+									<td class="header"><bean:message key="common.allowance"/></td> --%>
+									<%-- <td class="header"><bean:message key="common.duties_involved"/></td>
+									<td class="header"><bean:message key="common.reason_for_leaving"/></td> --%>
+								</tr>								
+								<%
+									for (int i = 0; employmentFromDate!=null && i < employmentFromDate.length; i++) {
+									totalEmpHistRows++;
+								%>
+								<tr id="<%=i%>">									
+									<td><img src="images/radiobutton.gif" name="empHistory" id='img_<%=i %>' onclick="onOptionChange('empHistory','<%=i %>');" />
+									</td>
+									<td>										
+										<input type="text" name="employmentFromDate" size="8" maxlength="25" value="<%=(employmentFromDate[i]==null)?"":employmentFromDate[i]%>" id="employmentFromDate[<%= i %>]"  onblur="getFormattedDateRelevance(this,'<%=i%>');"   class="Grey" />										
+									</td>
+									<td>
+										<input type="text" name="employmentToDate" size="8" maxlength="25" value="<%=(employmentToDate[i]==null)?"":employmentToDate[i]%>" id="employmentToDate[<%= i %>]" onblur="getFormattedDateRelevance(this,'<%=i%>');" class="Grey" />										
+									</td>									
+									<td>										
+										<input type="text" name="employmentEmployerId" size="13" maxlength="100" value="<%=(employmentEmployerId[i]==null)?"":employmentEmployerId[i]%>" id="employmentEmployerId[<%= i %>]" class="Grey" />
+										<script	language="JavaScript">
+											new Ajax.Autocompleter("employmentEmployerId[<%=i%>]", "autocomplete", "importResume.do?mode=getAutoCompleteList&fld=<%=ApplicantConstants.AUTOCOMPLETE_EMPLOYMENT_EMPLOYER%>", {frequency: 0.001});
+										</script>
+									</td>									
+									<td>
+										<input type="text" name="employmentDesignationId" size="13" maxlength="100" value="<%=(employmentDesignationId[i]==null)?"":employmentDesignationId[i]%>" id="employmentDesignationId[<%= i %>]" class="Grey" />
+										<script	language="JavaScript">
+											new Ajax.Autocompleter("employmentDesignationId[<%=i%>]", "autocomplete", "importResume.do?mode=getAutoCompleteList&fld=<%=ApplicantConstants.AUTOCOMPLETE_EMPLOYMENT_DESIGNATION%>", {frequency: 0.001});
+										</script>											
+									</td>									
+									<td>
+										<input type="text" name="employmentExperience" size="10" maxlength="25"	maxlength="100"	
+										value="<%=(employmentExperience[i]==null)?"":employmentExperience[i]%>"	id="employmentExperience[<%=i%>]"
+										onblur="onBlurEmpHistoryExperience(this,'<%=employmentFromDate[i]%>','<%=employmentToDate[i]%>','<%=i%>');" 
+										class="Grey" />
+									</td>
+									<%-- <td>
+										<input type="text" name="grossSalary" size="7" maxlength="15" id="grossSalary[<%= i %>]" value="<%=(Utils.isBlankOrNull(grossSalary[i]))?"":grossSalary[i]%>" class="Grey"/>
+									</td>
+									<td>
+										<input type="text" name="allowance" size="7" maxlength="15" id="allowance[<%= i %>]" value="<%=(Utils.isBlankOrNull(allowance[i]))?"":allowance[i]%>" class="Grey"/>
+									</td> --%>
+									<%-- <td>
+										<textarea name="dutiesInvolved" id="dutiesInvolved[<%= i %>]" rows="3" cols="8"  class="Grey"><%=dutiesInvolved[i]%></textarea>
+									</td>
+												<td>
+										<textarea name="reasonForLeaving" id="reasonForLeaving[<%= i %>]" rows="3" cols="8" class="Grey"><%=reasonForLeaving[i]%></textarea>
+									</td> --%>
+								</tr>
+								<script language="JavaScript">
+									empHistoryStr += ',' + formatString('<%=employmentFromDate[i]%>') + '|hl5';
+									empHistoryStr += ',' + formatString('<%=employmentToDate[i]%>') + '|hl5';
+									empHistoryStr += ',' + formatString('<%=employmentEmployerId[i]%>') + '|hl5';
+									empHistoryStr += ',' + formatString('<%=employmentDesignationId[i]%>') + '|hl5';
+									empHistoryStr += ',' + formatString('<%=employmentExperience[i]%>') + '|hl5';							
+									<%-- empHistoryStr += ',' + formatString('<%=grossSalary[i]%>') + '|hl5';	
+									empHistoryStr += ',' + formatString('<%=allowance[i]%>') + '|hl5';	 --%>
+									<%-- empHistoryStr += ',' + formatString('<%=dutiesInvolved[i]%>') + '|hl5';	
+									empHistoryStr += ',' + formatString('<%=reasonForLeaving[i]%>') + '|hl5';	 --%>
+								</script>
+								<% } %>
+								</tbody>
+								</table>
+								<table class="tabinput" width="500">
+								<tr>
+									<td style="text-align: right;" class="Grey">
+										<a href="#"	onclick="deleteEmpHistory();" class="green"><bean:message key="common.delete" /> <bean:message key="common.selected" /></a>&nbsp;|&nbsp;
+										<a href="#" onclick="addEmpHistory();" class="green"><b><bean:message key="common.more" />>></b></a>
+									</td>
+								</tr>
+								</table>	
+								<%}if(fieldId.equals(ImportConfigurationConstants.FIELD_EXPERIENCE)){ %>							
+								<table class="tabinput">
+									<tr>
+										<td	style="width: 130px;" <html:errormap property="working_since_invalid" errorStyleClass="labelError" styleClass="label"/>>
+											<bean:message key="common.total_experience" />
+											<span class="star">*</span>
+											:&nbsp;
+											</td>
+										<td>
+											<html:text property="applicantWorkingSince" name="applicantForm" size="10" maxlength="25" styleId="applicantWorkingSince" onclick="onClickTotalExperience(this);" onblur="getFormattedExperience(this);" styleClass="Grey" />&nbsp;
+											<!--  <img src="images/ico_cal.gif" onclick="cal.showCalender('applicantWorkingSince','applicantWorkingSince');" class="CalImg" />&nbsp;
+											<bean:message key="add_applicant.content.working_since" /> -->yrs (e.g 4.11yrs) &nbsp;&nbsp;
+											<img src="images/checkboxunchecked.gif" id="cboFresher" onclick="toggleFresher()" style="margin-bottom: -2px;" />&nbsp;Fresher
+										</td>
+									</tr>
+								</table>															
+								<%}	if(fieldId.equals(ImportConfigurationConstants.FIELD_CURRENT_CTC)){
+								%>
+								<logic:equal value="true" name="currentCTCViewable" scope="page">
+									<table class="tabinput">
+										<tr>
+											<td class="label" style="width: 130px;"><bean:message key="common.current_ctc" />
+											<%if(isMandatory.equalsIgnoreCase(ImportConfigurationConstants.FIELD_MANDATORY)){ %>
+											<span class="star">*</span>
+											<% } %>
+											:</td>
+											<td><html:text property="currentCTC" name="applicantForm"	size="10" maxlength="10" styleId="currentCTC" styleClass="Grey" />
+											</td>
+										</tr>
+									</table>
+								</logic:equal>
+								<logic:equal value="false" name="currentCTCViewable" scope="page">
+									<html:hidden property="currentCTC" name="applicantForm"/>
+								</logic:equal>
+								<%
+							}
+							
+							if(fieldId.equals(ImportConfigurationConstants.FIELD_EXPECTED_CTC)){
+								%>
+								<logic:equal value="true" name="expectedCTCViewable" scope="page">
+									<table class="tabinput">
+										<tr>
+											<td class="label" style="width: 130px;"><bean:message key="common.expected_ctc" />
+											<%if(isMandatory.equalsIgnoreCase(ImportConfigurationConstants.FIELD_MANDATORY)){ %>
+											<span class="star">*</span>
+											<% } %>
+											:</td>
+											<td><html:text property="expectedCTC" name="applicantForm"	size="10" maxlength="10" styleId="expectedCTC" styleClass="Grey" />
+											</td>
+										</tr>
+									</table>
+								</logic:equal>
+								<logic:equal value="false" name="expectedCTCViewable" scope="page">
+									<html:hidden property="expectedCTC" name="applicantForm"/>
+								</logic:equal>
+								<%
+							}
+							if(fieldId.equals(ImportConfigurationConstants.FIELD_NOTICE_PERIOD)){
+								%>
+								<table class="tabinput">
+									<tr>
+										<td class="label" style="width: 130px;"><bean:message	key="common.time_to_join" />
+										<%if(isMandatory.equalsIgnoreCase(ImportConfigurationConstants.FIELD_MANDATORY)){ %>
+										<span class="star">*</span>
+										<% } %>
+										:</td>
+										<td><html:text property="noticePeriod" name="applicantForm" size="20"  maxlength="25"  styleId="timeToJoin" styleClass="Grey" />
+										</td>
+									</tr>
+								</table>
+								<%
+							}
+							if(fieldId.equals(ImportConfigurationConstants.FIELD_DATE_OF_BIRTH)){
+								%>
+								<table class="tabinput">
+									<tr>
+										<td class="label" style="width: 130px;"><bean:message	key="common.date_of_birth" />
+										<%if(isMandatory.equalsIgnoreCase(ImportConfigurationConstants.FIELD_MANDATORY)){ %>
+										<span class="star">*</span>
+										<% } %>
+										:</td>
+										<td>
+										 <html:text name="applicantForm" property="dateOfBirth" size="12" maxlength="10" styleId="dateOfBirth" styleClass="Grey" onblur="getFDate(this,'dd/MM/yyyy');"/>
+                						 <img src="images/ico_cal.gif" onClick="new CalendarPopup('cal1Div').select(document.forms['applicantForm'].dateOfBirth,'dateOfBirth','dd/MM/yyyy'); return false;" class="CalImg" name="imgCal" id="imgCal"/>
+                						 <DIV id="cal1Div" class="calDiv" style="position:absolute;background:#FFFFFF;z-index:1000;" ></DIV>
+										</td>
+									</tr>
+								</table>
+								<%
+							}
+							if(fieldId.equals(ImportConfigurationConstants.FIELD_PASSPORT_NUMBER)){
+								%>
+								<table class="tabinput">
+									<tr>
+										<td class="label" style="width: 130px;"><bean:message	key="common.passport_number" />
+										<%if(isMandatory.equalsIgnoreCase(ImportConfigurationConstants.FIELD_MANDATORY)){ %>
+										<span class="star">*</span>
+										<% } %>
+										:</td>
+										<td><html:text property="passportNumber" name="applicantForm" size="10"  maxlength="10"  styleId="passportNumber" styleClass="Grey" />
+										</td>
+									</tr>
+								</table>
+								<%
+							}
+							if(fieldId.equals(ImportConfigurationConstants.FIELD_RESUME_TYPE)){
+								%>
+								<table class="tabinput">
+									<tr>
+										<td class="label" style="width: 130px;"><bean:message	key="common.resume_type" />
+										<%if(isMandatory.equalsIgnoreCase(ImportConfigurationConstants.FIELD_MANDATORY)){ %>
+										<span class="star">*</span>
+										<% } %>
+										:</td>
+										<td>
+											<div style="position:relative">
+											<script type="text/javascript">
+												var def = [new SelectOption('-1','<bean:message key="common.selectlist.select"/>')];
+												var opts = <%=CommonUtils.getListJavaScriptArray(CommonUtils.getResumeTypeIds(), CommonUtils.getResumeTypeNames())%>;
+												opts = def.concat(opts);
+												selectBoxResumeType = new SelectBox(opts,'<bean:write property="resumeTypeId" name="applicantForm"/>','images/btn_dropdown.gif',{namesonly:false, width:'340px', size:8, textboxclass:'Grey'});
+												document.write(selectBoxResumeType.getHtml());
+												selectBoxResumeType.init();
+											</script>
+											</div>
+										</td>
+									</tr>
+								</table>
+								<%}if(fieldId.equals(ImportConfigurationConstants.FIELD_Confidential)){	%>
+								<logic:equal value="true" name="permissionSet" scope="session" property="SHOW_CONFIDENTIAL_PROFILE">
+								<table class="tabinput">
+									<tr>
+										<td	class="label" style="width: 130px;" >
+											<bean:message key="common.confidential" />
+											</td>
+										<td>
+											<img src="images/checkboxunchecked.gif" id="cboConfidential" onclick="toggleConfidential()" style="margin-bottom: -2px;" />&nbsp;
+										</td>
+									</tr>
+								</table>
+								</logic:equal>
+								<% }if(fieldId.equals(ImportConfigurationConstants.FIELD_NOTE)){%>
+								<logic:equal property="subMode" name="applicantForm" value="add">
+									<span class="heading">
+										<bean:message key="common.note" />
+										<%if(isMandatory.equalsIgnoreCase(ImportConfigurationConstants.FIELD_MANDATORY)){ %>
+										<span class="star">*</span>
+										<% } %></span>
+									<table class="tabinput">
+									<tr>
+										<td>
+											<html:textarea property="applicantNote"	name="applicantForm" rows="3" cols="89" styleClass="Grey"></html:textarea>
+										</td>
+									</tr>
+									</table>
+								</logic:equal>
+								<%
+							}	
+						}else{
+							if(customFields!=null && customFields.size()>0){ 
+								for(int i=0; i<customFields.size();i++){
+								CustomFieldData data = (CustomFieldData)customFields.get(i);
+								String customFieldId = data.getFieldName();
+									if(fieldId.equals(customFieldId)){
+									%>
+										<table class="tabinput">
+										<tr>
+											<td class="label" style="width: 130px;"><%=Utils.escapeHTML(data.getFieldDisplayName())%>
+											<%if(isMandatory.equalsIgnoreCase(ImportConfigurationConstants.FIELD_MANDATORY)){ %>
+											<span class="star">*</span>
+											<% } %>:</td>
+											<td><%= data.getUI() %></td>
+										</tr>
+										</table>
+									<%
+									}
+								} 
+						 	} 
+						}
+						}
+					} 
+			if(customTables!=null && customTables.size()>0){ 
+				for(int i=0; i<customTables.size();i++){
+				CustomFieldTable data = (CustomFieldTable)customTables.get(i);
+				String customFieldId = data.getTableId();
+				 CustomFieldRow row = data.getRows().get(0);
+				 String tableColumns = "";
+				 String tableColumnNames = "";
+				 StringBuffer sb= new StringBuffer();
+				 String attribs = "";
+				 /* for (CustomFieldCell cell:row.getCells()){
+				 	if (!tableColumns.equals("")){
+					 tableColumns = tableColumns + ","+ cell.getValue();
+					 }else{
+					 tableColumns =cell.getValue();
+					 }
+				 	if (!tableColumnNames.equals("")){
+				 		tableColumnNames = tableColumnNames + ","+ cell.getData().getFieldName();
+					}else{
+						tableColumnNames =cell.getData().getFieldName();
+					}
+				 	if (cell.getData().getFieldType().equalsIgnoreCase(CustomFieldConstants.TYPE_DATE)) {
+				 		if (!attribs.equals("")){
+				 			attribs = attribs + CustomFieldConstants.TYPE_DATE;
+				 		}else{
+				 			attribs = CustomFieldConstants.TYPE_DATE;
+				 		}
+				 	}else{
+				 		//ArrayList<String> fieldAtt = cell.getData().getAttributesList(cell.getData().getFieldAttributes());
+						//for (int j = 0; j < fieldAtt.size(); j++) {
+							//sb.append(fieldAtt.get(j) + " ");
+						//}
+						//sb.append("|");
+						//System.out.println(sb.toString());
+				 		if (!attribs.equals("")){
+				 			attribs = attribs + CustomFieldConstants.TYPE_TEXT;
+				 		}else{
+				 			attribs = CustomFieldConstants.TYPE_TEXT;
+				 		}
+						
+				 	}
+				 } */
+				%>
+				 
+				<br/>
+						<table class="tabinput">
+						<tr id="<%= data.getTableName() %>rowdiv" style="display:none"><%=data.getRowUI()%></tr>
+						</table>
+						<table id = "<%= data.getTableName() %>" class="tabinput">
+						<tr>
+							<td class="header" style="width: 130px;"><span class="heading"><%=Utils.escapeHTML(data.getTableName())%></span>
+							</td>
+						</tr>
+						<%= data.getUI() %>
+						</table>
+						<table class="tabinput" width="500">
+								<tr>
+									<td style="text-align: right;" class="Grey">
+										<a href="#"	onclick="deleteTableFields('<%= data.getTableName() %>');" class="green"><bean:message key="common.delete" /> <bean:message key="common.selected" /></a>&nbsp;|&nbsp;
+										<a href="#" onclick="addTableFields('<%= data.getTableName() %>');" class="green"><b><bean:message key="common.more" />>></b></a>
+									</td>
+								</tr>
+								</table>
+					<%
+				}
+				} 
+				%>
+				<br/>
+
+				</div>
+				</div>
+				<div class="outerDiv" style="width:500px;height:40px; border: none;">
+				<table class="tabinput" width="100%">
+					<tr>
+						<td class="vGap"></td>
+					</tr>
+					<tr>
+						<td align="right">
+						<logic:empty name="applicantForm" property="requestSource">
+						<div class="navBtn" style="float: right; ">
+						<a href="#" style="width:150px; margin-right: 5px;" class="active" onclick="javascript:checkForDuplicates();" id="checkForDuplicates"><span class="rightC"></span><span class="leftC"></span>
+							<bean:message key="inbox.button.label.check_for_duplicates" /></a>
+						<logic:equal property="subMode" name="applicantForm" value="add">							
+							<a href="#" style="width:150px; margin-right: 5px;" class="active" onclick="javascript:submitForm(1);" id="saveandcontinue"><span class="rightC"></span><span class="leftC"></span>
+							<bean:message key="add_applicant.label.save_and_continue" /></a>
+							<a href="#" style="width:55px;" class="active" onclick="javascript:submitForm(0);" id="submit"><span class="rightC"></span><span class="leftC"></span><bean:message key="common.save" /></a>
+						</logic:equal> 
+						<logic:equal property="subMode" name="applicantForm" value="edit">
+							<a href="#" style="width:60px;" class="active" onclick="javascript:submitForm(0);" id="submit"><span class="rightC"></span><span class="leftC"></span><bean:message key="common.update" /></a>
+						</logic:equal> 
+							<a href="#" style="width:60px; margin-left: 5px;margin-right: 5px;" class="active" onclick="javascript:cancelForm();"><span class="rightC"></span><span class="leftC"></span><bean:message key="common.cancel" /></a>
+						</div>
+						</logic:empty>
+						<logic:notEmpty name="applicantForm" property="requestSource">
+						<div class="navBtn" style="float: right; ">
+							<a href="#" style="width:55px;" class="active" onclick="javascript:submitForm(0);" id="submit">
+								<span class="rightC"></span><span	class="leftC"></span><bean:message key="common.save" />
+							</a>
+						</div>
+						</logic:notEmpty>
+						</td>
+					</tr>
+				</table>
+				<br/><br/><br/><br/>
+				</div>
+			</html:form></td>
+			<td style="padding-left:5px;" valign="top">
+			<div class="bottomDiv">
+			<div class="outerDiv"><!--Original Resume IFRAME --> <iframe style="width:485px;height:650px;visibility:block;border:0px; margin:0px;"
+				src=""				
+				frameborder="0" name="viewPort" id="viewPort"></iframe> <!--Original Resume IFRAME -->
+			</div>
+			</div>
+			</td>
+		</tr>
+	</table>
+	</div>
+
+<DIV id="calDiv" style="position:absolute;background:#FFFFFF;z-index:1000;" ></DIV>
+<script>
+
+function escapeHtml(unsafe) {
+    return unsafe
+         .replace(/&/g, "&amp;")
+         .replace(/</g, "&lt;")
+         .replace(/>/g, "&gt;")
+         .replace(/"/g, "&quot;")
+         .replace(/'/g, "&#039;");
+ }
+
+var popUpCal = new CalendarPopup("calDiv"); 
+popUpCal.showNavigationDropdowns();
+function getFNumber(obj){
+	if(obj.value.trim()!=''){
+		if(isNaN(obj.value)){
+			alert('<bean:message key="common.please_enter_valid_number" />');
+			obj.focus();
+			return false;
+		}
+	}
+}
+var frm = document.applicantForm;
+
+var empHistoryCount=<%=totalEmpHistRows%>;
+var empHistoryTable = $('tableEmpHistory');
+var empHistorySelected = -1;
+
+
+var eduCount=<%=totalEduRows%>;
+var eduTable = $('tblEdu');
+var eduSelected = -1;
+
+function registerListener(target,fieldType){
+	var tbl = $(target);	
+	for(i=0;i<tbl.rows.length;i++){
+		if(tbl.rows[i].id !=""){
+			addListener(tbl.rows[i],fieldType);
+		}
+	}
+}
+function addListener(row,fieldType){
+	Event.observe(row, "click", onRowClick.bindAsEventListener(this,fieldType));
+	Event.observe(row, "keydown", onRowKeyDown.bindAsEventListener(this,fieldType));
+	Event.observe(row, "keyup", onRowKeyUp.bindAsEventListener(this,fieldType));
+}
+
+
+function onRowClick(event,fieldType){
+	var row = Event.findElement(event, 'tr');
+	onOptionChange(fieldType,row.id);
+}
+function onRowKeyDown(event,fieldType){
+	onRowClick(event,fieldType);
+}
+function onRowKeyUp(event,fieldType){
+	onRowClick(event,fieldType);
+}
+
+function addEducation(){
+	
+	var tBody = eduTable.getElementsByTagName('tbody')[0];
+	var myRow = document.createElement("tr");
+	myRow.id=eduCount;
+	addListener(myRow,"edu");
+	var myCell = document.createElement("td");
+	var elm = document.createElement("img");
+	elm.src='images/radiobutton.gif';
+	elm.name="edu";
+	elm.id='img_'+eduCount;
+	Event.observe(elm, "click", onEduOptClick.bindAsEventListener(this));
+	myCell.appendChild(elm);
+	myRow.appendChild(myCell);
+	
+	/* myCell = document.createElement("td");
+	var el = createFormElement("input","text","fromYear","","Grey");
+	el.size="4";
+	el.id="fromYear["+eduCount+"]";
+	Event.observe(el, "blur", onBlurYop.bindAsEventListener(this));
+	myCell.appendChild(el);	
+	myRow.appendChild(myCell); */	
+
+	
+	myCell = document.createElement("td");
+	var el = createFormElement("input","text","educationYearOfPassing","","Grey");
+	el.size="4";
+	el.id="educationYearOfPassing["+eduCount+"]";
+	Event.observe(el, "blur", onBlurYop.bindAsEventListener(this));
+	myCell.appendChild(el);	
+	myRow.appendChild(myCell);	
+
+	myCell = document.createElement("td");
+	var el = createFormElement("input","text","educationInstitute","","Grey");
+	el.size="27";
+	el.maxlength="150";
+	el.id="educationInstitute["+eduCount+"]";
+	myCell.appendChild(el);	
+	myRow.appendChild(myCell);	
+
+	myCell = document.createElement("td");
+	selectBoxDegree = new SelectBox(degreeOptions,'0','images/btn_dropdown.gif',{namesonly:false, width:'75px', size:10, textboxclass:'Grey'});
+	myCell.innerHTML = selectBoxDegree.getHtml();
+	myCell.innerHTML = myCell.innerHTML + '<input type="hidden" name="educationDegreeId"/>';
+	myRow.appendChild(myCell);
+	 
+	myCell = document.createElement("td");
+	selectBoxBranch = new SelectBox(branchOptions,'0','images/btn_dropdown.gif',{namesonly:false, width:'120px', size:10, textboxclass:'Grey'});
+	myCell.innerHTML = selectBoxBranch.getHtml();
+	myCell.innerHTML = myCell.innerHTML + '<input type="hidden" name="educationMajorId"/>';
+	myRow.appendChild(myCell);
+	
+	myCell = document.createElement("td");
+	var el = createFormElement("input","text","educationalGrade","","Grey");
+	el.size="6";
+	el.maxlength="100";
+	el.id="educationalGrade["+eduCount+"]";
+	myCell.appendChild(el);	
+	myRow.appendChild(myCell);	
+	
+	/* myCell = document.createElement("td");
+	var el=document.createElement("textarea");
+	el.name="remarks";
+	el.rows="3";
+	el.cols="8";
+	el.className+="Grey";
+	el.id="remarks["+eduCount+"]";
+	myCell.appendChild(el);
+	myRow.appendChild(myCell); */
+	
+	tBody.appendChild(myRow);
+
+	new Ajax.Autocompleter('educationInstitute['+eduCount+']', "autocomplete", "importResume.do?mode=getAutoCompleteList&fld=<%=ApplicantConstants.AUTOCOMPLETE_INSTITUTE%>", {frequency: 0.001});
+	selectBoxDegree.init();
+	selectBoxBranch.init();
+	degreeControls[degreeControls.length]=[eduCount,selectBoxDegree];	
+	branchControls[branchControls.length]=[eduCount,selectBoxBranch];	
+	onOptionChange("edu",eduCount);
+	eduCount = eduCount+1;
+}
+function deleteEducation(){
+	deleteRow(eduTable,eduSelected);
+	var newDegreeControls = new Array();
+	for(var i=0; i<degreeControls.length; i++){
+		if(degreeControls[i][0]!= eduSelected){
+			newDegreeControls[newDegreeControls.length]=degreeControls[i];
+		}
+	}
+	degreeControls = newDegreeControls;
+	
+	var newBranchControls = new Array();
+	for(var i=0; i<branchControls.length; i++){
+		if(branchControls[i][0]!= eduSelected){
+			newBranchControls[newBranchControls.length]=branchControls[i];
+		}
+	}
+	branchControls = newBranchControls;
+	eduSelected = -1;	
+}
+function deleteRow(table,rowId){	
+	for(var i=0;i<table.rows.length;i++){
+		if(table.rows[i].id !=""){
+			if(table.rows[i].id == rowId){
+				Element.remove(table.rows[i]);
+			}
+		}
+	}
+}
+
+function deleteEmpHistory(){	
+	deleteRow(empHistoryTable,empHistorySelected);	
+	empHistorySelected = -1;	
+}
+
+
+function addTableFields(tableId){
+	var tBody = document.getElementById(tableId);
+	//var rowArray = tableColumnNames.split(",");
+	//var attribsArray = attribs.split("|");
+	var rows = tBody.rows.length;
+	var row = tBody.insertRow(rows);
+	var rowName = tableId+'rowdiv';
+	rowUI = document.getElementById(rowName).innerHTML;
+	var ui = rowUI.replace(/@@/g, (parseInt(rows)-1));
+	row.innerHTML = ui;
+	/*for (var i=0; i<rowArray.length; i++){
+		var cell1 = row.insertCell(i);
+		var html = "";
+		if (attribsArray[i] == date){
+			html = "<td><input type=\"text\" name=\"" + rowArray[i] + (parseInt(rows)-1) + "\" value=\"" + "" + "\" id=\"" + rowArray[i] + (parseInt(rows)-1) "maxlength=\"15\" size=\"13\" class=\"Grey\"" " onblur=\"getFDate(this,'" + format + "');\" " "&nbsp;<img src=\"images/ico_cal.gif\" style=\"height:16px;margin-bottom:-3px;cursor:hand;\" onclick=\"popUpCal.select($('" + rowArray[i] + (parseInt(rows)-1) + "'),'" + rowArray[i]+(parseInt(rows)-1) + "','" + dateformat="dd/MM/yyyy" + "'); return false;\" />"+"\"</td> ";
+			
+		}
+		}else{
+			html = "<td><input type=\"text\" name=\"" + rowArray[i] + (parseInt(rows)-1) + "\" value=\"" + "" + "\" id=\"" + rowArray[i] + (parseInt(rows)-1) + "maxlength=\"10\" size=\"15\" class=\"Grey\"" +"\"</td> ";
+		}
+		alert(html);
+		cell1.innerHTML = html;
+	}*/
+	
+}
+
+function deleteTableFields(tableId){
+	var tBody = document.getElementById(tableId);
+	var rows = tBody.rows.length;
+	tBody.deleteRow(parseInt(rows)-1);
+}
+
+
+function addEmpHistory(){
+
+	var tBody = empHistoryTable.getElementsByTagName('tbody')[0];
+	var myRow = document.createElement("tr");
+	myRow.id=empHistoryCount;
+	addListener(myRow,"empHistory");
+	var myCell = document.createElement("td");
+	var elm = document.createElement("img");
+	elm.src='images/radiobutton.gif';
+	elm.name="empHistory";
+	elm.id='img_'+empHistoryCount;
+	Event.observe(elm, "click", onEmpHistoryOptClick.bindAsEventListener(this));
+	myCell.appendChild(elm);
+	myRow.appendChild(myCell);
+	
+	myCell = document.createElement("td");
+	var elFrom = createFormElement("input","text","employmentFromDate","","Grey");
+	var elTo = createFormElement("input","text","employmentToDate","","Grey");
+	elFrom.size="8";
+	elFrom.maxlength="25";
+	elFrom.id="employmentFromDate["+empHistoryCount+"]";
+	Event.observe(elFrom, "blur", onBlurEmpHistoryFromDate.bindAsEventListener(this,empHistoryCount));
+	myCell.appendChild(elFrom);	
+	myRow.appendChild(myCell);
+	
+	myCell = document.createElement("td");
+	//var elTo = createFormElement("input","text","employmentToDate","","Grey");
+	elTo.size="8";
+	elTo.maxlength="25";	
+	elTo.id="employmentToDate["+empHistoryCount+"]";
+	Event.observe(elTo, "blur", onBlurEmpHistoryToDate.bindAsEventListener(this,elFrom,empHistoryCount));
+	myCell.appendChild(elTo);	
+	myRow.appendChild(myCell);	
+
+	myCell = document.createElement("td");
+	var el = createFormElement("input","text","employmentEmployerId","","Grey");
+	el.size="13";
+	el.maxlength="100";
+	el.id="employmentEmployerId["+empHistoryCount+"]";
+	myCell.appendChild(el);	
+	myRow.appendChild(myCell);
+
+	myCell = document.createElement("td");
+	var el = createFormElement("input","text","employmentDesignationId","","Grey");
+	el.size="13";
+	el.maxlength="100";
+	el.id="employmentDesignationId["+empHistoryCount+"]";
+	myCell.appendChild(el);	
+	myRow.appendChild(myCell);
+		
+	myCell = document.createElement("td");
+	var el = createFormElement("input","text","employmentExperience","","Grey");
+	el.size="10";
+	el.maxlength="25";
+	el.id="employmentExperience["+empHistoryCount+"]";
+	el.value="0yrs 0month";
+	Event.observe(el, "blur", onBlurEmpHistoryExpr.bindAsEventListener(this,elFrom,elTo,empHistoryCount));	
+	myCell.appendChild(el);	
+	myRow.appendChild(myCell);	
+	
+	/* myCell = document.createElement("td");
+	var el=createFormElement("input","text","grossSalary","","Grey");
+	el.size="7";
+	el.maxlength="15";
+	el.id="grossSalary["+empHistoryCount+"]";
+	myCell.appendChild(el);
+	myRow.appendChild(myCell);
+
+	myCell = document.createElement("td");
+	var el=createFormElement("input","text","allowance","","Grey");
+	el.size="7";
+	el.maxlength="15";
+	el.id="allowance["+empHistoryCount+"]";
+	myCell.appendChild(el);
+	myRow.appendChild(myCell); */
+	
+	/* myCell = document.createElement("td");
+	var el=document.createElement("textarea");
+	el.name="dutiesInvolved";
+	el.rows="3";
+	el.cols="8";
+	el.className+="Grey";
+	el.id="dutiesInvolved["+empHistoryCount+"]";
+	myCell.appendChild(el);
+	myRow.appendChild(myCell);
+	
+	myCell = document.createElement("td");
+	var el=document.createElement("textarea");
+	el.name="reasonForLeaving";
+	el.rows="3";
+	el.cols="8";
+	el.className+="Grey";
+	el.id="reasonForLeaving["+empHistoryCount+"]";
+	myCell.appendChild(el);
+	myRow.appendChild(myCell); */
+	
+	tBody.appendChild(myRow);
+
+	new Ajax.Autocompleter('employmentEmployerId['+empHistoryCount+']', "autocomplete", "importResume.do?mode=getAutoCompleteList&fld=<%=ApplicantConstants.AUTOCOMPLETE_EMPLOYMENT_EMPLOYER%>", {frequency: 0.001});
+	new Ajax.Autocompleter('employmentDesignationId['+empHistoryCount+']', "autocomplete", "importResume.do?mode=getAutoCompleteList&fld=<%=ApplicantConstants.AUTOCOMPLETE_EMPLOYMENT_DESIGNATION%>", {frequency: 0.001});
+	onOptionChange("empHistory",empHistoryCount);
+	empHistoryCount = empHistoryCount+1;
+}
+
+function onBlurYop(event){
+	var el =Event.element(event);
+	getFormattedYear(el);
+}
+function onEduOptClick(event){
+	var el =Event.element(event); 
+	var level = el.id.substring(4, el.id.length);
+	onOptionChange("edu",level);
+}
+
+function onEmpHistoryOptClick(event){
+	var el =Event.element(event); 
+	var level = el.id.substring(4, el.id.length);
+	onOptionChange("empHistory",level);
+}
+
+function onBlurEmpHistoryFromDate(event,level){
+	var el=Event.element(event);
+	getFormattedDateRelevance(el,level);	
+}
+
+function onBlurEmpHistoryToDate(event,elFrom,level){
+	var el=Event.element(event);
+	getFormattedDateRelevance(el,level);			
+}
+
+function onBlurEmpHistoryExpr(event,from,to,level){	
+	onBlurEmpHistoryExperience(event,from.value,to.value,level);					
+}
+
+function onBlurEmpHistoryExperience(event,fromDate,toDate,level){
+	var from = $("employmentFromDate["+level+"]").value;
+	var to = $("employmentToDate["+level+"]").value;
+	if(yrf.getDateObject(to)>=yrf.getDateObject(from)){
+		var pars = "mode=getEmployerExperience&fromDt="+from+"&toDt="+to+"&emplevel="+level;
+		var myAjax = ajaxCall("importResume.do",'post',pars,setExtractedEmpExp, reportError);
+	}	
+}
+
+function setExtractedEmpExp(request){
+	xmlFile = request.responseXML;
+	var empExp = xmlFile.getElementsByTagName("ids")[0];	
+	if(empExp!=null){		
+		var emex = empExp.getElementsByTagName('id')[0].firstChild.nodeValue;		
+		var mon = emex.split("_");
+		$("employmentExperience["+mon[1]+"]").value=mon[0];		
+	}
+}
+
+
+
+
+function onDateBlur(e){
+	getFormattedDate(this);
+}
+function onYearBlur(e){
+	getFormattedYear(this);
+}
+function onCalClick(e){
+	cal.showCalender(this.id.substr(2,this.id.length),this.id.substr(2,this.id.length));
+}
+
+//Setter functions to be called from other frame
+function setName(val){
+	frm.applicantName.value=val;
+}
+function setEmail1(val){
+	frm.applicantEmail1.value=val;
+}
+function setMobile(val){
+	frm.applicantCellPhone.value=val;
+}
+function setLocation(val){
+	frm.applicantCity.value=val;
+}
+function setSkills(val){
+	frm.rawPrimarySkills.value=val;
+	frm.rawPrimarySkills.focus();
+}
+function setEducation(val){
+	$('rawEducationText[0]').value=val;
+	$('rawEducationText[0]').focus();
+}
+
+function setWorkingSince(val){
+	frm.applicantWorkingSince.value=val;
+	frm.applicantWorkingSince.focus();
+}
+
+//CODE TO EXTRACT SKILLS FROM RAW SKILLS ENTERED
+function getExtractedSkills(){
+	var rawSkills = frm.rawPrimarySkills.value;
+	//rawSkills = rawSkills.replace(/\r/g ," ");
+	//rawSkills =rawSkills.replace(/%/g ,"%25").replace(/\+/g, '%2B').replace(/\"/g,'%22').replace(/\'/g, '%27').replace(/\//g,'%2F');
+	rawSkills =encodeURIComponent(rawSkills);//.replace(/\&/g, '%26');
+	//rawSkills =rawSkills.replace(/\+/g, '%2B');
+	
+	var pars = "mode=getExtractedSkills&rawPrimarySkills="+rawSkills;
+	var myAjax = ajaxCall("importResume.do",'post',pars,setExtractedSkills, reportError);
+	
+}
+function setExtractedSkills(request){
+	xmlFile = request.responseXML;
+	if(!isValidSession(xmlFile,'')){
+		redirectUser('<%=TPApplicationProperties.getProperty("redirect_on_session_expired")%>');
+	}
+	//frm.primarySkills.value='';
+	var skills = xmlFile.getElementsByTagName('skills');
+	var skillIds = frm.primarySkillIds.value;
+	var skillNames=$("divPrimarySkills").innerHTML;
+	if(skills!=null ){
+		if(skills[0]!=null){
+			var skill = skills[0].getElementsByTagName('skill');
+			for(i=0;i<skill.length;i++){
+				var id =skill[i].getElementsByTagName('id')[0].firstChild.nodeValue;
+				var name = skill[i].getElementsByTagName('name')[0].firstChild.nodeValue;
+
+				var arrIds = skillIds.split(',');
+				var exist=0;
+				for(k=0;k<arrIds.length;k++){
+					if(arrIds[k]==id){
+						exist=1;
+						break;
+					}
+				}
+				if(exist==0){
+					if(skillIds.length>0){
+						skillIds = skillIds + ',' + id;
+						skillNames = skillNames + ', '+name;
+					}else{
+						skillIds = id;
+						skillNames = name;
+					}
+				}
+			}
+		}
+	}
+	frm.primarySkillIds.value = skillIds;
+	$("divPrimarySkills").innerHTML=skillNames;
+	frm.primarySkills.value=skillNames;
+
+}
+
+function clearExtractedSkills(){
+	frm.primarySkillIds.value = '';
+	$("divPrimarySkills").innerHTML='';
+}
+
+
+function getExtractedEmploymentHistory(rawEmploymentHistory,level){
+	rawEmploymentHistory =encodeURIComponent(rawEmploymentHistory);
+	if(empHistorySelected > -1){
+		level = empHistorySelected;
+		var pars = "mode=getExtractedEmploymentHistory&rawEmploymentHistory="+rawEmploymentHistory+"&emplevel="+level;
+		var myAjax = ajaxCall("importResume.do",'post',pars,setExtractedEmploymentHistory, reportError);
+	}else{
+		alert('Please select row to auto fill');
+	}	
+}
+
+function setExtractedEmploymentHistory(request){
+	xmlFile = request.responseXML;	
+	if(!isValidSession(xmlFile,'')){
+		redirectUser('<%=TPApplicationProperties.getProperty("redirect_on_session_expired")%>');
+	}
+	var employmentHistory = xmlFile.getElementsByTagName('EmploymentHistory');
+	if(employmentHistory!=null ){
+		if(employmentHistory[0]!=null){
+			var eLevel = employmentHistory[0].getElementsByTagName('level')[0].firstChild.nodeValue;
+
+			var empHistFromDate="";
+			if(employmentHistory[0].getElementsByTagName('empHistFromDate')[0].firstChild!=null){
+				empHistFromDate =employmentHistory[0].getElementsByTagName('empHistFromDate')[0].firstChild.nodeValue;
+			}
+			if(empHistFromDate!=""){
+				$("employmentFromDate["+eLevel+"]").value=empHistFromDate;
+			}
+
+			var empHistToDate="";
+			if(employmentHistory[0].getElementsByTagName('empHistToDate')[0].firstChild!=null){
+				empHistToDate =employmentHistory[0].getElementsByTagName('empHistToDate')[0].firstChild.nodeValue;
+			}
+			if(empHistToDate!=""){
+				$("employmentToDate["+eLevel+"]").value=empHistToDate;
+			}
+
+			var empName="";
+			if(employmentHistory[0].getElementsByTagName('employerName')[0].firstChild!=null){
+				empName =employmentHistory[0].getElementsByTagName('employerName')[0].firstChild.nodeValue;
+			}
+			if(empName!=""){
+				$("employmentEmployerId["+eLevel+"]").value=empName;
+			}
+
+			var desigName="";
+			if(employmentHistory[0].getElementsByTagName('designationName')[0].firstChild!=null){
+				desigName =employmentHistory[0].getElementsByTagName('designationName')[0].firstChild.nodeValue;
+			}
+			if(desigName!=""){
+				$("employmentDesignationId["+eLevel+"]").value=desigName;
+			}
+			
+		}
+	}		
+}
+
+function getExtractedEducation(rawEducation,level){
+	rawEducation =encodeURIComponent(rawEducation);//.replace(/\&/g, '%26');
+	if(eduSelected > -1){
+		level = eduSelected;
+		var pars = "mode=getExtractedEducation&rawEducation="+rawEducation+"&educationLevel="+level;
+		var myAjax = ajaxCall("importResume.do",'post',pars,setExtractedEducation, reportError);
+	}else{
+		alert('Please select row to auto fill');
+	}
+	
+}
+
+function setExtractedEducation(request){
+	xmlFile = request.responseXML;	
+	if(!isValidSession(xmlFile,'')){
+		redirectUser('<%=TPApplicationProperties.getProperty("redirect_on_session_expired")%>');
+	}
+	var educations = xmlFile.getElementsByTagName('education');
+	if(educations!=null ){
+		if(educations[0]!=null){
+			var eLevel = educations[0].getElementsByTagName('level')[0].firstChild.nodeValue;
+			var degreeId =educations[0].getElementsByTagName('degreeId')[0].firstChild.nodeValue;
+			
+			var branchId =educations[0].getElementsByTagName('branchId')[0].firstChild.nodeValue;
+			var institute="";
+			if(educations[0].getElementsByTagName('institute')[0].firstChild!=null){
+				institute =educations[0].getElementsByTagName('institute')[0].firstChild.nodeValue;
+			}
+			var yop ="";
+			if(educations[0].getElementsByTagName('year')[0].firstChild!=null){
+				yop =educations[0].getElementsByTagName('year')[0].firstChild.nodeValue;
+			}
+			
+			
+			if(yop != ""){
+				$("educationYearOfPassing["+eLevel+"]").value=yop;
+			}
+			if(institute!=""){
+				$("educationInstitute["+eLevel+"]").value=institute;
+			}
+			if(degreeId>0){
+				for(var i=0; i<degreeControls.length; i++){
+					if(degreeControls[i][0]==eLevel){
+						var cbo = degreeControls[i][1];
+						cbo.setSelected(cbo.getIndexWithId(degreeId));
+					}
+				}
+			}
+			if(branchId>0){
+				for(var i=0; i<branchControls.length; i++){
+					if(branchControls[i][0]==eLevel){
+						var cbo = branchControls[i][1];
+						cbo.setSelected(cbo.getIndexWithId(branchId));
+					}
+				}
+			}
+		}
+	}	
+}
+
+function onClickTotalExperience(obj){
+	var totalExp="";
+	var years = 0;	
+	var months = 0;
+	var valCurr = $("applicantWorkingSince").value;
+	if(valCurr == "" || valCurr == 0){
+		for(var i=0;i<empHistoryCount;i++){
+			if($("employmentExperience["+i+"]") != null && $("employmentExperience["+i+"]").value!='' && $("employmentExperience["+i+"]").value!=null){
+				totalExp=$("employmentExperience["+i+"]").value.split(" ");
+				if(totalExp[0]!=null && totalExp[0]!=''){		
+					years = years + parseInt(totalExp[0].replace("yrs",""));
+				}
+				if(totalExp[1]!=null && totalExp[1]!=''){
+					months = months + parseInt(totalExp[1].replace("months",""));
+				}
+			}		
+		}
+		if(months>11){
+			years = years+Math.floor(months/12);
+			months = months%12;
+		}
+		$('applicantWorkingSince').value=years+"."+months;	
+	}
+}
+function getFormattedExperience(obj){
+	if(obj.value.trim()!=''){
+		if(isNaN(obj.value)){
+			obj.select();			
+			alert("Experience should be number");
+			obj.focus();
+			return false;
+		}else {
+			var yrmn= obj.value.split(".");
+			if(yrmn[1]>11){
+				obj.select();
+				alert("Months should be less than 12");
+				obj.focus();
+				return false;
+			}
+			return true;
+		}
+	}
+	return true;
+}
+
+
+
+//CALENDER CONTROL CODE AND FUNCTIONS
+var cal = new MonthYearCalender('divCalender');
+cal.setDisplayFormat('MMM-YYYY');
+cal.setDateStyle('EU');
+
+//DATE FORMATTER CODE AND FUNCTIONS
+var dtfo = new DateFormatter();
+function getFDate(obj,format){
+	dtfo.setDisplayFormat(format);
+	if(obj.value.trim()!=''){
+	if(!dtfo.checkDate(obj)){
+		obj.select();
+		alert("Please enter date in " + format + " format");
+		obj.focus();
+		return false;
+	}else {
+		return true;
+	}
+	}
+	return true;
+}
+var dtf = new DateFormatter();
+dtf.setDisplayFormat('MMM-YYYY');
+function getFormattedDate(obj){
+	if(obj.value.trim()!=''){
+	if(!dtf.checkDate(obj)){
+		obj.select();
+		alert("<bean:message key="add_applicant.errors.working_since_invalid_format"/>");
+		obj.focus();
+		return false;
+	}else {
+		return true;
+	}
+	}
+	return true;
+}
+
+var yrf= new DateFormatter();
+yrf.setDisplayFormat('MMM-YYYY');
+
+function getFormattedYear(obj){
+	if(obj.value.trim()!=''){
+		if(yrf.getDateObject(obj.value)){
+			obj.value=yrf.getDateObject(obj.value).getFullYear();
+		}else if(yrf.getDateObject('01-'+obj.value)){
+			obj.value=yrf.getDateObject('01-'+obj.value).getFullYear();
+		}else{
+			alert('<bean:message key="add_applicant.errors.yearofoassing_invalid_format"/>');
+			obj.focus();
+			return false;
+		}
+	}
+	return true;
+}
+var toFromValid=false;
+function getFormattedDateRelevance(obj,level){
+	var from = $("employmentFromDate["+level+"]").value;
+	var to = $("employmentToDate["+level+"]").value;
+	if(from.trim()!='' && to.trim()!=''){
+		if(yrf.getDateObject(from)>yrf.getDateObject(to) && !toFromValid){			
+			obj.select();
+			obj.focus();
+			alert('from date '+from+' cannot be higher than to date '+to);
+			toFromValid=true;
+			return false;						
+		}else{
+			toFromValid=false;
+		}
+	}		
+	getFormattedDate(obj);
+	toFromValid=false;			
+}
+
+function setSourceId(){
+	window.setTimeout("checkSourceId()", 500);
+}
+function checkSourceId(){
+	var pars = "mode=getSourceId&source=" + document.applicantForm.source.value;
+	var myAjax = ajaxCall("importResume.do",'get',pars,updateSourceId, reportError);
+}
+function updateSourceId(request){
+ 	xmlFile = request.responseXML;
+	if(!isValidSession(xmlFile,'<%=TPApplicationProperties.getProperty("redirect_on_session_expired")%>'))return;
+	if(!isErrorXml(xmlFile)){
+		var op = xmlFile.getElementsByTagName("ids")[0];
+		document.applicantForm.sourceId.value = op.childNodes[0].childNodes[0].nodeValue;
+	}else{
+		if(document.applicantForm.source.value !=''){
+			alert(document.applicantForm.source.value + " is not a registered source");
+			frm.source.focus();
+		}
+	}	
+}
+
+function onChangeSelectBoxSource(){
+	var sourceVendor = $("employeeSourceAndVendorUser");
+	var sourceEmpl = $('employeeSourceDiv');
+	var srcId = selectBoxSource.getSelectedId();
+	if(srcId=='0'){
+		if(sourceEmpl){
+	    	sourceEmpl.style.display = 'block';
+	    	sourceVendor.style.display = 'none';
+	    }
+	}else if(srcId=='-2'){
+		Element.hide("employeeSourceAndVendorUser");
+		Element.hide("employeeSourceDiv");
+		requestReloadSources();
+	}else {    
+		//sourceVendor.style.display = 'block';
+		sourceEmpl.style.display = 'none';
+	    showVendoruser(srcId);
+	}
+}
+function requestReloadSources(){
+    var pars = "mode=getAllSourcesWithoutEmployee";
+	var myAjax = ajaxCall("importResume.do",'get',pars,reloadSources, reportError);
+}
+function reloadSources(request){
+ 	xmlFile = request.responseXML;
+	if(!isValidSession(xmlFile,'<%=TPApplicationProperties.getProperty("redirect_on_session_expired")%>'))return;
+	if(!isErrorXml(xmlFile)){
+		var op = request.responseText;
+		var opts = eval(op);
+		var m = [new SelectOption('-1','<bean:message key="add_applicant.label.select_source"/>')];
+		var n = [new SelectOption('0','<bean:write name="applicantForm" property="employeeSourceName" filter="false"/>',0,null,false,{cs:'mnuGreen'})];
+		opts = m.concat(opts);
+		opts = opts.concat(n);
+		selectBoxSource.reInitialize(opts, '-1');
+	}	
+ 
+}
+
+function showVendoruser(srcId){
+    var pars = "mode=getVendorUserJS&sourceId=" + srcId;
+	var myAjax = ajaxCall("importResume.do",'get',pars,updateVendoruser, reportError);
+}
+
+function updateVendoruser(request){
+ 	xmlFile = request.responseXML;
+	if(!isValidSession(xmlFile,'<%=TPApplicationProperties.getProperty("redirect_on_session_expired")%>'))return;
+	if(!isErrorXml(xmlFile)){
+		var sourceEmpl = document.getElementById("employeeSourceAndVendorUser");
+		var op = request.responseText;
+		var opts = eval(op);
+		if(opts==""){
+    		sourceEmpl.style.display = 'none';
+	    }else{
+	    	sourceEmpl.style.display = 'block';
+	    }
+		selectBoxEmployeeSource.reInitialize(opts, '<bean:write name="applicantForm" property="vendorId"/>');
+	}	
+ 
+}
+
+function onOptionChange(imgGroupName, attachmentId){	
+	var imgs = getElementsByName_iefix("img",imgGroupName);
+	for (i = 0; i < imgs.length; i++) {
+		var theImage = imgs[i];
+		if (theImage.id.indexOf("img") > -1) {
+			if( theImage.id == 'img_'+attachmentId){
+				if(imgGroupName=="empHistory"){
+					empHistorySelected = attachmentId;
+				}else{
+					eduSelected = attachmentId;
+				}
+				theImage.src = "images/checkedradiobutton.gif";
+			}else{
+				theImage.src = "images/radiobutton.gif";
+			}
+		}
+	}
+}
+function getElementsByName_iefix(tag, name) {
+     var elem = document.getElementsByTagName(tag);
+     var arr = new Array();
+     for(i = 0,iarr = 0; i < elem.length; i++) {
+          att = elem[i].getAttribute("name");
+          if(att == name) {
+               arr[iarr] = elem[i];
+               iarr++;
+          }
+     }
+     return arr;
+}	
+function onRadioChange(imgGroupName, attachmentId){
+	<logic:empty name="applicantForm" property="sessionId">	
+	var prevId = document.applicantForm.selAttachment.value;
+	var imgs = document.getElementsByName(imgGroupName);
+	
+	for (i = 0; i < imgs.length; i++) {
+			var theImage = imgs[i];
+			if (theImage.id.indexOf("img") > -1) {
+				if( theImage.id == 'img_'+attachmentId){
+					document.applicantForm.selAttachment.value = attachmentId;
+					theImage.src = "images/checkedradiobutton.gif";
+				}else{
+					theImage.src = "images/radiobutton.gif";
+				}
+			}
+	}
+	if(prevId != document.applicantForm.selAttachment.value){		
+		var emailId = document.applicantForm.emailId.value;
+		document.applicantForm.mode.value='importResume';
+		if(confirm('<bean:message key="search_applicant.home.label.switch_resume"/>')){
+			document.applicantForm.parse.value='1';
+		}else{
+			document.applicantForm.parse.value='2';
+		}
+		document.applicantForm.emailId.value=emailId;
+		document.applicantForm.selAttachment.value=attachmentId;
+		document.applicantForm.submit();
+		//window.location= "importResume.do?mode=importResume&parse=1&subMode=<bean:write property="subMode" name="applicantForm"/>&emailId="+emailId+"&selAttachment="+attachmentId;
+	}
+	</logic:empty>
+	<logic:notEmpty name="applicantForm" property="sessionId">	
+	var prevId = document.applicantForm.uploadedFilePath.value;
+	var imgs = document.getElementsByName(imgGroupName);
+	for (i = 0; i < imgs.length; i++) {
+			var theImage = imgs[i];
+			if (theImage.id.indexOf("img") > -1) {
+				if( theImage.id == 'img_'+attachmentId){
+					document.applicantForm.uploadedFilePath.value = attachmentId;
+					theImage.src = "images/checkedradiobutton.gif";
+				}else{
+					theImage.src = "images/radiobutton.gif";
+				}
+			}
+	}
+	if(prevId != document.applicantForm.uploadedFilePath.value){
+		document.applicantForm.mode.value='importResume';
+		if(confirm('<bean:message key="search_applicant.home.label.switch_resume"/>')){
+			document.applicantForm.parse.value='1';
+		}else{
+			document.applicantForm.parse.value='2';
+		}
+		document.applicantForm.submit();				
+	}
+	</logic:notEmpty>
+}
+var fresher = "<bean:write  name="applicantForm" property="fresher"/>";
+function checkFresher(){
+	if(fresher=="" || fresher=="0"){
+		$('cboFresher').src="images/checkboxunchecked.gif";
+		document.applicantForm.fresher.value="0";
+	}else{
+		$('cboFresher').src="images/checkboxchecked.gif";
+		document.applicantForm.fresher.value="1";
+	}
+	
+}
+function toggleFresher(){
+	if(fresher=="" || fresher=="0"){
+		fresher="1";
+	}else{
+		fresher="0";
+	}
+	checkFresher();
+}
+
+function toggleEmployeeApply(){
+	var isEmpApply = document.applicantForm.isEmpApply.value;
+	if(isEmpApply=="" || isEmpApply=="0"){
+		$('cboIsEmpApply').src="images/checkboxchecked.gif";
+		document.applicantForm.isEmpApply.value="1";
+		toggleDiv('empCodeDiv');
+	}else{
+		$('cboIsEmpApply').src="images/checkboxunchecked.gif";
+		document.applicantForm.isEmpApply.value="0";
+		toggleDiv('empCodeDiv');
+	}
+}
+
+function toggleConfidential(){
+	var confidential = document.applicantForm.confidential.value;
+	if(confidential=="" || confidential=="0"){
+		$('cboConfidential').src="images/checkboxchecked.gif";
+		document.applicantForm.confidential.value="1";
+	}else{
+		$('cboConfidential').src="images/checkboxunchecked.gif";
+		document.applicantForm.confidential.value="0";
+	}
+}
+
+function toggleDiv(divId){
+	if($(divId).style.display=="block"){
+		$(divId).style.display="none";
+	}else{
+		$(divId).style.display="block";
+	}
+}
+
+function showEmployeeSource(){
+	selectBoxSource.setSelected(selectBoxSource.getIndexWithId('0'));
+	if($("employeeSource")){
+		$("employeeSource").style.display="block";
+	}
+}
+function setSourceOfIframe() {	
+	var url = 'importResume.do?mode=getResumeToImport&ieImport=<%=request.getParameter("ieImport")%>&applicantId=<bean:write name="applicantForm" property="applicantId" />&originalResumePath=<bean:write name="applicantForm" property="originalResumePath" />&emailId=<bean:write name="applicantForm" property="emailId"/>&hilite=' +
+		formatString('<bean:write name="applicantForm" property="applicantName"/>') + '|hl1' + ',' +
+		formatString(selectBoxSource.getText(selectBoxSource.getIndexWithId(selectBoxSource.getSelectedId()))) + '|hl2' + ',' +
+		formatString('<bean:write name="applicantForm" property="applicantCity"/>') + '|hl3' + ',' +
+		formatString('<bean:write name="applicantForm" property="applicantHomePhone"/>') + '|hl4' + ',' +
+		formatString('<bean:write name="applicantForm" property="applicantWorkPhone"/>') + '|hl5' + ',' +
+		formatString('<bean:write name="applicantForm" property="applicantCellPhone"/>') + '|hl1' + ',' +
+		formatString('<bean:write name="applicantForm" property="applicantEmail1"/>') + '|hl2' + ',' +
+		formatString('<bean:write name="applicantForm" property="applicantEmail2"/>') + '|hl3';
+	var skills = '<bean:write name="applicantForm" property="primarySkills" />';
+	if(skills != null && skills != '') {
+		parts = skills.split(',');
+		for(var i = 0; i < parts.length; i++) {
+			url += ',' + formatString(parts[i]) + '|hl4';
+		}
+	}	
+	url += eduStr;
+	url += ',' + formatString('<bean:write name="applicantForm" property="applicantWorkingSince"/>') + '|hl1';	
+	url += ',' + formatString('<bean:write name="applicantForm" property="currentCTC"/>') + '|hl3';
+	url += ',' + formatString('<bean:write name="applicantForm" property="expectedCTC"/>') + '|hl4';
+	url += ',' + formatString('<bean:write name="applicantForm" property="noticePeriod"/>') + '|hl5';		
+	window.frames['viewPort'].location.href = uncache(url);
+}
+	
+function onWindowLoad(){
+	setSourceOfIframe();
+	<logic:equal property="saveNcontinue" name="applicantForm" value="2">
+	<logic:equal name="noDuplicateFound" scope="request" value="1">
+		alert('<bean:message key="inbox.message.no_duplicate_found"/>');
+	</logic:equal>
+	</logic:equal>
+	<logic:notEmpty name="duplicates" scope="request">
+		alert('<bean:message key="inbox.message.duplicate_found"/>');
+	</logic:notEmpty>
+	<logic:notEmpty name="fieldValueData" scope="request">
+		var msg = '<bean:write name="fieldValueData" scope="request"/>';
+		msg = msg.replace(/:::/g, "\n");
+		//msg = "Based on \n" + msg + "\nduplicate record(s) found.\nDo you want to see duplicate record(s)?"
+		msg = '<bean:message key="create_applicant.label.based_on"/>' + msg + '<bean:message key="create_applicant.label.duplicate_records_found"/>';
+		var retVal = confirm(msg);
+		if(retVal) {
+			checkForDuplicates();
+			return;
+		}
+	</logic:notEmpty>	
+	
+	<logic:equal property="subMode" name="applicantForm" value="edit">
+	<%if(ImportConfigurationManager.isEditFieldShow(ImportConfigurationConstants.FIELD_EDUCATION)){ %>
+		registerListener(eduTable,"edu");		
+	<%}%>	
+	<%if(ImportConfigurationManager.isEditFieldShow(ImportConfigurationConstants.FIELD_EXPERIENCE)){ %>
+		checkFresher();
+	<%}%>
+	<%if(ImportConfigurationManager.isEditFieldShow(ImportConfigurationConstants.FIELD_EMPLOYMENT_HISTORY)){ %>
+		registerListener(empHistoryTable,"empHistory");		
+	<%}%>			
+	</logic:equal>
+	
+	<logic:equal property="subMode" name="applicantForm" value="add">
+	<%if(ImportConfigurationManager.isImportFieldShow(ImportConfigurationConstants.FIELD_EDUCATION)){ %>
+		registerListener(eduTable,"edu");		
+	<%}if(ImportConfigurationManager.isImportFieldShow(ImportConfigurationConstants.FIELD_EXPERIENCE)){ %>
+		checkFresher();
+	<%}if(ImportConfigurationManager.isImportFieldShow(ImportConfigurationConstants.FIELD_EMPLOYMENT_HISTORY)){ %>
+		registerListener(empHistoryTable,"empHistory");		
+	<%}%>
+				
+	</logic:equal>
+	<logic:empty name="applicantForm" property="sessionId">	
+	onRadioChange('rdo',document.applicantForm.selAttachment.value);
+	</logic:empty>
+
+	onOptionChange("edu",0);	
+	onOptionChange("empHistory",0);
+	
+	<logic:notEmpty property="applicantId" name="applicantForm" >
+	var isEmployeeSource = '<bean:write name="applicantForm" property="isEmployeeSource"/>';
+	if(isEmployeeSource==1){
+		showEmployeeSource();
+	}else{
+		showVendoruser('<%=applicantForm.getSourceId()%>');
+	}
+	</logic:notEmpty>	
+	var workSince= '<bean:write name="applicantForm" property="applicantWorkingSince"/>';
+	if(workSince==""){
+		$("applicantWorkingSince").value="0.0";
+	}
+	//employee source autocomplete
+	new Ajax.Autocompleter("source", "autocomplete", "importResume.do?mode=getAutoCompleteList&fld=<%=ApplicantConstants.AUTOCOMPLETE_SOURCE%>", {frequency: 0.001, callback: getAutocompleteQry});
+		
+}
+function getAutocompleteQry(){
+	var selId=selectBoxSource.getSelectedId();
+	if(selId=="-1"){
+		selId="";
+	}
+	return uncache("sourceTypeId="+selId+"&source="+document.applicantForm.source.value);
+}	
+window.onload=onWindowLoad;
+</script>

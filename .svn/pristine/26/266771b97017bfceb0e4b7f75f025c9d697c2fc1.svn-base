@@ -1,0 +1,92 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<title> </title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<style>
+
+table td {
+font-family:Verdana;
+font-size:12px;
+color:#000000;
+}
+.header{
+font-size:15px;
+color:#FFFFFF;
+font-weight:bold;
+}
+.lightGreen{
+
+color:#9EAC64;
+text-align:right;
+}
+</style>
+</head>
+
+<body>
+<table cellpadding="5" bgcolor="#9EAC64" cellspacing="8" align="center">
+<tr>
+<td  class="header">
+Interview Feedback Reminder
+</td>
+</tr>
+<tr>
+<td bgcolor="#FFFFFF">
+	<table cellspacing="2" cellpadding="3">
+		<tr>
+		<td class="lightGreen">
+		Candidate: 
+		</td>
+		<td>
+		$CANDIDATE_NAME
+		</td>
+		</tr>
+		<tr>
+		<td class="lightGreen">
+		Date: 
+		</td>
+		<td >
+		$APPOINTMENT_DATE
+		</td>
+		</tr>
+		<tr>
+		<td class="lightGreen">
+		Time: 
+		</td>
+		<td>
+		$APPOINTMENT_TIME_FROM
+		</td>
+		</tr>
+		<tr>
+		<td class="lightGreen">
+		Position: 
+		</td>
+		<td>
+		$APPOINTMENT_POSITION_NAME
+		</td>
+		</tr>
+		<tr>
+		<td class="lightGreen">
+		Step: 
+		</td>
+		<td>
+		$POSITION_STEP_NAME
+		</td>
+		</tr>
+		<tr>
+		<td colspan="2">
+			To submit your feedback <a href="$LINK_TO_FEEDBACK_FORM">Click here</a>
+		</td>
+		</tr>
+	</table>
+	
+</td>
+</tr>
+<tr>
+<td>
+</td>
+</tr>
+</table>
+</body>
+</html>

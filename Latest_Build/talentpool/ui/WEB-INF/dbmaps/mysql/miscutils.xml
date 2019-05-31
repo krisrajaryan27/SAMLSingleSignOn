@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<dbmap>
+	<dbqueries>
+		<dbquery name="qMiscUtils_GetApplicantForFile">
+			select count(*) from tp_applicants where 
+			applicant_original_resume_path like ?   
+			OR applicant_original_doc_path like ?
+		</dbquery>
+		<dbquery name="qMiscUtils_GetApplicantDocumentsForFile">
+			select count(*) from tp_applicant_documents where 
+			document_path like ?
+		</dbquery>
+		<dbquery name="qMiscUtils_GetApplicantEmailAttachmentsForFile">
+			select count(*) from tp_applicant_inbox_email_attachments where 
+			attachment_file_path like ?
+		</dbquery>
+		<dbquery name="qMiscUtils_GetInboxAttachmentsForFile">
+			select count(*) from tp_inbox_email_attachments where 
+			attachment_file_path like ?
+		</dbquery>
+		
+		<dbquery name="qMiscUtils_GetApplicantsResumeText">
+			select applicant_id, applicant_text_resume from tp_applicant_text_resumes limit ?, ?
+		</dbquery>
+		<dbquery name="qMiscUtils_UpdateApplicantsResumeText">
+			update tp_applicant_text_resumes set applicant_text_resume=? where applicant_id=? 
+		</dbquery>
+		
+	</dbqueries>
+	<dataqueries>
+		<dataquery name="dMiscUtils_GetApplicantForFile" dbquery="qMiscUtils_GetApplicantForFile" />
+		<dataquery name="dMiscUtils_GetApplicantDocumentsForFile" dbquery="qMiscUtils_GetApplicantDocumentsForFile" />
+		<dataquery name="dMiscUtils_GetApplicantEmailAttachmentsForFile" dbquery="qMiscUtils_GetApplicantEmailAttachmentsForFile" />
+		<dataquery name="dMiscUtils_GetInboxAttachmentsForFile" dbquery="qMiscUtils_GetInboxAttachmentsForFile" />
+		
+		<dataquery name="dMiscUtils_GetApplicantsResumeText" dbquery="qMiscUtils_GetApplicantsResumeText" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name="applicantId" column="applicant_id" type="STRING"/>
+			<attribute name="applicantTextResume" column="applicant_text_resume" type="STRING"/>
+		</dataquery>
+		<dataquery name="dMiscUtils_UpdateApplicantsResumeText" dbquery="qMiscUtils_UpdateApplicantsResumeText" />
+	</dataqueries>
+</dbmap>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-configuration PUBLIC
+"-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+"http://hibernate.sourceforge.net/hibernate-configuration-3.0.dtd">
+<hibernate-configuration>
+	<session-factory>
+		<property name="hibernate.dialect">org.hibernate.dialect.MySQLDialect</property>
+		<property name="show_sql">false</property>
+		<property name="hibernate.query.substitutions">true 1, false 0</property>
+		
+		<mapping resource="custom_report.hbm.xml" />
+		<mapping class="com.talentPool.customReports.dataobject.CRColumn" />
+		<mapping class="com.talentPool.customReports.dataobject.CRTableType" />
+		<mapping class="com.talentPool.customReports.dataobject.CRFilters" />
+		<mapping class="com.talentPool.customReports.dataobject.CRColumnFilterMap" />
+		<mapping class="com.talentPool.customReports.dataobject.CRReportTypes" />		
+		<mapping class="com.talentPool.customReports.dataobject.CRReportTypeColumnMappingId" />
+		<mapping class="com.talentPool.customReports.dataobject.CRReportTypeColumnMapping" />  
+		<mapping class="com.talentPool.salaryStructure.entity.SalaryComponent" />
+		<mapping class="com.talentPool.salaryStructure.entity.SalaryComponentCategory" />
+		
+		<mapping class="com.talentPool.masters.dataobject.EmployersData"/>
+		<mapping class="com.talentPool.masters.dataobject.EmployerAliasesData"/>
+		<mapping class="com.talentPool.masters.dataobject.EmployerAliasesId"/>
+		
+		<mapping class="com.talentPool.masters.dataobject.DesignationsData"/>
+		<mapping class="com.talentPool.masters.dataobject.DesignationAliasesData"/>
+		<mapping class="com.talentPool.masters.dataobject.DesignationAliasesId"/>
+	</session-factory>
+</hibernate-configuration>

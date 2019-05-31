@@ -1,0 +1,18 @@
+/*
+*  location.jape
+*
+*/
+
+
+Phase:	location
+Input:  TempLocationToken
+Options: control = once
+
+Rule: location_address
+Priority: 20
+(
+	{TempLocationToken.kind == location_prefix, TempLocationToken.subkind == address}
+	({TempLocationToken.kind == location}):location
+)
+-->
+:location.LocationToken = {kind = "city", rule = "location_place", priority="90"}

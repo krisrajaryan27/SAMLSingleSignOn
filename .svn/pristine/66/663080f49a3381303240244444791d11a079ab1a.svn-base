@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ns0:Res_HRMS xmlns:ns0="http://www.tibco.com/schemas/HRMS/BusinessServices/Schemas/Res.xsd">
+    <ns0:Header>
+        <ns0:idrequest>RRFAA01</ns0:idrequest>
+        <ns0:datpost>2009-09-18</ns0:datpost>
+        <ns0:referenceno>13521</ns0:referenceno>
+        <ns0:extsystem>HRMS</ns0:extsystem>
+    </ns0:Header>
+    <ns0:Body>
+        <ns0:p_application_number>19692</ns0:p_application_number>
+        <ns0:p_person_id>267622</ns0:p_person_id>
+        <ns0:p_assignment_id>78766</ns0:p_assignment_id>
+        <ns0:p_application_id>41756</ns0:p_application_id>
+        <ns0:p_per_object_version_number>2</ns0:p_per_object_version_number>
+        <ns0:p_asg_object_version_number>1</ns0:p_asg_object_version_number>
+        <ns0:p_apl_object_version_number>1</ns0:p_apl_object_version_number>
+        <ns0:p_per_effective_start_date>2010-06-17T00:00:00+05:30</ns0:p_per_effective_start_date>
+        <ns0:p_per_effective_end_date>4712-12-31T00:00:00+05:30</ns0:p_per_effective_end_date>
+        <ns0:p_full_name> CHAND</ns0:p_full_name>
+        <ns0:p_per_comment_id/>
+        <ns0:p_assignment_sequence>1</ns0:p_assignment_sequence>
+        <ns0:p_name_combination_warning>FALSE</ns0:p_name_combination_warning>
+        <ns0:p_orig_hire_warning>FALSE</ns0:p_orig_hire_warning>
+    </ns0:Body>
+</ns0:Res_HRMS>

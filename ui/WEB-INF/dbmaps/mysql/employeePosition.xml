@@ -1,0 +1,250 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>	
+		<!-- Start : Employee Management -->
+		<dbquery name="qEmployeePositionManager_GetPositionsOpenToEmployee">
+			select tp.position_id, tp.position_title, tp.position_code, tp.position_referal_fees,
+			tp.position_date_created,tp.position_priority,tp.position_code,tp.position_publish_date,
+			GROUP_CONCAT(DISTINCT tdgr.degree_title SEPARATOR ', ') AS education,
+			(select group_concat(tpsk.skill) 
+			from tp_skills tpsk
+			WHERE tpsk.skill_id in (select tppsk.skill_id
+						from tp_position_skills tppsk
+						where tppsk.position_id=tp.position_id 
+						and tppsk.skill_type=?)) as primary_skills,
+			(select group_concat(tpsk.skill) 
+			from tp_skills tpsk
+			where tpsk.skill_id in (select tppsk.skill_id
+						from tp_position_skills tppsk
+						where tppsk.position_id=tp.position_id 
+						and tppsk.skill_type=?)) as secondary_skills,
+			(select group_concat(tu.user_fname, ' ', tu.user_lname separator ', ')
+			from tp_users tu left join tp_user_roles tur on (tu.user_id = tur.user_id)
+			WHERE tu.user_id in (select tpsu.user_id
+								from tp_position_step_users tpsu
+								where tpsu.position_id=tp.position_id
+								)
+			and tur.role_id in (?, ?)
+			) as contact_person,
+			concat(case when ceil(tp.position_min_exp)=floor(tp.position_min_exp) 
+			then round(tp.position_min_exp, 0) 
+			else format(tp.position_min_exp, 1) 
+		       end, ' to ', 
+			case when ceil(tp.position_max_exp)=floor(tp.position_max_exp) 
+			then round(tp.position_max_exp, 0) 
+			else format(tp.position_max_exp, 1) 
+		       end, ' yrs') as experience,
+			(tp.position_no_of_openings - (select count(*) 
+							from tp_applicant_joining_history ta 
+							where ta.position_id = tp.position_id)
+			) as unfilled_vacancies,tp.requirements,tp.responsibilities
+			FROM tp_positions tp 
+			LEFT JOIN tp_position_degrees tpd ON (tpd.position_id=tp.position_id)
+			LEFT JOIN tp_degrees tdgr ON (tdgr.degree_id=tpd.degree_id)			
+			WHERE tp.position_status = ?
+			AND tp.is_published_for_emp_portal = ?
+			AND tp.employee_publish_from_date &lt;= ?
+			AND tp.employee_publish_to_date	 &gt;=	?	
+			@@
+			GROUP BY tp.position_id
+			ORDER BY @@
+			LIMIT ?, ?
+		</dbquery>
+		<dbquery name="qEmployeePositionManager_GetPositionsOpenToSearch">
+			select tp.position_id, tp.position_title, tp.position_code, tp.position_referal_fees,
+			tp.position_date_created,tp.position_priority,tp.position_code,tp.position_publish_date,
+			GROUP_CONCAT(DISTINCT tdgr.degree_title SEPARATOR ', ') AS education,
+			(select group_concat(tpsk.skill) 
+			from tp_skills tpsk
+			WHERE tpsk.skill_id in (select tppsk.skill_id
+						from tp_position_skills tppsk
+						where tppsk.position_id=tp.position_id 
+						and tppsk.skill_type=?)) as primary_skills,
+			(select group_concat(tpsk.skill) 
+			from tp_skills tpsk
+			where tpsk.skill_id in (select tppsk.skill_id
+						from tp_position_skills tppsk
+						where tppsk.position_id=tp.position_id 
+						and tppsk.skill_type=?)) as secondary_skills,
+			(select group_concat(tu.user_fname, ' ', tu.user_lname separator ', ')
+			from tp_users tu left join tp_user_roles tur on (tu.user_id = tur.user_id)
+			WHERE tu.user_id in (select tpsu.user_id
+								from tp_position_step_users tpsu
+								where tpsu.position_id=tp.position_id
+								)
+			and tur.role_id in (?, ?)
+			) as contact_person,
+			concat(case when ceil(tp.position_min_exp)=floor(tp.position_min_exp) 
+			then round(tp.position_min_exp, 0) 
+			else format(tp.position_min_exp, 1) 
+		       end, ' to ', 
+			case when ceil(tp.position_max_exp)=floor(tp.position_max_exp) 
+			then round(tp.position_max_exp, 0) 
+			else format(tp.position_max_exp, 1) 
+		       end, ' yrs') as experience,
+			(tp.position_no_of_openings - (select count(*) 
+							from tp_applicant_joining_history ta 
+							where ta.position_id = tp.position_id)
+			) as unfilled_vacancies,tp.requirements,tp.responsibilities
+			FROM tp_positions tp 
+			LEFT JOIN tp_position_degrees tpd ON (tpd.position_id=tp.position_id)
+			LEFT JOIN tp_position_locations tpl ON (tpl.position_id=tp.position_id)
+			LEFT JOIN tp_degrees tdgr ON (tdgr.degree_id=tpd.degree_id)			
+			WHERE tp.position_status = ?
+			AND tp.is_published_for_emp_portal = ?
+			AND tp.employee_publish_from_date &lt;= ?
+			AND tp.employee_publish_to_date	 &gt;=	?	
+			@@
+			GROUP BY tp.position_id
+			ORDER BY @@
+			LIMIT ?, ?
+		</dbquery>
+		<dbquery name="qEmployeePositionManager_GetPositionsCount">
+			SELECT count(*) as cnt
+			FROM tp_positions tp
+			WHERE tp.position_status=?
+			AND tp.is_published_for_emp_portal = ?
+			AND tp.employee_publish_from_date &lt;= ?
+			AND tp.employee_publish_to_date	 &gt;=	?
+			@@
+		</dbquery>	
+			
+		<dbquery name="qEmployeePositionManager_GetPositionDetailsForEmployee">
+			select tp.position_id, tp.position_title,tp.position_referal_fees,tp.position_code,
+			tp.position_date_created,tp.position_priority,tp.position_publish_date,tp.employee_apply_refer,
+			tp.employee_can_email,
+			(tp.position_no_of_openings - (select count(*) 
+							from tp_applicant_joining_history ta 
+							where ta.position_id = tp.position_id )
+			) as unfilled_vacancies,
+			date_format(tp.position_date_expiry, '%d-%b-%y') as expiry_date,
+			(select group_concat(tpsk.skill) 
+			from tp_skills tpsk
+			where tpsk.skill_id in (select tppsk.skill_id
+						from tp_position_skills tppsk
+						where tppsk.position_id=tp.position_id 
+						and tppsk.skill_type=?)) as primary_skills,
+			(select group_concat(tpsk.skill) 
+			from tp_skills tpsk
+			where tpsk.skill_id in (select tppsk.skill_id
+						from tp_position_skills tppsk
+						where tppsk.position_id=tp.position_id 
+						and tppsk.skill_type=?)) as secondary_skills,
+			concat(case when ceil(tp.position_min_exp)=floor(tp.position_min_exp) 
+			then round(tp.position_min_exp, 0) 
+			else format(tp.position_min_exp, 1) 
+		       end, ' to ', 
+			case when ceil(tp.position_max_exp)=floor(tp.position_max_exp) 
+			then round(tp.position_max_exp, 0) 
+			else format(tp.position_max_exp, 1) 
+		       end, ' yrs') as experience,
+			GROUP_CONCAT(DISTINCT tdgr.degree_title SEPARATOR ', ') AS education,
+			GROUP_CONCAT(DISTINCT tb.branch_name SEPARATOR ', ') AS branches,
+			GROUP_CONCAT(DISTINCT tl.location_name SEPARATOR ', ') AS locations,			
+			tp.requirements,tp.responsibilities
+			from tp_positions tp 
+			LEFT JOIN tp_position_degrees tpd ON (tpd.position_id=tp.position_id)
+			LEFT JOIN tp_degrees tdgr ON (tdgr.degree_id=tpd.degree_id)
+			LEFT JOIN tp_position_branches tpb ON (tpb.position_id=tp.position_id)
+			LEFT JOIN tp_branches tb ON (tb.branch_id=tpb.branch_id)
+			LEFT JOIN tp_position_locations tpl ON (tpl.position_id=tp.position_id)
+			LEFT JOIN tp_location_ap tl ON (tl.location_id=tpl.location_id)
+			where tp.position_id=?
+			AND tp.position_status = ?
+			AND tp.is_published_for_emp_portal = ?
+			AND tp.employee_publish_from_date &lt;= ?
+			AND tp.employee_publish_to_date	 &gt;=	?
+			GROUP BY position_id
+		</dbquery>
+		<dbquery name="qEmployeePositionManager_GetPositionRequirements">
+			select requirements	from tp_positions
+			where position_id=?
+		</dbquery>
+		<dbquery name="qEmployeePositionManager_GetPositionResponsibilities">
+			select responsibilities from tp_positions
+			where position_id=?
+		</dbquery>
+		<dbquery name="qEmployeePositionManager_GetSkillsToFilterPositions">
+			SELECT DISTINCT tps.skill_id,ts.skill AS skill_name FROM tp_positions tp,
+			tp_position_skills tps
+			LEFT JOIN tp_skills ts ON (tps.skill_id=ts.skill_id)
+			WHERE 
+			tp.position_id=tps.position_id AND
+			tp.position_status = ?
+			AND tp.is_published_for_emp_portal = ?
+			AND tp.employee_publish_from_date &lt;= now()
+			AND tp.employee_publish_to_date	 &gt;=	now()
+			@@
+			ORDER BY skill_name
+		</dbquery>
+		<!-- End : Employee Management -->
+	</dbqueries>
+	<dataqueries>
+	    <!-- Start : Employee Management -->
+	    <dataquery name="dEmployeePositionManager_GetPositionsOpenToEmployee" dbquery="qEmployeePositionManager_GetPositionsOpenToEmployee" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "positionId" column="position_id" type ="STRING" /> 	
+	    	<attribute name= "positionTitle" column="position_title" type ="STRING" />
+	    	<attribute name= "positionCode" column="position_code" type ="STRING" />
+	    	<attribute name= "primarySkills" column="primary_skills" type ="STRING" />
+	    	<attribute name= "secondarySkills" column="secondary_skills" type ="STRING" />
+	    	<attribute name= "contactPerson" column="contact_person" type ="STRING" />
+	    	<attribute name= "experience" column="experience" type ="STRING" />
+	    	<attribute name= "noOfUnfilledVacancies" column="unfilled_vacancies" type ="STRING" />
+	    	<attribute name= "positionReferalFees" column="position_referal_fees" type ="STRING" />
+	    	<attribute name= "positionDateCreated" column="position_date_created" type ="STRING" />
+	    	<attribute name= "positionPriority" column="position_priority" type ="STRING" />
+	    	<attribute name= "education" column="education" type ="STRING" />
+	    	<attribute name= "positionCode" column="position_code" type ="STRING" />
+	    	<attribute name= "positionPublishDate" column="position_publish_date" type ="STRING" />
+	    	<attribute name= "requirements" column="requirements" type ="STRING" />
+	    	<attribute name= "responsibilities" column="responsibilities" type ="STRING" />
+	    </dataquery>
+	       <dataquery name="dEmployeePositionManager_GetPositionsOpenToSearch" dbquery="qEmployeePositionManager_GetPositionsOpenToSearch" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "positionId" column="position_id" type ="STRING" /> 	
+	    	<attribute name= "positionTitle" column="position_title" type ="STRING" />
+	    	<attribute name= "positionCode" column="position_code" type ="STRING" />
+	    	<attribute name= "primarySkills" column="primary_skills" type ="STRING" />
+	    	<attribute name= "secondarySkills" column="secondary_skills" type ="STRING" />
+	    	<attribute name= "contactPerson" column="contact_person" type ="STRING" />
+	    	<attribute name= "experience" column="experience" type ="STRING" />
+	    	<attribute name= "noOfUnfilledVacancies" column="unfilled_vacancies" type ="STRING" />
+	    	<attribute name= "positionReferalFees" column="position_referal_fees" type ="STRING" />
+	    	<attribute name= "positionDateCreated" column="position_date_created" type ="STRING" />
+	    	<attribute name= "positionPriority" column="position_priority" type ="STRING" />
+	    	<attribute name= "education" column="education" type ="STRING" />
+	    	<attribute name= "positionCode" column="position_code" type ="STRING" />
+	    	<attribute name= "positionPublishDate" column="position_publish_date" type ="STRING" />
+	    	<attribute name= "requirements" column="requirements" type ="STRING" />
+	    	<attribute name= "responsibilities" column="responsibilities" type ="STRING" />
+	    </dataquery>
+	    <dataquery name="dEmployeePositionManager_GetPositionsCount" dbquery="qEmployeePositionManager_GetPositionsCount" />
+	    <dataquery name="dEmployeePositionManager_GetPositionDetailsForEmployee" dbquery="qEmployeePositionManager_GetPositionDetailsForEmployee" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "positionId" column="position_id" type ="STRING" /> 	
+	    	<attribute name= "positionTitle" column="position_title" type ="STRING" />
+	    	<attribute name= "noOfUnfilledVacancies" column="unfilled_vacancies" type ="STRING" />
+	    	<attribute name= "primarySkills" column="primary_skills" type ="STRING" />
+	    	<attribute name= "secondarySkills" column="secondary_skills" type ="STRING" />	    	
+	    	<attribute name= "experience" column="experience" type ="STRING" />	    	
+	    	<attribute name= "education" column="education" type ="STRING" />
+	    	<attribute name= "branches" column="branches" type ="STRING" />
+	    	<attribute name= "locations" column="locations" type ="STRING" />
+	    	<attribute name= "positionReferalFees" column="position_referal_fees" type ="STRING" />
+	    	<attribute name= "positionDateCreated" column="position_date_created" type ="STRING" />
+	    	<attribute name= "positionPriority" column="position_priority" type ="STRING" />
+	    	<attribute name= "positionCode" column="position_code" type ="STRING" />
+	    	<attribute name= "positionPublishDate" column="position_publish_date" type ="STRING" />	 
+	    	<attribute name= "requirements" column="requirements" type ="STRING" />
+	    	<attribute name= "responsibilities" column="responsibilities" type ="STRING" />
+	    	<attribute name= "employeeApplyRefer" column="employee_apply_refer" type ="STRING" />	    	
+	    	<attribute name= "employeeCanEmail" column="employee_can_email" type ="STRING" />
+	    </dataquery>
+	    <dataquery name="dEmployeePositionManager_GetSkillsToFilterPositions" dbquery="qEmployeePositionManager_GetSkillsToFilterPositions" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "skillId" column="skill_id" type ="STRING" /> 	
+	    	<attribute name= "skillName" column="skill_name" type ="STRING" />
+	    </dataquery>
+	    <!-- End : Employee Management -->
+	</dataqueries>   
+</dbmap>

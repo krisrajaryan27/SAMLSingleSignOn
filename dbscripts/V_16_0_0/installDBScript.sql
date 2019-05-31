@@ -1,0 +1,10 @@
+use talentpool;
+update `tp_screen_configurations` set `field_id`='Sub_category' where `field_id`='sub_category';
+update `tp_screen_configurations` set `field_id`='Category' where `field_id`='category' ;
+update `tp_screen_configurations` set `field_id`='Sub_category',`field_type`='0',`is_process_field`='0',`field_import_show`='0',`field_edit_show`='0',`field_import_mandatory`='0',`field_confidential`='0',`field_vendor_show`='0',`field_vendor_mandatory`='0',`field_employee_show`='0',`field_employee_mandatory`='0',`field_applicant_show_on_site`='0',`field_applicant_mandatory_on_site`='0' where `field_id`='Sub_category' ;
+update `tp_screen_configurations` set `field_id`='Category',`field_type`='0',`is_process_field`='0',`field_import_show`='0',`field_edit_show`='0',`field_import_mandatory`='0',`field_confidential`='0',`field_vendor_show`='0',`field_vendor_mandatory`='0',`field_employee_show`='0',`field_employee_mandatory`='0',`field_applicant_show_on_site`='0',`field_applicant_mandatory_on_site`='0' where `field_id`='Category' ;
+alter table `tp_custom_field_values_position` change `string_value` `string_value` varchar(2500) CHARACTER SET latin1 COLLATE latin1_swedish_ci NULL ;
+insert IGNORE into `tp_application_properties`(`application_property`,`application_property_value`) values ( 'rejectedCandidateMailToRecruiter','1');
+update `tp_cr_table_type` set `table_type_id`='1',`table_type_name`='Candidate Master',`table_short_name`='trcm',`table_db_name`='tp_cr_candidate_master',`table_column_join`='position_id' where `table_type_id`='1';
+insert into `tp_report_levels`(`level_id`,`report_id`,`report_type`) values ( '1','45','0');
+insert into `tp_report_levels`(`level_id`,`report_id`,`report_type`) values ( '1','43','0');

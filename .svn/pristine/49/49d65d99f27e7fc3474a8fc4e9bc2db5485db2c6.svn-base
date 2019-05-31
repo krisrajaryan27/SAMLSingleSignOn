@@ -1,0 +1,37 @@
+<p>Hi $CANDIDATE_NAME,<br /><br /> This mail comes as a gentle reminder about the interview with us. The details are as follows<br />   </p>
+<table cellspacing="3" cellpadding="3">
+<tbody>
+<tr>
+<td>Date:</td>
+<td>$APPOINTMENT_DATE</td>
+</tr>
+<tr>
+<td>Time:</td>
+<td>$APPOINTMENT_TIME_FROM</td>
+</tr>
+<tr>
+<td valign="top">Venue:</td>
+<td><strong>$COMPANY_NAME</strong></td>
+</tr>
+<tr>
+<td valign="top">Contact Person:</td>
+<td>
+<p>$CONTACT_PERSON_FNAME $CONTACT_PERSON_LNAME<br /> Tel: +91 <br /> Cell: $CONTACT_PERSON_CELL_PHONE <br /> Fax: +91</p>
+<p>&nbsp;</p>
+</td>
+</tr>
+<tr>
+<td valign="top">Interview Mode:</td>
+<td><strong>$APPOINTMENT_INTERVIEW_MODE</strong></td>
+</tr>
+<tr>
+<td valign="top">Interview Mode Details:</td>
+<td>
+<p> $APPOINTMENT_INTERVIEW_MODE_DETAILS<br /> </p>
+<p>&nbsp;</p>
+</td>
+</tr>
+
+</tr>
+</tbody>
+</table>

@@ -1,0 +1,239 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+   <dbqueries>
+        <dbquery name="qPositionManagerForAP_AddPositionToDBForAP">
+         INSERT into tp_positions_ap(position_code,position_title,effectiveStartDate) values(?,?,?)
+       </dbquery>
+      
+       <dbquery name="qPositionManagerForAP_GetPositionCodeFromDBForAP">
+         SELECT  position_code FROM tp_positions_ap where position_code=?
+       </dbquery>
+       
+       <dbquery name="qPositionManagerForAP_UpdatePositionByExternalCodeForAP">
+         UPDATE tp_positions_ap set position_title=?, effectiveStartDate=? where position_code=? 
+       </dbquery>
+       
+       <dbquery name="qPositionManagerForAP_GetAllPositionsFromDBForAP">
+         SELECT position_id, position_code, position_title from tp_positions_ap  ORDER BY position_code
+       </dbquery>
+       
+       <dbquery name="qPositionManagerForAP_GetPositionCodeForAP">
+			SELECT position_code, position_title from tp_positions_ap where position_code like ?
+	   </dbquery> 
+	   
+	   <dbquery name="qPositionManagerForAP_GetPositionNameForAP">
+			SELECT position_title from tp_positions_ap where position_title like ?
+	   </dbquery> 
+	    
+	   <dbquery name="qPositionManagerForAP_GetPositionDataForAP">
+			(SELECT (SELECT dept_name  from tp_departments where dept_externalCode= ? AND dept_level=1 ) AS companyName,
+			(SELECT dept_name  from tp_departments where dept_externalCode= ?  AND dept_level=2 ) AS businessUnitName,
+			(SELECT dept_name  from tp_departments where dept_externalCode= ?  AND dept_level=3) AS departmentName,
+			(SELECT jobfunction_name from tp_jobfunction_ap where jobfunction_externalCode= ?) AS jobfunctionName ,
+			(SELECT job_name from tp_jobcode_ap where job_externalCode= ?) AS jobName,
+			(SELECT paygrade_name from tp_paygrade_ap where paygrade_externalCode= ?) AS paygradeName,
+			(SELECT location_name from tp_location_ap where location_externalCode= ? AND location_level=1) AS divisionName,
+			(SELECT location_name from tp_location_ap where location_externalCode= ? AND location_level=2) AS regionName ,
+			(SELECT location_name from tp_location_ap where location_externalCode= ? AND location_level=3) AS locationName, 
+			(SELECT dept_id  from tp_departments where dept_externalCode= ? AND dept_level=1 ) AS companyId,
+			(SELECT dept_id  from tp_departments where dept_externalCode= ? AND dept_level=2) AS businessUnitId,
+			(SELECT dept_id  from tp_departments where dept_externalCode= ? AND dept_level=3) AS departmentId,
+			(SELECT position_title  from tp_positions_ap where position_code= ? ) AS positionTitleForAP,
+			(SELECT location_id  from tp_location_ap where location_externalCode= ? AND location_level=1) AS divisionId,
+			(SELECT location_id  from tp_location_ap where location_externalCode= ? AND location_level=2) AS regionId,
+			(SELECT location_id  from tp_location_ap where location_externalCode= ? AND location_level=3) AS locationId,
+			(SELECT jobfunction_id  from tp_jobfunction_ap where jobfunction_externalCode= ? ) AS jobfunctionId,
+			(SELECT paygrade_id  from tp_paygrade_ap where paygrade_externalCode= ? ) AS payGradeId,
+			(SELECT job_id  from tp_jobcode_ap where job_externalCode= ? ) AS jobId,
+			(SELECT job_externalCode  from tp_jobcode_ap where job_externalCode= ? ) AS jobExternalCode,
+			(SELECT dept_externalCode  from tp_departments where dept_externalCode= ? AND dept_level = 1) AS companyExternalCode,
+			(SELECT dept_externalCode  from tp_departments where dept_externalCode= ? AND dept_level = 2 ) AS businessUnitExternalCode,
+			(SELECT dept_externalCode  from tp_departments where dept_externalCode= ? AND dept_level = 3) AS departmentExternalCode,
+			(SELECT jobfunction_externalCode  from tp_jobfunction_ap where jobfunction_externalCode= ? ) AS jobfunctionExternalCode,
+			(SELECT location_externalCode  from tp_location_ap where location_externalCode= ? AND location_level = 1 ) AS divisionExternalCode,
+			(SELECT location_externalCode  from tp_location_ap where location_externalCode= ? AND location_level = 2) AS regionExternalCode,
+			(SELECT location_externalCode  from tp_location_ap where location_externalCode= ? AND location_level = 3) AS locationExternalCode,
+			(SELECT paygrade_externalCode  from tp_paygrade_ap where paygrade_externalCode= ? ) AS paygradeExternalCode)
+	   </dbquery>  
+	   
+	   <dbquery name="qPositionManagerForAP_GetDeptNameForAP">
+			SELECT dept_name from tp_departments where dept_externalCode =?
+	   </dbquery> 
+	   
+	   <dbquery name="qPositionManagerForAP_GetJobFunctionNameForAP">
+			SELECT jobfunction_name from tp_jobfunction_ap where jobfunction_externalCode =?
+	   </dbquery> 
+	   
+	   <dbquery name="qPositionManagerForAP_GetJobNameForAP">
+			SELECT job_name from tp_jobcode_ap where job_externalCode =?
+	   </dbquery> 
+	   
+	   <dbquery name="qPositionManagerForAP_GetPayGradeNameForAP">
+			SELECT paygrade_name from tp_paygrade_ap where paygrade_externalCode =?
+	   </dbquery> 
+	   
+	   <dbquery name="qPositionManagerForAP_GetLocationNameForAP">
+			SELECT location_name from tp_location_ap where location_externalCode =?
+	   </dbquery> 
+	   
+	   <dbquery name="qPositionManagerForAP_GetPositionEffectiveStartDateForAP">
+			SELECT effectiveStartDate from tp_positions_ap where position_code =?
+	   </dbquery> 
+	   
+	   <dbquery name="qPositionManager_GetRegions">
+			SELECT location_id, location_name, location_externalCode FROM tp_location_ap WHERE location_isRegion='1' AND location_parent_id=? ORDER BY location_name
+		</dbquery>
+		<dbquery name="qPositionManager_GetStates">
+			SELECT id ,name FROM states WHERE country_id=? ORDER BY name
+		</dbquery>
+	   
+	   <dbquery name="qPositionManager_GetSubLocations">
+			SELECT location_id ,location_name, location_externalCode FROM tp_location_ap WHERE location_isRegion='0' AND location_parent_id=? ORDER BY location_name
+		</dbquery>
+		<dbquery name="qPositionManagerForAP_GetLocationById">
+			SELECT location_id ,location_name, location_externalCode FROM tp_location_ap where location_id=?
+		</dbquery>
+		<dbquery name="qPositionManagerForAP_GetDepartmentById">
+			SELECT dept_id ,dept_name FROM tp_departments where dept_id=?
+		</dbquery>
+		<dbquery name="qPositionManagerForAP_GetJobFunctionById">
+			SELECT jobfunction_id ,jobfunction_name FROM tp_jobfunction_ap where jobfunction_id=?
+		</dbquery>
+		<dbquery name="qPositionManagerForAP_GetJobPayGradeById">
+			SELECT paygrade_id ,paygrade_name FROM tp_paygrade_ap where paygrade_id=?
+		</dbquery>
+		<dbquery name="qPositionManagerForAP_GetJobCodeById">
+			SELECT job_id ,job_name, job_externalCode FROM tp_jobcode_ap where job_id=?
+		</dbquery>
+       
+   </dbqueries>
+   
+   
+   
+   <dataqueries>
+      <dataquery name="dPositionManagerForAP_AddPositionToDBForAP" dbquery="qPositionManagerForAP_AddPositionToDBForAP"/>
+      
+      
+      <dataquery name="dPositionManagerForAP_GetPositionCodeFromDBForAP" dbquery="qPositionManagerForAP_GetPositionCodeFromDBForAP" object="com.talentPool.positions.dataobject.PositionDataForAP">
+         <attribute name="itemName"  column="position_code" type="STRING" />
+      </dataquery>
+      
+      <dataquery name="dPositionManagerForAP_UpdatePositionByExternalCodeForAP" dbquery="qPositionManagerForAP_UpdatePositionByExternalCodeForAP"/>
+      
+      <dataquery name="dPositionManagerForAP_GetAllPositionsFromDBForAP" dbquery="qPositionManagerForAP_GetAllPositionsFromDBForAP"  object="com.talentPool.positions.dataobject.PositionDataForAP">
+      <attribute name="positionIdForAP"  column="position_id" type="INT" />
+      <attribute name="positionCodeForAP"  column="position_code" type="STRING" />
+      <attribute name="positionTitleForAP"  column="position_title" type="STRING" />
+      </dataquery>
+      
+   
+      
+       <dataquery name="dPositionManagerForAP_GetPositionNameForAP" dbquery="qPositionManagerForAP_GetPositionNameForAP" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "positionName" column="position_title" type ="STRING" />
+	  </dataquery>
+	  
+      <dataquery name="dPositionManagerForAP_GetPositionDataForAP" dbquery="qPositionManagerForAP_GetPositionDataForAP" object="com.talentPool.positions.dataobject.PositionDataForAP">
+	    	<attribute name= "companyName" column="companyName" type ="STRING" />
+	    	<attribute name= "businessUnitName" column="businessUnitName" type ="STRING" />
+	    	<attribute name= "departmentName" column="departmentName" type ="STRING" />
+	    	<attribute name= "jobfunctionName" column="jobfunctionName" type ="STRING" />
+	    	<attribute name= "jobName" column="jobName" type ="STRING" />
+	    	<attribute name= "payGradeName" column="paygradeName" type ="STRING" />
+	    	<attribute name= "divisionName" column="divisionName" type ="STRING" />
+	    	<attribute name= "regionName" column="regionName" type ="STRING" />
+	    	<attribute name= "locationName" column="locationName" type ="STRING" />
+	    	<attribute name= "companyId" column="companyId" type ="STRING" />
+	    	<attribute name= "businessUnitId" column="businessUnitId" type ="STRING" />
+	    	<attribute name= "departmentId" column="departmentId" type ="STRING" />
+	    	<attribute name= "positionTitleForAP" column="positionTitleForAP" type ="STRING" />
+	    	<attribute name= "divisionId" column="divisionId" type ="STRING" />
+	    	<attribute name= "regionId" column="regionId" type ="STRING" />
+	    	<attribute name= "locationId" column="locationId" type ="STRING" />
+	    	<attribute name= "jobfunctionId" column="jobfunctionId" type ="STRING" />
+	    	<attribute name= "payGradeId" column="payGradeId" type ="STRING" />
+	    	<attribute name= "jobId" column="jobId" type ="STRING" />
+	    	<attribute name= "jobExternalCode" column="jobExternalCode" type ="STRING" />
+	    	<attribute name= "companyExternalCode" column="companyExternalCode" type ="STRING" />
+	    	<attribute name= "businessUnitExternalCode" column="businessUnitExternalCode" type ="STRING" />
+	    	<attribute name= "departmentExternalCode" column="departmentExternalCode" type ="STRING" />
+	    	<attribute name= "jobfunctionExternalCode" column="jobfunctionExternalCode" type ="STRING" />
+	    	<attribute name= "divisionExternalCode" column="divisionExternalCode" type ="STRING" />
+	    	<attribute name= "regionExternalCode" column="regionExternalCode" type ="STRING" />
+	    	<attribute name= "locationExternalCode" column="locationExternalCode" type ="STRING" />
+	    	<attribute name= "paygradeExternalCode" column="paygradeExternalCode" type ="STRING" />
+	  </dataquery>
+	  
+	   <dataquery name="dPositionManagerForAP_GetPositionCodeForAP" dbquery="qPositionManagerForAP_GetPositionCodeForAP" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "positionCodeForAP" column="position_code" type ="STRING" />
+	    	<attribute name= "positionTitleForAP" column="position_title" type ="STRING" />
+	  </dataquery>
+	  
+	  <dataquery name="dPositionManagerForAP_GetDeptNameForAP" dbquery="qPositionManagerForAP_GetDeptNameForAP" object="com.talentPool.positions.dataobject.PositionDataForAP">
+	    	<attribute name= "departmentName" column="dept_name" type ="STRING" />
+	  </dataquery>
+	  
+	  <dataquery name="dPositionManagerForAP_GetJobFunctionNameForAP" dbquery="qPositionManagerForAP_GetJobFunctionNameForAP" object="com.talentPool.positions.dataobject.PositionDataForAP">
+	    	<attribute name= "jobfunctionName" column="jobfunction_name" type ="STRING" />
+	  </dataquery>
+	  
+	   <dataquery name="dPositionManagerForAP_GetJobNameForAP" dbquery="qPositionManagerForAP_GetJobNameForAP" object="com.talentPool.positions.dataobject.PositionDataForAP">
+	    	<attribute name= "jobName" column="job_name" type ="STRING" />
+	  </dataquery>
+	  
+	   <dataquery name="dPositionManagerForAP_GetPayGradeNameForAP" dbquery="qPositionManagerForAP_GetPayGradeNameForAP" object="com.talentPool.positions.dataobject.PositionDataForAP">
+	    	<attribute name= "paygradeName" column="paygrade_name" type ="STRING" />
+	  </dataquery>
+	  
+	   <dataquery name="dPositionManagerForAP_GetLocationNameForAP" dbquery="qPositionManagerForAP_GetLocationNameForAP" object="com.talentPool.positions.dataobject.PositionDataForAP">
+	    	<attribute name= "locationName" column="location_name" type ="STRING" />
+	  </dataquery>
+	  
+	  <dataquery name="dPositionManagerForAP_GetPositionEffectiveStartDateForAP" dbquery="qPositionManagerForAP_GetPositionEffectiveStartDateForAP" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "effectiveStartDate" column="effectiveStartDate" type ="STRING" />
+	  </dataquery>
+	  
+	   <dataquery name="dPositionManager_GetRegions" dbquery="qPositionManager_GetRegions" object="com.talentPool.masters.dataobject.LocationData">
+	       <attribute name="itemId"  column="location_id" type="INT" />
+	       <attribute name="itemName"  column="location_name" type="STRING" />
+	       <attribute name="itemExternalCode"  column="location_externalCode" type="STRING" />
+	    </dataquery>
+	     <dataquery name="dPositionManager_GetStates" dbquery="qPositionManager_GetStates" object="com.talentPool.masters.dataobject.LocationData">
+	       <attribute name="itemId"  column="id" type="INT" />
+	       <attribute name="itemName"  column="name" type="STRING" />
+	    </dataquery>
+	  
+	  <dataquery name="dPositionManager_GetSubLocations" dbquery="qPositionManager_GetSubLocations" object="com.talentPool.masters.dataobject.LocationData">
+	       <attribute name="itemId"  column="location_id" type="INT" />
+	       <attribute name="itemName"  column="location_name" type="STRING" />
+	       <attribute name="itemExternalCode"  column="location_externalCode" type="STRING" />
+	    </dataquery>
+	    
+	    <dataquery name="dPositionManagerForAP_GetLocationById" dbquery="qPositionManagerForAP_GetLocationById" object="com.talentPool.masters.dataobject.LocationData">
+	       <attribute name="itemId"  column="location_id" type="INT" />
+	       <attribute name="itemName"  column="location_name" type="STRING" />
+	       <attribute name="itemExternalCode"  column="location_externalCode" type="STRING" />
+	    </dataquery>
+	    <dataquery name="dPositionManagerForAP_GetDepartmentById" dbquery="qPositionManagerForAP_GetDepartmentById" object="com.talentPool.masters.dataobject.DepartmentData">
+	       <attribute name="itemId"  column="dept_id" type="INT" />
+	       <attribute name="itemName"  column="dept_name" type="STRING" />
+	    </dataquery>
+	    
+	     <dataquery name="dPositionManagerForAP_GetJobFunctionById" dbquery="qPositionManagerForAP_GetJobFunctionById" object="com.talentPool.masters.dataobject.DepartmentData">
+	       <attribute name="itemId"  column="dept_id" type="INT" />
+	       <attribute name="itemName"  column="dept_name" type="STRING" />
+	    </dataquery>
+	     <dataquery name="dPositionManagerForAP_GetJobPayGradeById" dbquery="qPositionManagerForAP_GetJobPayGradeById" object="com.talentPool.masters.dataobject.DepartmentData">
+	       <attribute name="itemId"  column="dept_id" type="INT" />
+	       <attribute name="itemName"  column="dept_name" type="STRING" />
+	    </dataquery>
+	     <dataquery name="dPositionManagerForAP_GetJobCodeById" dbquery="qPositionManagerForAP_GetJobCodeById" object="com.talentPool.masters.dataobject.DepartmentData">
+	       <attribute name="itemId"  column="dept_id" type="INT" />
+	       <attribute name="itemName"  column="dept_name" type="STRING" />
+	       <attribute name="jobCode"  column="job_externalCode" type="STRING" />
+	    </dataquery>
+      
+   </dataqueries>   
+</dbmap>

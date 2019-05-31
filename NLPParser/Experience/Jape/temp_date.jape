@@ -1,0 +1,407 @@
+/*
+*  temp_date.jape
+*  Lookups are stored in custom_education_degree.list
+*/
+
+Phase: tempDate
+Input: Token Lookup Percent Date
+Options: control = appelt
+
+Macro: NUMBER_1
+(
+	{Token.string ==~ "[0-9]", !Percent}
+)
+Macro: NUMBER_2
+(
+	{Token.string ==~ "[0-9][0-9]", !Percent}
+)
+Macro: NUMBER_4
+(
+	{Token.string ==~ "[0-9][0-9][0-9][0-9]", !Percent}
+)
+Macro: DAY
+(
+	(((NUMBER_1)|(NUMBER_2))({Token.string ==~ "[Ss][Tt]"}|{Token.string ==~ "[Nn][Dd]"}|{Token.string ==~ "[Rr][Dd]"}|{Token.string ==~ "[Tt][Hh]"}))|
+	{Token.string ==~ "(([0-9][0-9])|([0-9]))(([Ss][Tt])|([Nn][Dd])|([Rr][Dd])|([Tt][Hh]))"}|
+	(NUMBER_1)|(NUMBER_2)
+)
+MACRO: MONTH
+(
+	(NUMBER_1)|(NUMBER_2)
+)
+MACRO: YEAR
+(
+	(NUMBER_2)|(NUMBER_4)
+)
+
+Macro: NUMBER
+(
+	(NUMBER_1)|(NUMBER_2)|(NUMBER_4)
+)
+Macro: TO_TILL_DASH
+(
+	{Token.string ==~ "[Tt][Oo]"}|
+	{Token.string ==~ "[Tt][Ii][Ll][Ll]"}|
+	{Token.kind == punctuation, Token.subkind == dashpunct}
+)
+Macro: DASH_SLASH
+(
+	{Token.string == "."}|
+	{Token.string == "-"}|
+	{Token.string == "/"}
+)
+
+Rule: date_dd_MMM_yyyy
+(
+	(DAY):day({Token.kind == punctuation})?({Lookup.majorType == month}):month({Token.kind == punctuation})?(YEAR):year
+):date
+--> 
+{
+   try {
+		gate.AnnotationSet daySet = (gate.AnnotationSet)bindings.get("day");
+		gate.AnnotationSet monthSet = (gate.AnnotationSet)bindings.get("month");
+		gate.AnnotationSet yearSet = (gate.AnnotationSet)bindings.get("year");
+		gate.AnnotationSet dateSet = (gate.AnnotationSet)bindings.get("date");
+
+		String dayString = doc.getContent().getContent(daySet.firstNode().getOffset(), daySet.lastNode().getOffset()).toString();
+		dayString = dayString.toLowerCase();
+		dayString = dayString.replaceAll("st","").replaceAll("nd","").replaceAll("rd","").replaceAll("th","");
+		
+		String monthString = monthSet.iterator().next().getFeatures().get("minorType").toString();
+		//String monthString = doc.getContent().getContent(monthSet.firstNode().getOffset(), monthSet.lastNode().getOffset()).toString();
+		String yearString = doc.getContent().getContent(yearSet.firstNode().getOffset(), yearSet.lastNode().getOffset()).toString();
+		String dateStr = dayString.trim()+"-"+monthString.trim()+"-"+yearString.trim();
+		java.text.SimpleDateFormat sdFormat1 = new java.text.SimpleDateFormat("dd-MM-yy");
+		java.text.SimpleDateFormat sdFormat2 = new java.text.SimpleDateFormat("dd-MM-yyyy");		
+		Calendar cal = Calendar.getInstance();
+		java.util.Date currentDate = cal.getTime();
+		java.util.Date parsedDate;
+		if(yearString.length() == 2){
+			parsedDate = sdFormat1.parse(dateStr);
+		}
+		else{
+			parsedDate = sdFormat2.parse(dateStr);				
+		}
+		if(parsedDate.compareTo(currentDate) <= 0){			
+			gate.FeatureMap features = Factory.newFeatureMap();
+  			features.put("kind", "date");
+    		features.put("date",sdFormat2.format(parsedDate));
+    		features.put("rule", "date_dd_MMM_yyyy");
+    		outputAS.add(dateSet.firstNode(),
+            dateSet.lastNode(), "TempDateToken", features);
+		}
+   }
+   catch(Exception e) {
+     // not possible
+     e.printStackTrace();
+     //throw new LuckyException("Invalid offset from annotation");
+   }
+}
+
+Rule: date_MMM_dd_yyyy
+(
+	({Lookup.majorType == month}):month({Token.kind == punctuation})?(DAY):day({Token.kind == punctuation})?(YEAR):year
+):date
+--> 
+{
+  try {
+
+	gate.AnnotationSet daySet = (gate.AnnotationSet)bindings.get("day");
+	gate.AnnotationSet monthSet = (gate.AnnotationSet)bindings.get("month");
+	gate.AnnotationSet yearSet = (gate.AnnotationSet)bindings.get("year");
+	gate.AnnotationSet dateSet = (gate.AnnotationSet)bindings.get("date");
+
+ 		String dayString = doc.getContent().getContent(daySet.firstNode().getOffset(), daySet.lastNode().getOffset()).toString();
+		dayString = dayString.toLowerCase();
+		dayString = dayString.replaceAll("st","").replaceAll("nd","").replaceAll("rd","").replaceAll("th","");
+		
+		String monthString = monthSet.iterator().next().getFeatures().get("minorType").toString();
+		//String monthString = doc.getContent().getContent(monthSet.firstNode().getOffset(), monthSet.lastNode().getOffset()).toString();
+		String yearString = doc.getContent().getContent(yearSet.firstNode().getOffset(), yearSet.lastNode().getOffset()).toString();
+		String dateStr = dayString.trim()+"-"+monthString.trim()+"-"+yearString.trim();
+		java.text.SimpleDateFormat sdFormat1 = new java.text.SimpleDateFormat("dd-MM-yy");
+		java.text.SimpleDateFormat sdFormat2 = new java.text.SimpleDateFormat("dd-MM-yyyy");		
+		Calendar cal = Calendar.getInstance();
+		java.util.Date currentDate = cal.getTime();
+		java.util.Date parsedDate;
+		if(yearString.length() == 2){
+			parsedDate = sdFormat1.parse(dateStr);
+		}
+		else{
+			parsedDate = sdFormat2.parse(dateStr);				
+		}
+		if(parsedDate.compareTo(currentDate) <= 0){			
+			gate.FeatureMap features = Factory.newFeatureMap();
+  			features.put("kind", "date");
+    		features.put("date",sdFormat2.format(parsedDate));
+    		features.put("rule", "date_MMM_dd_yyyy");
+    		outputAS.add(dateSet.firstNode(),
+            dateSet.lastNode(), "TempDateToken", features);
+		}
+   }
+   catch(Exception e) {
+   e.printStackTrace();
+     // not possible
+     //throw new LuckyException("Invalid offset from annotation");
+   }
+}
+
+Rule: date_dd_MM_yyyy
+(
+	(MONTH):day(DASH_SLASH)(MONTH):month(DASH_SLASH)(YEAR):year
+):date
+--> 
+{
+   try {
+
+		gate.AnnotationSet daySet = (gate.AnnotationSet)bindings.get("day");
+		gate.AnnotationSet monthSet = (gate.AnnotationSet)bindings.get("month");
+		gate.AnnotationSet yearSet = (gate.AnnotationSet)bindings.get("year");
+		gate.AnnotationSet dateSet = (gate.AnnotationSet)bindings.get("date");
+
+		String dayString = doc.getContent().getContent(daySet.firstNode().getOffset(), daySet.lastNode().getOffset()).toString();
+		String monthString = doc.getContent().getContent(monthSet.firstNode().getOffset(), monthSet.lastNode().getOffset()).toString();
+		String yearString = doc.getContent().getContent(yearSet.firstNode().getOffset(), yearSet.lastNode().getOffset()).toString();
+		String dateStr = dayString.trim()+"-"+monthString.trim()+"-"+yearString.trim();
+		java.text.SimpleDateFormat sdFormat1 = new java.text.SimpleDateFormat("dd-MM-yy");
+		java.text.SimpleDateFormat sdFormat2 = new java.text.SimpleDateFormat("dd-MM-yyyy");		
+		Calendar cal = Calendar.getInstance();
+		java.util.Date currentDate = cal.getTime();
+		java.util.Date parsedDate;
+		if(yearString.length() == 2){
+			parsedDate = sdFormat1.parse(dateStr);
+		}
+		else{
+			parsedDate = sdFormat2.parse(dateStr);				
+		}
+		if(parsedDate.compareTo(currentDate) <= 0){			
+			gate.FeatureMap features = Factory.newFeatureMap();
+  			features.put("kind", "date");
+    		features.put("date",sdFormat2.format(parsedDate));
+    		features.put("rule", "date_dd_MM_yyyy");
+    		outputAS.add(dateSet.firstNode(),
+            dateSet.lastNode(), "TempDateToken", features);
+		}
+   }
+   catch(Exception e) {
+   e.printStackTrace();
+     // not possible
+     //throw new LuckyException("Invalid offset from annotation");
+   }
+}
+
+Rule: date_MM_yyyy
+(
+	(MONTH):month(DASH_SLASH)(YEAR):year
+):date
+--> 
+{
+   try {
+		//gate.AnnotationSet daySet = (gate.AnnotationSet)bindings.get("day");
+		gate.AnnotationSet monthSet = (gate.AnnotationSet)bindings.get("month");
+		gate.AnnotationSet yearSet = (gate.AnnotationSet)bindings.get("year");
+		gate.AnnotationSet dateSet = (gate.AnnotationSet)bindings.get("date");
+
+		//String dayString = doc.getContent().getContent(daySet.firstNode().getOffset(), daySet.lastNode().getOffset()).toString();
+		String dayString = "01";
+		String monthString = doc.getContent().getContent(monthSet.firstNode().getOffset(), monthSet.lastNode().getOffset()).toString();
+		String yearString = doc.getContent().getContent(yearSet.firstNode().getOffset(), yearSet.lastNode().getOffset()).toString();
+		String dateStr = dayString.trim()+"-"+monthString.trim()+"-"+yearString.trim();
+		java.text.SimpleDateFormat sdFormat1 = new java.text.SimpleDateFormat("dd-MM-yy");
+		java.text.SimpleDateFormat sdFormat2 = new java.text.SimpleDateFormat("dd-MM-yyyy");		
+		Calendar cal = Calendar.getInstance();
+		java.util.Date currentDate = cal.getTime();
+		java.util.Date parsedDate;
+		if(yearString.length() == 2){
+			parsedDate = sdFormat1.parse(dateStr);
+		}
+		else{
+			parsedDate = sdFormat2.parse(dateStr);				
+		}
+		if(parsedDate.compareTo(currentDate) <= 0){			
+			gate.FeatureMap features = Factory.newFeatureMap();
+  			features.put("kind", "date");
+    		features.put("date",sdFormat2.format(parsedDate));
+    		features.put("rule", "date_MM_yyyy");
+    		outputAS.add(dateSet.firstNode(),
+            dateSet.lastNode(), "TempDateToken", features);
+		}
+   }
+   catch(Exception e) {
+   e.printStackTrace();
+     // not possible
+     //throw new LuckyException("Invalid offset from annotation");
+   }
+}
+
+Rule: date_MMM_yyyy
+(
+	({Lookup.majorType == month}):month
+	({Token.kind == punctuation})[0,4]
+	(YEAR):year
+):date
+--> 
+{
+   try {
+		gate.AnnotationSet daySet = (gate.AnnotationSet)bindings.get("day");
+		gate.AnnotationSet dateSet = (gate.AnnotationSet)bindings.get("date");
+		gate.AnnotationSet yearSet = (gate.AnnotationSet)bindings.get("year");
+		gate.AnnotationSet monthSet = (gate.AnnotationSet)bindings.get("month");
+		gate.Annotation monthAnn = monthSet.iterator().next();
+		String month = monthAnn.getFeatures().get("minorType").toString();
+		// get the offsets
+	 	Long yearStart = yearSet.firstNode().getOffset();
+	 	Long yearEnd = yearSet.lastNode().getOffset(); 
+		String yearString = doc.getContent().getContent(yearStart,yearEnd).toString();
+		String dayString = "01";
+		if(daySet != null && !daySet.isEmpty()){
+			dayString = doc.getContent().getContent(daySet.firstNode().getOffset(), daySet.lastNode().getOffset()).toString();
+		}
+		String dateStr = dayString.trim()+"-"+month.trim()+"-"+yearString.trim();
+		java.text.SimpleDateFormat sdFormat1 = new java.text.SimpleDateFormat("dd-MM-yy");
+		java.text.SimpleDateFormat sdFormat2 = new java.text.SimpleDateFormat("dd-MM-yyyy");		
+		java.util.Date parsedDate;
+		if(yearString.length() == 2){
+			parsedDate = sdFormat1.parse(dateStr);
+		}
+		else{
+			parsedDate = sdFormat2.parse(dateStr);				
+		}
+		Calendar cal = Calendar.getInstance();
+		java.util.Date currentDate = cal.getTime();
+		if(parsedDate.compareTo(currentDate) <= 0){			
+			gate.FeatureMap features = Factory.newFeatureMap();
+  			features.put("kind", "date");
+    		features.put("date",sdFormat2.format(parsedDate));
+    		features.put("rule", "date_MMM_yyyy");
+    		outputAS.add(dateSet.firstNode(),
+            dateSet.lastNode(), "TempDateToken", features);
+        }
+   }
+   catch(Exception e) {
+   		e.printStackTrace();
+     // not possible
+     //throw new LuckyException("Invalid offset from annotation");
+   }
+}
+
+Rule: date_yyyy_yyyy
+(
+	((NUMBER_4)):year1
+	(TO_TILL_DASH)
+	(YEAR):year2
+):date
+--> 
+{
+	try {
+		gate.AnnotationSet dateSet = (gate.AnnotationSet)bindings.get("date");
+		gate.AnnotationSet year1Set = (gate.AnnotationSet)bindings.get("year1");
+		gate.AnnotationSet year2Set = (gate.AnnotationSet)bindings.get("year2");
+	 	Long year1Start = year1Set.firstNode().getOffset();
+	 	Long year1End = year1Set.lastNode().getOffset(); 
+		String year1String = doc.getContent().getContent(year1Start,year1End).toString();
+		String date1Str = "01-01-"+year1String;
+	 	Long year2Start = year2Set.firstNode().getOffset();
+	 	Long year2End = year2Set.lastNode().getOffset(); 
+		String year2String = doc.getContent().getContent(year2Start,year2End).toString();
+		String date2Str = "01-01-"+year2String;
+
+		java.text.SimpleDateFormat sdFormat1 = new java.text.SimpleDateFormat("dd-MM-yyyy");
+		java.text.SimpleDateFormat sdFormat2 = new java.text.SimpleDateFormat("dd-MM-yy");		
+		java.util.Date parsedDate1;
+		if(year1String.length() == 4){
+			parsedDate1 = sdFormat1.parse(date1Str);
+		}
+		else{
+			parsedDate1 = sdFormat2.parse(date1Str);				
+		}
+
+		java.util.Date parsedDate2;
+		if(year2String.length() == 4){
+			parsedDate2 = sdFormat1.parse(date2Str);
+		}
+		else{
+			parsedDate2 = sdFormat2.parse(date2Str);				
+		}
+		Calendar cal = Calendar.getInstance();
+		java.util.Date currentDate = cal.getTime();
+		if(parsedDate1.compareTo(currentDate) <= 0 && parsedDate2.compareTo(currentDate) <= 0){			
+			gate.FeatureMap features = Factory.newFeatureMap();
+  			features.put("kind", "date");
+    		features.put("date", sdFormat1.format(parsedDate1));
+    		features.put("rule", "date_yyyy_yyyy");
+    		//outputAS.add(year1Set.firstNode(), year1Set.lastNode(), "TempDateToken", features);
+
+			gate.FeatureMap features1 = Factory.newFeatureMap();
+  			features1.put("kind", "date");
+    		features1.put("date", sdFormat1.format(parsedDate2));
+    		features1.put("rule", "date_yyyy_yyyy");
+    		//outputAS.add(year2Set.firstNode(), year2Set.lastNode(), "TempDateToken", features1);
+    		
+   			gate.FeatureMap features2 = Factory.newFeatureMap();
+		  	features2.put("kind", "date_range");
+		  	features2.put("fromDate",sdFormat1.format(parsedDate1));
+		    features2.put("toDate",sdFormat1.format(parsedDate2));
+		    features2.put("rule", "date_range_yyyy_yyyy");
+		    features2.put("isYearOnly", true);		    
+		    outputAS.add(dateSet.firstNode(),dateSet.lastNode(), "TempExperienceToken", features2);
+    		
+        }
+   }
+   catch(Exception e) {
+   e.printStackTrace();
+     // not possible
+     //throw new LuckyException("Invalid offset from annotation");
+   }
+
+}
+
+Rule: date_yyyy_tillDate
+(
+(YEAR):year1
+(({Token.kind == punctuation}|{Token.kind == space})[0,2](TO_TILL_DASH)?({Token.kind == punctuation}|{Token.kind == space})[0,2])
+{Lookup.majorType == experience, Lookup.minorType == till_date}
+):date
+--> 
+{
+   try {
+		gate.AnnotationSet dateSet = (gate.AnnotationSet)bindings.get("date");
+		gate.AnnotationSet year1Set = (gate.AnnotationSet)bindings.get("year1");
+	 	Long year1Start = year1Set.firstNode().getOffset();
+	 	Long year1End = year1Set.lastNode().getOffset(); 
+		String year1String = doc.getContent().getContent(year1Start,year1End).toString();
+		String date1Str = "01-01-"+year1String;
+
+		java.text.SimpleDateFormat sdFormat1 = new java.text.SimpleDateFormat("dd-MM-yyyy");
+		java.text.SimpleDateFormat sdFormat2 = new java.text.SimpleDateFormat("dd-MM-yy");		
+		java.util.Date parsedDate1;
+		if(year1String.length() == 4){
+			parsedDate1 = sdFormat1.parse(date1Str);
+		}
+		else{
+			parsedDate1 = sdFormat2.parse(date1Str);				
+		}
+		Calendar cal = Calendar.getInstance();
+		java.util.Date currentDate = cal.getTime();
+		if(parsedDate1.compareTo(currentDate) <= 0){			
+			gate.FeatureMap features = Factory.newFeatureMap();
+  			features.put("kind", "date");
+    		features.put("date", sdFormat1.format(parsedDate1));
+    		features.put("rule", "date_yyyy_tillDate");
+    		//outputAS.add(year1Set.firstNode(), year1Set.lastNode(), "TempDateToken", features);
+			
+			gate.FeatureMap features2 = Factory.newFeatureMap();
+		  	features2.put("kind", "date_range");
+		  	features2.put("fromDate",sdFormat1.format(parsedDate1));
+		    features2.put("toDate",sdFormat1.format(cal.getTime()));
+		    features2.put("rule", "date_yyyy_tillDate");
+		    features2.put("isYearOnly", true);		    
+		    outputAS.add(dateSet.firstNode(),dateSet.lastNode(), "TempExperienceToken", features2);
+        }
+   }
+   catch(Exception e) {
+   	e.printStackTrace();
+     // not possible
+     //throw new LuckyException("Invalid offset from annotation");
+   }
+}

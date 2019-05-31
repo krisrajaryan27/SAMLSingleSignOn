@@ -1,0 +1,14 @@
+/*
+*  basicinfo_email.jape
+*
+*/
+
+Phase: job_title
+Input: Lookup
+Options: control = appelt
+
+Rule: job_title
+(
+ 	{Lookup.majorType == experience, Lookup.minorType == job_title}
+):job_title -->
+:job_title.ExpJobTitleToken = {kind = "job_title", rule = "job_title"}

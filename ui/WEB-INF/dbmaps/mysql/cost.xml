@@ -1,0 +1,66 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>	
+	    <dbquery name="qCostManager_GetAllCosts">
+			SELECT tc.cost_id, tc.cost_type_id, tc.cost_amount, tc.cost_paid_date, tc.cost_remark,tct.cost_type
+			FROM tp_costs tc, tp_cost_types tct 
+			WHERE tc.cost_type_id = tct.cost_type_id
+			AND  tc.cost_paid_date &gt;= ? AND tc.cost_paid_date &lt;=?
+			ORDER BY tc.cost_paid_date DESC, tc.cost_id DESC
+	    </dbquery>  
+	    <dbquery name="qCostManager_AddCost">
+			INSERT INTO tp_costs(cost_type_id, cost_amount, cost_paid_date, source_id,
+			cost_remark, user_id, date_created, cost_date_from, cost_date_to) VALUES(?,?,?,?,?,?,now(),?,?)
+	    </dbquery>  
+	    <dbquery name="qCostManager_UpdateCost">
+			UPDATE tp_costs SET cost_type_id=?, cost_amount=?, cost_paid_date=?,
+			source_id=?, cost_remark=?, user_id=?, date_created=now(), cost_date_from=?, cost_date_to=? WHERE cost_id=?
+	    </dbquery>  
+	    <dbquery name="qCostManager_GetCostData">
+			SELECT tc.cost_id, tc.cost_type_id, tc.cost_amount, tc.cost_paid_date, tc.source_id,
+			tc.cost_remark, tc.user_id, tc.date_created, tc.cost_date_from, tc.cost_date_to,
+			GROUP_CONCAT(tcp.position_id SEPARATOR ',') as positionIds
+			FROM tp_costs tc LEFT JOIN tp_cost_positions tcp ON(tc.cost_id=tcp.cost_id)
+			WHERE tc.cost_id=?
+			GROUP BY tc.cost_id
+	    </dbquery>  
+	    <dbquery name="qCostManager_DeleteCost">
+			DELETE FROM tp_costs WHERE cost_id=?
+	    </dbquery>
+	    <dbquery name="qCostManager_AddCostPositions">
+			INSERT INTO tp_cost_positions(cost_id, position_id) VALUES(?, ?)
+	    </dbquery>
+	    <dbquery name="qCostManager_DeleteCostPositions">
+			DELETE FROM tp_cost_positions WHERE cost_id=?
+	    </dbquery>
+	</dbqueries>
+	<dataqueries>
+	    <dataquery name="dCostManager_GetAllCosts" dbquery="qCostManager_GetAllCosts" object="com.talentPool.costs.dataobject.CostData">
+	    	<attribute name= "costId" column="cost_id" type ="STRING" />
+	    	<attribute name= "costTypeId" column="cost_type_id" type ="STRING" />
+	    	<attribute name= "costAmount" column="cost_amount" type ="STRING" />
+	    	<attribute name= "costPaidDate" column="cost_paid_date" type ="STRING" />
+	    	<attribute name= "costRemark" column="cost_remark" type ="STRING" />
+	    	<attribute name= "costTypeName" column="cost_type" type ="STRING" />
+	    </dataquery>
+	    <dataquery name="dCostManager_AddCost" dbquery="qCostManager_AddCost" />
+	    <dataquery name="dCostManager_UpdateCost" dbquery="qCostManager_UpdateCost" />
+	    <dataquery name="dCostManager_GetCostData" dbquery="qCostManager_GetCostData" object="com.talentPool.costs.dataobject.CostData">
+	    	<attribute name= "costId" column="cost_id" type ="STRING" />
+	    	<attribute name= "costTypeId" column="cost_type_id" type ="STRING" />
+	    	<attribute name= "costAmount" column="cost_amount" type ="STRING" />
+	    	<attribute name= "costPaidDate" column="cost_paid_date" type ="STRING" />
+	    	<attribute name= "sourceId" column="source_id" type ="STRING" />
+	    	<attribute name= "costRemark" column="cost_remark" type ="STRING" />
+	    	<attribute name= "costDateFrom" column="cost_date_from" type ="STRING" />
+	    	<attribute name= "costDateTo" column="cost_date_to" type ="STRING" />
+	    	<attribute name= "positionIds" column="positionIds" type ="STRING" />
+	    </dataquery>
+	    <dataquery name="dCostManager_DeleteCost" dbquery="qCostManager_DeleteCost" />
+	    <dataquery name="dCostManager_AddCostPositions" dbquery="qCostManager_AddCostPositions" />
+	    <dataquery name="dCostManager_DeleteCostPositions" dbquery="qCostManager_DeleteCostPositions" />
+	</dataqueries>   
+</dbmap>

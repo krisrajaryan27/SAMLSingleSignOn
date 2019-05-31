@@ -1,0 +1,5 @@
+.hl1 { color: #000; background-color: #ff6; }
+.hl2 { color: #000; background-color: #aff; }
+.hl3 { color: #000; background-color: #9f9; }
+.hl4 { color: #000; background-color: #f99; }
+.hl5 { color: #000; background-color: #f6f; }

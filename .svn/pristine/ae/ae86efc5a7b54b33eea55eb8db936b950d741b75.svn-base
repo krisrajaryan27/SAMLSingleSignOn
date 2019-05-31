@@ -1,0 +1,2715 @@
+/**
+ * 
+ */
+package com.talentPool.applicant.manager;
+
+import java.io.File;
+import java.io.StringWriter;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.List;
+import java.util.Map;
+
+import org.quartz.JobDetail;
+import org.quartz.Scheduler;
+import org.quartz.SchedulerException;
+import org.quartz.SchedulerFactory;
+import org.quartz.SimpleTrigger;
+import org.quartz.impl.StdSchedulerFactory;
+import org.springframework.stereotype.Component;
+import org.xml.sax.SAXException;
+
+import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.ClientResponse;
+import com.sun.jersey.api.client.WebResource;
+import com.talentPool.admin.manager.AdminManager;
+import com.talentPool.applicant.ApplicantConstants;
+import com.talentPool.applicant.constants.ImportConfigurationConstants;
+import com.talentPool.applicant.dataobject.ApplicantBlackListHistoryData;
+import com.talentPool.applicant.dataobject.ApplicantData;
+import com.talentPool.applicant.dataobject.EducationalData;
+import com.talentPool.applicant.dataobject.EmploymentHistoryData;
+import com.talentPool.applicant.utils.ApplicantUtils;
+import com.talentPool.audit.action.AuditAction;
+import com.talentPool.audit.constants.AuditConstants;
+import com.talentPool.calendar.CalendarConstants;
+import com.talentPool.common.CommonConstants;
+import com.talentPool.common.Logger.TPLogger;
+import com.talentPool.common.constants.DateConstants;
+import com.talentPool.common.dataobject.FormFileData;
+import com.talentPool.common.db.DBCallableQuery;
+import com.talentPool.common.db.DBPreparedQuery;
+import com.talentPool.common.db.DBTransaction;
+import com.talentPool.common.db.SimpleDataObject;
+import com.talentPool.common.properties.GlobalConstants;
+import com.talentPool.common.properties.TPLabels;
+import com.talentPool.common.utils.DateUtils;
+import com.talentPool.common.utils.FileHandler;
+import com.talentPool.common.utils.Utils;
+import com.talentPool.common.utils.Exception.FileUploadException;
+import com.talentPool.common.utils.Exception.InvalidMimeTypeException;
+import com.talentPool.common.utils.FileUtils.FileHandlerUtils;
+import com.talentPool.common.xmlutils.XMLWriter;
+import com.talentPool.custom.constants.CustomFieldConstants;
+import com.talentPool.custom.dataobject.CustomFieldCell;
+import com.talentPool.custom.dataobject.CustomFieldData;
+import com.talentPool.custom.dataobject.CustomFieldRow;
+import com.talentPool.custom.dataobject.CustomFieldTable;
+import com.talentPool.custom.manager.CustomFieldManager;
+import com.talentPool.custom.utils.CustomFieldDataProcessor;
+import com.talentPool.customReports.manager.MasterTablesManager;
+import com.talentPool.customReports.scheduler.UpdateMasterTablesScheduler;
+import com.talentPool.documents.DocumentConstants;
+import com.talentPool.documents.dataobject.DocumentData;
+import com.talentPool.documents.manager.DocumentManager;
+import com.talentPool.documents.utils.DocumentUploader;
+import com.talentPool.inbox.InboxConstants;
+import com.talentPool.inbox.dataobject.AttachmentData;
+import com.talentPool.inbox.dataobject.MessageData;
+import com.talentPool.inbox.manager.InboxManager;
+import com.talentPool.inbox.scheduler.DeleteFilesThread;
+import com.talentPool.jobPortals.manager.ApplicantJobPortalManager;
+import com.talentPool.latestActivity.manager.LatestActivityManager;
+import com.talentPool.masters.constants.MastersConstants;
+import com.talentPool.masters.dao.IMasterDAO;
+import com.talentPool.masters.dao.MasterDAO;
+import com.talentPool.masters.dataobject.DesignationAliasesData;
+import com.talentPool.masters.dataobject.DesignationsData;
+import com.talentPool.masters.dataobject.EmployerAliasesData;
+import com.talentPool.masters.dataobject.EmployersData;
+import com.talentPool.masters.dataobject.SkillData;
+import com.talentPool.masters.dataobject.SourceData;
+import com.talentPool.masters.manager.RecentlyUsedSources;
+import com.talentPool.notifier.OutBoundConstants;
+import com.talentPool.positions.dataobject.PositionData;
+import com.talentPool.repository.TPIndexEvent;
+import com.talentPool.repository.TPIndexEventQueue;
+import com.talentPool.selectionProcess.SelectionProcessConstants;
+import com.talentPool.selectionProcess.dataobject.CommunicationData;
+import com.talentPool.selectionProcess.manager.SelectionProcessManager;
+import com.talentPool.socialNetwork.scheduler.ApplicantNodeUploadJob;
+import com.talentPool.user.UserConstants;
+import com.talentPool.user.dataobject.LoginData;
+import com.talentPool.user.manager.PermissionSet;
+
+/**
+ * @author shivprasad
+ * 
+ */
+@Component
+public class ApplicantManager {
+
+	public String addApplicant(ApplicantData aData, String skillIds) throws Exception {
+		return addApplicant(aData, skillIds, null);
+	}
+	
+	public void updateApplicant(ApplicantData aData, String skillIds) throws Exception {
+		 updateApplicant(aData, skillIds, null);
+	}
+	/**
+	 * add applicant to DB
+	 * 
+	 * @param aData
+	 * @return
+	 * @throws Exception
+	 */
+	public String addApplicant(ApplicantData aData, String skillIds, String clientIpAddr) throws Exception {
+		DBPreparedQuery dq = null;
+		String applicantId = null;
+		DBTransaction tran = null;
+		try {
+			tran = new DBTransaction();
+
+			// Insert Applicant Summary
+			dq = new DBPreparedQuery("dAddApplicantSummary", tran);
+			dq.setString(1, aData.getApplicantName());
+			dq.setString(2, Utils.isBlankOrNull(aData.getApplicantCity()) ? null : aData.getApplicantCity());
+			dq.setString(3, Utils.isBlankOrNull(aData.getApplicantEmail1()) ? null : aData.getApplicantEmail1());
+			dq.setString(4, Utils.isBlankOrNull(aData.getApplicantEmail2()) ? null : aData.getApplicantEmail2());
+			dq.setString(5, Utils.isBlankOrNull(aData.getApplicantHomePhone()) ? null : aData.getApplicantHomePhone());
+			dq.setString(6, Utils.isBlankOrNull(aData.getApplicantCellPhone()) ? null : aData.getApplicantCellPhone());
+			dq.setString(7, Utils.isBlankOrNull(aData.getApplicantWorkPhone()) ? null : aData.getApplicantWorkPhone());
+			dq.setDate(8, aData.getApplicantWorkingSince());
+			if (aData.getApplicantDateImported() == null) {
+				dq.setTimestamp(9, new Timestamp(new Date().getTime()));
+			} else {
+				dq.setDate(9, aData.getApplicantDateImported());
+			}
+			dq.setInt(10, aData.getApplicantSourceId());
+			dq.setString(11, aData.getApplicantOriginalResumePath());
+			dq.setString(12, aData.getApplicantOriginalDocPath());
+//			dq.setString(13, aData.getApplicantTextResume());
+			dq.setString(13, Utils.isBlankOrNull(aData.getApplicantCurrentEmployer()) ? null : aData.getApplicantCurrentEmployer());
+			dq.setId(14, aData.getUserId());
+			dq.setString(15, Utils.isBlankOrNull(aData.getCurrentCTC()) ? null : aData.getCurrentCTC());
+			dq.setString(16, Utils.isBlankOrNull(aData.getExpectedCTC()) ? null : aData.getExpectedCTC());
+			dq.setInt(17, aData.getApplicantSourceId());
+			dq.setString(18, aData.getNoticePeriod());			
+			dq.setDate(19, aData.getDateOfBirth());
+			dq.setString(20, aData.getPassportNumber());
+			dq.setString(21, Utils.isBlankOrNullOrDefault(aData.getResumeTypeId()) ? null : aData.getResumeTypeId());
+			dq.setId(22, Utils.isBlankOrNull(aData.getVendorId()) ? null : aData.getVendorId());
+			if(Utils.isBlankOrNull(aData.getIsConfidential())) {
+				dq.setString(23, ApplicantConstants.APPLICANT_NOT_CONFIDENTIAL);
+			} else {
+				dq.setString(23, aData.getIsConfidential());
+			}			
+			dq.setString(24, Utils.isBlankOrNull(aData.getEmployeeCode()) ? null : aData.getEmployeeCode());
+			
+			dq.setString(25, Utils.isBlankOrNull(aData.getIsEmployeeApply()) ? null : aData.getIsEmployeeApply());
+			dq.setString(26, Utils.isBlankOrNull(aData.getCategory()) ? null : aData.getCategory());
+			dq.setString(27, Utils.isBlankOrNull(aData.getSubCategory()) ? null : aData.getSubCategory());
+			dq.execute();
+
+			dq = new DBPreparedQuery("dFetchLastInsertID", tran);
+
+			applicantId = dq.getIdResult();
+			aData.setApplicantId(applicantId);
+			
+			String positionId = aData.getApplicantPositionId();
+			ApplicantJobPortalManager applicantJobPortalManager = new ApplicantJobPortalManager();
+			if (!Utils.isBlankOrNull(positionId)) {
+				String[] positionIds = positionId.split(",");
+				for(int i=0; i<positionIds.length; i++){
+					// Add Applicant Text Resume
+					addApplicantTextResume(applicantId, aData.getApplicantTextResume(), positionIds[i], tran);
+					applicantJobPortalManager.addApplicantPositionMapping(applicantId, positionIds[i], tran);
+					dq = new DBPreparedQuery("dAddResumeApplicantPositionMapping", tran);
+					dq.setString(1, aData.getApplicantOriginalResumePath());
+					dq.setString(2, aData.getApplicantOriginalDocPath());
+					dq.setString(3, applicantId);
+					dq.setString(4, positionIds[i]);
+					dq.execute();
+				}
+			}else{
+				addApplicantTextResume(applicantId, aData.getApplicantTextResume(),null, tran);
+				applicantJobPortalManager.addApplicantPositionMapping(applicantId, positionId, tran);
+				dq = new DBPreparedQuery("dAddResumeApplicantPositionMapping1", tran);
+				dq.setString(1, aData.getApplicantOriginalResumePath());
+				dq.setString(2, aData.getApplicantOriginalDocPath());
+				dq.setString(3, applicantId);
+				dq.execute();
+			}
+			
+			dq = new DBPreparedQuery("dFetchLastInsertID", tran);
+			dq.getIdResult();
+			//Scheduler for uploading applicant to graph database : START
+			if(!Utils.isBlankOrNull(applicantId)){
+				String uuid = (String) aData.getAttribute("uuid");
+				if(!Utils.isBlankOrNull(uuid)) {
+					addApplicantToken(applicantId, uuid, tran);
+				}
+				uploadApplicantDetailIntoGraphScheduler(applicantId);				
+			}
+			//Scheuler for uploading applicant to graph database : END
+			
+			// Add Applicant Text Resume
+//			addApplicantTextResume(applicantId, aData.getApplicantTextResume(), tran);
+			
+			// Add Educational Qualifications
+			ArrayList<EducationalData> eduDetails = aData.getEducationalDetails();
+			addEducationDetails(eduDetails, applicantId, tran);
+
+			// Add Applicant Skills
+			if (!Utils.isBlankOrNull(skillIds)) {
+				addApplicantSkills(skillIds, applicantId, tran);
+			}
+			
+			// Add Employment History
+			ArrayList<EmploymentHistoryData> empHistoryDetails = aData.getEmploymentHistoryDetails();
+			addEmploymentHistoryDetails(empHistoryDetails, applicantId, tran);
+						
+			// add custom field values
+			CustomFieldManager customFieldManager = new CustomFieldManager();
+			customFieldManager.insertCustomFieldValues(aData.getCustomFields(), applicantId, CustomFieldConstants.ENTITY_TYPE_APPLICANT, tran);
+
+			// add source id to recently used sources
+			RecentlyUsedSources.INSTANCE.addSourceToRecentlyUsed("" + aData.getApplicantSourceId());
+			
+			LatestActivityManager activityManager = new LatestActivityManager(); 
+			activityManager.addUserActivity("Imported", applicantId, SelectionProcessConstants.INTERACTION_IMPORT, null, applicantId, aData.getUserId());
+	
+			//add to candidate applicant mapping if applicable\
+			AdminManager adminManager = new AdminManager();
+			SourceData srcData= adminManager.getCandidatePortalSource();
+			if(Integer.parseInt(srcData.getSourceId())== aData.getApplicantSourceId()){
+				insertIntoCandidateApplicantMapping(aData.getCandidatePortalId(), applicantId,tran);
+			}
+			
+			tran.commit();
+			insertApplicantEventIntoEventSchedTable(applicantId,ApplicantConstants.APPLICANT_INDEX_PENDING);
+			if (Utils.isBlankOrNull(aData.getApplicantPositionId())){
+			AuditAction auditAction = new AuditAction();
+			auditAction.insertAuditInfo(TPLabels.getLabel("common.applicant"), AuditConstants.TYPE_ADDED, applicantId,
+					AuditConstants.AUDIT_CANDIDATE, aData.getUserId(), null, null, null, true, clientIpAddr);
+			}
+		} catch (SQLException e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+			tran.rollback();
+			throw e;
+		} finally {
+			if (dq != null) {
+				dq.releaseTransaction(tran);
+			}
+		}
+		return applicantId;
+	}
+
+	public void updateApplicant(ApplicantData aData, String skillIds, String clientIpAddr) throws Exception {
+		DBPreparedQuery dq = null;
+		String applicantId = "" + aData.getApplicantId();
+		DBTransaction tran = null;
+		try {
+			ApplicantData oldApplicantData = getApplicantSummaryData(aData.getApplicantId());
+
+			tran = new DBTransaction();
+			Integer sourceId= (aData.getApplicantSourceId()==-1)?oldApplicantData.getApplicantSourceId():aData.getApplicantSourceId(); 
+			// Insert Applicant Summary
+			dq = new DBPreparedQuery("dUpdateApplicantSummary", tran);
+			dq.setString(1, aData.getApplicantName());
+			dq.setString(2, Utils.isBlankOrNull(aData.getApplicantCity()) ? null : aData.getApplicantCity());
+			dq.setString(3, Utils.isBlankOrNull(aData.getApplicantEmail1()) ? null : aData.getApplicantEmail1());
+			dq.setString(4, Utils.isBlankOrNull(aData.getApplicantEmail2()) ? null : aData.getApplicantEmail2());
+			dq.setString(5, Utils.isBlankOrNull(aData.getApplicantHomePhone()) ? null : aData.getApplicantHomePhone());
+			dq.setString(6, Utils.isBlankOrNull(aData.getApplicantCellPhone()) ? null : aData.getApplicantCellPhone());
+			dq.setString(7, Utils.isBlankOrNull(aData.getApplicantWorkPhone()) ? null : aData.getApplicantWorkPhone());
+			dq.setDate(8, aData.getApplicantWorkingSince());
+			dq.setInt(9, sourceId);
+			dq.setString(10, Utils.isBlankOrNull(aData.getApplicantCurrentEmployer()) ? null : aData.getApplicantCurrentEmployer());
+			dq.setString(11, aData.getNoticePeriod());
+			dq.setDate(12, aData.getDateOfBirth());
+			dq.setString(13, aData.getPassportNumber());
+			dq.setString(14, Utils.isBlankOrNull(aData.getResumeTypeId()) ? null : aData.getResumeTypeId());
+			dq.setId(15, Utils.isBlankOrNull(aData.getVendorId()) ? null : aData.getVendorId());
+			dq.setId(16, Utils.isBlankOrNull(aData.getEmployeeCode()) ? null : aData.getEmployeeCode());
+			dq.setString(17,Utils.isBlankOrNull(aData.getProfilePicPath()) ? null : aData.getProfilePicPath());
+			dq.setId(18, applicantId);
+			dq.execute();
+
+			// update Educational Qualifications
+			dq = new DBPreparedQuery("dDeleteApplicantEducationInfo", tran);
+			dq.setId(1, applicantId);
+			dq.execute();
+			
+			String positionId = aData.getApplicantPositionId();
+			if (!Utils.isBlankOrNull(positionId)) {
+				String[] positionIds = positionId.split(",");
+				ApplicantJobPortalManager applicantJobPortalManager = new ApplicantJobPortalManager();
+				for(int i=0; i<positionIds.length; i++){
+					// Add Applicant Text Resume
+					addApplicantTextResume(applicantId, aData.getApplicantTextResume(), positionIds[i], tran);
+					applicantJobPortalManager.addApplicantPositionMapping(applicantId, positionIds[i], tran);
+					dq = new DBPreparedQuery("dAddResumeApplicantPositionMapping", tran);
+					dq.setString(1, aData.getApplicantOriginalResumePath());
+					dq.setString(2, aData.getApplicantOriginalDocPath());
+					dq.setString(3, applicantId);
+					dq.setString(4, positionIds[i]);
+					dq.execute();
+				}
+			}
+
+			ArrayList<EducationalData> eduDetails = aData.getEducationalDetails();
+			addEducationDetails(eduDetails, applicantId, tran);
+
+			// update Applicant Skills
+			dq = new DBPreparedQuery("dDeleteApplicantSkills", tran);
+			dq.setId(1, applicantId);
+			dq.execute();
+
+			if (!Utils.isBlankOrNull(skillIds)) {
+				addApplicantSkills(skillIds, applicantId, tran);
+			}
+			
+			// update Employment History
+			dq = new DBPreparedQuery("dEmploymentHistory_DeleteEmploymentHistory", tran);
+			dq.setId(1, applicantId);
+			dq.execute();
+			ArrayList<EmploymentHistoryData> empHistoryDetails = aData.getEmploymentHistoryDetails();
+			addEmploymentHistoryDetails(empHistoryDetails, applicantId, tran);
+
+
+			// update custom fields
+			CustomFieldManager customFieldManager = new CustomFieldManager();
+			customFieldManager.deleteCustomFieldValuesForEntity(applicantId, CustomFieldConstants.ENTITY_TYPE_APPLICANT, tran);
+			customFieldManager.deleteCustomFieldValuesForEntity(applicantId, CustomFieldConstants.ENTITY_TYPE_APPLICANT_TABLE_FIELD, tran);
+			customFieldManager.insertCustomFieldValues(aData.getCustomFields(), applicantId, CustomFieldConstants.ENTITY_TYPE_APPLICANT, tran);
+
+			updateApplicantCTC(applicantId, aData.getCurrentCTC(), aData.getExpectedCTC(), oldApplicantData.getCurrentCTC(), oldApplicantData.getExpectedCTC(), tran);
+			updateSourceLockinDate(applicantId, aData.getApplicantSourceId(), oldApplicantData.getApplicantSourceId(), tran);
+			//add to candidate applicant mapping if applicable\
+			AdminManager adminManager = new AdminManager();
+			SourceData srcData= adminManager.getCandidatePortalSource();
+			if(Integer.parseInt(srcData.getSourceId())== aData.getApplicantSourceId()){
+				insertIntoCandidateApplicantMapping(aData.getCandidatePortalId(), applicantId,tran);
+			}
+			tran.commit();
+			uploadApplicantDetailIntoGraphScheduler(applicantId);
+			insertApplicantEventIntoEventSchedTable(applicantId,ApplicantConstants.APPLICANT_INDEX_PENDING);
+			if (Utils.isBlankOrNull(aData.getApplicantPositionId())){
+			AuditAction auditAction = new AuditAction();
+			auditAction.insertAuditInfo(TPLabels.getLabel("common.applicant"), AuditConstants.TYPE_MODIFIED, applicantId,
+					AuditConstants.AUDIT_CANDIDATE, aData.getUserId(), null, null, null, true, clientIpAddr);
+			}
+	
+		} catch (SQLException e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+			tran.rollback();
+			throw e;
+		} finally {
+			if (dq != null) {
+				dq.releaseTransaction(tran);
+			}
+		}
+
+	}
+
+	public void addEducationDetails(ArrayList<EducationalData> eduDetails, String applicantId, DBTransaction tran) throws Exception {
+		DBPreparedQuery dq = null;
+		try {
+			if (eduDetails != null) {
+				for (int i = 0; i < eduDetails.size(); i++) {
+					EducationalData eData = eduDetails.get(i);
+					if (!Utils.isBlankOrNull(eData.getInstitute()) && eData.getInstitute().length()<150) {
+						String instituteId = autoUpdateInstitute(eData.getInstitute().trim(), tran);
+						eData.setInstituteId(instituteId);
+					}
+					dq = new DBPreparedQuery("dAddEducationInfo", tran);
+					dq.setId(1, applicantId);
+					dq.setId(2, eData.getDegreeId() <= 0 ? null : "" + eData.getDegreeId());
+					dq.setString(3, eData.getMajorId() <= 0 ? null : "" + eData.getMajorId());
+					dq.setString(4, Utils.isBlankOrNull(eData.getInstituteId()) ? null : eData.getInstituteId());
+					dq.setDate(5, eData.getYearOfPassing());
+					dq.setString(6, eData.getGrade());
+					dq.setDate(7,eData.getFromYear());
+					dq.setString(8, eData.getRemarks());
+					dq.setDate(9, eData.getStartDate());
+					dq.setDate(10,eData.getEndDate());
+					dq.setString(11, eData.getUniversity());
+					dq.setString(12, eData.getTypeOfProgram());
+					dq.execute();
+				}
+			}
+		} catch (Exception e) {
+			throw e;
+		} finally {
+			if (dq != null) {
+				if (tran == null) {
+					dq.releaseConnection();
+				} else {
+					dq.closeOpenCursors();
+				}
+			}
+		}
+	}
+	
+	public void addApplicantTextResume(String applicantId, String applicantTextResume, String positionId, DBTransaction tran) throws Exception {
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dAddApplicantTextResume", tran);
+			dq.setId(1, applicantId);
+			dq.setString(2, applicantTextResume);
+			dq.setString(3, Utils.isBlankOrNull(positionId) ? null : positionId);
+			dq.execute();
+		} catch (Exception e) {
+			throw e;
+		} finally {
+			if (dq != null) {
+				if (tran == null) {
+					dq.releaseConnection();
+				} else {
+					dq.closeOpenCursors();
+				}
+			}
+		}
+	}
+
+	/**
+	 * auto updates the institute table, if institute does not exist and return new institute id
+	 * 
+	 * @param instituteName
+	 * @param tran
+	 * @return
+	 * @throws Exception
+	 */
+	public String autoUpdateInstitute(String instituteName, DBTransaction tran) throws Exception {
+		DBPreparedQuery dq = null;
+		String instituteId;
+		
+		if(instituteName.length()>150){
+			instituteName = instituteName.substring(0,145);
+		}
+		
+		try {
+			dq = new DBPreparedQuery("dGetInstituteId", tran);
+			dq.setString(1, instituteName);
+			dq.setString(2, instituteName);
+			instituteId = dq.getIdResult();
+
+			if (Utils.isBlankOrNull(instituteId)) {
+				dq = new DBPreparedQuery("dInsertInstitute", tran);
+				dq.setString(1, instituteName);
+				dq.execute();
+				dq = new DBPreparedQuery("dFetchLastInsertID", tran);
+				instituteId = dq.getIdResult();
+			}
+
+		} catch (Exception e) {
+			throw e;
+		} finally {
+			if (dq != null) {
+				if (tran == null) {
+					dq.releaseConnection();
+				} else {
+					dq.closeOpenCursors();
+				}
+			}
+		}
+		return instituteId;
+	}
+
+	public void addApplicantSkills(String skillIds, String applicantId, DBTransaction tran) throws Exception {
+		DBPreparedQuery dq = null;
+		try {
+			String[] skills = skillIds.split(",");
+			if (skills != null) {
+				for (int i = 0; i < skills.length; i++) {
+					dq = new DBPreparedQuery("dAddApplicantSkills", tran);
+					dq.setId(1, applicantId);
+					dq.setInt(2, Integer.parseInt(skills[i].trim()));
+					dq.execute();
+				}
+			}
+		} catch (Exception e) {
+			throw e;
+		} finally {
+			if (dq != null) {
+				if (tran == null) {
+					dq.releaseConnection();
+				} else {
+					dq.closeOpenCursors();
+				}
+			}
+		}
+	}
+
+	/**
+	 * Update current CTC and expected CTC with the date if new Expected CTC and new Current CTC are
+	 * diffrent that old
+	 * 
+	 * @param applicantId
+	 * @param cCTC
+	 * @param eCTC
+	 * @param pcCTC
+	 * @param peCTC
+	 * @param tran
+	 * @throws Exception
+	 */
+	public void updateApplicantCTC(String applicantId, String cCTC, String eCTC, String pcCTC, String peCTC, DBTransaction tran) throws Exception {
+		DBPreparedQuery dq = null;
+		try {
+			cCTC = Utils.isBlankOrNull(cCTC) ? "" : cCTC;
+			eCTC = Utils.isBlankOrNull(eCTC) ? "" : eCTC;
+			pcCTC = Utils.isBlankOrNull(pcCTC) ? "" : pcCTC;
+			peCTC = Utils.isBlankOrNull(peCTC) ? "" : peCTC;
+			if (!cCTC.equals(pcCTC)) {
+				dq = new DBPreparedQuery("dUpdateCurrentCTC", tran);
+				dq.setString(1, Utils.isBlankOrNull(cCTC) ? null : cCTC);
+				dq.setId(2, applicantId);
+				dq.execute();
+			}
+			if (!eCTC.equals(peCTC)) {
+				dq = new DBPreparedQuery("dUpdateExpectedCTC", tran);
+				dq.setString(1, Utils.isBlankOrNull(eCTC) ? null : eCTC);
+				dq.setId(2, applicantId);
+				dq.execute();
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while setting CTC", e);
+			throw e;
+		} finally {
+			if (dq != null) {
+				if (tran == null) {
+					dq.releaseConnection();
+				} else {
+					dq.closeOpenCursors();
+				}
+			}
+		}
+
+	}
+
+	/**
+	 * Update original source id and lock in date if new source id is different than previous source
+	 * id
+	 * 
+	 * @param applicantId
+	 * @param currentSourceId
+	 * @param oldSourceId
+	 * @param tran
+	 * @throws Exception
+	 */
+	public void updateSourceLockinDate(String applicantId, int currentSourceId, int oldSourceId, DBTransaction tran) throws Exception {
+		DBPreparedQuery dq = null;
+		boolean commit = false;
+		try {
+			if (currentSourceId != oldSourceId) {
+				if (tran == null) {
+					tran = new DBTransaction();
+					commit = true;
+				}
+				dq = new DBPreparedQuery("dUpdateApplicantLockinDate", tran);
+				dq.setInt(1, oldSourceId);
+				dq.setId(2, applicantId);
+				dq.execute();
+				if (commit) {
+					tran.commit();
+				}
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while setting lockin date", e);
+			if (commit) {
+				tran.rollback();
+			}
+			throw e;
+		} finally {
+			if (dq != null) {
+				if (commit) {
+					dq.releaseTransaction(tran);
+				} else {
+					dq.closeOpenCursors();
+				}
+			}
+		}
+
+	}
+
+	/**
+	 * return applicant summary
+	 * 
+	 * @param applicantId
+	 * @return
+	 */
+	public ApplicantData getApplicantSummaryData(String applicantId) {
+		DBPreparedQuery dq = null;
+		ApplicantData aData = null;
+		try {
+			dq = new DBPreparedQuery("dGetApplicantSummary");
+			dq.setId(1, applicantId);
+			aData = (ApplicantData) dq.getSingleObjectResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting applicant summary", e);
+
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return aData;
+	}
+
+	/**
+	 * Returns list of education history
+	 * 
+	 * @param applicantId
+	 * @return
+	 */
+	public ArrayList<EducationalData> getEducationalInfo(String applicantId) {
+		DBPreparedQuery dq = null;
+		ArrayList<EducationalData> educationalInfo = null;
+		try {
+			dq = new DBPreparedQuery("dGetEducationalInfo");
+			dq.setId(1, applicantId);
+			educationalInfo = dq.getResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting Edu Info", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return educationalInfo;
+	}
+	
+	/**
+	 * Lists latest education details of given applicant
+	 * 
+	 * @param applicantId
+	 * @return
+	 */
+	public EducationalData getLatestEducationalInfo(String applicantId) {
+		DBPreparedQuery dq = null;
+		EducationalData educationalInfo = null;
+		try {
+			dq = new DBPreparedQuery("dGetLatestEducationalInfo");
+			dq.setId(1, applicantId);
+			educationalInfo =(EducationalData) dq.getSingleObjectResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting Edu Info", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return educationalInfo;
+	}
+
+	/**
+	 * returns applicant data to display
+	 * 
+	 * @param applicantId
+	 * @return
+	 */
+	public ApplicantData getApplicantDisplayData(String applicantId, String userId) {
+		DBPreparedQuery dq = null;
+		ApplicantData aData = null;
+		try {
+			dq = new DBPreparedQuery("dGetApplicantDetails");
+			dq.setId(1, userId);
+			dq.setId(2, MastersConstants.FLAG_TYPE_PUBLIC);
+			dq.setId(3, applicantId);
+			aData = (ApplicantData) dq.getSingleObjectResult();
+			if (!Utils.isBlankOrNull(aData.getApplicantStepId())) {
+				SimpleDataObject sDo = getApplicantShortlistSummary(applicantId, aData.getApplicantPositionId(), aData.getApplicantStepId(), 0);
+				if (sDo != null) {
+					aData.setApplicantPositionTitle(sDo.getString("positionTitle"));
+					aData.setApplicantStepTitle(sDo.getString("positionStepTitle"));
+					aData.setStepScheduled(sDo.getString("positionStepIsScheduled"));
+					aData.setCurrentStatus(sDo.getString("statusMessage"));
+					aData.setActionRequired(sDo.getString("actionRequired"));
+					aData.setUsersResponsible(sDo.getString("userResponsible"));
+					try {
+						aData.setAppointmentDate(sDo.getDate("appointmentDate"));
+					} catch (Exception e) {
+						// do nothing
+					}
+				}
+			}
+			ArrayList<EducationalData> educationDetails = getEducationalInfo(applicantId);
+			aData.setEducationalDetails(educationDetails);
+			
+			ArrayList<EmploymentHistoryData> employmentHistoryDetails = getEmploymentHistoryInfo(applicantId);			
+			aData.setEmploymentHistoryDetails(employmentHistoryDetails);
+			
+			CustomFieldManager customFieldManager = new CustomFieldManager();
+			if (CustomFieldManager.isCustomFieldsAvailable(CustomFieldConstants.ENTITY_TYPE_APPLICANT)) {
+				
+				ArrayList<CustomFieldData> customFields = customFieldManager.getCustomFieldDataForEntity(applicantId, CustomFieldConstants.ENTITY_TYPE_APPLICANT);
+				aData.setCustomFields(customFields);
+			}
+			
+			if (CustomFieldManager.isCustomFieldsAvailable(CustomFieldConstants.ENTITY_TYPE_APPLICANT_TABLE_FIELD)) {
+				ArrayList<CustomFieldData> tabularCustomFields = customFieldManager.getCustomFieldDataForTables(applicantId);
+				
+				ArrayList<CustomFieldData> tabularFields = customFieldManager.getApplicantTabularCustomFields();
+				List<CustomFieldTable> customTables = new ArrayList<CustomFieldTable>();
+				for(CustomFieldData tabularData:tabularFields){
+					CustomFieldTable cft = new CustomFieldTable();
+					cft.setTableId(tabularData.getTableId());
+					cft.setTableName(tabularData.getTableName());
+					List<CustomFieldRow> rows = new ArrayList<CustomFieldRow>();
+					boolean tableFieldPresent = false;
+					boolean isFirstIteration = true;
+					for (CustomFieldData data:tabularCustomFields){
+						CustomFieldData tData = (CustomFieldData) data;
+						if (!Utils.isBlankOrNull(tData.getTableId()) && tData.getTableId().equals(tabularData.getTableId())){
+							tableFieldPresent = true;
+							if (isFirstIteration){
+								CustomFieldRow row = new CustomFieldRow();
+								CustomFieldCell cell = new CustomFieldCell();
+								cell.setValue(tData.getFieldDisplayName());
+								row.addCell(cell);
+								rows.add(row);
+								String[] values = tData.getFieldValues();
+								for (int i=0; i<values.length; i++){
+									CustomFieldRow row1 = new CustomFieldRow();
+									CustomFieldCell cell1 = new CustomFieldCell();
+									cell1.setValue(values[i]);
+									row1.addCell(cell1);
+									rows.add(row1);
+								}
+								isFirstIteration= false;
+							}else{
+								CustomFieldRow row = rows.get(0);
+								CustomFieldCell cell = new CustomFieldCell();
+								cell.setValue(tData.getFieldDisplayName());
+								row.addCell(cell);
+								String[] values = tData.getFieldValues();
+								for (int i=0; i<values.length; i++){
+									CustomFieldRow row1 = rows.get(i+1);
+									CustomFieldCell cell1 = new CustomFieldCell();
+//									tData.setFieldStringValue(values[i]);
+//									cell1.setData(tData);
+									cell1.setValue(values[i]);
+									row1.addCell(cell1);
+								}
+							}
+							
+						}
+					}
+					if (!tableFieldPresent){
+						ArrayList<CustomFieldData> tabCustomFields = customFieldManager.getCustomFieldsForInputAllowed(CustomFieldConstants.ENTITY_TYPE_APPLICANT_TABLE_FIELD, CustomFieldConstants.INPUT_ALLOWED, true);
+						for (CustomFieldData data:tabCustomFields){
+							CustomFieldData tData = (CustomFieldData) data;
+							if (!Utils.isBlankOrNull(tData.getTableId()) && tData.getTableId().equals(tabularData.getTableId())){
+								if (isFirstIteration){
+									CustomFieldRow row = new CustomFieldRow();
+									CustomFieldCell cell = new CustomFieldCell();
+									cell.setValue(tData.getFieldDisplayName());
+									row.addCell(cell);
+									rows.add(row);
+									isFirstIteration= false;
+								}else{
+									CustomFieldRow row = rows.get(0);
+									CustomFieldCell cell = new CustomFieldCell();
+									cell.setValue(tData.getFieldDisplayName());
+									row.addCell(cell);
+								}
+							}
+						}
+					}
+					cft.setRows(rows);
+					customTables.add(cft);
+				}
+				
+				
+				aData.setCustomTables(customTables);
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return aData;
+	}
+
+	/**
+	 * returns the summary of position and actions if applicant is in process
+	 * 
+	 * @param applicantId
+	 *            as id of applicant tobe checked for
+	 * @param positionId
+	 *            as positionId applicant is shortlisted for
+	 * @param stepId
+	 *            as current applicant step id
+	 * @param onlyActionRequired,
+	 *            as 0 - if all information required, 1 - if only action required is needed
+	 * @return
+	 */
+	public SimpleDataObject getApplicantShortlistSummary(String applicantId, String positionId, String stepId, int onlyActionRequired) {
+		SimpleDataObject sDO = null;
+		DBCallableQuery dq = null;
+		try {
+			dq = new DBCallableQuery("dProcGetApplicantShortlistSummary");
+			dq.setId(1, applicantId);
+			dq.setId(2, positionId);
+			dq.setId(3, stepId);
+			dq.setInt(4, CalendarConstants.APPOINTMENT_STATUS_NOSHOW);
+			dq.setInt(5, onlyActionRequired);
+			sDO = (SimpleDataObject) dq.getSingleObjectResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting shortlist summry from stored proc", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+
+		}
+		return sDO;
+	}
+
+	/**
+	 * returns xml required for autocomplete
+	 * 
+	 * @param search
+	 * @param searchType
+	 * @return
+	 */
+	public String getAutoCompleteXML(String search, String searchType) {
+		DBPreparedQuery dq = null;
+		String xml = "";
+		String dynaQuery = "";
+		String dqName = "";
+		String fieldToFetch = "";
+		IMasterDAO _masterDAO = new MasterDAO();
+		ArrayList<SimpleDataObject> result = new ArrayList<SimpleDataObject>();
+		try {
+			if (searchType.equals(ApplicantConstants.AUTOCOMPLETE_BRANCH)) {
+				dynaQuery = "branch_name like ? ";
+				dqName = "dGetBranchNames";
+				fieldToFetch = "branchName";
+			} else if (searchType.equals(ApplicantConstants.AUTOCOMPLETE_CURRENT_LOCATION)) {
+				dynaQuery = "city_name like ? ";
+				dqName = "dGetCitiesNames";
+				fieldToFetch = "cityName";
+			} else if (searchType.equals(ApplicantConstants.AUTOCOMPLETE_EMPLOYER)) {
+				dynaQuery = "applicant_current_employer like ? ";
+				dqName = "dGetEmployerNames";
+				fieldToFetch = "currentEmployer";
+			} else if (searchType.equals(ApplicantConstants.AUTOCOMPLETE_INSTITUTE)) {
+				dynaQuery = "institute_name like ? ";
+				dqName = "dGetInstituteNames";
+				fieldToFetch = "instituteName";
+			} else if(searchType.equals(ApplicantConstants.AUTOCOMPLETE_EMPLOYMENT_EMPLOYER)){
+				List<EmployersData> likes = _masterDAO.getLikeEmployers(search);
+				fieldToFetch ="employerName";				
+				for(EmployersData empdt:likes){
+					SimpleDataObject sdo = new SimpleDataObject();
+					sdo.setAttribute(fieldToFetch, empdt.getEmployerName());
+					result.add(sdo);
+				}
+				xml = Utils.getListInXML(result, fieldToFetch);
+				return xml;
+			} else if(searchType.equals(ApplicantConstants.AUTOCOMPLETE_EMPLOYMENT_DESIGNATION)){				
+				List<DesignationsData> likes= _masterDAO.getDesignations();
+				fieldToFetch ="designationName";
+				for(DesignationsData dsgnDat:likes){
+					SimpleDataObject sdo = new SimpleDataObject();
+					sdo.setAttribute(fieldToFetch, dsgnDat.getDesignationName());
+					result.add(sdo);
+				}
+				xml = Utils.getListInXML(result, fieldToFetch);
+				return xml;
+			}
+
+			// execute query and build xml
+			String[] dynParam = new String[2];
+			dynParam[0] = dynaQuery;
+			int noOfRecords = 10;
+			dynParam[1] = " LIMIT ?, ?";
+			if (searchType.equals(ApplicantConstants.AUTOCOMPLETE_EMPLOYER)) {
+				noOfRecords = 5;
+			}
+			
+			dq = new DBPreparedQuery(dqName, dynParam);
+			int cnt = 1;
+			dq.setString(cnt++, search + "%");
+			dq.setInt(cnt++, 0);
+			dq.setInt(cnt++, noOfRecords);
+			result = dq.getResult();
+			xml = Utils.getListInXML(result, fieldToFetch);
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return xml;
+	}
+
+	public String getAutoCompleteXMLForSource(String source, String sourceTypeId) {
+		DBPreparedQuery dq = null;
+		String xml = "";
+		try {
+
+			String[] dynParam = new String[2];
+			dynParam[0] = " source_title like ? ";
+
+			if (!Utils.isBlankOrNull(sourceTypeId)) {
+				dynParam[0] += " AND source_type_id=? ";
+			}
+
+			int noOfRecords = 10;
+			dynParam[1] = " LIMIT ?, ?";
+
+			dq = new DBPreparedQuery("dGetSourceNames", dynParam);
+			int cnt = 1;
+			dq.setString(cnt++, source + "%");
+			if (!Utils.isBlankOrNull(sourceTypeId)) {
+				dq.setId(cnt++, sourceTypeId);
+			}
+			dq.setInt(cnt++, 0);
+			dq.setInt(cnt++, noOfRecords);
+			ArrayList result = dq.getResult();
+			xml = Utils.getListInXML(result, "sourceTitle");
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return xml;
+	}
+
+	/**
+	 * Get Skills for given applicant
+	 * 
+	 * @param applicantId
+	 * @return
+	 */
+	public ArrayList getSkills(String applicantId) {
+		DBPreparedQuery dq = null;
+		ArrayList skills = null;
+		try {
+			dq = new DBPreparedQuery("dGetApplicantSkills");
+			dq.setId(1, applicantId);
+			skills = dq.getResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting Employment History", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return skills;
+	}
+
+	/**
+	 * Generate commaseparated list of skills in XML
+	 * 
+	 * @param skills
+	 * @return
+	 */
+	public String getExtractedSkillXml(ArrayList<SkillData> skills) {
+		StringWriter sWr = new StringWriter();
+		try {
+			if (skills != null && skills.size() > 0) {
+				XMLWriter wr = new XMLWriter(sWr);
+				wr.startDocument();
+				wr.startElement("skills");
+				for (int i = 0; i < skills.size(); i++) {
+					SkillData sdo = skills.get(i);
+					String name = sdo.getItemName();
+					String id = "" + sdo.getItemId();
+					wr.startElement("skill");
+					wr.startElement("id");
+					wr.characters(id);
+					wr.endElement("id");
+					wr.startElement("name");
+					wr.characters(name);
+					wr.endElement("name");
+					wr.endElement("skill");
+				}
+				wr.endElement("skills");
+				wr.endDocument();
+			}
+		} catch (SAXException e) {
+			TPLogger.getLogger().error("Error while getting xml from list", e);
+		}
+		return sWr.getBuffer().toString();
+	}
+
+	public String getExtractedEducationXml(EducationalData eData, int level) {
+		StringWriter sWr = new StringWriter();
+		try {
+			XMLWriter wr = new XMLWriter(sWr);
+			wr.startDocument();
+			wr.startElement("education");
+
+			wr.startElement("level");
+			wr.characters("" + level);
+			wr.endElement("level");
+
+			wr.startElement("degreeId");
+			wr.characters("" + eData.getDegreeId());
+			wr.endElement("degreeId");
+
+			wr.startElement("branchId");
+			wr.characters("" + eData.getMajorId());
+			wr.endElement("branchId");
+
+			wr.startElement("institute");
+			wr.characters((Utils.isBlankOrNull(eData.getInstitute())) ? "" : eData.getInstitute());
+			wr.endElement("institute");
+
+			Date yearOfPassing = eData.getYearOfPassing();
+			String yop = "";
+			if (yearOfPassing != null) {
+				yop = Utils.getDateConvertedToString(yearOfPassing, "yyyy");
+			}
+			wr.startElement("year");
+			wr.characters(yop);
+			wr.endElement("year");
+
+			wr.endElement("education");
+			wr.endDocument();
+		} catch (SAXException e) {
+			TPLogger.getLogger().error("Error while getting xml from list", e);
+		}
+		return sWr.getBuffer().toString();
+	}
+
+	/**
+	 * copy html generated files from source to destination
+	 * 
+	 * @param srcFileAbsolutePath
+	 * @param destFolderAbsolutePath
+	 * @return the absolute path of html file, on error return blank string
+	 */
+	public String copyHtmlFiles(String srcFileAbsolutePath, String destFolderAbsolutePath) {
+		String destHtmlAbsolutePath = "";
+		try {
+			FileHandler fileHandler = new FileHandler();
+			String ext = FileHandlerUtils.getFileExtention(srcFileAbsolutePath, ".html");
+			if (!ext.equalsIgnoreCase(".htm") && !ext.equalsIgnoreCase(".html")) {
+				String srcHtmlAbsoluteFile = srcFileAbsolutePath.substring(0, srcFileAbsolutePath.lastIndexOf(".")) + ".html";
+				File f = new File(srcHtmlAbsoluteFile);
+				if (f.exists()) {
+					String fileName = f.getName();
+					destHtmlAbsolutePath = Utils.concatFilePath(destFolderAbsolutePath, fileName);
+					fileHandler.copyFile(srcHtmlAbsoluteFile, destHtmlAbsolutePath);
+					String srcFolder = srcHtmlAbsoluteFile.substring(0, srcHtmlAbsoluteFile.lastIndexOf(".")) + "_files";
+					String destFolder = destHtmlAbsolutePath.substring(0, destHtmlAbsolutePath.lastIndexOf(".")) + "_files";
+					// COPY FOLDER
+					fileHandler.copyFolder(srcFolder, destFolder);
+
+				}
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while copying html ");
+			destHtmlAbsolutePath = "";
+		}
+		return destHtmlAbsolutePath;
+	}
+
+	/**
+	 * returns original documents relative path to document folder. If original resume is extracted
+	 * from email then saves email body as html document and return the relative path
+	 * 
+	 * @param attachmentId
+	 * @param emailId
+	 * @return
+	 * @throws Exception
+	 */
+	public String saveOriginalResume(String attachmentId, String emailId, String uploadedFilePath) throws Exception {
+		String resumeBody = "";
+		String originalResumePath = "";
+		InboxManager inboxManager = new InboxManager();
+		if (!Utils.isBlankOrNull(attachmentId) && !attachmentId.equals("0")) {
+			AttachmentData mData = inboxManager.getAttachmentData(attachmentId);
+			originalResumePath = mData.getAttachmentFilePath();
+		} else if (!Utils.isBlankOrNull(emailId)) {
+			// The resume will be saved as .html file, the relative path
+			MessageData messageData = inboxManager.getEmailBody(emailId, InboxConstants.EMAIL_LOCATION_INBOX);
+			if (!Utils.isBlankOrNull(messageData.getHtmlBody())) {
+				resumeBody = messageData.getHtmlBody();
+			} else if (!Utils.isBlankOrNull(messageData.getTextBody())) {
+				resumeBody = messageData.getTextBody();
+			}
+			DocumentUploader documentUploader = new DocumentUploader();
+			DocumentData documentData = documentUploader.saveTextAsDocument(resumeBody, ".html");
+			if (documentData != null) {
+				originalResumePath = documentData.getRelativeFilePath();
+			}
+		} else if (!Utils.isBlankOrNull(uploadedFilePath)) {
+			originalResumePath = uploadedFilePath;
+		}
+		return originalResumePath;
+	}
+
+	public void updateOriginalResume(String applicantId, String positionId,String applicantOriginalResumePath, String applicantOriginalDocPath, String textResume) throws Exception {
+		DBPreparedQuery dq = null;
+		DBTransaction tran = null;
+		try {
+			tran= new DBTransaction();
+			String[] dynParams1 = new String[1];
+			//wont update resume if applicant is shortlisted under any position
+			if(Utils.isBlankOrNull(positionId)){
+				dq = new DBPreparedQuery("dUpdateOriginalResume",tran);
+				dq.setString(1, applicantOriginalResumePath);
+				dq.setString(2, applicantOriginalDocPath);
+				dq.setString(3, applicantId);
+				dq.execute();
+				dynParams1[0]= "isnull(position_id)";
+			}else{
+				dynParams1[0] = "position_id = ?"; 
+			}
+			dq = new DBPreparedQuery("dUpdateOriginalResumeMappingTable",dynParams1,tran);
+			dq.setString(1, applicantOriginalResumePath);
+			dq.setString(2, applicantOriginalDocPath);
+			dq.setString(3, applicantId);
+			if(!Utils.isBlankOrNull(positionId)){
+				dq.setString(4, positionId);
+			}
+			dq.execute();
+			
+			String[] dynParams = new String[1];
+			if(Utils.isBlankOrNull(positionId)){
+				dynParams[0]= "isnull(applied_position_id)";
+			}else{
+				dynParams[0]= "applied_position_id = ?";
+			}
+			dq = new DBPreparedQuery("dUpdateTextResume",dynParams,tran);
+			dq.setString(1, textResume);
+			dq.setString(2, applicantId);
+			if(!Utils.isBlankOrNull(positionId)){
+				dq.setString(3, positionId);
+			}
+			dq.execute();
+			
+			tran.commit();
+
+			// index the resume
+			pushIntoEventQueueOnTalentPool(new TPIndexEvent(TPIndexEvent.TYPE_UPDATE_APPLICANT, applicantId, TPIndexEvent.PRIORITY_HIGH));
+
+		} catch (SQLException e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+			tran.rollback();
+			throw e;
+		} finally {
+			if (dq != null) {
+				dq.releaseTransaction(tran);
+			}
+		}
+	}	
+
+	private void pushIntoEventQueueOnTalentPool(TPIndexEvent indexEvent){
+		Client client = Client.create();
+		String params = "eventType=" + indexEvent.getEventType() + "&eventTypeId=" + indexEvent.getEventTypeId() + "&priority="+indexEvent.getPriority();
+		WebResource webResource = client.resource(Utils.buildTalentPoolURL("rest/index/push?"+params));
+		ClientResponse response = webResource.type("text/plain").get(ClientResponse.class);
+		String res = response.getEntity(String.class);
+		TPLogger.getLogger().debug("Applicant add index event push status : " + res);
+		response.close();
+	}
+	
+	public String getApplicantTitleConstructed(String applicantId, PermissionSet permissionSet){
+		String applciantTitle = "";
+		String[] aData = getApplicantNameandSource(applicantId);
+		if(ImportConfigurationManager.isApplicantFieldViewable(ImportConfigurationConstants.FIELD_SOURCE ,permissionSet.isSHOW_CONFIDENTIAL_DATA())){
+			String source = TPLabels.getLabel("common.openingRoundBracket")+TPLabels.getLabel("common.source")+" "+aData[1]+TPLabels.getLabel("common.closingRoundBracket");
+			applciantTitle = aData[0]+" "+source;
+		}else{
+			applciantTitle = aData[0];
+		}
+		return applciantTitle;
+	}
+	
+	/**
+	 * String array with two elements in it. ApplicantName and ApplicantSource
+	 * @param applicantId
+	 * @return
+	 */
+	public String[] getApplicantNameandSource(String applicantId) {
+		DBPreparedQuery dq = null;
+		SimpleDataObject aData = null;
+		String[] str = new String[2];
+		try {
+			dq = new DBPreparedQuery("dApplicantManager_getApplicantNameandSource");
+			dq.setId(1, applicantId);
+			aData = (SimpleDataObject) dq.getSingleObjectResult();
+			str[0] = aData.getString("applicant_name");
+			str[1] = aData.getString("source_title");
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting applicant summary", e);
+
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return str;
+	}
+
+	public ApplicantData getApplicantData(String applicantId) {
+		ApplicantData aData = null;
+		try {
+			aData = getApplicantData(applicantId, true, true, true, false,true);
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+			aData = null;
+		}
+		return aData;
+	}
+	
+	public ApplicantData getApplicantData(String applicantId,boolean skil1s,boolean eduDetails,boolean cusFieldsList,boolean cusFieldsMap, boolean employmentHistory) {
+		ApplicantData aData = null;
+		CustomFieldManager customFieldManager = null;
+		try {
+			aData = getApplicantSummaryData(applicantId);
+			
+			if(skil1s){
+				ArrayList skills = getSkills(applicantId);
+				aData.setApplicantSkills(skills);
+			}
+			
+			if(eduDetails){
+				ArrayList<EducationalData> educationDetails = getEducationalInfo(applicantId);	
+				aData.setEducationalDetails(educationDetails);
+			}
+			
+			if(employmentHistory){
+				ArrayList<EmploymentHistoryData> employmentHistoryDetails =getEmploymentHistoryInfo(applicantId);
+				aData.setEmploymentHistoryDetails(employmentHistoryDetails);
+			}
+			
+			if(cusFieldsList){
+				customFieldManager = new CustomFieldManager();
+				ArrayList<CustomFieldData> customFields = customFieldManager.getCustomFieldDataForEntity(applicantId, CustomFieldConstants.ENTITY_TYPE_APPLICANT);
+				aData.setCustomFields(customFields);
+				
+				
+				if (CustomFieldManager.isCustomFieldsAvailable(CustomFieldConstants.ENTITY_TYPE_APPLICANT_TABLE_FIELD)) {
+					ArrayList<CustomFieldData> tabularCustomFields = customFieldManager.getCustomFieldDataForTables(applicantId);
+					
+					ArrayList<CustomFieldData> tabularFields = customFieldManager.getApplicantTabularCustomFields();
+					List<CustomFieldTable> customTables = new ArrayList<CustomFieldTable>();
+					for(CustomFieldData tabularData:tabularFields){
+						CustomFieldTable cft = new CustomFieldTable();
+						cft.setTableId(tabularData.getTableId());
+						cft.setTableName(tabularData.getTableName());
+						List<CustomFieldRow> rows = new ArrayList<CustomFieldRow>();
+						boolean isFirstIteration = true;
+						boolean tableFieldPresent = false;
+						for (CustomFieldData data:tabularCustomFields){
+							CustomFieldData tData = (CustomFieldData) data;
+							if (!Utils.isBlankOrNull(tData.getTableId()) && tData.getTableId().equals(tabularData.getTableId())){
+								tableFieldPresent = true;
+								if (isFirstIteration){
+									CustomFieldRow row = new CustomFieldRow();
+									CustomFieldCell cell = new CustomFieldCell();
+									cell.setValue(tData.getFieldDisplayName());
+									cell.setData(tData);
+									row.addCell(cell);
+									rows.add(row);
+									String[] values = tData.getFieldValues();
+									for (int i=0; i<values.length; i++){
+										CustomFieldRow row1 = new CustomFieldRow();
+										CustomFieldCell cell1 = new CustomFieldCell();
+										CustomFieldData tabData = (CustomFieldData)tData.clone();
+										tabData.setFieldStringValue(values[i]);
+										String[] fieldValues = new String[1];
+										fieldValues[0] = values[i];
+										tabData.setFieldValues(fieldValues);
+										cell1.setData(tabData);
+										cell1.setValue(values[i]);
+										row1.addCell(cell1);
+										rows.add(row1);
+									}
+									isFirstIteration= false;
+								}else{
+									CustomFieldRow row = rows.get(0);
+									CustomFieldCell cell = new CustomFieldCell();
+									cell.setValue(tData.getFieldDisplayName());
+									cell.setData(tData);
+									row.addCell(cell);
+									String[] values = tData.getFieldValues();
+									for (int i=0; i<values.length; i++){
+										CustomFieldRow row1 = rows.get(i+1);
+										CustomFieldCell cell1 = new CustomFieldCell();
+										CustomFieldData tabData = (CustomFieldData)tData.clone();
+										tabData.setFieldStringValue(values[i]);
+										String[] fieldValues = new String[1];
+										fieldValues[0] = values[i];
+										tabData.setFieldValues(fieldValues);
+										cell1.setData(tabData);
+										cell1.setValue(values[i]);
+										row1.addCell(cell1);
+									}
+								}
+								
+							}
+						}
+						if (!tableFieldPresent){
+							ArrayList<CustomFieldData> tabCustomFields = customFieldManager.getCustomFieldsForInputAllowed(CustomFieldConstants.ENTITY_TYPE_APPLICANT_TABLE_FIELD, CustomFieldConstants.INPUT_ALLOWED, true);
+							for (CustomFieldData data:tabCustomFields){
+								CustomFieldData tData = (CustomFieldData) data;
+								if (!Utils.isBlankOrNull(tData.getTableId()) && tData.getTableId().equals(tabularData.getTableId())){
+									if (isFirstIteration){
+										CustomFieldRow row = new CustomFieldRow();
+										CustomFieldCell cell = new CustomFieldCell();
+										cell.setValue(tData.getFieldDisplayName());
+										cell.setData(tData);
+										row.addCell(cell);
+										rows.add(row);
+										CustomFieldRow row1 = new CustomFieldRow();
+										CustomFieldCell cell1 = new CustomFieldCell();
+										CustomFieldData tabData = (CustomFieldData)tData.clone();
+										tabData.setFieldStringValue("");
+										String[] fieldValues = new String[1];
+										fieldValues[0] = "";
+										tabData.setFieldValues(fieldValues);
+										cell1.setData(tabData);
+										cell1.setValue("");
+										row1.addCell(cell1);
+										rows.add(row1);
+										isFirstIteration= false;
+									}else{
+										CustomFieldRow row = rows.get(0);
+										CustomFieldCell cell = new CustomFieldCell();
+										cell.setValue(tData.getFieldDisplayName());
+										row.addCell(cell);
+										CustomFieldRow row1 = rows.get(1);
+										CustomFieldCell cell1 = new CustomFieldCell();
+										CustomFieldData tabData = (CustomFieldData)tData.clone();
+										tabData.setFieldStringValue("");
+										String[] fieldValues = new String[1];
+										fieldValues[0] = "";
+										tabData.setFieldValues(fieldValues);
+										cell1.setData(tabData);
+										cell1.setValue("");
+										row1.addCell(cell1);
+									}
+								}
+							}
+						}
+						cft.setRows(rows);
+						customTables.add(cft);
+						tableFieldPresent = false;
+					}
+					
+					
+					aData.setCustomTables(customTables);
+				}
+			}
+			
+			
+			
+			if(cusFieldsMap){
+				customFieldManager = new CustomFieldManager();
+				Map<String,CustomFieldData> customFieldsMap = customFieldManager.getCustomFieldDataMapForEntity(applicantId, CustomFieldConstants.ENTITY_TYPE_APPLICANT);
+				aData.setCustomFieldsMap(customFieldsMap);
+			}
+			
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while retriving applicant data", e);
+			aData = null;
+		}
+		return aData;
+	}
+
+	public ArrayList getAllApplicantsToUpdateTextResume() {
+		DBPreparedQuery dq = null;
+		ArrayList applicants = null;
+		try {
+			dq = new DBPreparedQuery("dGetAllApplicantsToUpdateTextResume");
+			applicants = dq.getResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while retriving applicant data", e);
+
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return applicants;
+	}
+
+	/**
+	 * delete applicant from repository as well as DB and deletes all files in a thread
+	 * 
+	 * @param applicantIds
+	 * @throws Exception
+	 */
+	public void deleteApplicant(String applicantIds) throws Exception {
+		DBTransaction tran = null;
+		DBPreparedQuery dq = null;
+		String[] dynParams = null;
+		try {
+			tran = new DBTransaction();
+			
+			dynParams = new String[1];
+			dynParams[0] = applicantIds;
+			
+			dq = new DBPreparedQuery("dApplicantManager_DeleteOutbounds", dynParams, tran);
+			dq.setString(1, OutBoundConstants.ENTITY_TYPE_APPLICANTS);
+			dq.execute();
+
+			dq = new DBPreparedQuery("dApplicantManager_DeleteCommunications", dynParams, tran);
+			dq.execute();
+
+			dq = new DBPreparedQuery("dApplicantManager_DeleteMessagesTo", dynParams, tran);
+			dq.execute();
+
+			dq = new DBPreparedQuery("dApplicantManager_DeleteMessages", dynParams, tran);
+			dq.execute();
+
+			dq = new DBPreparedQuery("dApplicantManager_DeleteAppointmentAttendees", dynParams, tran);
+			dq.execute();
+
+			dq = new DBPreparedQuery("dApplicantManager_DeleteAppointments", dynParams, tran);
+			dq.execute();
+
+			dq = new DBPreparedQuery("dApplicantManager_DeleteAppointmentNotifications", dynParams, tran);
+			dq.execute();
+
+			dq = new DBPreparedQuery("dApplicantManager_DeleteApplicantStatusMessages", dynParams, tran);
+			dq.execute();
+
+			dq = new DBPreparedQuery("dApplicantManager_DeleteApplicantSkills", dynParams, tran);
+			dq.execute();
+
+			dq = new DBPreparedQuery("dApplicantManager_DeleteApplicantSelectionProcessTraits", dynParams, tran);
+			dq.execute();
+
+			// first check if the applicantId is present in event log
+			// table, then only regenerate summary report tables
+			dq = new DBPreparedQuery("dApplicantManager_GetApplicantsInSummaryReport", dynParams, tran);
+			int count = dq.getIntResult(0);
+						
+			dq = new DBPreparedQuery("dApplicantManager_DeleteApplicantSelectionProcess", dynParams, tran);
+			dq.execute();
+
+			dq = new DBPreparedQuery("dApplicantManager_GetApplicantEmailAttachments", dynParams, tran);
+			ArrayList attachments = dq.getResult();
+			// generate files list
+			ArrayList<String> files = new ArrayList<String>();
+			if (attachments != null && attachments.size() > 0) {
+				for (int i = 0; i < attachments.size(); i++) {
+					AttachmentData aData = (AttachmentData) attachments.get(i);
+					files.add(aData.getAttachmentFilePath());
+				}
+			}
+
+			dq = new DBPreparedQuery("dApplicantManager_DeleteApplicantEmailAttachments", dynParams, tran);
+			dq.execute();
+
+			dq = new DBPreparedQuery("dApplicantManager_DeleteApplicantEmails", dynParams, tran);
+			dq.execute();
+			
+			dq = new DBPreparedQuery("dApplicantManager_DeleteInboxEmailsForApplicant", dynParams, tran);
+			dq.execute();			
+
+			dq = new DBPreparedQuery("dApplicantManager_DeleteApplicantEducationalInfo", dynParams, tran);
+			dq.execute();
+
+			dq = new DBPreparedQuery("dApplicantManager_DeleteFlags", dynParams, tran);
+			dq.execute();
+
+			dq = new DBPreparedQuery("dApplicantManager_DeleteCustomFieldsValues", dynParams, tran);
+			dq.execute();
+
+			dq = new DBPreparedQuery("dApplicantManager_DeleteLastViewed", dynParams, tran);
+			dq.setString(1, UserConstants.ENTITY_CANDIDATE);
+			dq.execute();
+
+			if (count > 0) {
+				// summary report effect
+				dq = new DBPreparedQuery("dApplicantManager_GetMinApplicantDateCreated", dynParams, tran);
+				String applicantDateCreatedStr = dq.getStringResult();
+
+				// applicant created date should not be less than last run time of summary report scheduler,
+				//		else take that date.
+				Date applicantDateCreated = DateUtils.convertToDate(applicantDateCreatedStr, DateConstants.DB_DATE_TIME_PATTERN);
+				Date lastRunDate = (new MasterTablesManager()).getLastRunDate(tran);
+				if(applicantDateCreated.before(lastRunDate)) {
+					lastRunDate = applicantDateCreated;
+				}
+				
+				new MasterTablesManager().updateSchedulerLastRunDate(lastRunDate, tran);
+				UpdateMasterTablesScheduler.resetRegenerateMasterTableTrigger();
+			}
+			
+			/* delete document from repository */
+			String[] applicants = applicantIds.split(",");
+			ApplicantJobPortalManager applicantJobPortalManager = new ApplicantJobPortalManager();
+			
+			for(int i = 0; i < applicants.length; i++) {
+				applicantJobPortalManager.deleteApplicantPositionMappingByApplicant(applicants[i].trim(), tran);
+				TPIndexEventQueue.push(new TPIndexEvent(TPIndexEvent.TYPE_DELETE_APPLICANT, applicants[i].trim(), TPIndexEvent.PRIORITY_HIGH));
+			}			
+
+			DocumentManager documentManager = new DocumentManager();
+			ArrayList<DocumentData> docs = documentManager.getApplicantDocuments(applicantIds);
+			if (docs != null) {
+				for (int i = 0; i < docs.size(); i++) {
+					DocumentData data = docs.get(i);
+					files.add(data.getRelativeFilePath());
+				}
+			}
+
+			dq = new DBPreparedQuery("dApplicantManager_DeleteApplicantDocuments", dynParams, tran);
+			dq.execute();
+
+			dq = new DBPreparedQuery("dApplicantManager_DeleteApplicantTextResume", dynParams, tran);
+			dq.execute();
+			
+			
+			
+			dq = new DBPreparedQuery("dApplicantManager_DeleteApplicant", dynParams, tran);
+			dq.execute();
+			
+			dq = new DBPreparedQuery("dApplicantManager_DeleteApplicantCandidateMapping",dynParams,tran);
+			dq.execute();
+
+			tran.commit();
+			for(String applicant:applicants){
+				insertApplicantEventIntoEventSchedTable(applicant.trim(),ApplicantConstants.APPLICANT_INDEX_DELETE);
+			}
+			// start thread to delete attachments files.
+			new DeleteFilesThread(files, true);
+		} catch (Exception e) {
+			tran.rollback();
+			TPLogger.getLogger().error("Error while deleting the applicant with id " + applicantIds, e);
+			throw e;
+		} finally {
+			if (dq != null) {
+				dq.releaseTransaction(tran);
+			}
+		}
+	}
+
+	public void setApplicantFlags(String applicantId, String flagIds, String userId) {
+		DBPreparedQuery dq = null;
+		DBTransaction tran = null;
+		String[] dynParams = new String[2];
+		try {
+			tran = new DBTransaction();
+			if (!Utils.isBlankOrNull(flagIds)) {
+				String[] temp = flagIds.split(",");
+				for (int i = 0; i < temp.length; i++) {
+					dq = new DBPreparedQuery("dApplicantManager_InsertOrUpdateApplicantFlag", tran);
+					dq.setString(1, applicantId);
+					dq.setString(2, temp[i]);
+					dq.setString(3, temp[i]);
+					dq.execute();
+				}
+			} else {
+				flagIds = "-1";
+			}
+			dynParams[0] = flagIds;
+			dynParams[1] = applicantId;
+			dq = new DBPreparedQuery("dApplicantManager_DeleteDeselectedFlags", dynParams, tran);
+			dq.setString(1, MastersConstants.FLAG_TYPE_PUBLIC);
+			dq.setString(2, userId);
+			dq.execute();
+			tran.commit();
+		} catch (Exception e) {
+			try {
+				tran.rollback();
+			} catch (Exception ex) {
+				TPLogger.getLogger().error("Error while rolling back the transaction", ex);
+			}
+			TPLogger.getLogger().error("Error while setting applicant flag " + applicantId, e);
+		} finally {
+			if (tran != null) {
+				tran.release();
+			}
+		}
+	}
+
+	public void setApplicantFlags(String applicantId, String selectedIds, String tristateIds, String userId) throws Exception {
+		DBPreparedQuery dq = null;
+		DBTransaction tran = null;
+		try {
+			tran = new DBTransaction();
+
+			if (!Utils.isBlankOrNull(selectedIds) && !Utils.isBlankOrNull(applicantId)) {
+				String[] selectedCats = selectedIds.split(",");
+				String[] applicantIds = applicantId.split(",");
+				for (int c = 0; c < selectedCats.length; c++) {
+					for (int i = 0; i < applicantIds.length; i++) {
+						dq = new DBPreparedQuery("dApplicantManager_InsertOrUpdateApplicantFlag", tran);
+						dq.setId(1, applicantIds[i]);
+						dq.setId(2, selectedCats[c]);
+						dq.setId(3, selectedCats[c]);
+						dq.execute();
+					}
+				}
+			}
+
+			String[] dynParams = new String[2];
+			dynParams[0] = "";
+			if (!Utils.isBlankOrNull(selectedIds)) {
+				dynParams[0] = selectedIds;
+			}
+			if (!Utils.isBlankOrNull(tristateIds)) {
+				if (!Utils.isBlankOrNull(dynParams[0])) {
+					dynParams[0] += ",";
+				}
+				dynParams[0] += tristateIds;
+			}
+			if (Utils.isBlankOrNull(dynParams[0])) {
+				dynParams[0] = "-1";
+			}
+			dynParams[1] = applicantId;
+			dq = new DBPreparedQuery("dApplicantManager_DeleteDeselectedFlags", dynParams, tran);
+			dq.setString(1, MastersConstants.FLAG_TYPE_PUBLIC);
+			dq.setString(2, userId);
+			dq.execute();
+
+			tran.commit();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error saving applicant flags", e);
+			tran.rollback();
+			throw e;
+		} finally {
+			if (dq != null) {
+				dq.releaseTransaction(tran);
+			}
+		}
+
+	}
+
+	/**
+	 * Uploads file to attachments folder according to month day folder
+	 * 
+	 * @param formFile
+	 * @return
+	 * @throws FileUploadException
+	 * @throws InvalidMimeTypeException 
+	 */
+	public AttachmentData uploadResumeTmp(FormFileData formFileData) throws FileUploadException, InvalidMimeTypeException {
+		AttachmentData aData = null;
+		DocumentData documentData = null;
+		try {
+			// First upload the attachment
+			// get absolute attachment path
+
+			// now get the folder structure
+			DocumentUploader documentUploader = new DocumentUploader();
+			documentData = documentUploader.saveFormFile(formFileData);
+
+			aData = new AttachmentData();
+			aData.setAttachmentFilePath(documentData.getRelativeFilePath());
+			aData.setOriginalFileName(formFileData.getFileName());
+			aData.setAttachmentSize(formFileData.getFileSize());
+
+		} catch (InvalidMimeTypeException e) {
+			throw e;
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while uploading resume file to destination ", e);
+			try {
+				if (documentData != null) {
+					File f = new File(documentData.getAbsoluteFilePath());
+					if (f.exists()) {
+						f.delete();
+					}
+				}
+			} catch (Exception fe) {
+				TPLogger.getLogger().debug("Unable to delete file", fe);
+			}
+			throw new FileUploadException("Unable to upload file");
+		}
+
+		return aData;
+	}
+
+	/**
+	 * @param applicantId
+	 * @param considerSource
+	 * @return email address for applicants and also includes for source if considerSource is true
+	 */
+	public ApplicantData getApplicantEmailAddress(String applicantId, boolean considerSource) {
+		ApplicantData aData = null;
+		DBPreparedQuery dq = null;
+		try {
+			if (considerSource) {
+				dq = new DBPreparedQuery("dApplicantManager_GetApplicantEmailsConsiderSource");
+				dq.setId(1, CommonConstants.YES);
+				dq.setId(2, applicantId);
+			} else {
+				dq = new DBPreparedQuery("dApplicantManager_GetApplicantEmails");
+				dq.setId(1, applicantId);
+			}
+			aData = (ApplicantData) dq.getSingleObjectResult();
+
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting emails", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return aData;
+	}
+
+	public String getVendorEmailAddress(String applicantId) {
+		String emailAddress = null;
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dApplicantManager_GetVendorEmailAddress");
+			dq.setId(1, applicantId);			
+			emailAddress =  dq.getIdResult();
+
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting emails", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return emailAddress;
+	}
+	
+	/**
+	 * @param applicantId
+	 * @return applicantdata with phone numbers including source phone number also
+	 */
+	public ApplicantData getApplicantPhones(String applicantId) {
+		ApplicantData aData = null;
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dApplicantManager_GetApplicantPhonesConsiderSource");
+			dq.setId(1, CommonConstants.YES);
+			dq.setId(2, applicantId);
+			aData = (ApplicantData) dq.getSingleObjectResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting Phones", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return aData;
+	}
+
+	public ArrayList<LoginData> getUsersForSource(String sourceId) {
+		ArrayList<LoginData> uData = new ArrayList<LoginData>();
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dApplicantManager_GetUsersForSource");
+			dq.setInt(1, UserConstants.ACTIVE);
+			dq.setId(2, sourceId);
+			uData = dq.getResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while vendor source", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return uData;
+	}
+
+	public ArrayList<CustomFieldData> getApplicantCustomFields(String applicantId) {
+		DBPreparedQuery dq = null;
+		ArrayList<CustomFieldData> cData = new ArrayList<CustomFieldData>();
+		try {
+
+			dq = new DBPreparedQuery("dApplicantManager_GetApplicantCustomFields");
+			dq.setString(1, applicantId);
+			cData = dq.getResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting applicant custom fields", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return cData;
+	}
+
+	public String getSourceId(String source) {
+		String sourceId = null;
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dApplicantManager_GetSourceId");
+			dq.setString(1, source);
+			sourceId = dq.getIdResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return sourceId;
+	}
+	//to get the CV limit for a vendor
+	public String getVendorCvLimit(String source) {
+		String cvLimit = null;
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dApplicantManager_GetVendorCvLimit");
+			dq.setString(1, source);
+			cvLimit = dq.getIdResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return cvLimit;
+	}
+	
+	public int getApplicantCount(String source,String positionId) {
+		int count = 0;
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dApplicantManager_GetApplicantsCountForResumeVendor");
+			dq.setString(1, positionId);
+			dq.setString(2, source);
+			
+			count = dq.getIntResult(0);
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return count;
+	}
+	
+	public String getCandidateInterviewFeedback(String applicantId, String positionId, String stepId) {		
+		StringBuffer feedback = new StringBuffer();
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dApplicantManager_GetCandidateLastStepFeedback");
+			dq.setString(1, applicantId);
+			dq.setString(2, stepId);
+			dq.setString(3, positionId);
+			dq.setString(4, applicantId);
+			List<SimpleDataObject> rs = dq.getResult();
+			if(rs != null && rs.size() > 0) {
+				for(int i = 0; i < rs.size(); i++) {
+					SimpleDataObject obj = rs.get(i);
+					if(feedback.length() > 0) {
+						feedback.append("<br/>");
+					}
+					feedback.append(obj.getString("userName"));
+					feedback.append("<br/>");
+					feedback.append(obj.getString("feedback"));					
+				}
+			}
+		} catch (SQLException e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if(dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return feedback.toString();
+	}
+	
+
+	public void changeConfidentiality(String applicantId, String confidentiality) {
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dApplicantManager_ChangeConfidentiality");
+			dq.setString(1, confidentiality);
+			dq.setString(2, applicantId);
+			dq.execute();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}		
+	}
+	
+	public void addNote(String applicantId, String userId, String note) {
+		try {
+			Calendar cal = new GregorianCalendar();
+			Date dtLogDate = cal.getTime();
+			CommunicationData cData = new CommunicationData();
+			cData.setApplicantId(applicantId);
+			cData.setUserId(userId);
+			cData.setCommunicationType(SelectionProcessConstants.INTERACTION_NOTE);
+			cData.setCommunicationDate(new java.sql.Timestamp(dtLogDate.getTime()));			
+			cData.setCommunicationText(note);
+			SelectionProcessManager communicationManager = new SelectionProcessManager();
+			communicationManager.addPhoneLog(cData);		
+			
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+	}
+	
+	public void addOriginalResumeToDocument(String applicantId, String applicantOriginalDocPath, String userId) throws Exception {
+		DBPreparedQuery dq = null;
+		try {
+			int lastIndex = applicantOriginalDocPath.lastIndexOf(".");
+			String name = "Original Resume" + applicantOriginalDocPath.substring(lastIndex, applicantOriginalDocPath.length());
+
+			dq = new DBPreparedQuery("dDocumentManager_AddApplicantDocument");
+			dq.setString(1, applicantId);
+			dq.setString(2, name);
+			dq.setString(3, applicantOriginalDocPath);
+			dq.setString(4, userId);
+			dq.setString(5, "" + SelectionProcessConstants.INTERACTION_UNHIDE);
+			dq.execute();
+
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while Adding original resume path to document", e);
+			throw e;
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+	}
+
+	public void createBrowserImportSessionDocument(String sessionId, String fileName, String uploadFileName, String commentUrl) throws Exception {
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dApplicantManager_CreateBrowserImportSessionDocument");
+			dq.setString(1, sessionId);
+			dq.setString(2, uploadFileName);
+			dq.setString(3, fileName);
+			dq.setString(4, commentUrl);
+			dq.execute();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR);
+			throw e;
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+	}
+	
+	public List<SimpleDataObject> getBrowserImportSessionDocument(String sessionId) throws Exception {
+		DBPreparedQuery dq = null;
+		List<SimpleDataObject> documents = null;
+		try {
+			dq = new DBPreparedQuery("dApplicantManager_GetBrowserImportSessionDocument");
+			dq.setString(1, sessionId);
+			documents = dq.getResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR);
+			documents = new ArrayList<SimpleDataObject>();
+			throw e;
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return documents;
+	}
+	
+	public void updateBrowserImportSessionDocument(String sessionId) throws Exception {
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dApplicantManager_UpdateBrowserImportSessionDocumentStatus");
+			dq.setString(1, ApplicantConstants.IMPORTED);
+			dq.setString(2, sessionId);
+			dq.execute();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR);
+			throw e;
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+	}
+	
+	public SimpleDataObject getBrowserImportSessionCommentUrl(String sessionId, String applicantId, String labelImportedToApp, String userName) {
+		DBPreparedQuery dq = null;
+		SimpleDataObject commentUrl = null;
+		try {
+			dq = new DBPreparedQuery("dApplicantManager_GetBrowserImportSessionCommentUrl");
+			dq.setString(1, labelImportedToApp);
+			dq.setString(2, userName);
+			dq.setString(3, applicantId);
+			dq.setString(4, sessionId);
+			commentUrl = (SimpleDataObject) dq.getSingleObjectResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return commentUrl;
+	}	
+	
+	public MessageData getMessageDataForBrowserImportSession(ApplicantData aData, List<SimpleDataObject> documents) throws Exception {
+		MessageData messageData = new MessageData();
+		
+		messageData.setTo("");
+		messageData.setCc("");
+		messageData.setFrom("");
+		messageData.setFromAddress("");
+		messageData.setTextBody(aData.getApplicantTextResume());
+		if(documents != null && documents.size() > 0) {
+			FileHandler fileHandler = new FileHandler();
+			String filePath = Utils.concatFilePath(DocumentConstants.documentsPath, documents.get(0).getString("documentPath"));
+			String htmlBody = fileHandler.getTextFileContent(filePath, null);
+					if(htmlBody.contains("dice"))	{
+						
+					}
+					else{
+			ApplicantUtils applicantUtils = new ApplicantUtils();
+			htmlBody = applicantUtils.getImagePathReplaced(htmlBody, documents.get(0).getString("documentPath"));
+			// inserted for firefox plugin
+			htmlBody = applicantUtils.getJsPathReplaced(htmlBody, documents.get(0).getString("documentPath"), "script", "src"); // for JS
+			htmlBody = applicantUtils.getJsPathReplaced(htmlBody, documents.get(0).getString("documentPath"), "link", "href"); // for CSS
+					}
+			messageData.setHtmlBody(htmlBody);
+		} else {
+			messageData.setHtmlBody("");
+		}
+		
+		messageData.setSubject(aData.getApplicantName());						
+		messageData.setReceivedDate(Utils.convertDateToSQLDate(new Date()));
+		messageData.setApplicantId(aData.getApplicantId());
+		
+		if(documents != null && documents.size() > 1) {
+			AttachmentData attachmentData = new AttachmentData();
+			attachmentData.setAttachmentFilePath(documents.get(1).getString("documentPath"));
+			attachmentData.setOriginalFileName(documents.get(1).getString("fileName"));
+			attachmentData.setContentType("");
+			attachmentData.setContentId("");
+			attachmentData.setAttachmentType(InboxConstants.ATTACHMENT_TYPE_NOTRELATED);
+			
+			File file = new File(Utils.concatFilePath(DocumentConstants.documentsPath, documents.get(1).getString("documentPath")));
+			attachmentData.setAttachmentSize(file.getTotalSpace());
+			
+			ArrayList<AttachmentData> attachments = new ArrayList<AttachmentData>();
+			attachments.add(attachmentData);
+			messageData.setAttachments(attachments);
+		}
+		
+		return messageData;
+	}
+	
+	public String getApplicantCurrentStepId(String applicantId) {
+		DBPreparedQuery dq = null;
+		String stepId = null;
+		try {
+			dq = new DBPreparedQuery("dApplicantManager_GetApplicantCurrentStepId");
+			dq.setString(1, applicantId);
+			stepId = dq.getIdResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return stepId;
+	}
+	
+	public SimpleDataObject getApplicantDetails(String applicantId) throws SQLException {
+		SimpleDataObject sDo = null;
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dApplicantManager_GetApplicantData");
+			dq.setString(1, applicantId);
+			sDo = (SimpleDataObject) dq.getSingleObjectResult();
+			
+			CustomFieldData data = null;
+			CustomFieldManager customFieldManager = new CustomFieldManager();
+			ArrayList<CustomFieldData> customFields = customFieldManager.getCustomFieldDataForEntity(applicantId, CustomFieldConstants.ENTITY_TYPE_APPLICANT);
+			if(customFields != null && customFields.size() > 0) {
+				for(int i = 0; i < customFields.size(); i++) {
+					data = customFields.get(i);
+					sDo.setAttribute(data.getFieldName(), data.getDisplayValue());
+				}
+			}
+			
+			CustomFieldManager positionCustomFieldManager = new CustomFieldManager();
+			ArrayList<CustomFieldData> positionCustomFields = positionCustomFieldManager.getCustomFieldDataForEntity(""+(Long)sDo.getAttribute("applicant_position_id"), CustomFieldConstants.ENTITY_TYPE_POSITION);
+			if(positionCustomFields != null && positionCustomFields.size() > 0) {
+				for(int i = 0; i < positionCustomFields.size(); i++) {
+					data = positionCustomFields.get(i);
+					sDo.setAttribute(data.getFieldName(), data.getDisplayValue());
+				}
+			}
+			
+		} finally {
+			if(dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return sDo;
+	}
+	
+	public String getApplicantGrade(String applicantId){
+		DBPreparedQuery dq = null;
+		String gradeId = null;
+		try {
+			dq = new DBPreparedQuery("dApplicantManager_GetApplicantGrade");
+			dq.setString(1, applicantId);
+			gradeId = dq.getIdResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return gradeId;
+	}
+	
+	public SimpleDataObject getApplicantGradeCTCBasic(String applicantId){
+		DBPreparedQuery dq = null;
+		SimpleDataObject sdo = null;
+		try {
+			dq = new DBPreparedQuery("dApplicantManager_GetApplicantGradeCTCBasic");
+			dq.setString(1, applicantId);
+			sdo = (SimpleDataObject) dq.getSingleObjectResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return sdo;
+	}
+	
+	public String getApplicantFlagsName(String applicantId) {
+		String flags = null;
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dApplicantManager_GetApplicantFlagsName");
+			dq.setString(1, applicantId);
+			flags = dq.getIdResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return flags;
+	}
+	
+	public boolean blackListApplicant(String applicantId,String positionId,String blackListReason,String userId, 
+			String clientIpAddr) throws SQLException {
+		DBTransaction tran = null;
+		SelectionProcessManager selectionProcessManager = null;
+		SimpleDataObject sdo = null;
+		try {
+			tran = new DBTransaction();
+			if(!Utils.isBlankOrNull(positionId)){
+				selectionProcessManager = new SelectionProcessManager();
+				sdo = selectionProcessManager.getApplicantSelectionProcessData(applicantId,tran);
+				selectionProcessManager.rejectApplicant(sdo,userId, clientIpAddr);
+			}
+			insertIntoBlackListApplicants(applicantId,blackListReason,userId,""+SelectionProcessConstants.INTERACTION_BLACKLISTED,tran);
+			updateApplicantStatus(applicantId,ApplicantConstants.APPLICANT_STATUS_BLACKLISTED,tran);
+			ApplicantJobPortalManager applicantJobPortalManager = new ApplicantJobPortalManager();
+			applicantJobPortalManager.deleteApplicantPositionMappingByApplicant(applicantId, tran);
+			tran.commit();
+		} catch (SQLException e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+			tran.rollback();
+			throw e;
+		}catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+			tran.rollback();
+			return false;
+		} finally{
+			if(tran != null) {
+				tran.release();
+			}
+		}
+		return true;
+	}
+	
+	public void insertIntoBlackListApplicants(String applicantId,String blackListReason,String userId,String interactionType,DBTransaction tran) throws SQLException {
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dApplicantManager_BlackListApplicant",tran);
+			dq.setString(1, applicantId);
+			dq.setString(2, blackListReason);
+			dq.setString(3, interactionType);
+			dq.setString(4, userId);
+			dq.execute();
+		} finally {
+			if (dq != null) {
+				if (tran == null) {
+					dq.releaseConnection();
+				} else {
+					dq.closeOpenCursors();
+				}
+			}
+		}
+	}
+	
+	public void updateApplicantStatus(String applicantId,String applicantStatus,DBTransaction tran) throws SQLException {
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dApplicantManager_UpdateApplicantStatus",tran);
+			dq.setString(1, applicantStatus);
+			dq.setString(2, applicantId);
+			dq.execute();
+		} finally {
+			if (dq != null) {
+				if (tran == null) {
+					dq.releaseConnection();
+				} else {
+					dq.closeOpenCursors();
+				}
+			}
+		}
+	}
+	
+	public boolean unBlackListApplicant(String applicantId,String blackListReason,String userId) throws SQLException {
+		DBTransaction tran = null;
+		try {
+			tran = new DBTransaction();
+			insertIntoBlackListApplicants(applicantId, blackListReason, userId, ""+SelectionProcessConstants.INTERACTION_UNBLACKLISTED, tran);
+			updateApplicantStatus(applicantId, ApplicantConstants.APPLICANT_STATUS_NORMAL, tran);
+		} catch (SQLException e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+			tran.rollback();
+			throw e;
+		}catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+			tran.rollback();
+			return false;
+		} finally{
+			if(tran != null) {
+				tran.release();
+			}
+		}
+		return true;
+	}
+	
+	public ApplicantBlackListHistoryData getBlackListReason(String interactionId){
+		DBPreparedQuery dq = null;
+		ApplicantBlackListHistoryData apbhd = null;
+		try {
+			dq = new DBPreparedQuery("dApplicantManager_GetApplicantBlackListHistoryDetails");
+			dq.setString(1, interactionId);
+			apbhd = (ApplicantBlackListHistoryData) dq.getSingleObjectResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return apbhd;
+	}
+	
+	/**
+	 * Updates all the applicantFields present in applicantFieldMap.
+	 * <p>Values for Custom Field which are present in <code>applicantFieldMap</code> are deleted and then re-inserted.</p>
+	 * @param applicantId
+	 * @param applicantFieldMap
+	 * @param tran
+	 * @param dbq
+	 * @throws SQLException,Exception 
+	 */
+	public void updateApplicantFields(String applicantId,Map<String,String> applicantFieldMap, DBTransaction tran, DBPreparedQuery dbq) throws SQLException,Exception {
+		String[] dynParam = {""}; 
+		List<String> dynamicContent = null;
+		ArrayList<CustomFieldData> custFldLst = new ArrayList<CustomFieldData>();
+		CustomFieldManager cFieldManager = null;
+		int cnt = 1;
+		try{
+			if (applicantFieldMap!=null && applicantFieldMap.size()>0) {
+				
+					//tran = new DBTransaction();
+				dynamicContent = new ArrayList<String>();
+				dynParam[0] = buildApplicantFieldsUpdateQuery(applicantFieldMap,dynamicContent,custFldLst);
+				
+				if(!Utils.isBlankOrNull(dynParam[0])){
+					if(tran==null)
+						dbq = new DBPreparedQuery("dUpdateApplicantFields", dynParam);
+					else
+						dbq = new DBPreparedQuery("dUpdateApplicantFields", dynParam,tran);
+						
+					for (String dynParamVal : dynamicContent) {
+						dbq.setString(cnt++, dynParamVal);
+					}
+					dbq.setString(cnt++, applicantId);
+					dbq.execute();
+				}
+				
+				if(custFldLst.size()>0){
+					cFieldManager = new CustomFieldManager();
+					String custFldIds = null;
+					for (CustomFieldData customFieldData : custFldLst) {
+						if(custFldIds!=null)
+							custFldIds+=","+customFieldData.getFieldId();
+						else
+							custFldIds=customFieldData.getFieldId();
+					}
+					cFieldManager.deleteCustomFieldValuesForEntity(custFldIds,applicantId, CustomFieldConstants.ENTITY_TYPE_APPLICANT, tran);
+					cFieldManager.insertCustomFieldValues(custFldLst, applicantId, CustomFieldConstants.ENTITY_TYPE_APPLICANT, tran);
+				}
+			}	
+		}finally {
+			if (dbq != null) {
+				if (tran == null) {
+					dbq.releaseConnection();
+				} else {
+					dbq.closeOpenCursors();
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Update query for Applicant fields is built and returned as String and if the fields map contains custom fields then,
+	 * corresponding CustomFieldData objects are prepared and added to the custFldLst.  
+	 * @param applicantFieldMap
+	 * @param dynamicContent
+	 * @return
+	 */
+	private String buildApplicantFieldsUpdateQuery(Map<String,String> applicantFieldMap,List<String> dynamicContent,List<CustomFieldData> custFldLst) throws SQLException {
+		StringBuffer sb = new StringBuffer();
+		String appFieldId = null;
+		String appFieldValue = null;
+		String appFieldDbMapping = null;
+		CustomFieldData cData = null;
+	    for (Map.Entry<String, String> entry: applicantFieldMap.entrySet()) {
+	    	appFieldId = entry.getKey();
+	    	appFieldValue = entry.getValue();
+	    	if(ImportConfigurationManager.isApplicantCustomField(appFieldId)) {
+	    		cData  = setCustomFieldVal(appFieldId,appFieldValue);
+	    		custFldLst.add(cData);
+	    	}else {
+	    		if(ImportConfigurationConstants.FIELD_EXPERIENCE.equals(appFieldId)){
+	    			if(!Utils.isBlankOrNull(appFieldValue))
+	    				appFieldValue = Utils.convertToSQLDate("1" + Utils.dateDescSeparator + appFieldValue, Utils.regDDMMMYYYYFormat).toString();
+	    		}
+	    		appFieldDbMapping = ImportConfigurationManager.getImportFieldDbMapping(appFieldId);
+		    	if(!Utils.isBlankOrNull(appFieldDbMapping)){
+		    		sb.append(appFieldDbMapping);
+			    	sb.append(" = ?").append(CommonConstants.DEFAULT_DELIMITER);
+			    	dynamicContent.add(appFieldValue);
+		    	}
+	    	}
+	    }
+	    if(applicantFieldMap.containsKey(ImportConfigurationConstants.FIELD_CURRENT_CTC)){
+	    	sb.append("current_ctc_date");
+	    	sb.append(" = now()").append(CommonConstants.DEFAULT_DELIMITER);
+	    }
+	    if(applicantFieldMap.containsKey(ImportConfigurationConstants.FIELD_EXPECTED_CTC)){
+	    	sb.append("expected_ctc_date");
+	    	sb.append(" = now()").append(CommonConstants.DEFAULT_DELIMITER);
+	    }
+	    
+	    if(sb.lastIndexOf(CommonConstants.DEFAULT_DELIMITER)!=-1){
+	    	sb.deleteCharAt(sb.lastIndexOf(CommonConstants.DEFAULT_DELIMITER));
+	    }
+	    	
+		return sb.toString();
+	}
+	
+	private CustomFieldData setCustomFieldVal(String cusFieldName,String values) {
+		CustomFieldDataProcessor customFieldDataProcessor = new CustomFieldDataProcessor();
+		CustomFieldManager  customFieldManager = new CustomFieldManager();
+		CustomFieldData cData = customFieldManager.getCustomFieldByName(cusFieldName, true);
+		customFieldDataProcessor.setCustomFieldValues(values, cData);
+		return cData;
+	}
+	
+	public void addEmploymentHistoryDetails(ArrayList<EmploymentHistoryData> employmentHistoryDetails, String applicantId, DBTransaction tran) throws Exception {
+		DBPreparedQuery dq = null;
+		try {
+			if (employmentHistoryDetails != null) {
+				for (int i = 0; i < employmentHistoryDetails.size(); i++) {
+					EmploymentHistoryData empHistoryData = employmentHistoryDetails.get(i);
+					if(!Utils.isBlankOrNull(empHistoryData.getEmployerName()) && empHistoryData.getEmployerName().length()<150){
+						String employerId = autoUpdateEmployer(empHistoryData.getEmployerName(),tran);
+						if(!Utils.isBlankOrNull(employerId)){
+							empHistoryData.setEmployerId(Integer.parseInt(employerId));
+						}else{
+							empHistoryData.setEmployerId(-1);
+						}
+					}else{
+						empHistoryData.setEmployerId(-1);
+					}
+					if(!Utils.isBlankOrNull(empHistoryData.getDesignationName()) && empHistoryData.getDesignationName().length()<150){
+						String designationId = autoUpdateDesignation(empHistoryData.getDesignationName(),tran);
+						if(!Utils.isBlankOrNull(designationId)){
+							empHistoryData.setDesignationId(Integer.parseInt(designationId));
+						}else{
+							empHistoryData.setDesignationId(-1);
+						}
+					}else{
+						empHistoryData.setDesignationId(-1);
+					}
+					dq = new DBPreparedQuery("dEmploymentHistory_addEmploymentHistory", tran);
+					
+					dq.setId(1, applicantId);
+					dq.setDate(2, empHistoryData.getEmployerFromDate());
+					dq.setDate(3, empHistoryData.getEmployerToDate());
+					dq.setId(4, empHistoryData.getEmployerId()<= 0 ? null : ""+empHistoryData.getEmployerId());
+					dq.setId(5, empHistoryData.getDesignationId() <= 0 ? null : ""+empHistoryData.getDesignationId());					
+					dq.setDouble(6, Utils.isBlankOrNull(empHistoryData.getEmployerExperience())? 0.0: Float.parseFloat(empHistoryData.getEmployerExperience()));
+					dq.setString(7,empHistoryData.getGrossSalary());
+					dq.setString(8, empHistoryData.getAllowance());
+					dq.setString(9, empHistoryData.getReasonForLeaving());
+					dq.setString(10, empHistoryData.getDutiesInvolved());
+					dq.execute();
+				}
+			}
+		} catch (Exception e) {
+			throw e;
+		} finally {
+			if (dq != null) {
+				if (tran == null) {
+					dq.releaseConnection();
+				} else {
+					dq.closeOpenCursors();
+				}
+			}
+		}
+	}
+	
+	private String autoUpdateEmployer(String employerName,DBTransaction tran){
+		String employerId="";
+		IMasterDAO _masterDao = new MasterDAO();
+		String[] employerNames={employerName};
+		try{
+			List<EmployersData> listEmpData =_masterDao.getEmployersIds(employerNames);			
+			List<EmployerAliasesData> listEmpAlData =_masterDao.getEmployerAliasesIds(employerNames);
+			if(!listEmpData.isEmpty()){
+				for(EmployersData empData:listEmpData){
+					employerId=""+empData.getEmployerId();
+				}
+			}else if(!listEmpAlData.isEmpty()){	
+				for(EmployerAliasesData empAlData:listEmpAlData){
+					employerId=""+empAlData.getId().getEmployerId();
+				}
+			}else{
+				EmployersData empData = new EmployersData();
+				empData.setEmployerName(employerName);
+				employerId = ""+_masterDao.saveEmployer(empData);
+								
+			}
+		}catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return employerId;
+	}
+	
+	private String autoUpdateDesignation(String designationName,DBTransaction tran){		
+		String designationId="";
+		IMasterDAO _masterDao = new MasterDAO();
+		String[] designationNames={designationName};
+		try{
+			List<DesignationsData> listDesignationData = _masterDao.getDesignationsIds(designationNames);
+			List<DesignationAliasesData> listDesignationAlData = _masterDao.getDesignationAliasesIds(designationNames);
+			if(!listDesignationData.isEmpty()){
+				for(DesignationsData dData:listDesignationData){
+					designationId=""+dData.getDesignationId();
+				}
+			}else if(!listDesignationAlData.isEmpty()){
+				for(DesignationAliasesData dAlData:listDesignationAlData){
+					designationId=""+dAlData.getId().getDesignationId();
+				}
+			}else{				
+				DesignationsData designationData = new DesignationsData();
+				designationData.setDesignationName(designationName);
+				designationId=""+_masterDao.saveDesignation(designationData);
+			}
+		}catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return designationId;
+	}
+	
+	public ArrayList<EmploymentHistoryData> getEmploymentHistoryInfo(String applicantId) {
+		DBPreparedQuery dq = null;
+		ArrayList<EmploymentHistoryData> employmentHistoryInfo = null;
+		try {
+			dq = new DBPreparedQuery("dEmploymentHistory_getEmploymentHistory");
+			dq.setId(1, applicantId);
+			employmentHistoryInfo = dq.getResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return employmentHistoryInfo;
+	}
+	
+	public String getExtractedEmploymentHistoryXml(EmploymentHistoryData empHisData, String level) {
+		StringWriter sWr = new StringWriter();
+		try {
+			XMLWriter wr = new XMLWriter(sWr);
+			wr.startDocument();
+			wr.startElement("EmploymentHistory");
+
+			wr.startElement("level");
+			wr.characters("" + level);
+			wr.endElement("level");
+			
+			Date employerFromDate = empHisData.getEmployerFromDate();
+			String empHistFromDate = "";
+			if (employerFromDate != null) {
+				empHistFromDate = Utils.getDateConvertedToString(employerFromDate, Utils.regDDMMMYYYYFormat);
+			}
+			wr.startElement("empHistFromDate");
+			wr.characters(empHistFromDate);
+			wr.endElement("empHistFromDate");
+			
+			Date employerToDate = empHisData.getEmployerToDate();
+			String empHistToDate = "";
+			if (employerToDate != null) {
+				empHistToDate = Utils.getDateConvertedToString(employerToDate, Utils.regDDMMMYYYYFormat);
+			}
+			wr.startElement("empHistToDate");
+			wr.characters(empHistToDate);
+			wr.endElement("empHistToDate");
+			
+			wr.startElement("employerName");
+			wr.characters((Utils.isBlankOrNull(empHisData.getEmployerName())) ? "" : empHisData.getEmployerName());
+			wr.endElement("employerName");
+			
+			wr.startElement("designationName");
+			wr.characters((Utils.isBlankOrNull(empHisData.getDesignationName())) ? "" : empHisData.getDesignationName());
+			wr.endElement("designationName");
+			
+			wr.endElement("EmploymentHistory");
+			wr.endDocument();
+		} catch (SAXException e) {
+			TPLogger.getLogger().error("Error while getting xml from list", e);
+		}
+		return sWr.getBuffer().toString();
+	}
+	
+	/**
+	 * applicant upload scheduler by Sumeet
+	 * :TODO handlign for user type applicants
+	 */
+	private void uploadApplicantDetailIntoGraphScheduler(String applicantId){
+		SchedulerFactory factory = new StdSchedulerFactory();
+		Scheduler scheduler;
+		try {
+			scheduler = factory.getScheduler();
+		
+		JobDetail jobDetail = new JobDetail();
+		jobDetail.setName("Upload Applicant Job");
+		jobDetail.setJobClass(ApplicantNodeUploadJob.class);
+		jobDetail.getJobDataMap().put("applicantId", applicantId);
+		
+		SimpleTrigger simpleTrigger = new SimpleTrigger();
+		simpleTrigger.setStartTime(new Date(System.currentTimeMillis() + 3000));
+		simpleTrigger.setName("Uploading Trigger");
+		
+		scheduler.start();
+		scheduler.scheduleJob(jobDetail, simpleTrigger);
+		} catch (SchedulerException e) {
+			TPLogger.getLogger().error("Error uploading Applicant into Graph Database",e);
+		}
+	}
+	
+	/**
+	 * @param applicantId
+	 * @param uuid
+	 * @param tran
+	 */
+	private void addApplicantToken(String applicantId, String uuid, DBTransaction tran) {
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dApplicantManager_insertApplicantToken", tran);
+			dq.setString(1, applicantId);
+			dq.setString(2, uuid);
+			dq.execute();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				if (tran == null) {
+					dq.releaseConnection();
+				} else {
+					dq.closeOpenCursors();
+				}
+			}
+		}
+	}
+	
+	public String getApplicantIdFromEmail(String email) {
+		DBPreparedQuery dq = null;
+		String applicantId = "";
+		try {
+			dq = new DBPreparedQuery("dApplicantManager_ApplicantIdFromEmail");
+			dq.setString(1, email);
+			applicantId = dq.getIdResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return applicantId;
+	}
+	/**
+	 * @param applicantId
+	 * @return all positions applied by a candidate
+	 */
+	public ArrayList<PositionData> getPositionsAndResumesAppliedByCandidate(String applicantId,boolean indexFlag) {
+		DBPreparedQuery dq = null;
+		ArrayList<PositionData> list = null;
+		try{
+			String[] dynParams = new String[1];
+			if(indexFlag){
+				dynParams[0] = "and not isnull(taprm.position_id) and taprm.applied_status ='1'";
+			}else{
+				dynParams[0] = "";
+			}
+			dq = new DBPreparedQuery("dApplicantManager_GetPositionAppliedForByCandidate",dynParams);
+			dq.setString(1, applicantId);
+//			dq.setString(2, applicantId);
+			list = dq.getResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting all positions applied by candidate", e);
+		} finally {
+			if(dq != null) {
+				dq.closeOpenCursors();
+			}
+		}
+		return list;
+	}
+	
+	
+	/**
+	 * @param applicantId
+	 * @return all text resumes of the applicant
+	 */
+	public ArrayList<SimpleDataObject> getApplicantTextResumes(String applicantId) {
+		DBPreparedQuery dq = null;
+		ArrayList<SimpleDataObject> list = null;
+		try{
+			dq = new DBPreparedQuery("dApplicantManager_GetApplicantTextResumes");
+			dq.setString(1, applicantId);
+			list = dq.getResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting all text resumes for the applicant", e);
+		} finally {
+			if(dq != null) {
+				dq.closeOpenCursors();
+			}
+		}
+		return list;
+	}
+	
+	/**
+	 * use this to insert into sched table for new talentpool app
+	 * @param applicantId
+	 * @param indexStatus
+	 */
+	private void insertApplicantEventIntoEventSchedTable(String applicantId,String indexStatus){
+		DBPreparedQuery dq = null;
+		try{
+			dq = new DBPreparedQuery("dApplicantManager_InsertIntoEventSched");
+			dq.setString(1, applicantId);
+			dq.setString(2, indexStatus);
+			dq.setString(3, indexStatus);
+			dq.execute();
+		}catch(Exception e){
+			TPLogger.getLogger().error("Error while inserting into event sched table", e);
+		}finally {
+			if(dq != null) {
+				dq.closeOpenCursors();
+			}
+		}
+	}
+	
+	/**
+	 * @param candidateId
+	 * @param applicantId
+	 * @return inserted applicantid from the candidate applicant relation
+	 */
+	public void insertIntoCandidateApplicantMapping(String candidateId, String applicantId,DBTransaction tran){
+		DBPreparedQuery dq = null;
+		try{
+			int cnt =1;
+			dq = new DBPreparedQuery("dApplicantManager_InsertCandidateApplicantMapping",tran);
+			dq.setString(cnt++,candidateId);
+			dq.setString(cnt++,applicantId);
+			dq.execute();
+		}catch(Exception e){
+			TPLogger.getLogger().error("Error inserting candidate applicant mapping", e);
+		}finally {
+			if(dq != null) {
+				dq.closeOpenCursors();
+			}
+		}
+	}
+}

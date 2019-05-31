@@ -1,0 +1,1147 @@
+/**
+ * 
+ */
+package com.talentPool.inbox.action;
+
+import java.io.File;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Random;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.struts.Globals;
+import org.apache.struts.action.ActionError;
+import org.apache.struts.action.ActionErrors;
+import org.apache.struts.action.ActionForm;
+import org.apache.struts.action.ActionForward;
+import org.apache.struts.action.ActionMapping;
+import org.apache.struts.upload.FormFile;
+
+import com.talentPool.applicant.ApplicantConstants;
+import com.talentPool.applicant.dataobject.ApplicantData;
+import com.talentPool.applicant.manager.ApplicantManager;
+import com.talentPool.applicant.utils.ApplicantUtils;
+import com.talentPool.common.CommonConstants;
+import com.talentPool.common.NavigationConstants;
+import com.talentPool.common.Logger.TPLogger;
+import com.talentPool.common.base.TPDispatchAction;
+import com.talentPool.common.dataobject.FormFileData;
+import com.talentPool.common.properties.GlobalApplicationProperties;
+import com.talentPool.common.properties.GlobalConstants;
+import com.talentPool.common.properties.TPLabels;
+import com.talentPool.common.utils.CommonUtils;
+import com.talentPool.common.utils.FileHandler;
+import com.talentPool.common.utils.Utils;
+import com.talentPool.common.utils.Exception.FileUploadException;
+import com.talentPool.common.utils.Exception.InvalidMimeTypeException;
+import com.talentPool.common.utils.FileUtils.FileHandlerUtils;
+import com.talentPool.custom.constants.CustomFieldConstants;
+import com.talentPool.custom.dataobject.CustomFieldData;
+import com.talentPool.custom.manager.CustomFieldManager;
+import com.talentPool.custom.utils.CustomFieldDataProcessor;
+import com.talentPool.documents.DocumentConstants;
+import com.talentPool.documents.utils.DocumentUploader;
+import com.talentPool.inbox.InboxConstants;
+import com.talentPool.inbox.bc.InboxBC;
+import com.talentPool.inbox.dataobject.AttachmentData;
+import com.talentPool.inbox.dataobject.CSVImportSessionList;
+import com.talentPool.inbox.dataobject.ImportData;
+import com.talentPool.inbox.dataobject.InboxData;
+import com.talentPool.inbox.dataobject.MessageData;
+import com.talentPool.inbox.form.InboxForm;
+import com.talentPool.inbox.manager.CSVImporter;
+import com.talentPool.inbox.manager.CSVUploadManager;
+import com.talentPool.inbox.manager.InboxManager;
+import com.talentPool.inbox.manager.MassEmailManager;
+import com.talentPool.inbox.manager.ReadApplicantsFromCSV;
+import com.talentPool.inbox.scheduler.CSVImportSessionProcessor;
+import com.talentPool.inbox.utils.CSVImportUtils;
+import com.talentPool.masters.constants.MastersConstants;
+import com.talentPool.masters.dataobject.InboxFolderData;
+import com.talentPool.parser.converter.GenericConverter;
+import com.talentPool.positions.PositionConstants;
+import com.talentPool.positions.manager.PositionManager;
+import com.talentPool.user.constants.PermissionConstants;
+import com.talentPool.user.dataobject.LoginData;
+import com.talentPool.user.manager.LoginManager;
+import com.talentPool.user.manager.PermissionSet;
+import com.talentPool.user.manager.SessionManager;
+import com.talentPool.user.manager.UserManager;
+
+/**
+ * @author shivprasad
+ * 
+ */
+public class InboxAction extends TPDispatchAction {
+
+	public ActionForward inbox(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+
+		String forward = "inbox";
+		Integer[] permissions = new Integer[1];
+		permissions[0] = PermissionConstants.PERMISSION_IMPORT;
+		if(!isUserAuthorized(request, CommonConstants.NO_MODULE, permissions,null,null,null)) {
+			forward = "authorizationFailure";			
+			return mapping.findForward(forward);
+		}
+		try {
+			InboxManager inboxManager = new InboxManager();
+			ArrayList inboxList = inboxManager.getActiveInboxForUser();
+			request.setAttribute("inboxList", inboxList);
+			request.setAttribute("t", NavigationConstants.T_IMPORT);
+			String userId = (String) request.getSession(false).getAttribute("userId");
+			PermissionSet permissionSet = (PermissionSet) request.getSession(false).getAttribute("permissionSet");
+			
+			List<InboxFolderData> systemFolders = inboxManager.getInboxFolders(MastersConstants.SYSTEM_FOLDER, permissionSet, userId);
+			List<InboxFolderData> drafts = inboxManager.getInboxFolders(MastersConstants.DRAFT, permissionSet, userId);
+			List<InboxFolderData> userFolders = inboxManager.getInboxFolders(MastersConstants.NON_SYSTEM_FOLDER, permissionSet, userId);
+			request.setAttribute("systemFolders", systemFolders);
+			request.setAttribute("drafts", drafts);
+			request.setAttribute("userFolders", userFolders);
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting Inbox Settings", e);
+		}
+		return mapping.findForward(forward);
+	}
+
+	public ActionForward getMessages(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		String forward = "xmlFile";
+		String xmlFile = "";
+		try {
+			Integer[] permissions = new Integer[1];
+			permissions[0] = PermissionConstants.PERMISSION_IMPORT;
+			
+			if (!SessionManager.isLoginFound(mapping, actionForm, request, response, this)) {
+				xmlFile = Utils.getXMLForSessionExpiry();
+			} else if(!isUserAuthorized(request, CommonConstants.NO_MODULE, permissions,null,null,null)) {
+				forward = "authorizationFailure";			
+				return mapping.findForward(forward);
+			} else {
+				String userId = (String) request.getSession(false).getAttribute("userId");
+				PermissionSet permissionSet = (PermissionSet) request.getSession(false).getAttribute("permissionSet");
+				InboxForm inboxForm = (InboxForm) actionForm;
+				String folderId = inboxForm.getFolderId();
+				if (Utils.isBlankOrNull(folderId)) {
+					folderId = InboxConstants.INBOX_FOLDER_INBOX;
+				}
+				String sortBy = inboxForm.getSortBy();
+				if (Utils.isBlankOrNull(sortBy)) {
+					sortBy = InboxConstants.SORT_BY_DATE;
+				}
+				String sortDir = inboxForm.getSortDir();
+				if (Utils.isBlankOrNull(sortDir)) {
+					sortDir = CommonConstants.SORT_DIR_DESC;
+				}
+				InboxManager inboxManager = new InboxManager();
+				ArrayList emails = null;
+				if (!folderId.equalsIgnoreCase(InboxConstants.INBOX_FOLDER_SENT)) {
+					int draftsFolderId = inboxManager.getFolderIdForSystemFolderDrafts();
+					boolean isDrafts = folderId.equals(String.valueOf(draftsFolderId));
+					emails = inboxManager.getAllEmails(folderId, sortBy, sortDir, isDrafts, permissionSet, userId);
+					xmlFile = inboxManager.getXMLForEmails(emails);
+				} else {
+					emails = inboxManager.getSentEmails(sortBy, sortDir);
+					xmlFile = inboxManager.getXMLForSentEmails(emails);
+				}
+
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting Inbox Settings", e);
+		}
+		request.setAttribute("xmlFile", xmlFile);
+		return mapping.findForward(forward);
+	}
+
+	public ActionForward getEmailBody(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		String forward = "messageBody";
+		Integer[] permissions = new Integer[1];
+		permissions[0] = PermissionConstants.PERMISSION_IMPORT;
+		if(!isUserAuthorized(request, CommonConstants.NO_MODULE, permissions,null,null,null)) {
+			forward = "authorizationFailure";			
+			return mapping.findForward(forward);
+		}
+		InboxForm inboxForm = (InboxForm) actionForm;
+		try {
+			InboxManager inboxManager = new InboxManager();
+			MessageData messageData = inboxManager.getEmailBody(inboxForm.getEmailId(), inboxForm.getEmailLocation());
+			request.setAttribute("messageData", messageData);
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting Inbox Settings", e);
+		}
+		return mapping.findForward(forward);
+	}
+
+	public ActionForward changeReadStatus(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		String forward = "xmlFile";
+		String xmlFile = "";
+		try {
+			if (!SessionManager.isLoginFound(mapping, actionForm, request, response, this)) {
+				xmlFile = Utils.getXMLForSessionExpiry();
+			} else {
+				InboxForm inboxForm = (InboxForm) actionForm;
+				String userId = (String) request.getSession().getAttribute("userId");
+				InboxManager inboxManager = new InboxManager();
+				inboxManager.changeEmailReadStatus(inboxForm.getEmailId(), userId, InboxConstants.INBOX_EMAIL_STATUS_UNREAD);
+				// Create changed email status
+				xmlFile = Utils.getXMLForIds(inboxForm.getEmailId());
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting Inbox Settings", e);
+			xmlFile = Utils.getXMLForError(null);
+		}
+		request.setAttribute("xmlFile", xmlFile);
+		return mapping.findForward(forward);
+	}
+
+	public ActionForward getEmailHeader(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		String forward = "xmlFile";
+		String xmlFile = "";
+		try {
+			Integer[] permissions = new Integer[1];
+			permissions[0] = PermissionConstants.PERMISSION_IMPORT;
+			
+			if (!SessionManager.isLoginFound(mapping, actionForm, request, response, this)) {
+				xmlFile = Utils.getXMLForSessionExpiry();
+			} else if(!isUserAuthorized(request, CommonConstants.NO_MODULE, permissions,null,null,null)) {
+				forward = "authorizationFailure";			
+				return mapping.findForward(forward);
+			} else {
+				InboxForm inboxForm = (InboxForm) actionForm;
+				String userId = (String) request.getSession().getAttribute("userId");
+				InboxManager inboxManager = new InboxManager();
+				MessageData mData = inboxManager.getEmailHeader(inboxForm.getEmailId(), inboxForm.getEmailLocation(), true);
+				if (mData != null) {
+					inboxManager.changeEmailReadStatus(inboxForm.getEmailId(), userId, InboxConstants.INBOX_EMAIL_STATUS_READ);
+					xmlFile = inboxManager.getXMLForEmailHeader(mData, inboxForm.getEmailLocation());
+				}
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting Inbox Settings", e);
+			xmlFile = Utils.getXMLForError(null);
+		}
+		request.setAttribute("xmlFile", xmlFile);
+		return mapping.findForward(forward);
+	}
+
+	public ActionForward deleteEmail(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		String forward = "xmlFile";
+		String xmlFile = "";
+		try {
+			if (!SessionManager.isLoginFound(mapping, actionForm, request, response, this)) {
+				xmlFile = Utils.getXMLForSessionExpiry();
+			} else {
+				InboxForm inboxForm = (InboxForm) actionForm;
+				InboxManager inboxManager = new InboxManager();
+				inboxManager.deleteInboxEmail(inboxForm.getEmailId(), true, null);
+				// Create deleted xml
+				xmlFile = Utils.getXMLForIds(inboxForm.getEmailId());
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting Inbox Settings", e);
+			xmlFile = Utils.getXMLForError(null);
+		}
+		request.setAttribute("xmlFile", xmlFile);
+		return mapping.findForward(forward);
+	}
+
+	public ActionForward showCandidateForward(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		String forward = "forwardToCandidate";
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		try {
+			InboxForm inboxForm = (InboxForm) actionForm;
+			String userId = (String) request.getSession().getAttribute("userId");
+			InboxManager inboxManager = new InboxManager();
+			inboxManager.changeEmailReadStatus(inboxForm.getEmailId(), userId, InboxConstants.INBOX_EMAIL_STATUS_READ);
+			MessageData messageData = inboxManager.getEmailHeader(inboxForm.getEmailId(), inboxForm.getEmailLocation(), true);
+			request.setAttribute("messageData", messageData);
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting Inbox Settings", e);
+		}
+		return mapping.findForward(forward);
+	}
+
+	public ActionForward forwardToCandidateRecord(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		String forward = "xmlFile";
+		String xmlFile = "";
+		try {
+			if (!SessionManager.isLoginFound(mapping, actionForm, request, response, this)) {
+				xmlFile = Utils.getXMLForSessionExpiry();
+			} else {
+				InboxForm inboxForm = (InboxForm) actionForm;
+				String userId = (String) request.getSession().getAttribute("userId");
+				// Check if original resume needs to be replaced.
+				String updateResume = inboxForm.getUpdateResume();
+				InboxManager inboxManager = new InboxManager();
+				if (!Utils.isBlankOrNull(updateResume) && updateResume.equals("1")) {
+					// Convert the resume to html format if word or doc
+
+					// if (inboxForm.getSelAttachment() != null &&
+					// !inboxForm.getSelAttachment().equals("0")) {
+					// AttachmentData aData =
+					// inboxManager.getAttachmentData(inboxForm.getSelAttachment());
+					// String filePath = Utils.concatFilePath(DocumentConstants.documentsPath,
+					// aData.getAttachmentFilePath());
+					// DocumentUploader documentUploader = new DocumentUploader();
+					// String htmlFilePath = documentUploader.getHtmlFilePathIfExist(filePath);
+					// if (!Utils.isBlankOrNull(htmlFilePath)) {
+					// filePath = htmlFilePath;
+					// }
+					// }
+
+					ApplicantManager applicantManager = new ApplicantManager();
+					String applicantOriginalDocPath = applicantManager.saveOriginalResume(inboxForm.getSelAttachment(), inboxForm.getEmailId(), null);
+					DocumentUploader documentUploader = new DocumentUploader();
+					String applicantOriginalResumePath = documentUploader.getHtmlFilePathIfExist(Utils.concatFilePath(DocumentConstants.documentsPath, applicantOriginalDocPath));
+
+					applicantOriginalDocPath = (applicantOriginalDocPath == null) ? "" : applicantOriginalDocPath;
+					applicantOriginalResumePath = (applicantOriginalResumePath == null) ? "" : applicantOriginalResumePath;
+
+					if (applicantOriginalResumePath.length() > DocumentConstants.documentsPath.length()) {
+						applicantOriginalResumePath = applicantOriginalResumePath.substring(DocumentConstants.documentsPath.length() + 1);
+					}
+
+					String filePath = Utils.concatFilePath(DocumentConstants.documentsPath, applicantOriginalResumePath);
+					GenericConverter conv = new GenericConverter();
+					String fileContent = conv.convert(filePath);
+					applicantManager.updateOriginalResume(inboxForm.getApplicantId(),inboxForm.getPositionId(), applicantOriginalResumePath, applicantOriginalDocPath, fileContent);
+
+				}
+				inboxManager.attachEmailToApplicantRecord(inboxForm.getApplicantId(), inboxForm.getEmailId(), userId);
+				// Create deleted xml
+				xmlFile = Utils.getXMLForIds(inboxForm.getEmailId());
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error in forward to candidate record", e);
+			xmlFile = Utils.getXMLForError(null);
+		}
+		request.setAttribute("xmlFile", xmlFile);
+		return mapping.findForward(forward);
+	}
+
+	public ActionForward viewEmail(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		String forward = "viewEmail";
+		InboxForm inboxForm = (InboxForm) actionForm;
+		if(!isUserAuthorized(request, CommonConstants.NO_MODULE, null, inboxForm.getApplicantId(), null, null)) {
+			forward = "authorizationFailure";			
+			return mapping.findForward(forward);
+		}
+		try {
+			InboxManager inboxManager = new InboxManager();
+			MessageData messageData = inboxManager.getEmailHeader(inboxForm.getEmailId(), inboxForm.getEmailLocation(), true);
+			request.setAttribute("messageData", messageData);
+			ApplicantManager applicantManager = new ApplicantManager();
+			ApplicantData data = applicantManager.getApplicantSummaryData(inboxForm.getApplicantId());
+			request.setAttribute("applicantData", data);
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting Inbox Settings", e);
+		}
+		return mapping.findForward(forward);
+	}
+
+	public ActionForward newEmail(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		String forward = "newEmail";
+		InboxForm inboxForm = (InboxForm) actionForm;
+		PermissionSet permissionSet = (PermissionSet) request.getSession(false).getAttribute("permissionSet");
+		String userId = (String) request.getSession(false).getAttribute("userId");
+		try {
+			// list all positions to select information from
+			PositionManager positionManager = new PositionManager();
+			ArrayList positions = positionManager.getPositionListWithStatus(PositionConstants.POSITION_STATUS_OPENED, permissionSet, userId);
+			ArrayList positionIds = new ArrayList();
+			ArrayList positionNames = new ArrayList();
+			CommonUtils.populateIdsAndNames(positions, positionIds, positionNames, "positionId", "positionTitle", null);
+			inboxForm.setPositionIds(positionIds);
+			inboxForm.setPositionNames(positionNames);
+			// get random unique new email id
+			String tmpEmailId = inboxForm.getTmpEmailId();
+
+			InboxManager inboxManager = new InboxManager();
+			ApplicantManager applicantManager = new ApplicantManager();
+
+			if (Utils.isBlankOrNull(tmpEmailId)) {
+				tmpEmailId = Utils.getRandomString(12, 0, 0, true, true, null, new Random());
+				inboxForm.setTmpEmailId(tmpEmailId);
+				String emailLocation = inboxForm.getEmailLocation();
+				String emailType = inboxForm.getNewEmailType();
+
+				if (InboxConstants.EMAIL_TYPE_FORWARD.equals(emailType) 
+						|| InboxConstants.EMAIL_TYPE_REPLY.equals(emailType)
+						|| InboxConstants.EMAIL_TYPE_SEND_DRAFT.equals(emailType)) {
+					inboxManager.copyAttachmentsDataToTemp(inboxForm.getEmailId(), inboxForm.getEmailLocation(), tmpEmailId);
+					MessageData messageData = inboxManager.getEmailHeader(inboxForm.getEmailId(), inboxForm.getEmailLocation(), false);
+					ArrayList attachments = inboxManager.getTmpAttachments(tmpEmailId);
+					if (attachments != null) {
+						messageData.setAttachments(attachments);
+					}
+					request.setAttribute("messageData", messageData);
+					String sub = messageData.getSubject();
+					if (!Utils.isBlankOrNull(sub)) {
+						sub = sub.replaceAll("(?mid)^(FW|RE|FWD)[\\s]?:", "");
+					}
+					if(InboxConstants.EMAIL_TYPE_SEND_DRAFT.equals(emailType)) {
+						inboxForm.setSubject(sub);
+					} else {
+						inboxForm.setSubject(emailType + ": " + sub);
+					}
+
+					// get the message body
+					MessageData msgData = inboxManager.getEmailBody(inboxForm.getEmailId(), emailLocation);
+					if (Utils.isBlankOrNull(msgData.getHtmlBody())) {
+						inboxForm.setNewEmailBody(msgData.getTextBody());
+					} else {
+						inboxForm.setNewEmailBody(msgData.getHtmlBody());
+					}
+					if(InboxConstants.EMAIL_TYPE_SEND_DRAFT.equals(emailType)) {
+						inboxForm.setNewEmailBody(inboxForm.getNewEmailBody());
+					} else {
+						inboxForm.setNewEmailBody("<br><br><br><br><br>" + inboxForm.getNewEmailBody());
+					}					
+					if (emailType.equals(InboxConstants.EMAIL_TYPE_REPLY)) {
+						inboxForm.setTo(messageData.getFrom());
+					} else if(emailType.equals(InboxConstants.EMAIL_TYPE_SEND_DRAFT)) {
+						inboxForm.setTo(messageData.getTo());
+						inboxForm.setCc(messageData.getCc());
+					}
+				}
+
+				if (emailLocation.equals(InboxConstants.EMAIL_LOCATION_COMMUNICATIONS)) {
+					if (emailType.equals(InboxConstants.EMAIL_TYPE_NEW) || emailType.equals(InboxConstants.EMAIL_TYPE_REPLY)) {
+						// get Applicants email
+						ApplicantData aData = applicantManager.getApplicantEmailAddress(inboxForm.getApplicantId(), true);
+						String emails = ApplicantUtils.getEmailToString(aData);
+						inboxForm.setTo(emails);
+					}
+				}
+				LoginManager loginManager = new LoginManager();
+				String userId1 = (String) request.getSession().getAttribute("userId");
+				LoginData userData = loginManager.getUser(userId1);
+				inboxForm.setFrom(userData.getName() + " <" + userData.getEmail() + ">");
+
+			} else {
+				MessageData messageData = new MessageData();
+				ArrayList attachments = inboxManager.getTmpAttachments(tmpEmailId);
+				if (attachments != null) {
+					messageData.setAttachments(attachments);
+				}
+				request.setAttribute("messageData", messageData);
+
+			}
+			
+			//do not query if it is ForwardResume
+			if (!Utils.isBlankOrNull(inboxForm.getApplicantId()) && !inboxForm.getApplicantId().contains(",")) {
+				ApplicantData data = applicantManager.getApplicantSummaryData(inboxForm.getApplicantId());
+				request.setAttribute("applicantData", data);
+			}
+			InboxBC inboxBC = new InboxBC();
+			inboxBC.getTemplates(request);
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return mapping.findForward(forward);
+	}
+
+	public ActionForward getTemplateXML(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		String forward = "xmlFile";
+		String xmlFile = "";
+		try {
+			String userId = (String) request.getSession().getAttribute("userId");
+			if (!SessionManager.isLoginFound(mapping, actionForm, request, response, this)) {
+				xmlFile = Utils.getXMLForSessionExpiry();
+			} else {
+				InboxForm inboxForm = (InboxForm) actionForm;
+
+				if (!Utils.isBlankOrNull(inboxForm.getTemplateCode())) {
+					InboxManager inboxManager = new InboxManager();
+					MassEmailManager massEmailManager = new MassEmailManager();
+					MessageData data = massEmailManager.getMessageData(inboxForm.getTemplateCode(), inboxForm.getApplicantId(), "", userId);
+					xmlFile = inboxManager.getTemplateXml(inboxForm.getTemplateCode(), data.getSubject(), data.getHtmlBody());
+				}
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting templateData in XML", e);
+			xmlFile = Utils.getXMLForError(null);
+		}
+		request.setAttribute("xmlFile", xmlFile);
+		return mapping.findForward(forward);
+	}
+
+	public ActionForward saveAttachments(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		String forward = "uploadSuccess";
+		InboxForm inboxForm = (InboxForm) actionForm;
+		String error = "";
+		try {
+			InboxManager inboxManager = new InboxManager();
+			// get all attachments for this message
+			FormFile formFile = inboxForm.getAttachedFile();
+			if (formFile != null) {
+				FormFileData formFileData = new FormFileData(formFile.getFileName(), formFile.getFileSize(), formFile.getContentType(), formFile.getInputStream());
+				error = validateEmailAttachment(formFile, inboxForm.getTmpEmailId());
+				if (Utils.isBlankOrNull(error)) {
+					AttachmentData attachmentData = inboxManager.uploadAttachment(formFileData, inboxForm.getTmpEmailId(), inboxForm.getEmailLocation());
+					request.setAttribute("attachmentData", attachmentData);
+				}
+			}
+		} catch (InvalidMimeTypeException e) {
+			TPLogger.getLogger().error("Error while uploading user document", e);
+			error = TPLabels.getLabel("upload_document.error.invalid_mime_type");
+		} catch (FileUploadException fe) {
+			error = TPLabels.getLabel("attachment.error.could_not_read_file");
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while saving attachment", e);
+		}
+		request.setAttribute("error", error);
+		return mapping.findForward(forward);
+	}
+
+	public ActionForward getPositionInfo(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		String forward = "xmlFile";
+		InboxForm inboxForm = (InboxForm) actionForm;
+		String xmlFile = "";
+		try {
+			if (!SessionManager.isLoginFound(mapping, actionForm, request, response, this)) {
+				xmlFile = Utils.getXMLForSessionExpiry();
+			} else {
+				if (!Utils.isBlankOrNull(inboxForm.getPositionId())) {
+					PositionManager positionManager = new PositionManager();
+					String requirements = positionManager.getRequirements(inboxForm.getPositionId());
+					String responsibilities = positionManager.getResponisbilities(inboxForm.getPositionId());
+					InboxManager inboxManager = new InboxManager();
+					xmlFile = inboxManager.getPositionInfoXML(requirements, responsibilities);
+				}
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting Inbox Settings", e);
+		}
+		request.setAttribute("xmlFile", xmlFile);
+
+		return mapping.findForward(forward);
+	}
+
+	public ActionForward sendEmail(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		InboxForm inboxForm = (InboxForm) actionForm;
+		ActionErrors errors = null;
+		try {
+			InboxManager inboxManager = new InboxManager();
+			errors = (ActionErrors) (request.getAttribute(Globals.ERROR_KEY));
+			if (errors == null) {
+				errors = new ActionErrors();
+			}
+			if (Utils.isBlankOrNull(inboxForm.getTo())) {
+				errors.add("new_email.error.invalid_to", new ActionError("new_email.error.invalid_to"));
+			}
+			if (errors.size() == 0) {
+				String userId = (String) request.getSession().getAttribute("userId");
+
+				MessageData messageData = new MessageData();
+				messageData.setTo(inboxForm.getTo());
+				messageData.setCc(inboxForm.getCc());
+				messageData.setBcc(inboxForm.getBcc());
+				InboxData iData = inboxManager.getCurrentInboxSettings();
+				if (Utils.isBlankOrNull(inboxForm.getFrom())) {
+					messageData.setFrom(iData.getInboxDisplayName() + " <" + iData.getInboxEmail() + ">");
+				} else {
+					String from = inboxForm.getFrom();
+					messageData.setReplyTo(from);
+					String sendFrom = Utils.replaceUserEmailWithInboxEmail(from, iData.getInboxEmail());
+					messageData.setFrom(sendFrom);
+				}
+				messageData.setTextBody(inboxForm.getNewEmailBody());
+				// Adding <pre></pre> is temporary arrangement for send email
+				// Once we have an option to send HTML or TEXT email on UI,
+				// remove this
+				messageData.setHtmlBody(inboxForm.getNewEmailBody());
+				messageData.setSubject(inboxForm.getSubject());
+				ArrayList attachments = inboxManager.getTmpAttachments(inboxForm.getTmpEmailId());
+				if (attachments != null) {
+					messageData.setAttachments(attachments);
+				}
+				// Append original data
+				String newEmailType = inboxForm.getNewEmailType();
+				// if (!Utils.isBlankOrNull(inboxForm.getIncludeOriginal())) {
+				if (newEmailType.equals(InboxConstants.EMAIL_TYPE_REPLY) || newEmailType.equals(InboxConstants.EMAIL_TYPE_FORWARD)) {
+					ArrayList relatedAttachments = inboxManager.getAttachmentsOfType(inboxForm.getEmailId(), inboxForm.getEmailLocation(), InboxConstants.ATTACHMENT_TYPE_RELATED);
+					if (relatedAttachments != null) {
+						if (attachments != null) {
+							attachments.addAll(relatedAttachments);
+							messageData.setAttachments(attachments);
+						} else {
+							messageData.setAttachments(relatedAttachments);
+						}
+					}
+				}
+				
+				// replace the path with cid and send email
+				inboxManager.processAndSendEmail(messageData, inboxForm.getApplicantId());
+				// delete confirmed attachments from tmp db
+				inboxManager.deleteTmpAttachments(inboxForm.getTmpEmailId(), null, InboxConstants.ATTACHMENT_CONFIRMED);
+
+				// make email sent entry into DB
+				Calendar cal = new GregorianCalendar();
+				messageData.setSendDate(new java.sql.Date(new Timestamp(cal.getTime().getTime()).getTime()));
+				if (inboxForm.getEmailLocation().equals(InboxConstants.EMAIL_LOCATION_COMMUNICATIONS)) {
+					//do not save if it is ForwardResume
+					if(!inboxForm.getApplicantId().contains(",")){
+						messageData.setApplicantId(inboxForm.getApplicantId());
+						inboxManager.saveCommunicationMessage(messageData, ApplicantConstants.APPLICANT_EMAIL_FOLDER_SENT, userId,ApplicantConstants.EMAIL_NOT_IMPORTED);
+					}
+				} else {
+					inboxManager.saveMessage(messageData, InboxConstants.INBOX_FOLDER_SENT, userId);
+					if(InboxConstants.EMAIL_TYPE_SEND_DRAFT.equals(newEmailType)) {
+						inboxManager.deleteInboxEmail(inboxForm.getEmailId(), true, null);
+					}
+				}
+				
+				request.setAttribute("update", "1");
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting Inbox Settings", e);
+			errors.add("new_email.error.unspecified", new ActionError("new_email.error.unspecified"));
+		}
+		saveErrors(request, errors);
+		return newEmail(mapping, actionForm, request, response);
+	}
+
+	public ActionForward deleteAttachment(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		String forward = "xmlFile";
+		InboxForm inboxForm = (InboxForm) actionForm;
+		String xmlFile = "";
+		try {
+			if (!SessionManager.isLoginFound(mapping, actionForm, request, response, this)) {
+				xmlFile = Utils.getXMLForSessionExpiry();
+			} else {
+				InboxManager inboxManager = new InboxManager();
+				inboxManager.deleteTmpAttachments(inboxForm.getTmpEmailId(), inboxForm.getAttachmentIds(), null);
+				// Create deleted xml
+				xmlFile = Utils.getXMLForIds(inboxForm.getAttachmentIds());
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting Inbox Settings", e);
+		}
+		request.setAttribute("xmlFile", xmlFile);
+		return mapping.findForward(forward);
+	}
+
+	public ActionForward confirmAttachments(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		String forward = "xmlFile";
+		InboxForm inboxForm = (InboxForm) actionForm;
+		String xmlFile = "";
+		try {
+			if (!SessionManager.isLoginFound(mapping, actionForm, request, response, this)) {
+				xmlFile = Utils.getXMLForSessionExpiry();
+			} else {
+				// First set all attachments not confirmed, then confirm
+				// selected and delete remaining
+				InboxManager inboxManager = new InboxManager();
+				inboxManager.confirmTmpAttachments(null, inboxForm.getTmpEmailId(), InboxConstants.ATTACHMENT_NOT_CONFIRMED);
+				inboxManager.confirmTmpAttachments(inboxForm.getAttachmentIds(), inboxForm.getTmpEmailId(), InboxConstants.ATTACHMENT_CONFIRMED);
+				inboxManager.deleteTmpAttachments(inboxForm.getTmpEmailId(), null, InboxConstants.ATTACHMENT_NOT_CONFIRMED);
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting Inbox Settings", e);
+		}
+		request.setAttribute("xmlFile", xmlFile);
+		return mapping.findForward(forward);
+	}
+
+	public ActionForward searchApplicantToForward(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		String forward = "xmlFile";
+		String xmlFile = "";
+		try {
+			if (!SessionManager.isLoginFound(mapping, actionForm, request, response, this)) {
+				xmlFile = Utils.getXMLForSessionExpiry();
+			} else {
+				PermissionSet permissionSet = (PermissionSet) request.getSession(false).getAttribute("permissionSet");
+				InboxForm inboxForm = (InboxForm) actionForm;
+				// First set all attachments not confirmed, then confirm
+				// selected and delete remaining
+				InboxManager inboxManager = new InboxManager();
+				ArrayList applicants = inboxManager.searchCandidate(inboxForm.getSearchApplicantName(), permissionSet);
+				xmlFile = inboxManager.getApplicantXML(applicants);
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting Inbox Settings", e);
+		}
+		request.setAttribute("xmlFile", xmlFile);
+		return mapping.findForward(forward);
+	}
+
+	public ActionForward addAttachments(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		String forward = "addAttachments";
+		InboxForm inboxForm = (InboxForm) actionForm;
+		String error = "";
+		try {
+			InboxManager inboxManager = new InboxManager();
+			ArrayList attachments = inboxManager.getTmpAttachments(inboxForm.getTmpEmailId());
+			if (attachments != null) {
+				request.setAttribute("attachments", attachments);
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while displaying attachment screen", e);
+		}
+		request.setAttribute("error", error);
+		return mapping.findForward(forward);
+	}
+
+	public ActionForward moveEmail(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		String forward = "xmlFile";
+		String xmlFile = "";
+		try {
+			if (!SessionManager.isLoginFound(mapping, actionForm, request, response, this)) {
+				xmlFile = Utils.getXMLForSessionExpiry();
+			} else {
+				InboxForm inboxForm = (InboxForm) actionForm;
+				InboxManager inboxManager = new InboxManager();
+				String folderId = inboxForm.getFolderId();
+				String emailIds = inboxForm.getEmailIds();
+				if (!Utils.isBlankOrNull(emailIds)) {
+					inboxManager.moveInboxEmail(folderId, emailIds);
+					String[] temp = emailIds.split(",");
+					xmlFile = Utils.getXMLForIds(String.valueOf(temp.length) + "," + folderId);
+				}
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting Inbox Settings", e);
+			xmlFile = Utils.getXMLForError(null);
+		}
+		request.setAttribute("xmlFile", xmlFile);
+		return mapping.findForward(forward);
+	}
+	
+	public ActionForward getUsersAutoCompleteList(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		String forward = "xmlFile";
+		try {
+			String xmlFile = "";
+			InboxForm inboxForm = (InboxForm) actionForm;
+			String messageReceivedType = inboxForm.getMessageReceivedType();
+			ArrayList users = new ArrayList();
+			UserManager userManager = new UserManager();
+			if (messageReceivedType.equals("" + InboxConstants.MAIL_RECEIVED_AS_TO)) {				
+				users = userManager.getUsersLike(null, inboxForm.getTo(), true);
+			} else if(messageReceivedType.equals("" + InboxConstants.MAIL_RECEIVED_AS_BCC)){
+				users = userManager.getUsersLike(null, inboxForm.getBcc(), true);
+			}else {
+				users = userManager.getUsersLike(null, inboxForm.getCc(), true);
+			}
+			xmlFile = Utils.getListInXML(users, "email");
+			request.setAttribute("xmlFile", xmlFile);
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while sending message", e);
+
+		}
+		return mapping.findForward(forward);
+	}
+	
+	public ActionForward forwardResumes(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		String forward = "newEmail";
+		InboxForm inboxForm = (InboxForm) actionForm;
+		try {
+			String userId = (String) request.getSession().getAttribute("userId");
+			String applicants = inboxForm.getApplicantId();
+
+			// get random unique new email id
+			String tmpEmailId = inboxForm.getTmpEmailId();
+
+			if (Utils.isBlankOrNull(tmpEmailId)) {
+				tmpEmailId = Utils.getRandomString(12, 0, 0, true, true, null, new Random());
+				inboxForm.setTmpEmailId(tmpEmailId);
+
+				LoginManager loginManager = new LoginManager();
+				LoginData userData = loginManager.getUser(userId);
+				inboxForm.setFrom(userData.getName() + " <" + userData.getEmail() + ">");
+			}
+			
+
+			InboxManager inboxManager = new InboxManager();
+
+			if (Utils.isBlankOrNull(tmpEmailId)) {
+				tmpEmailId = Utils.getRandomString(12, 0, 0, true, true, null, new Random());
+				inboxForm.setTmpEmailId(tmpEmailId);
+				String emailLocation = inboxForm.getEmailLocation();
+
+				if (emailLocation.equals(InboxConstants.EMAIL_LOCATION_COMMUNICATIONS)) {
+//					if (emailType.equals(InboxConstants.EMAIL_TYPE_NEW) || emailType.equals(InboxConstants.EMAIL_TYPE_REPLY)) {
+//						ApplicantData aData = applicantManager.getApplicantEmailAddress(inboxForm.getApplicantId(), true);
+//						String emails = ApplicantUtils.getEmailToString(aData);
+//						inboxForm.setTo(emails);
+//					}
+				}
+				LoginManager loginManager = new LoginManager();
+				
+				LoginData userData = loginManager.getUser(userId);
+				inboxForm.setFrom(userData.getName() + " <" + userData.getEmail() + ">");
+
+			} else {
+				MessageData messageData = new MessageData();
+				ArrayList attachments = inboxManager.getTmpAttachments(tmpEmailId);
+				if (attachments != null) {
+					messageData.setAttachments(attachments);
+				}
+				request.setAttribute("messageData", messageData);
+
+			}
+			
+			MassEmailManager emailManager = new MassEmailManager();
+			MessageData msgData = emailManager.getMessageData("forwardResumes", applicants, "", userId);
+			inboxForm.setNewEmailBody(msgData.getHtmlBody());
+			inboxForm.setSubject(msgData.getSubject());
+			inboxForm.setTemplateCode("forwardResumes");
+
+			InboxBC inboxBC = new InboxBC();
+			inboxBC.getTemplates(request);
+			
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return mapping.findForward(forward);
+	}
+
+	public ActionForward attachResumes(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		String forward = "attachResumes";
+		ArrayList<AttachmentData> dataList = new ArrayList<AttachmentData>();
+		InboxForm inboxForm = (InboxForm) actionForm;
+		String error = "";
+		try {
+			InboxManager inboxManager = new InboxManager();
+			String applicantIds = inboxForm.getApplicantId();
+			String [] applicantStr = applicantIds.split(",");
+			
+			ApplicantManager applicantManager = new ApplicantManager();
+			AttachmentData aData = null;
+			long totalSize = 0;
+			long fileSize = 0;
+			File file = null;
+			for (int i = 0; i < applicantStr.length; i++) {
+				String id = applicantStr[i];
+				ApplicantData applicantData = applicantManager.getApplicantSummaryData(id);
+				String originalDocPath = applicantData.getApplicantOriginalDocPath();
+				String fullPath = Utils.concatFilePath(DocumentConstants.documentsPath, originalDocPath);
+				file = new File(fullPath);
+				if(file.exists()){
+					fileSize=file.length();
+					totalSize += fileSize;
+				}else {
+					fileSize = 0;
+				}
+				String fileName = applicantData.getApplicantName()+FileHandlerUtils.getFileExtention(originalDocPath);
+				String attachmentId =  inboxManager.getAbsoluteAttachmentPath(fileName, "application/msword", fileSize, originalDocPath, inboxForm.getTmpEmailId(), inboxForm.getEmailLocation());
+				aData = new AttachmentData();
+				aData.setAttachmentId(attachmentId);
+				aData.setOriginalFileName(fileName);
+				aData.setAttachmentSize(fileSize);
+				dataList.add(aData);
+			}
+			
+			//check for max size
+			double maxSizeInBytes = new Double(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_MAX_ATTACHMENT_SIZE_IN_MB)).doubleValue() * 1000 * 1024;
+			if (totalSize > maxSizeInBytes) {
+				error = TPLabels.getLabel("attachment.error.size_exceeded_max");
+			}
+			if (Utils.isBlankOrNull(error)) {
+				request.setAttribute("dataList", dataList);
+			}
+
+			
+		} catch (FileUploadException fe) {
+			error = TPLabels.getLabel("attachment.error.could_not_read_file");
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		request.setAttribute("error", error);
+		return mapping.findForward(forward);
+	}
+	/*
+	 * CSV Import for Talentpool previously it was excel import
+	 * Also it was at 
+	 */
+	public ActionForward showResumeCSVFieldMappings(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		String forward = "showFieldMappings";
+		try {
+			InboxForm inboxForm = (InboxForm) actionForm;
+			String filePath = inboxForm.getFilePath();
+			
+			String sessionId = "" + System.currentTimeMillis();
+			String ext = filePath.substring(filePath.length() - 4, filePath.length());			
+			ActionErrors errors = null;
+			if (ext.equals(".csv")) {
+				ReadApplicantsFromCSV readApplicantsFromCSV = new ReadApplicantsFromCSV();
+				ArrayList<String> excelFieldName = readApplicantsFromCSV.csvFieldName(filePath);
+				inboxForm.setSessionId(sessionId);
+				request.setAttribute("excelFieldName", excelFieldName);
+			} else {
+				errors = new ActionErrors();
+				errors.add("common.please_select.one_param", new ActionError("common.please_select.one_param", TPLabels.getLabel("common.csv_file") + " " + TPLabels.getLabel("common.to") + " "
+						+ TPLabels.getLabel("common.import")));
+				saveErrors(request, errors);
+				forward = "import";
+			}
+			request.setAttribute("t", NavigationConstants.T_IMPORT);
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return mapping.findForward(forward);
+	}
+	
+		
+	public ActionForward showCSVImportData(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		String forward = "showCSVImportData";
+		try {
+			String userId = (String) request.getSession(false).getAttribute("userId");
+			InboxForm inboxForm = (InboxForm) actionForm;
+			String sessionId = inboxForm.getSessionId();
+			String mappings = inboxForm.getMappings();
+			CSVImportSessionProcessor csvImportSessionProcessor = new CSVImportSessionProcessor(sessionId, inboxForm.getFilePath(), mappings, userId);
+			CSVImportUtils csvImportUtils = new CSVImportUtils();
+			HashMap<String, String> headerMap = csvImportUtils.generateCSVHeader();
+			request.setAttribute("headerMap", headerMap);
+			request.setAttribute("mappings", mappings);
+			request.setAttribute("t", NavigationConstants.T_IMPORT);
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return mapping.findForward(forward);
+	}
+	
+	public ActionForward viewCSVImportData(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		String forward = "xmlFile";
+		String xmlFile = "";
+		try {
+			if (!SessionManager.isLoginFound(mapping, actionForm, request, response, this)) {
+				xmlFile = Utils.getXMLForSessionExpiry();
+			} else {
+				InboxForm inboxForm = (InboxForm) actionForm;
+				String sessionId = inboxForm.getSessionId();
+				String mappings = inboxForm.getMappings();
+				String lastRowId = inboxForm.getLastRowId();
+				CSVUploadManager csvUploadManager = new CSVUploadManager();
+				ArrayList<ImportData> excelList = csvUploadManager.getExcelImportData(sessionId, lastRowId);
+
+				for (int i = 0; i < excelList.size(); i++) {
+					ImportData iData = (ImportData) excelList.get(i);
+					CustomFieldManager customFieldManager = new CustomFieldManager();
+					CustomFieldDataProcessor customFieldDataProcessor = new CustomFieldDataProcessor();
+
+					ArrayList customFields = customFieldManager.getCustomFieldsForInputAllowed(CustomFieldConstants.ENTITY_TYPE_APPLICANT, CustomFieldConstants.INPUT_ALLOWED, true);
+					ArrayList<CustomFieldData> customFieldsValues = customFieldManager.getCustomFieldDataForEntity(iData.getSessionId() + iData.getRowNumber(),
+							CustomFieldConstants.ENTITY_TYPE_EXCEL_IMPORT);
+					customFieldDataProcessor.setCustomFieldValuesFromPreviousValues(customFields, customFieldsValues);
+					iData.setCustomFields(customFields);
+				}
+
+				CSVImportUtils csvImportUtils = new CSVImportUtils();
+				xmlFile = csvImportUtils.getXMLViewCSVImport(excelList, mappings);
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		request.setAttribute("xmlFile", xmlFile);
+		return mapping.findForward(forward);
+	}
+	
+	public ActionForward checkForSessionComplete(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		String forward = "xmlFile";
+		String xmlFile = "";
+		try {
+			InboxForm inboxForm = (InboxForm) actionForm;
+			String sessionId = inboxForm.getSessionId();
+			String isSessionComplete = "1";
+			if (CSVImportSessionList.sessions.get(sessionId) != null) {
+				isSessionComplete = "0";
+			}
+			xmlFile = Utils.getXMLForIds(isSessionComplete);
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+			xmlFile = Utils.getXMLForError(null);
+		}
+		request.setAttribute("xmlFile", xmlFile);
+		return mapping.findForward(forward);
+	}
+	
+	
+	public ActionForward startExcelImport(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		String forward = "viewCSVImportProcess";
+		try {
+			PermissionSet permissionSet = (PermissionSet) request.getSession(false).getAttribute("permissionSet");
+			String userId = (String) request.getSession(false).getAttribute("userId");
+			InboxForm inboxForm = (InboxForm) actionForm;
+			inboxForm.setIsSessionComplete("0");
+			CSVImporter csvImporter = new CSVImporter(inboxForm.getMappings(), inboxForm.getSessionId(), userId, permissionSet);
+			request.setAttribute("t", NavigationConstants.T_IMPORT);
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return mapping.findForward(forward);
+	}
+	
+	public ActionForward viewCSVImportedProcessData(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		String forward = "xmlFile";
+		String xmlFile = "";
+		try {
+			if (!SessionManager.isLoginFound(mapping, actionForm, request, response, this)) {
+				xmlFile = Utils.getXMLForSessionExpiry();
+			} else {
+				InboxForm inboxForm = (InboxForm) actionForm;
+				String sessionId = inboxForm.getSessionId();
+				String lastRowId = inboxForm.getLastRowId();
+				CSVUploadManager csvUploadManager = new CSVUploadManager();
+				ArrayList data = (ArrayList) csvUploadManager.getExcelImportFailData(sessionId, lastRowId);
+				CSVImportUtils csvImportUtils = new CSVImportUtils();
+				xmlFile = csvImportUtils.getXMLforExcelImport(data);
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		request.setAttribute("xmlFile", xmlFile);
+		return mapping.findForward(forward);
+	}
+	
+	public ActionForward checkForSessionCompleteDuringImport(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		String forward = "xmlFile";
+		String xmlFile = "";
+		try {
+			InboxForm inboxForm = (InboxForm) actionForm;
+			String sessionId = inboxForm.getSessionId();
+			String isSessionComplete = "1";
+			if (CSVImportSessionList.sessions.get(sessionId) != null) {
+				isSessionComplete = "0";
+			}
+			xmlFile = Utils.getXMLForIds(isSessionComplete);
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+			xmlFile = Utils.getXMLForError(null);
+		}
+		request.setAttribute("xmlFile", xmlFile);
+		return mapping.findForward(forward);
+	}
+
+	public ActionForward positionRequestEmail(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		String forward = "newEmail";
+		InboxForm inboxForm = (InboxForm) actionForm;
+		try {			
+			LoginManager loginManager = new LoginManager();
+			String userId = (String) request.getSession().getAttribute("userId");
+			LoginData userData = loginManager.getUser(userId);
+			inboxForm.setFrom(userData.getName() + " <" + userData.getEmail() + ">");
+			
+			String tmpEmailId = Utils.getRandomString(12, 0, 0, true, true, null, new Random());
+			inboxForm.setTmpEmailId(tmpEmailId);
+			
+			InboxManager inboxManager = new InboxManager();
+			
+			inboxManager.uploadIndentImportTemplate(tmpEmailId);
+			
+			MessageData messageData = new MessageData();
+			ArrayList attachments = inboxManager.getTmpAttachments(tmpEmailId);
+			if (attachments != null) {
+				messageData.setAttachments(attachments);
+			}
+			request.setAttribute("messageData", messageData);
+
+			InboxBC inboxBC = new InboxBC();
+			inboxBC.getTemplates(request);
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return mapping.findForward(forward);
+	}
+
+	public ActionForward viewAttachment(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		String forward = "getDocument";
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		InboxForm inboxForm = (InboxForm) actionForm;
+		try {			
+			InboxManager inboxManager = new InboxManager();
+			AttachmentData data = inboxManager.getTmpAttachment(inboxForm.getTmpAttachmentId());
+			FileHandler fileHandler = new FileHandler();
+			String contentType = fileHandler.getContentType(data.getContentType());				
+			request.setAttribute("filePath", Utils.concatFilePath(DocumentConstants.documentsPath, data.getAttachmentFilePath()));
+			request.setAttribute("contentType", contentType);
+			request.setAttribute("fileName", data.getOriginalFileName());
+			request.setAttribute("contentDisposition", DocumentConstants.CONTENT_DISPOSITION_ATTACHMENT);
+		}catch (Exception e) {			
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return mapping.findForward(forward);
+	}
+	
+	private String validateEmailAttachment(FormFile formFile, String tmpEmailId){
+		InboxManager inboxManager = null;
+		FileHandler fh 	= new FileHandler();
+		String error 	= "";
+		String fileName = formFile.getFileName();
+		if (formFile.getFileSize() <= 0) {
+			error = TPLabels.getLabel("attachment.error.could_not_read_file");
+		} else {
+			inboxManager = new InboxManager();
+			long totalSize = formFile.getFileSize() + inboxManager.getTmpAttachmentSize(tmpEmailId);
+			double maxSizeInBytes = new Double(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_MAX_ATTACHMENT_SIZE_IN_MB)).doubleValue() * 1000 * 1024;
+			if (totalSize > maxSizeInBytes) {
+				error = TPLabels.getLabel("attachment.error.size_exceeded_max");
+			}
+		}
+		error+=fh.isValidEmailAttachment(fileName);
+		return error;
+	} 
+}

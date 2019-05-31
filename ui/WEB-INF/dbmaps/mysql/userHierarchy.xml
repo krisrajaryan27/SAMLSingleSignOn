@@ -1,0 +1,106 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>
+		<dbquery name="qHierarchyManager_FetchUsersHierarchy">
+			SELECT tuh.org_id, tuh.user_id, tuh.parent_id, tuh.date_modified,
+			CONCAT(tu.USER_FNAME,' ',tu.USER_LNAME) AS name
+			FROM tp_user_hierarchy tuh
+				LEFT JOIN tp_users tu ON (tu.user_id=tuh.user_id)
+			ORDER BY tuh.parent_id
+		</dbquery>
+		<dbquery name="qHierarchyManager_FetchUnManagedUser">
+			SELECT tu.user_id, CONCAT(tu.user_fname,' ',tu.user_lname) AS name 
+			FROM tp_users tu
+			LEFT JOIN tp_user_roles tur ON (tur.user_id=tu.user_id)
+			WHERE tu.user_id  IN (SELECT DISTINCT user_id FROM tp_user_hierarchy)
+			and tur.role_id !=7
+			AND tu.user_status=? ORDER BY name
+		</dbquery>
+		<dbquery name="qHierarchyManager_FetchManagedUser">
+			SELECT tuh.org_id, tuh.user_id, tuh.parent_id,
+			CONCAT(tu.user_fname,' ',tu.user_lname) AS name
+			FROM tp_user_hierarchy tuh, tp_users tu
+			WHERE tu.user_id=tuh.user_id
+			AND tu.user_status=?
+			ORDER BY name
+		</dbquery>
+		<dbquery name="qHierarchyManager_InsertUserToHierarchy">
+			INSERT INTO tp_user_hierarchy (user_id,parent_id,date_modified) VALUES(?,?,now())
+		</dbquery>
+		<dbquery name="qHierarchyManager_UpdateUserToHierarchy">
+			UPDATE tp_user_hierarchy SET parent_id = ? WHERE user_id =?
+		</dbquery>
+		<dbquery name="qHierarchyManager_FetchRemovableUser">
+			SELECT tuh.org_id, CONCAT(tu.user_fname,' ',tu.user_lname) AS name 
+			FROM tp_user_hierarchy tuh, tp_users tu 
+			WHERE tuh.user_id=tu.user_id
+			AND 
+			( tuh.user_id NOT IN (SELECT parent_id FROM tp_user_hierarchy) OR 
+				(tuh.user_id=tuh.parent_id
+				AND tuh.user_id NOT IN (SELECT parent_id FROM tp_user_hierarchy tuhi WHERE tuhi.user_id!=tuh.user_id )
+				)
+			)
+			ORDER BY name
+		</dbquery>
+		<dbquery name="qHierarchyManager_DeleteUserFromHierarchy">
+			DELETE FROM tp_user_hierarchy WHERE org_id=?
+		</dbquery>
+		<dbquery name="qHierarchyManager_GetParentId">
+			SELECT parent_id FROM tp_user_hierarchy WHERE user_id=?
+		</dbquery>
+		<dbquery name="qHierarchyManager_GetHierarchyData">
+			SELECT taspuh.user_id, taspuh.supervisor_id, taspuh.user_type,  taspuh.primary_user_id,
+			CONCAT(tu.user_fname,' ',tu.user_lname) AS name
+			FROM tp_applicant_selection_process_user_heirarchy taspuh, tp_users tu
+			WHERE process_id = ? 
+			AND tu.user_id=taspuh.user_id
+			ORDER BY user_type
+		</dbquery>
+		<dbquery name="qHierarchyManager_UpdateParent">
+			UPDATE tp_user_hierarchy
+			SET parent_id = ?
+			WHERE parent_id=?
+		</dbquery>
+		<dbquery name="qHierarchyManager_RemoveUser">
+			DELETE FROM tp_user_hierarchy
+			WHERE user_id = ?
+		</dbquery>
+	</dbqueries>
+	<dataqueries>
+	    <dataquery name="dHierarchyManager_FetchUsersHierarchy" dbquery="qHierarchyManager_FetchUsersHierarchy" object="com.talentPool.admin.dataobject.HierarchyData">
+			<attribute name="orgId" column="org_id" type="STRING"/>
+			<attribute name="userId" column="user_id" type="STRING"/>
+			<attribute name="parentId" column="parent_id" type="STRING"/>
+	    	<attribute name="name" column="name" type="STRING"/>	    	
+	    </dataquery>
+	    <dataquery name="dHierarchyManager_FetchUnManagedUser" dbquery="qHierarchyManager_FetchUnManagedUser" object="com.talentPool.admin.dataobject.HierarchyData">
+	    	<attribute name="userId" column="user_id" type="STRING"/>
+	    	<attribute name="name" column="name" type="STRING"/>
+	    </dataquery>
+	    <dataquery name="dHierarchyManager_FetchManagedUser" dbquery="qHierarchyManager_FetchManagedUser" object="com.talentPool.admin.dataobject.HierarchyData">
+	    	<attribute name="orgId" column="org_id" type="STRING"/>
+	    	<attribute name="parentId" column="parent_id" type="STRING"/>
+	    	<attribute name="userId" column="user_id" type="STRING"/>
+	    	<attribute name="name" column="name" type="STRING"/>
+	    </dataquery>
+	    <dataquery name="dHierarchyManager_InsertUserToHierarchy" dbquery="qHierarchyManager_InsertUserToHierarchy" />
+	    <dataquery name="dHierarchyManager_UpdateUserToHierarchy" dbquery="qHierarchyManager_UpdateUserToHierarchy" />	    
+	    <dataquery name="dHierarchyManager_FetchRemovableUser" dbquery="qHierarchyManager_FetchRemovableUser" object="com.talentPool.admin.dataobject.HierarchyData">
+	    	<attribute name="orgId" column="org_id" type="STRING"/>
+	    	<attribute name="name" column="name" type="STRING"/>
+	    </dataquery>
+	    <dataquery name="dHierarchyManager_DeleteUserFromHierarchy" dbquery="qHierarchyManager_DeleteUserFromHierarchy" />
+	    <dataquery name="dHierarchyManager_GetParentId" dbquery="qHierarchyManager_GetParentId" />
+	    <dataquery name="dHierarchyManager_GetHierarchyData" dbquery="qHierarchyManager_GetHierarchyData" object="com.talentPool.admin.dataobject.HierarchyData">
+	    	<attribute name="userId" column="user_id" type="STRING"/>
+			<attribute name="supervisorId" column="supervisor_id" type="STRING"/>
+	    	<attribute name="userType" column="user_type" type="STRING"/>
+	    	<attribute name="name" column="name" type="STRING"/>
+	    </dataquery>
+	    <dataquery name="dHierarchyManager_UpdateParent" dbquery="qHierarchyManager_UpdateParent"/>
+   	    <dataquery name="dHierarchyManager_RemoveUser" dbquery="qHierarchyManager_RemoveUser"/>
+	</dataqueries>   
+</dbmap>

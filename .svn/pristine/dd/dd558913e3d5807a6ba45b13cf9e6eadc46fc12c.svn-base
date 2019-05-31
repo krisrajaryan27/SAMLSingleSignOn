@@ -1,0 +1,1587 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>	
+		<!-- Start: Position Home -->
+		<dbquery name="qPositionManager_GetAllCandidatesInProcessForPosition">
+			select applicant_id, applicant_position_id,
+			applicant_step_id
+			from tp_applicants
+			where applicant_joined = ?
+			and applicant_position_id = ?
+		</dbquery>
+		<!-- End: Position Home -->
+	    <!-- Start: Position Description -->
+	    <dbquery name="qPositionManager_ViewPositionDescription">
+				SELECT tp.position_id, tp.position_title, tp.position_date_created, tp.position_code, 
+				CONCAT(tu.user_fname, ' ', tu.user_lname) AS name,
+				CONCAT(tu1.user_fname, ' ', tu1.user_lname) AS position_owner_name, 
+				tp.position_no_of_openings, tp.position_date_expiry, tp.position_type_ext_int,
+				tp.position_note, tp.responsibilities, tp.type_of_vacancy,tp.replacement_emp_code,
+				date_format(tp.website_publish_from_date, '%d-%b-%y') as position_date_published,
+				(SELECT td.dept_name FROM tp_departments td WHERE tp.dept_id=td.dept_id) AS dept_name,
+				(SELECT td.dept_externalCode FROM tp_departments td WHERE tp.dept_id=td.dept_id) AS dept_externalCode,
+				(SELECT td.dept_name FROM tp_departments td WHERE tp.sub_dept_id=td.dept_id) AS sub_dept_name,
+				(SELECT td.dept_externalCode FROM tp_departments td WHERE tp.sub_dept_id=td.dept_id) AS sub_dept_externalCode,
+				(SELECT td.dept_name FROM tp_departments td WHERE tp.sub_sub_dept_id=td.dept_id) AS sub_sub_dept_name,
+				(SELECT td.dept_externalCode FROM tp_departments td WHERE tp.sub_sub_dept_id=td.dept_id) AS sub_sub_dept_externalCode,
+				(SELECT td.dept_name FROM tp_departments td WHERE tp.sub3_dept_id=td.dept_id) AS sub3_dept_name,
+				(SELECT td.dept_name FROM tp_departments td WHERE tp.sub4_dept_id=td.dept_id) AS sub4_dept_name,
+				(SELECT tl_ap.location_name FROM tp_location_ap tl_ap WHERE tp.division_id_ap=tl_ap.location_id) AS pLocation,
+				(SELECT tl_ap.location_externalCode FROM tp_location_ap tl_ap WHERE tp.division_id_ap=tl_ap.location_id) AS pLocationCode,
+				(SELECT tl_ap.location_name FROM tp_location_ap tl_ap WHERE tp.region_id_ap=tl_ap.location_id) AS pSubLocation,
+				(SELECT tl_ap.location_externalCode FROM tp_location_ap tl_ap WHERE tp.region_id_ap=tl_ap.location_id) AS pSubLocationCode,
+				(SELECT tl_ap.location_name FROM tp_location_ap tl_ap WHERE tp.location_id_ap=tl_ap.location_id) AS pSubSubLocation,
+				(SELECT tl_ap.location_externalCode FROM tp_location_ap tl_ap WHERE tp.location_id_ap=tl_ap.location_id) AS pSubSubLocationCode,
+				(SELECT tp_ap.position_code FROM tp_positions_ap tp_ap WHERE tp.sf_position_code=tp_ap.position_code) AS positionCodeForAP,
+				(SELECT tf_ap.jobfunction_name FROM tp_jobfunction_ap tf_ap WHERE tp.job_function_id_ap=tf_ap.jobfunction_id) AS pJobFunction,
+				(SELECT tf_ap.jobfunction_externalCode FROM tp_jobfunction_ap tf_ap WHERE tp.job_function_id_ap=tf_ap.jobfunction_id) AS pJobFunctionCode,
+				(SELECT tg_ap.paygrade_name FROM tp_paygrade_ap tg_ap WHERE tp.job_paygrade_id_ap=tg_ap.paygrade_id) AS pJobPayGrade,
+				(SELECT tg_ap.paygrade_externalCode FROM tp_paygrade_ap tg_ap WHERE tp.job_paygrade_id_ap=tg_ap.paygrade_id) AS pJobPayGradeCode,
+				(SELECT tj_ap.job_externalCode FROM tp_jobcode_ap tj_ap WHERE tp.job_code_id_ap=tj_ap.job_id) AS pJobCode,
+				(SELECT tj_ap.job_name FROM tp_jobcode_ap tj_ap WHERE tp.job_code_id_ap=tj_ap.job_id) AS pJobName,
+				(SELECT tcon_ap.name FROM countries tcon_ap WHERE tp.country_id_ap=tcon_ap.id) AS countryName,
+				(SELECT tsta_ap.name FROM states tsta_ap WHERE tp.state_id_ap=tsta_ap.id) AS stateName,
+				tp.position_level, tp.position_referal_fees, tp.position_clone,
+				GROUP_CONCAT(DISTINCT tl.location_name SEPARATOR ', ') AS location_name,
+				GROUP_CONCAT(DISTINCT tbu.bu_name SEPARATOR ', ') AS bu_name,
+				GROUP_CONCAT(DISTINCT tcc.cost_center_name SEPARATOR ', ') AS cost_center_name,				
+				(SELECT tbi.budget_item_name FROM tp_budget_items tbi WHERE tp.budget_item_id = tbi.budget_item_id) AS budget_item_name,
+				tbg.grade_name, tbb.band_name, tp.position_status, tp.employee_apply_refer,tpnf.contact_person_name, 
+				(SELECT td.industry FROM tp_naukri_industry_codes td WHERE tpnf.job_industry_code=td.industry_id) AS job_industry_code, 
+				(SELECT td.farea FROM tp_naukri_functional_area_codes td WHERE tpnf.job_function_code=td.farea_id) AS job_function_code, 
+				(SELECT td.role_name FROM tp_naukri_role_codes td WHERE tpnf.job_role_code=td.role_id) AS job_role_code, 
+				(SELECT td.country FROM tp_naukri_country_codes td WHERE tpnf.country=td.country_id) AS country, 
+				tpnf.minimum_salary, tpnf.maximum_salary, tpnf.benefits_description, tpnf.display_salary, tpnf.desired_candidate_summary_text,
+				tpnf.job_keywords,tpnf.contact_person_email, tpnf.apply_by_web_url, tpnf.job_feed_response_email, tpnf.salary_currency,tp.employee_can_email
+				FROM tp_positions tp
+				LEFT JOIN tp_position_locations tpl ON (tpl.position_id = tp.position_id)
+				LEFT JOIN tp_location_ap tl ON (tpl.location_id = tl.location_id)
+				LEFT JOIN tp_budget_grades tbg ON (tbg.grade_id = tp.grade_id)
+				LEFT JOIN tp_budget_bands tbb ON (tbb.band_id = tp.band_id)
+				LEFT JOIN tp_users tu ON (tu.user_id = tp.position_requested_by)
+				LEFT JOIN tp_users tu1 ON (tu1.user_id = tp.position_owner_id)				
+				LEFT JOIN tp_position_business_unit tpbu ON (tpbu.position_id = tp.position_id)
+				LEFT JOIN tp_business_unit tbu ON (tpbu.bu_id = tbu.bu_id)
+				LEFT JOIN tp_position_cost_center tpcc ON (tpcc.position_id = tp.position_id)
+				LEFT JOIN tp_position_naukri_fields tpnf ON (tpnf.position_id = tp.position_id)
+				LEFT JOIN tp_cost_center tcc ON (tpcc.cost_center_id = tcc.cost_center_id)
+				WHERE
+				tp.position_id=? AND tp.position_status != ?
+				@@
+				GROUP BY tp.position_id
+	    </dbquery>
+	    <dbquery name="qPositionManager_EditPositionDescription">
+				SELECT tp.position_id, tp.position_title, tp.position_code, 
+				tp.position_owner_id, tp.position_requested_by, tp.dept_id,tp.sub_dept_id, tp.sub_sub_dept_id, tp.sub3_dept_id, 
+				tp.sub4_dept_id, tp.position_no_of_openings, tp.position_date_expiry, tp.position_note, tp.division_id_ap,tp.region_id_ap, tp.location_id_ap, tp.sf_position_code,tp.job_function_id_ap,tp.job_paygrade_id_ap, tp.job_code_id_ap,tp.country_id_ap, tp.state_id_ap, 
+				tp.position_level, tp.responsibilities, tp.position_referal_fees, tp.type_of_vacancy,
+				tp.replacement_emp_code,tp.position_type_ext_int,tp.position_clone,
+				GROUP_CONCAT(distinct cast(tpl.location_id AS CHAR)) AS location_id,
+				GROUP_CONCAT(distinct cast(tpbu.bu_id AS CHAR)) AS bu_id,
+				GROUP_CONCAT(distinct cast(tpcc.cost_center_id AS CHAR)) AS cost_center_id,
+				tp.budget_item_id, tp.grade_id, tp.band_id, tp.notify_user_ids, tp.approval_user_ids,
+				tpnf.contact_person_name, tpnf.job_industry_code, tpnf.job_function_code, tpnf.job_role_code, tpnf.job_keywords,
+				tpnf.country, tpnf.minimum_salary, tpnf.maximum_salary, tpnf.benefits_description, tpnf.display_salary, tpnf.desired_candidate_summary_text,
+				tpnf.contact_person_email, tpnf.apply_by_web_url, tpnf.job_feed_response_email, tpnf.salary_currency, tp.is_published_to_naukri,
+				tp.is_published_to_naukri
+				FROM tp_positions tp
+				LEFT JOIN tp_budget_items tbi ON (tbi.budget_item_id=tp.budget_item_id)
+				LEFT JOIN tp_position_locations tpl ON (tpl.position_id=tp.position_id)
+				LEFT JOIN tp_position_business_unit tpbu ON (tpbu.position_id = tp.position_id)
+				LEFT JOIN tp_position_cost_center tpcc ON (tpcc.position_id = tp.position_id)				
+				LEFT JOIN tp_position_naukri_fields tpnf ON (tpnf.position_id = tp.position_id)			
+				WHERE tp.position_id=?
+				GROUP BY tp.position_id
+	    </dbquery>
+	    <dbquery name="qPositionManager_UpdatePositionDescription">
+				UPDATE tp_positions 
+				SET position_title = ?,
+						position_code = ?,
+						position_owner_id = ?,
+						position_requested_by = ?, 
+						dept_id = ?, 
+						position_no_of_openings = ?,
+						position_date_expiry = ?,
+						position_note = ?,
+						sub_dept_id=?,
+						sub_sub_dept_id=?,
+						sub3_dept_id=?,
+						sub4_dept_id=?,
+						position_level=?,
+						position_referal_fees=?,
+						responsibilities = ?,
+						grade_id=?,
+						band_id=?,
+						budget_item_id = ?,
+						type_of_vacancy = ?,
+						replacement_emp_code = ?,
+						position_type_ext_int = ?,
+						division_id_ap = ?,
+						region_id_ap = ?,
+						location_id_ap = ?,
+						sf_position_code = ?,
+						job_function_id_ap = ?,
+						job_paygrade_id_ap = ?,
+						job_code_id_ap = ?,
+						country_id_ap = ?,
+						state_id_ap = ?
+				WHERE position_id = ?
+	    </dbquery>
+	     <dbquery name="qPositionManager_UpdatePositionNaukriDescription">
+	         INSERT INTO tp_position_naukri_fields (contact_person_name, job_industry_code,
+	         job_function_code, job_role_code, job_keywords,
+	         country, minimum_salary, maximum_salary,
+	         benefits_description, display_salary, desired_candidate_summary_text,
+	         contact_person_email,  apply_by_web_url,
+	         job_feed_response_email, salary_currency, position_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?
+	         ) ON DUPLICATE KEY UPDATE    
+				contact_person_name=VALUES(contact_person_name), job_industry_code=VALUES(job_industry_code), job_function_code=VALUES(job_function_code), 
+				job_role_code=VALUES(job_role_code),
+				job_keywords=VALUES(job_keywords), country=VALUES(country), minimum_salary=VALUES(minimum_salary),
+				 maximum_salary=VALUES(maximum_salary),
+				benefits_description=VALUES(benefits_description), display_salary=VALUES(display_salary), 
+				desired_candidate_summary_text=VALUES(desired_candidate_summary_text), contact_person_email=VALUES(contact_person_email),
+				apply_by_web_url=VALUES(apply_by_web_url), job_feed_response_email=VALUES(job_feed_response_email),
+				 salary_currency=VALUES(salary_currency)
+	         
+				<!-- UPDATE tp_position_naukri_fields tpnf
+				SET 	tpnf.contact_person_name  = ?, tpnf.job_industry_code = ?, tpnf.job_function_code = ?, 
+						tpnf.job_role_code = ?, tpnf.job_keywords = ?,
+						tpnf.country = ?, tpnf.minimum_salary = ?, tpnf.maximum_salary = ?, 
+						tpnf.benefits_description = ?, tpnf.display_salary = ?, tpnf.desired_candidate_summary_text = ?,
+						tpnf.contact_person_email = ?, tpnf.apply_by_web_url = ?, tpnf.job_feed_response_email = ?, 
+						tpnf.salary_currency = ?
+				WHERE position_id = ? -->
+	    </dbquery>
+	    <!-- End: Position Description -->
+	    <!-- Start: Position Requirements -->
+	    <dbquery name="qPositionManager_ViewPositionRequirements">
+				SELECT tp.position_id, 
+				GROUP_CONCAT(DISTINCT tdgr.degree_title SEPARATOR ', ') AS degree_title, 
+				CASE WHEN GROUP_CONCAT(DISTINCT tbr.branch_name) is null then 'Any' 
+					ELSE GROUP_CONCAT(DISTINCT tbr.branch_name SEPARATOR ', ') end as branch_name, 
+				tp.position_min_exp, tp.position_max_exp, 
+				(
+					SELECT GROUP_CONCAT(DISTINCT tsk.skill SEPARATOR ', ') FROM
+					tp_position_skills tpsk LEFT JOIN tp_skills tsk ON (tpsk.skill_id = tsk.skill_id)
+					WHERE tpsk.position_id = tp.position_id
+					AND tpsk.skill_type = ?
+				) AS position_primary_skills, 
+				(
+					SELECT GROUP_CONCAT(DISTINCT tsk.skill SEPARATOR ', ') FROM
+					tp_position_skills tpsk LEFT JOIN tp_skills tsk ON (tpsk.skill_id = tsk.skill_id)
+					WHERE tpsk.position_id = tp.position_id
+					AND tpsk.skill_type = ?
+				) AS position_secondary_skills, 
+				tp.requirements
+				FROM tp_positions tp 
+				LEFT JOIN tp_position_branches tpb ON (tpb.position_id=tp.position_id)
+				LEFT JOIN tp_position_degrees tpd ON (tpd.position_id=tp.position_id)
+				LEFT JOIN tp_branches tbr ON (tpb.branch_id = tbr.branch_id)
+				LEFT JOIN tp_degrees tdgr ON (tpd.degree_id = tdgr.degree_id)
+				WHERE tp.position_id = ?
+				GROUP BY tp.position_id
+	    </dbquery>
+	    <dbquery name="qPositionManager_EditPositionRequirements">
+				SELECT tp.position_id, tp.position_min_exp, tp.position_max_exp, tp.requirements,
+				GROUP_CONCAT(DISTINCT tpb.branch_id) AS branch_id, 
+				GROUP_CONCAT(DISTINCT tpd.degree_id) AS degree_id
+				FROM tp_positions tp 
+				LEFT JOIN tp_position_branches tpb ON (tpb.position_id=tp.position_id)
+				LEFT JOIN tp_position_degrees tpd ON (tpd.position_id=tp.position_id)
+				WHERE tp.position_id = ?
+				GROUP BY position_id
+	    </dbquery>
+	    <dbquery name="qPositionManager_UpdatePositionRequirements">
+				UPDATE tp_positions 
+				SET position_min_exp = ?, 
+						position_max_exp = ?,
+						requirements = ?
+				WHERE position_id = ?
+	    </dbquery>
+	    <dbquery name="qPositionManager_DeletePositionSkills">
+	    	delete from tp_position_skills
+			where position_id=?
+	    </dbquery>
+	    <dbquery name="qPositionManager_InsertPositionSkill">
+	    	INSERT into tp_position_skills
+			(position_id, skill_id, skill_type,skill_category_id)
+			VALUES
+			(?, ?, ?, (SELECT skill_category_id FROM tp_skills WHERE skill_id = ? ))
+	    </dbquery>
+   	    <dbquery name="qPositionManager_GetSkillsMasterList">
+	    	select skill_id, skill 
+			from tp_skills
+	    </dbquery>
+	    <dbquery name="qPositionManager_GetSkillsForPosition">
+	    	select cast(group_concat(distinct skill_id) as char) as skills
+			from tp_position_skills
+			where skill_type=?
+			and position_id=?
+	    </dbquery>
+	    <!-- End: Position Requirements -->
+	    <!-- Start: Position Hiring Process -->
+	    <dbquery name="qPositionManager_ViewPositionHiringProcess">
+			SELECT 
+				position_step_title, 
+				position_step_isoptional, tps.position_step_isdefault,
+				position_step_rank,
+				GROUP_CONCAT(assigned_to_users SEPARATOR ', ') as assigned_to_users, 
+				GROUP_CONCAT(scheduled_by_users SEPARATOR ', ') as scheduled_by_users,
+				GROUP_CONCAT(decision_maker_users SEPARATOR ', ') as decision_maker_users
+				FROM (
+					SELECT tps.position_step_id,tps.position_step_title, 
+					tps.position_step_isoptional, tps.position_step_isdefault,
+					tps.position_step_rank,
+					CASE WHEN tpsu.is_responsible_for_scheduling = ? AND tpsu.is_authorized_to_move = ?
+					THEN CONCAT(tu.user_fname,' ',tu.user_lname) END AS assigned_to_users,
+					CASE WHEN tpsu.is_responsible_for_scheduling = ? AND tpsu.is_authorized_to_move = ?
+					THEN CONCAT(tu.user_fname,' ',tu.user_lname) END AS scheduled_by_users,
+					CASE WHEN tpsu.is_responsible_for_scheduling = ? AND tpsu.is_authorized_to_move = ?
+					THEN CONCAT(tu.user_fname,' ',tu.user_lname) END AS decision_maker_users
+					FROM tp_position_steps tps
+					LEFT JOIN tp_position_step_users tpsu ON (tpsu.position_step_id=tps.position_step_id)
+					LEFT JOIN tp_users tu ON (tu.user_id=tpsu.user_id)
+					WHERE tps.position_id = ? AND tps.position_step_status = ?
+				) AS tps 
+			GROUP BY position_step_id
+			ORDER BY position_step_rank
+	    </dbquery>
+	    <dbquery name="qPositionManager_EditPositionHiringProcess">
+			SELECT 
+				position_step_id, step_id, 
+				is_interviewer_can_confirm, position_step_title, feedback_form_id, applicant_feedback_form_id,
+				position_step_rank, position_step_isdefault, is_dMaker_sameAs_asgnTo,
+				is_notify_to_candidate,position_step_isscheduled,position_step_isoptional,
+				position_step_level, 
+				CAST( GROUP_CONCAT(assigned_to) AS CHAR)AS assigned_to, 
+				CAST( GROUP_CONCAT(assigned_to_users  SEPARATOR ', ') AS CHAR ) as assigned_to_users, 
+				CAST( GROUP_CONCAT(scheduled_by) AS CHAR ) as scheduled_by,
+				CAST( GROUP_CONCAT(scheduled_by_users SEPARATOR ', ') AS CHAR )as scheduled_by_users,
+				CAST( GROUP_CONCAT(decision_makers) AS CHAR ) as decision_makers,
+				CAST( GROUP_CONCAT(decision_maker_users SEPARATOR ', ') AS CHAR ) as decision_maker_users
+				FROM (
+					SELECT tps.position_step_id, tps.step_id, 
+					tps.is_interviewer_can_confirm, tps.position_step_title, tps.feedback_form_id, tps.applicant_feedback_form_id,
+					tps.position_step_rank, tps.position_step_isdefault, tps.is_dMaker_sameAs_asgnTo,tps.is_notify_to_candidate,
+					tps.position_step_isscheduled,tps.position_step_isoptional,tps.position_step_level,
+					CASE WHEN tpsu.is_responsible_for_scheduling = ? AND tpsu.is_authorized_to_move = ?
+					THEN tpsu.user_id END AS assigned_to ,
+					CASE WHEN tpsu.is_responsible_for_scheduling = ? AND tpsu.is_authorized_to_move = ?
+					THEN CONCAT(tu.user_fname,' ',tu.user_lname) END AS assigned_to_users,
+					CASE WHEN tpsu.is_responsible_for_scheduling = ? AND tpsu.is_authorized_to_move = ?
+					THEN tpsu.user_id END AS scheduled_by,
+					CASE WHEN tpsu.is_responsible_for_scheduling = ? AND tpsu.is_authorized_to_move = ?
+					THEN CONCAT(tu.user_fname,' ',tu.user_lname) END AS scheduled_by_users,
+					CASE WHEN tpsu.is_responsible_for_scheduling = ? AND tpsu.is_authorized_to_move = ?
+					THEN tpsu.user_id END AS decision_makers,
+					CASE WHEN tpsu.is_responsible_for_scheduling = ? AND tpsu.is_authorized_to_move = ?
+					THEN CONCAT(tu.user_fname,' ',tu.user_lname) END AS decision_maker_users
+					FROM tp_position_steps tps
+					LEFT JOIN tp_position_step_users tpsu ON (tpsu.position_step_id=tps.position_step_id)
+					LEFT JOIN tp_users tu ON (tu.user_id=tpsu.user_id)
+					WHERE tps.position_id = ? AND tps.position_step_status = ?
+				) AS tps 
+			GROUP BY position_step_id
+			ORDER BY position_step_rank
+	    </dbquery>
+	    <dbquery name="qPositionManager_AlterPositionStepRank">
+	    	UPDATE tp_position_steps 
+				SET position_step_rank = (position_step_rank + 1)
+				WHERE position_id = ? 
+				AND position_step_rank >= ?
+				AND position_step_status = ?	
+				AND position_step_isdefault = ?			
+	    </dbquery>
+	    <dbquery name="qPositionManager_2_AlterPositionStepRank">
+	    	UPDATE tp_position_steps 
+				SET position_step_rank = (position_step_rank - 1)
+				WHERE position_id = ? 
+				AND position_step_rank >= ?
+				AND position_step_status = ?	
+				AND position_step_isdefault = ?			
+	    </dbquery>
+	    <dbquery name="qPositionManager_EditPositionStepFollowupMessages">
+	    	SELECT tpsm.status_message_id, tpsm.status_message, tpsm.is_default
+				FROM tp_position_step_status_messages tpsm
+				WHERE tpsm.position_step_id = ?
+				ORDER BY tpsm.status_message_rank
+	    </dbquery>
+	    <dbquery name="qPositionManager_GetActiveUsers">
+				SELECT tu.user_id, concat(tu.user_fname, ' ', tu.user_lname ) AS user_name, 
+				tur.role_id, tr.role_title
+				FROM tp_users tu, tp_user_roles tur, tp_roles tr
+				WHERE tu.user_status = ? 
+				AND tr.role_id=tur.role_id
+				AND tur.user_id=tu.user_id
+				AND tu.user_id in (SELECT tur.user_id FROM tp_user_roles tur WHERE tur.role_id = ? OR tur.role_id = ?)
+				ORDER BY concat(tu.user_fname, ' ', tu.user_lname )
+		</dbquery>
+		 <dbquery name="qPositionManager_GetActiveRecruiters">
+				SELECT tu.user_id, concat(tu.user_fname, ' ', tu.user_lname ) AS user_name, 
+				tu.user_email
+				FROM tp_users tu, tp_user_roles tur, tp_roles tr
+				WHERE tu.user_status = ? 
+				AND tr.role_id=tur.role_id
+				AND tur.user_id=tu.user_id
+				AND tu.user_id in (SELECT tur.user_id FROM tp_user_roles tur WHERE tur.role_id = ?)
+				ORDER BY concat(tu.user_fname, ' ', tu.user_lname )
+		</dbquery>
+		 <dbquery name="qPositionManager_GetActiveHRManagerUsers">
+				SELECT tu.user_id, concat(tu.user_fname, ' ', tu.user_lname ) AS user_name, 
+				tu.user_email
+				FROM tp_users tu, tp_user_roles tur, tp_roles tr
+				WHERE tu.user_status = ? 
+				AND tr.role_id=tur.role_id
+				AND tur.user_id=tu.user_id
+				AND tu.user_id in (SELECT tur.user_id FROM tp_user_roles tur WHERE tur.role_id = ?)
+				ORDER BY concat(tu.user_fname, ' ', tu.user_lname )
+		</dbquery>
+		<dbquery name="qPositionManager_AddPositionStep">
+	    	INSERT INTO tp_position_steps
+				(position_id, position_step_title, position_step_rank,
+				position_step_status, position_step_isoptional, position_step_isdefault, 
+				position_step_isscheduled, is_interviewer_can_confirm, position_step_level, feedback_form_id,
+				 is_dMaker_sameAs_asgnTo,is_notify_to_candidate, step_id, applicant_feedback_form_id)
+				VALUES	(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	    </dbquery>
+	    <dbquery name="qPositionManager_UpdatePositionStep">
+	    	UPDATE tp_position_steps
+				SET position_step_title = ?, 
+				position_step_rank = ?, 
+				position_step_status = ?,
+				position_step_isoptional = ?, 
+				position_step_isdefault = ?, 
+				position_step_isscheduled = ?,
+				is_interviewer_can_confirm = ?,
+				position_step_level = ?,
+				feedback_form_id = ?,
+				is_dMaker_sameAs_asgnTo = ?,
+				is_notify_to_candidate = ?,
+				applicant_feedback_form_id = ?
+				WHERE position_step_id = ?
+	    </dbquery>
+	    <dbquery name="qPositionManager_DeletePositionStep">
+	    	UPDATE tp_position_steps
+				SET position_step_status = ?
+				WHERE position_step_id = ?
+	    </dbquery>
+	    <dbquery name="qPositionManager_DeletePositionStepByStepMasterId">
+	    	UPDATE tp_position_steps tps inner join tp_positions tp on tps.position_id = tp.position_id  
+	    	SET tps.position_step_status = ? 
+			WHERE tp.position_status = ? AND tps.step_id = ?
+	    </dbquery>
+	    <dbquery name="qPositionManager_GetPositionTemplatesForStep">
+	    	SELECT tp.position_id, position_step_rank 
+	    	FROM tp_position_steps tps, tp_positions tp 
+			WHERE tps.position_id = tp.position_id AND tp.position_status = ? AND tps.step_id = ?
+		</dbquery>
+	    <dbquery name="qPositionManager_GetNoOfCandidatesInProcessForStep">
+			  SELECT count(*) 
+			  FROM tp_applicants 
+			  WHERE applicant_step_id = ?
+			</dbquery>
+			<dbquery name="qPositionManager_ChangeStepRank">
+			  UPDATE tp_position_steps
+			  SET position_step_rank = ?
+			  WHERE position_step_id = ?
+			</dbquery>
+			<dbquery name="qPositionManager_UpdateStatusMessages">
+				UPDATE tp_position_step_status_messages
+				SET status_message = ?,
+				is_default = ?,
+				status_message_rank = ?
+				WHERE status_message_id = ?
+	    </dbquery>	
+	    <dbquery name="qPositionManager_InsertStatusMessages">
+				INSERT INTO tp_position_step_status_messages
+				(position_step_id, status_message, is_default, status_message_rank)
+				VALUES
+				(?, ?, ?, ?)
+	    </dbquery>	
+			 <dbquery name="qPositionManager_DeleteStatusMessages">
+				DELETE FROM tp_position_step_status_messages
+				WHERE position_step_id=?
+				AND status_message_id NOT IN (@@) 
+	    </dbquery>	
+	    <dbquery name="qPositionManager_AddOrUpdatePositionStepUsers">
+				REPLACE INTO tp_position_step_users 
+				(position_id, position_step_id, user_id, is_responsible_for_scheduling, is_authorized_to_move) 
+				VALUES 
+				(?, ?, ?, ?, ?) 
+			</dbquery>
+			<dbquery name="qPositionManager_GetPositionStepUsers">
+				Select tpsu.position_id, tpsu.position_step_id, group_concat(tpsu.user_id) as user_ids, group_concat(tu.user_fname,' ',tu.user_lname ) as user_names, tpsu.is_responsible_for_scheduling, tpsu.is_authorized_to_move
+				FROM tp_position_step_users tpsu 
+				LEFT JOIN tp_users tu ON (tu.user_id = tpsu.user_id)
+				WHERE tpsu.position_step_id=?
+				GROUP BY tpsu.is_responsible_for_scheduling, tpsu.is_authorized_to_move
+				ORDER BY tpsu.user_id
+			</dbquery>
+			<dbquery name="qPositionManager_DeletePositionStepUsers">
+				DELETE FROM tp_position_step_users
+				WHERE position_id = ? 
+				AND position_step_id = ? 
+				AND is_responsible_for_scheduling = ? 
+				AND is_authorized_to_move = ?
+				AND user_id not in (?)
+			</dbquery>			
+			<dbquery name="qPositionManager_GetNoOfResponseForFeedbackForm">
+				SELECT count(*) FROM tp_applicant_selection_process_traits taspt, tp_applicant_selection_process tasp
+				WHERE 
+				taspt.process_id = tasp.process_id
+				AND tasp.position_step_id_from=?
+				AND taspt.feedback_form_field_id IN 
+				(SELECT feedback_form_field_id FROM tp_feedback_form_fields WHERE feedback_form_id=?)
+			</dbquery>		
+			<dbquery name="qPositionManager_CheckDuplicateSteps">       			
+				SELECT COUNT(*) FROM tp_position_steps 
+				WHERE position_id = ? AND step_id = ? AND position_step_status = ?
+       		</dbquery>
+	    <!-- End: Position Hiring Process -->
+	    <!-- Start: Add New Position -->
+	    	<dbquery name="qPositionManager_AddNewPosition">
+				INSERT INTO tp_positions
+				(position_code, position_title, position_min_exp, position_max_exp,
+				position_no_of_openings, position_current_openings, position_date_expiry, 
+				position_date_created, position_created_by, position_note, dept_id, 
+				position_status, position_owner_id, position_requested_by, position_priority, 
+				sub_dept_id, sub_sub_dept_id, sub3_dept_id, sub4_dept_id, position_level, 
+				position_referal_fees,	requisition_approval_template_id, responsibilities, requirements,
+				grade_id, band_id, budget_item_id, type_of_vacancy, replacement_emp_code, position_type_ext_int, 
+				position_clone, notify_user_ids, approval_user_ids, division_id_ap, region_id_ap, location_id_ap, sf_position_code, job_function_id_ap, job_paygrade_id_ap, job_code_id_ap, country_id_ap, state_id_ap)
+				VALUES
+				(?, ?, ?, ?, ?, ?, ?, now(), ?, ?, ?, ?, ?,?, '1', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			</dbquery>	
+			<dbquery name="qPositionManager_AddNaukriPositionFields">
+				INSERT INTO tp_position_naukri_fields
+				(position_id ,contact_person_name,job_industry_code,job_function_code,job_role_code,job_keywords,
+				country,minimum_salary,	maximum_salary,benefits_description,display_salary,	desired_candidate_summary_text,
+				contact_person_email,apply_by_web_url,job_feed_response_email,salary_currency)
+				VALUES
+				(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?, ?, ?)
+			</dbquery>	
+			<dbquery name="qPositionManager_UpdateNaukriPositionFields">
+				update tp_position_naukri_fields
+				SET contact_person_name = ?,job_industry_code= ?,job_function_code= ?,job_role_code= ?,job_keywords= ?,
+				country= ?,minimum_salary= ?,	maximum_salary= ?,benefits_description= ?,display_salary= ?,	desired_candidate_summary_text= ?,
+				contact_person_email= ?,apply_by_web_url= ?,job_feed_response_email= ?,salary_currency= ?
+				where position_id = ?
+			</dbquery>	
+	    <!-- End: Add New Position -->
+	    	<dbquery name="qPositionManager_GetPosition">
+				select position_title, position_code
+				from tp_positions
+				where position_id=?
+			</dbquery>	
+			<dbquery name="qPositionManager_GetPositionNames">
+		    	SELECT GROUP_CONCAT(
+		    				CASE WHEN (SELECT application_property_value FROM tp_application_properties
+									WHERE application_property='show_position_code') = 1 
+								THEN TRIM(position_code)
+								ELSE TRIM(position_title) END 
+							    ORDER BY TRIM(position_title) SEPARATOR ', ') AS position_title
+				FROM   tp_positions
+				WHERE  position_id IN ( @@ )  
+			</dbquery>
+			<dbquery name="qPositionManager_GetDeptName">
+				select dept_name
+				from tp_departments
+				where dept_id=?
+			</dbquery>		
+		<!-- Start: Publish Position -->   
+		<dbquery name="qPositionManager_GetPositionVendors">			
+			select tst.source_type_id, tst.source_type, 
+			ts.source_id, ts.source_title,
+			case when (select count(*) 
+				from tp_position_vendors tpv
+				where tpv.position_id = ? and tpv.source_id = ts.source_id) &gt; 0 then '1' 
+			else '0' end as is_position_open_to_vendor
+			from tp_source_types tst 
+			left join tp_sources ts on (ts.source_type_id = tst.source_type_id)
+			where ts.source_status = ?
+			and ts.source_id IN (select USER_SOURCE_ID from tp_users where USER_ID IN (SELECT USER_ID FROM tp_user_roles WHERE ROLE_ID = ?) and USER_STATUS = ?)
+			order by tst.source_type, ts.source_title
+		</dbquery>
+		<dbquery name="qPositionManager_GetPositionRule">
+			select rule_id,rule_type,position_id,degree_id,branch_id,                                                                        
+	 		min_exp,max_exp,current_location
+	 		from tp_position_rules where position_id = ?  
+		</dbquery>
+		<dbquery name="qPositionManager_InsertPositionVendors">
+			insert into tp_position_vendors
+			(position_id, source_id)
+			values
+			(?, ?)
+		</dbquery>
+		<dbquery name="qPositionManager_InsertPositionRule">
+			insert into tp_position_rules
+			(rule_type,position_id, degree_id,branch_id,min_exp,max_exp,current_location)
+			values
+			(?,?,?,?,?,?,?)
+		</dbquery>
+		<dbquery name="qPositionManager_InsertdPositionRuleInstitutes">
+			insert into tp_position_rule_institutes
+			(rule_id,institute_id)
+			values (?,?)
+		</dbquery>
+		<dbquery name="qPositionManager_DeletePositionVendor">
+			delete from tp_position_vendors
+			where position_id=?
+		</dbquery>
+		<dbquery name="qPositionManager_DeletePositionRule">
+			delete from tp_position_rules
+			where position_id=?
+		</dbquery>
+		<dbquery name="qPositionManager_DeletePositionRuleInstitutes">
+			delete from tp_position_rule_institutes
+			where rule_id = ( select rule_id from tp_position_rules where position_id = ? )
+		</dbquery>
+		<dbquery name="qGetPositionRuleInstituteList">
+			select rule_id,institute_id from tp_position_rule_institutes
+			where rule_id = ?
+		</dbquery>
+		<!-- End: Publish Position -->
+
+		<dbquery name="qPositionManager_GetPositionIdForPositionCode">
+			select position_id	from tp_positions	where position_code=?
+		</dbquery>
+		<dbquery name="qPositionManager_GetUsersForPosition">
+			SELECT DISTINCT tu.user_id, tu.USER_EMAIL, 
+                     CONCAT(tu.USER_FNAME,' ', tu.USER_LNAME) AS userName
+                     FROM tp_position_step_users tpsu, tp_users tu, tp_user_roles tur
+                     WHERE tpsu.position_id= ?
+                     AND tpsu.user_id = tu.user_id
+                     AND tu.user_id = tur.user_id
+                     @@
+                     UNION 
+                     SELECT DISTINCT tu.user_id, tu.USER_EMAIL, 
+                     CONCAT(tu.USER_FNAME,' ', tu.USER_LNAME) AS userName FROM tp_positions tp, tp_users tu
+                     WHERE (tp.position_owner_id=tu.user_id ) AND tp.position_id = ?
+
+		</dbquery>
+		<dbquery name="qPositionManager_GetRecruiterForPosition">
+			SELECT DISTINCT tu.user_id, tu.USER_EMAIL, 
+			CONCAT(tu.USER_FNAME,' ', tu.USER_LNAME) AS userName
+			FROM tp_position_step_users tpsu, tp_users tu, tp_user_roles tur
+			WHERE tpsu.position_id= ?
+			AND tpsu.user_id = tu.user_id
+			AND tu.user_id = tur.user_id
+			AND tpsu.is_authorized_to_move=1
+			@@
+			
+		</dbquery>
+		<dbquery name="qPositionManager_GetUsersForRole">
+			SELECT DISTINCT tu.user_id, tu.USER_EMAIL, 
+			CONCAT(tu.USER_FNAME,' ', tu.USER_LNAME) AS userName
+			FROM  tp_users tu, tp_user_roles tur
+			WHERE 
+			
+			tu.user_id = tur.user_id
+			@@
+			
+		</dbquery>
+		<dbquery name="qPositionManager_GetRequisitionApprovalUsersForPosition">
+			SELECT tu.user_id, CONCAT(tu.user_fname, ' ', tu.user_lname) AS user_name
+			FROM tp_users tu JOIN tp_requisition_approval_steps_users trasu ON (tu.user_id = trasu.user_id)
+				JOIN tp_requisition_approval_steps tras ON (trasu.requisition_approval_step_id = tras.requisition_approval_step_id)
+				JOIN tp_requisition_approval_templates trat ON (tras.requisition_approval_template_id = trat.requisition_approval_template_id)
+				JOIN tp_positions tp ON (tp.requisition_approval_template_id = trat.requisition_approval_template_id)
+			WHERE tp.position_id = ?
+		</dbquery>
+		<!-- Start copy position steps -->
+		<dbquery name="qPositionManager_GetStepsForPosition">
+			SELECT position_step_id FROM tp_position_steps WHERE position_step_isdefault=?
+			AND position_step_status=?
+			AND position_id=?
+			ORDER BY position_step_rank
+		</dbquery>
+		<dbquery name="qPositionManager_GetStepDetails">
+			SELECT position_step_id, position_id,position_step_title,position_step_rank,
+			position_step_status,position_step_description,position_step_isoptional,
+			position_step_isdefault,position_step_isscheduled,is_interviewer_can_confirm,position_step_level, 
+			feedback_form_id, is_dMaker_sameAs_asgnTo,is_notify_to_candidate
+			FROM tp_position_steps WHERE position_step_id = ?
+		</dbquery>
+		<dbquery name="qPositionManager_CopyPositionStep">
+			INSERT INTO tp_position_steps (position_id, step_id, position_step_title,position_step_rank,
+			position_step_status,position_step_description,position_step_isoptional,
+			position_step_isdefault,position_step_isscheduled,is_interviewer_can_confirm,position_step_level, 
+			feedback_form_id, is_dMaker_sameAs_asgnTo)
+			SELECT ?, step_id, position_step_title,position_step_rank,
+			position_step_status,position_step_description,position_step_isoptional,
+			position_step_isdefault,position_step_isscheduled,is_interviewer_can_confirm,position_step_level, 
+			feedback_form_id, is_dMaker_sameAs_asgnTo
+			FROM tp_position_steps WHERE position_step_id=?
+		</dbquery>
+		<dbquery name="qPositionManager_CopyPositionStepUsers">
+			INSERT INTO tp_position_step_users 
+			(position_id,position_step_id,user_id,is_responsible_for_scheduling,is_authorized_to_move)
+			SELECT ?, ?, user_id,is_responsible_for_scheduling,is_authorized_to_move 
+			FROM tp_position_step_users WHERE position_step_id=?
+		</dbquery>
+		<dbquery name="qPositionManager_CopyPositionStepStatusMessages">
+			INSERT INTO tp_position_step_status_messages
+			(position_step_id, status_message, is_default, status_message_rank)
+			SELECT ?, status_message, is_default, status_message_rank 
+			FROM tp_position_step_status_messages WHERE position_step_id=?
+		</dbquery>
+		<!-- End copy position steps -->
+		<dbquery name="qPositionManager_GetRequisitionStatus">
+			SELECT 
+			tpos.position_status, tras.requisition_approval_step_name, traf.feedback_decision, traf.feedback_date
+			FROM tp_positions tpos , tp_requisition_approval_feedback traf
+			LEFT JOIN tp_requisition_approval_steps tras ON (tras.requisition_approval_step_id = traf.to_step_id)
+			WHERE traf.position_id = tpos.position_id
+			AND traf.position_id=?
+			ORDER BY traf.feedback_id desc
+			LIMIT 0,1
+		</dbquery>
+		<dbquery name="qPositionManager_GetNoOfCandidatesProcessed">
+			SELECT count(distinct applicant_id) FROM tp_applicant_selection_process WHERE position_id=?
+		</dbquery>
+		<dbquery name="qPositionManager_GetStepRank">
+			SELECT max(position_step_rank)+1 FROM tp_position_steps tps
+			JOIN tp_step_master tsm ON tps.step_id = tsm.step_id 
+			WHERE tps.position_id = ? AND tps.position_step_status = ?
+			AND tsm.step_rank &lt; (SELECT step_rank FROM tp_step_master 
+					WHERE step_id = ?) 
+		</dbquery>
+		<dbquery name="qPositionManager_GetPositionStepName">
+			SELECT position_step_title FROM tp_position_steps WHERE position_step_id=?
+		</dbquery>
+		<dbquery name="qPositionManager_UpdatePositionPriority">
+			UPDATE tp_positions SET position_priority=? WHERE position_id=?
+		</dbquery>		
+		<dbquery name="qPositionManager_UpdatePositionRule">
+			UPDATE tp_positions 
+			SET is_published_to_web_site=?,
+				website_publish_from_date=?,
+				website_publish_to_date=?  
+			WHERE position_id=?
+		</dbquery>		
+		<dbquery name="qPositionManager_GetpositionStatus">
+			SELECT position_status FROM tp_positions WHERE position_id=?
+		</dbquery>
+		<dbquery name="qPositionManager_GetSubDepartments">
+			SELECT dept_id ,dept_name,dept_externalCode FROM tp_departments WHERE dept_parent_id=? ORDER BY dept_name
+		</dbquery>
+		<dbquery name="qPositionManager_GetAllPositionsToPublishForWalkIn">
+			SELECT tp.position_id, tp.position_code, tp.position_title, tp.is_published_for_walk_in, 
+			GROUP_CONCAT(DISTINCT tl.location_name SEPARATOR ', ') AS location_name,
+			tp.is_published_for_emp_portal,tp.employee_apply_refer
+			FROM tp_positions tp 
+			LEFT JOIN tp_position_locations tpl ON (tp.position_id = tpl.position_id)
+			LEFT JOIN tp_location_ap tl ON (tpl.location_id = tl.location_id)
+			WHERE tp.position_status = ?
+			@@
+			GROUP BY position_id 
+			ORDER BY tp.position_title, tp.position_code
+		</dbquery>
+		<dbquery name="qPositionManager_GetAllPositionsToPublishForSocial">
+			SELECT tp.position_id, tp.position_code, tp.position_title, 
+				tss.social_name AS last_posted_on, tpsph.date_posted AS last_posted_date
+			FROM tp_positions tp 
+				LEFT JOIN tp_position_locations tpl ON (tp.position_id = tpl.position_id)
+				LEFT JOIN tp_position_social_posting_history tpsph ON (tp.position_id = tpsph.position_id 
+					AND tpsph.date_posted = (SELECT MAX(date_posted) FROM tp_position_social_posting_history tpsph1
+						WHERE tpsph1.position_id = tp.position_id) )
+				LEFT JOIN tp_social_settings tss ON (tpsph.social_id = tss.social_id)
+			WHERE tp.position_status = ?
+				@@
+			GROUP BY position_id 
+			ORDER BY tp.position_title, tp.position_code
+		</dbquery>
+		<dbquery name="qPositionManager_GetAllPositionsToPublishToWebsite">
+			SELECT tp.position_id, tp.position_code, tp.position_title, 
+			GROUP_CONCAT(DISTINCT tl.location_name SEPARATOR ', ') AS location_name,
+			tp.is_published_to_web_site
+			FROM tp_positions tp
+			LEFT JOIN tp_position_locations tpl ON (tp.position_id = tpl.position_id) 
+			LEFT JOIN tp_location_ap tl ON (tpl.location_id = tl.location_id)
+			WHERE tp.position_status = ?
+			@@
+			GROUP BY tp.position_id
+			ORDER BY tp.position_title, tp.position_code
+		</dbquery>
+		<dbquery name="qPositionManager_GetAllPositionsToPublishToNaukri">
+			SELECT tp.position_id, tp.position_code, tp.position_title, 
+			GROUP_CONCAT(DISTINCT tl.location_name SEPARATOR ', ') AS location_name,
+			tp.is_published_to_naukri
+			FROM tp_positions tp
+			LEFT JOIN tp_position_locations tpl ON (tp.position_id = tpl.position_id) 
+			LEFT JOIN tp_location_ap tl ON (tpl.location_id = tl.location_id)
+			WHERE tp.position_status = ?
+			@@
+			GROUP BY tp.position_id
+			ORDER BY tp.position_title, tp.position_code
+		</dbquery>
+		<dbquery name="qPositionManager_GetAllPositionsToPublishToVendorPortal">
+			select T.position_id ,T.position_code,T.position_title,T.location_name,
+ 			CASE WHEN
+			(select count(*) from tp_position_vendors tpv1 where tpv1.position_id = T.position_id )&gt; 0 then 1 
+			else 0
+			 end as is_published_to_vendors,T.vendors
+			from(SELECT tp.position_id, tp.position_code, tp.position_title, 
+			GROUP_CONCAT(DISTINCT tl.location_name SEPARATOR ', ') AS location_name,
+			CASE WHEN (select count(*) 
+			from tp_position_vendors tpv
+			where tpv.position_id = tp.position_id) &gt; 0 then 1 else 0 end as is_published_to_vendors,
+			group_concat(DISTINCT ts.source_title
+                       ORDER BY source_title separator ', ') as vendors
+			FROM tp_positions tp 
+			LEFT JOIN tp_position_locations tpl ON (tp.position_id = tpl.position_id)
+			LEFT JOIN tp_location_ap tl ON (tpl.location_id = tl.location_id)
+			LEFT JOIN tp_position_vendors tpv ON (tpv.position_id = tp.position_id)
+			LEFT JOIN tp_sources ts ON (ts.source_id = tpv.source_id)
+			WHERE tp.position_status = ?
+			@@
+			GROUP BY tp.position_id
+			ORDER BY tp.position_title, tp.position_code) as T
+		</dbquery>
+		<dbquery name="qPositionManager_GetPositionsToPublishToSite">
+			SELECT tp.position_id, tp.position_code, tp.position_title,
+			tp.is_published_to_web_site,
+			GROUP_CONCAT(DISTINCT tl.location_name SEPARATOR ', ') AS location_name
+			FROM tp_positions tp 
+			LEFT JOIN tp_position_locations tpl ON (tp.position_id = tpl.position_id)
+			LEFT JOIN tp_location_ap tl ON (tpl.location_id = tl.location_id)
+			WHERE tp.position_status = ? AND tp.is_published_to_web_site = ?
+			GROUP BY tp.position_id
+			ORDER BY tp.position_title, tp.position_code
+		</dbquery>
+		<dbquery name="qPositionManager_GetAllPositionsToSite">
+			SELECT tp.position_id, tp.position_code, tp.position_title, 
+			tp.is_published_for_walk_in, 
+			GROUP_CONCAT(DISTINCT tl.location_name SEPARATOR ', ') AS location_name,
+			tp.is_published_for_emp_portal
+			FROM tp_positions tp 
+			LEFT JOIN tp_position_locations tpl ON (tp.position_id = tpl.position_id)
+			LEFT JOIN tp_location_ap tl ON (tpl.location_id = tl.location_id)
+			WHERE tp.position_status = ?
+			@@
+			GROUP BY tp.position_id
+			ORDER BY tp.position_title, tp.position_code
+		</dbquery>
+		<dbquery name="qPositionManager_UpdatePositionPublishedForWalkInField">
+			update tp_positions
+			SET @@
+			where position_id in (@@)
+		</dbquery>
+		<dbquery name="qPositionManager_GetPublishedForWalkInPositionsForALocation">
+			select tp.position_id, tp.position_title
+			from tp_positions tp
+			LEFT JOIN tp_position_locations tpl on (tpl.position_id = tp.position_id)
+			where tp.is_published_for_walk_in = ?
+			and tpl.location_id = ?
+			and tp.position_status = ?
+			order by tp.position_title
+		</dbquery>	
+		<dbquery name="qPositionManager_GetNumberOfPositionsCreatedInCurrentFinancialYear">
+	    		SELECT tp.position_id
+				FROM tp_positions tp
+				ORDER BY tp.position_id DESC
+				LIMIT 1
+	    </dbquery>
+	    <dbquery name="qPositionManager_GetSearchablePositionFields">
+			SELECT tpos.position_id, tpos.position_title,tpos.position_min_exp, 
+				tpos.position_max_exp, 
+				GROUP_CONCAT(DISTINCT tl.location_name SEPARATOR ', ') AS location_name,
+				(SELECT GROUP_CONCAT(DISTINCT tsk.skill SEPARATOR ', ') FROM
+				tp_position_skills tpsk LEFT JOIN tp_skills tsk ON (tpsk.skill_id = tsk.skill_id)
+				WHERE tpsk.position_id = tpos.position_id
+				AND tpsk.skill_type = ?
+				) AS primary_skills ,
+				(SELECT GROUP_CONCAT(DISTINCT tsk.skill SEPARATOR ', ') FROM
+				tp_position_skills tpsk LEFT JOIN tp_skills tsk ON (tpsk.skill_id = tsk.skill_id)
+				WHERE tpsk.position_id = tpos.position_id
+				AND tpsk.skill_type = ?
+				) AS secondary_skills,	
+				GROUP_CONCAT(DISTINCT tpb.branch_id) AS branch_id, 
+				GROUP_CONCAT(DISTINCT tpd.degree_id) AS degree_id
+			FROM tp_positions tpos 
+				LEFT JOIN tp_position_skills tsk ON (tpos.position_id=tsk.position_id)
+				LEFT JOIN tp_position_locations tpl ON (tpos.position_id = tpl.position_id)
+				LEFT JOIN tp_location_ap tl ON (tpl.location_id = tl.location_id)
+				LEFT JOIN tp_position_branches tpb ON (tpb.position_id=tpos.position_id)
+				LEFT JOIN tp_position_degrees tpd ON (tpd.position_id=tpos.position_id)
+				WHERE tpos.position_id=?
+			GROUP BY tpos.position_id
+		</dbquery>
+	    <dbquery name="qPositionManager_GetPositionDepartment">
+	    	SELECT td.dept_name FROM tp_positions tp, tp_departments td
+			WHERE tp.dept_id=td.dept_id AND position_id=?
+	    </dbquery>
+	    <dbquery name="qPositionManager_InsertPositionBranch">
+	    	INSERT INTO tp_position_branches (position_id,branch_id) VALUES (?,?)
+	    </dbquery>
+	     <dbquery name="qPositionManager_InsertPositionLocations">
+	    	INSERT INTO tp_position_locations (position_id,location_id) VALUES (?,?)
+	    </dbquery>
+	    <dbquery name="qPositionManager_InsertPositionDegree">
+	    	INSERT INTO tp_position_degrees (position_id,degree_id) VALUES (?,?)
+	    </dbquery>
+	    <dbquery name="qPositionManager_DeletePositionBranches">
+	    	DELETE FROM tp_position_branches WHERE position_id=?
+	    </dbquery>
+	    <dbquery name="qPositionManager_DeletePositionLocations">
+	    	DELETE FROM tp_position_locations WHERE position_id=?
+	    </dbquery>
+	    <dbquery name="qPositionManager_DeletePositionDegrees">
+	   	 	DELETE FROM tp_position_degrees WHERE position_id=?
+	    </dbquery>
+	    <dbquery name="qPositionManager_GetPositionFilters">
+			SELECT 
+				@@
+			FROM 
+				tp_positions tp
+				LEFT JOIN tp_users tupo ON (tp.position_owner_id = tupo.user_id )
+				LEFT JOIN tp_departments td ON (td.dept_id = tp.dept_id)
+				LEFT JOIN tp_departments tds ON (tds.dept_id = tp.sub_dept_id)
+				LEFT JOIN tp_departments tdss ON (tdss.dept_id = tp.sub_sub_dept_id)
+				LEFT JOIN tp_departments tdsss ON (tdsss.dept_id = tp.sub3_dept_id)
+				LEFT JOIN tp_departments tdssss ON (tdssss.dept_id = tp.sub4_dept_id)
+				LEFT JOIN tp_position_locations tpl ON (tpl.position_id = tp.position_id)
+				LEFT JOIN tp_location_ap tl ON (tpl.location_id = tl.location_id)			
+				LEFT JOIN tp_position_step_users tpsu ON (tpsu.position_id = tp.position_id) 
+				LEFT JOIN tp_users tu ON ( tpsu.user_id = tu.user_id )
+				LEFT JOIN tp_position_skills tpsk ON (tpsk.position_id = tp.position_id AND tpsk.skill_type=?)
+				LEFT JOIN tp_skills tsk ON (tsk.skill_id=tpsk.skill_id)	
+				@@	
+			WHERE 1
+				@@
+		</dbquery>
+	     <dbquery name="qPositionManager_GetRequisitionApprovalTemplateId">
+	   	 	select requisition_approval_template_id
+			FROM tp_positions
+			WHERE position_id=?
+	    </dbquery>
+		<dbquery name="qPositionManager_updatePublishDates">
+			update tp_positions set 
+				vendor_publish_from_date=?,
+				vendor_publish_to_date=? 
+			where 
+				position_id=?
+	    </dbquery>
+		<dbquery name="qPositionManager_UpdatePositionPublishDetails">
+			update tp_positions set 
+				@@
+			where 
+				position_id=?
+	    </dbquery>
+		<dbquery name="qPositionManager_GetPositionDetailsForaPosition">
+			SELECT * FROM(
+			SELECT tp.position_id, tp.position_code, tp.position_title,
+			CONCAT(tupo.user_fname,' ',tupo.user_lname) AS position_owner_name,
+			tp.position_level, tp.position_referal_fees,
+			tp.responsibilities,tp.requirements,
+			tp.position_note,
+			tp.position_date_created,
+			GROUP_CONCAT(DISTINCT tl.location_name SEPARATOR ', ') AS location,
+				tp.position_no_of_openings,
+			(select td.dept_name from tp_departments td where td.dept_id=tp.dept_id) as dept_name,
+			(SELECT td.dept_name FROM tp_departments td WHERE tp.sub_dept_id=td.dept_id) AS sub_dept_name,
+			(SELECT td.dept_name FROM tp_departments td WHERE tp.sub_sub_dept_id=td.dept_id) AS sub_sub_dept_name,
+			(SELECT td.dept_name FROM tp_departments td WHERE tp.sub3_dept_id=td.dept_id) AS sub3_dept_name,
+			(SELECT td.dept_name FROM tp_departments td WHERE tp.sub4_dept_id=td.dept_id) AS sub4_dept_name,
+			tp.position_date_expiry, 
+			(select group_concat(tpsk.skill) from tp_skills tpsk
+				where tpsk.skill_id in (select tppsk.skill_id
+						from tp_position_skills tppsk
+						where tppsk.position_id=tp.position_id 
+						and tppsk.skill_type=?)) as primary_skills,
+			(select group_concat(tpsk.skill) from tp_skills tpsk
+				where tpsk.skill_id in (select tppsk.skill_id
+						from tp_position_skills tppsk
+						where tppsk.position_id=tp.position_id 
+						and tppsk.skill_type=?)) as secondary_skills,
+			concat(case when ceil(tp.position_min_exp)=floor(tp.position_min_exp) 
+			then round(tp.position_min_exp, 0) 
+			else format(tp.position_min_exp, 1) 
+			end, ' to ', 
+			case when ceil(tp.position_max_exp)=floor(tp.position_max_exp) 
+			then round(tp.position_max_exp, 0) 
+			else format(tp.position_max_exp, 1) 
+			end, ' yrs') as experience,
+			GROUP_CONCAT(DISTINCT tdgr.degree_title SEPARATOR ', ') AS education, 
+			GROUP_CONCAT(DISTINCT tbr.branch_name SEPARATOR ', ') AS branch,
+			CONCAT(tur.user_fname,' ',tur.user_lname) AS requested_by,
+			CONCAT(tua.user_fname,' ',tua.user_lname) AS approved_by,
+			tbg.grade_name, tbb.band_name,
+			(SELECT tbi.budget_item_name FROM tp_budget_items tbi WHERE tp.budget_item_id = tbi.budget_item_id) AS budget_item_name
+			from tp_positions tp 
+			LEFT JOIN tp_position_locations tpl ON (tp.position_id = tpl.position_id)
+			LEFT JOIN tp_location_ap tl ON (tpl.location_id = tl.location_id)
+			LEFT JOIN tp_position_branches tpb ON (tpb.position_id=tp.position_id)
+			LEFT JOIN tp_position_degrees tpd ON (tpd.position_id=tp.position_id)
+			LEFT JOIN tp_degrees tdgr ON (tdgr.degree_id=tpd.degree_id)
+			LEFT JOIN tp_branches tbr ON (tpb.branch_id = tbr.branch_id)
+			LEFT JOIN tp_users tur ON (tp.position_requested_by=tur.user_id)
+			LEFT JOIN tp_users tupo ON (tp.position_owner_id=tupo.user_id)
+			LEFT JOIN (SELECT traf.by_user_id, traf.position_id 
+				FROM tp_requisition_approval_feedback traf
+				ORDER BY feedback_id DESC
+				) AS traf ON (tp.position_id=traf.position_id)
+			LEFT JOIN tp_users tua ON (traf.by_user_id=tua.user_id)
+			LEFT JOIN tp_budget_grades tbg ON (tbg.grade_id = tp.grade_id)
+			LEFT JOIN tp_budget_bands tbb ON (tbb.band_id = tp.band_id)
+			WHERE tp.position_id = ? 
+			GROUP BY position_id
+			) as tp
+			ORDER BY tp.position_title, tp.position_code
+		</dbquery>
+		<dbquery name="qPositionManager_PositionSummaryDetails">
+				SELECT tp.position_id, tp.position_title, tp.position_date_created, tp.position_code, 
+				CONCAT(tu.user_fname, ' ', tu.user_lname) AS name,
+				CONCAT(tupo.user_fname, ' ', tupo.user_lname) AS  position_owner_name,
+				tp.position_no_of_openings, tp.position_date_expiry, 
+				tp.position_note, tp.responsibilities,
+				(SELECT td.dept_name FROM tp_departments td WHERE tp.dept_id=td.dept_id) AS dept_name,
+				(SELECT td.dept_name FROM tp_departments td WHERE tp.sub_dept_id=td.dept_id) AS sub_dept_name,
+				(SELECT td.dept_name FROM tp_departments td WHERE tp.sub_sub_dept_id=td.dept_id) AS sub_sub_dept_name,
+				tp.position_level, tp.position_referal_fees,
+				GROUP_CONCAT(DISTINCT tl.location_name SEPARATOR ', ') AS location_name,
+				(SELECT tbi.budget_item_name FROM tp_budget_items tbi WHERE tp.budget_item_id = tbi.budget_item_id) AS budget_item_name,
+				tbg.grade_name, tbb.band_name, 
+				tp.position_status,
+				(tp.position_no_of_openings - (select count(*) 
+							from tp_applicant_joining_history ta 
+							where ta.position_id = tp.position_id )
+				) as position_current_openings
+				FROM tp_positions tp
+				LEFT JOIN tp_position_locations tpl ON (tpl.position_id = tp.position_id)
+				LEFT JOIN tp_location_ap tl ON (tpl.location_id = tl.location_id)
+				LEFT JOIN tp_budget_grades tbg ON (tbg.grade_id = tp.grade_id)
+				LEFT JOIN tp_budget_bands tbb ON (tbb.band_id = tp.band_id)
+				LEFT JOIN tp_users tupo ON (tp.position_owner_id = tupo.user_id) ,
+				tp_users tu
+				WHERE  
+				tu.user_id = tp.position_requested_by
+				AND tp.position_id=?
+				GROUP BY tp.position_id
+	    </dbquery>
+	    <dbquery name="qPositionManager_getDistinctPositionSteps">
+			SELECT position_step_title, position_step_level  FROM
+			(SELECT position_step_title, position_step_level 
+				FROM ( 
+				SELECT position_step_title, position_step_level, position_step_rank
+				FROM (
+					SELECT * FROM 
+					(SELECT tps.position_step_title, tps.position_step_level, tps.position_step_rank
+						FROM tp_position_steps tps,tp_positions tp
+						WHERE tps.position_id=tp.position_id
+						AND tps.position_step_title!=?
+						AND position_step_status=?
+						@@ 
+						ORDER BY tps.position_step_level, tps.position_step_rank
+					) AS tps
+					UNION
+					SELECT ?,?,?
+					UNION
+					SELECT ?,?,?
+					UNION
+					SELECT ?,?,?
+					UNION
+					SELECT ?,?,?
+					UNION
+					SELECT ?,?,?
+					UNION
+					SELECT ?,?,?
+					UNION
+					SELECT ?,?,?
+				) AS tps
+				group by tps.position_step_title
+			) AS tps
+			ORDER BY position_step_level, position_step_rank
+		) AS tps
+	    </dbquery>
+	    
+	    <dbquery name="qPositionManager_DeletePositionBU">
+	    	DELETE FROM tp_position_business_unit WHERE position_id=?
+	    </dbquery>
+	    <dbquery name="qPositionManager_InsertPositionBU">
+	    	INSERT INTO tp_position_business_unit (position_id,bu_id) VALUES (?,?)
+	    </dbquery>
+	    
+	    
+	    <dbquery name="qPositionManager_DeletePositionCostCenter">
+	    	DELETE FROM tp_position_cost_center WHERE position_id=?
+	    </dbquery>
+	     <dbquery name="qPositionManager_InsertPositionCostCenter">
+	    	INSERT INTO tp_position_cost_center (position_id,cost_center_id) VALUES (?,?)
+	    </dbquery>	    
+	    <dbquery name="qPositionManager_IsPositionCodeExist">
+			SELECT position_id,position_code FROM tp_positions WHERE position_code=?
+		</dbquery>
+		<dbquery name="qPositionManager_UpdatePositionPostingHistory">
+		    INSERT INTO tp_position_social_posting_history (position_id, source_id, social_id, date_posted)
+			VALUES (?, ?, ?, now()) ON DUPLICATE KEY UPDATE date_posted = now();
+		</dbquery>
+		<dbquery name="qPositionManager_GetAllSourcesAndLastPostedDatesForPosition">
+		    SELECT source_id, MAX(date_posted) as last_posted_date 
+		    FROM tp_position_social_posting_history 
+			WHERE position_id = ?
+			GROUP BY position_id, source_id
+		</dbquery>
+		<dbquery name="qPositionManager_UpdatePositionNaukriStatus">
+	    	UPDATE tp_positions set is_published_to_naukri = ? WHERE position_id=?
+	    </dbquery>
+	    <dbquery name="qPositionManager_GetAllCandidatesAppliedForPosition">
+	        SELECT taprm.applicant_id,ta.applicant_name,ts.source_title,taprm.applied_date FROM tp_applicant_applied_position_resume_mapping taprm
+			LEFT JOIN tp_applicants ta ON taprm.applicant_id = ta.applicant_id
+			LEFT JOIN tp_sources ts ON ta.source_id = ts.source_id
+			WHERE taprm.position_id=? AND taprm.applied_status = '1' limit 100
+	    </dbquery>
+	    <dbquery name="qPositionManager_GetHasCandidatesAppliedForPosition">
+	        SELECT taprm.applicant_id,ta.applicant_name,ts.source_title,taprm.applied_date FROM tp_applicant_applied_position_resume_mapping taprm
+			LEFT JOIN tp_applicants ta ON taprm.applicant_id = ta.applicant_id
+			LEFT JOIN tp_sources ts ON ta.source_id = ts.source_id
+			WHERE taprm.position_id=? AND taprm.applicant_id = ?
+	    </dbquery>
+	    <dbquery name="qPositionManager_InsertPositionDropInfo">
+	    	INSERT INTO tp_positions_dropped_info (position_id, drop_reason, drop_comment, dropped_by, date_dropped) 
+	    	VALUES (?,?,?,?,now())
+	    </dbquery>
+	    <dbquery name="qPositionManager_GetPositionDropReasonAndComment">
+		    SELECT drop_reason, drop_comment FROM tp_positions_dropped_info WHERE position_id = ? ORDER BY date_dropped DESC
+		</dbquery>
+	    <dbquery name="qPositionManager_GetPostionIdForCustomField">
+		    SELECT cast(tp.position_id as char) FROM tp_positions tp
+			LEFT JOIN tp_custom_field_values_position tcfp ON tp.position_id = tcfp.entity_id
+			LEFT JOIN tp_custom_fields tc ON tc.custom_field_id = tcfp.custom_field_id
+			WHERE tc.custom_field_display_name = ? AND tcfp.string_value = ? 
+		</dbquery>
+	</dbqueries>
+	<dataqueries>
+		<!-- Start: Position Home -->
+		<dataquery name="dPositionManager_GetAllCandidatesInProcessForPosition" dbquery="qPositionManager_GetAllCandidatesInProcessForPosition" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name= "applicantId" column="applicant_id" type ="STRING" />
+	    	<attribute name= "positionId" column="applicant_position_id" type ="STRING" />
+	    	<attribute name= "stepId" column="applicant_step_id" type ="STRING" />	 
+		</dataquery>		
+		<!-- End: Position Home -->
+	    <!-- Start: Position Description -->
+	    <dataquery name="dPositionManager_ViewPositionDescription" dbquery="qPositionManager_ViewPositionDescription" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "positionId" column="position_id" type ="STRING" />
+	    	<attribute name= "positionTitle" column="position_title" type ="STRING" />
+	    	<attribute name= "positionCode" column="position_code" type ="STRING" />	    	
+	    	<attribute name= "requestedByUserName" column="name" type ="STRING" />
+	    	<attribute name= "positionOwnerName" column="position_owner_name" type ="STRING" />
+	    	<attribute name= "noOfOpenings" column="position_no_of_openings" type ="STRING" />
+	    	<attribute name= "hireByDate" column="position_date_expiry" type ="STRING" />
+	    	<attribute name= "note" column="position_note" type ="STRING" />
+	    	<attribute name= "responsibilities" column="responsibilities" type ="STRING" />
+	    	<attribute name= "positionCreateDate" column="position_date_created" type ="STRING" />
+	    	<attribute name= "departmentName" column="dept_name" type ="STRING" />
+	    	<attribute name= "subDepartmentName" column="sub_dept_name" type ="STRING" />
+	    	<attribute name= "subSubDepartmentName" column="sub_sub_dept_name" type ="STRING" />
+	    	<attribute name= "sub3DepartmentName" column="sub3_dept_name" type ="STRING" />
+	    	<attribute name= "sub4DepartmentName" column="sub4_dept_name" type ="STRING" />
+	    	<attribute name= "positionLevel" column="position_level" type ="STRING" />	    	
+	    	<attribute name= "positionReferalFees" column="position_referal_fees" type ="STRING" />	    	
+	    	<attribute name= "locationName" column="location_name" type ="STRING" />	    	
+	    	<attribute name= "budgetItemName" column="budget_item_name" type ="STRING" />	  	    
+	    	<attribute name= "gradeName" column="grade_name" type ="STRING" />
+	    	<attribute name= "bandName" column="band_name" type ="STRING" />
+	    	<attribute name= "buName" column="bu_name" type ="STRING" />
+	    	<attribute name= "costCenterName" column="cost_center_name" type ="STRING" />
+	    	<attribute name= "typeOfVacancy" column="type_of_vacancy" type ="STRING" />
+	    	<attribute name= "replacementEmpCode" column="replacement_emp_code" type ="STRING" />
+	    	<attribute name= "positionTypeExtInt" column="position_type_ext_int" type ="STRING" />
+	    	<attribute name= "positionClone" column="position_clone" type ="STRING" />	 
+	    	<attribute name= "positionStatus" column="position_status" type ="STRING" />
+	    	<attribute name= "employeeApplyRefer" column="employee_apply_refer" type ="STRING" />   	
+	    	<attribute name= "contactPersonName" column="contact_person_name" type ="STRING" />	    	
+	    	<attribute name= "jobIndustryCode" column="job_industry_code" type ="STRING" />	    	
+	    	<attribute name= "jobFunctionCode" column="job_function_code" type ="STRING" />	  	    
+	    	<attribute name= "jobRoleCode" column="job_role_code" type ="STRING" />
+	    	<attribute name= "jobKeywords" column="job_keywords" type ="STRING" />
+	    	<attribute name= "country" column="country" type ="STRING" />
+	    	<attribute name= "minimumSalary" column="minimum_salary" type ="STRING" />
+	    	<attribute name= "maximumSalary" column="maximum_salary" type ="STRING" />
+	    	<attribute name= "benefitsDescription" column="benefits_description" type ="STRING" />
+	    	<attribute name= "displaySalary" column="display_salary" type ="STRING" />
+	    	<attribute name= "desiredCandidateSummaryText" column="desired_candidate_summary_text" type ="STRING" />	 
+	    	<attribute name= "contactPersonEmail" column="contact_person_email" type ="STRING" />
+	    	<attribute name= "applyByWebURL" column="apply_by_web_url" type ="STRING" />   	
+	    	<attribute name= "jobFeedResponseEmail" column="job_feed_response_email" type ="STRING" />
+	    	<attribute name= "salaryCurrency" column="salary_currency" type ="STRING" />
+	    	<attribute name="employeeCanEmail" column="employee_can_email" type="STRING"></attribute>
+	    	<attribute name= "positionPublishedDate"  column="position_date_published" type="STRING" />   
+	    	
+	    	<attribute name= "pLocation" column="pLocation" type ="STRING" />
+	    	<attribute name= "pLocationCode" column="pLocationCode" type ="STRING" />
+	    	<attribute name= "pSubLocation" column="pSubLocation" type ="STRING" />
+	    	<attribute name= "pSubLocationCode" column="pSubLocationCode" type ="STRING" />      	
+	    	<attribute name= "pSubSubLocation" column="pSubSubLocation" type ="STRING" />
+	    	<attribute name= "pSubSubLocationCode" column="pSubSubLocationCode" type ="STRING" />  
+	    	<attribute name= "positionCodeForAP" column="positionCodeForAP" type ="STRING" /> 
+	    	
+	    	<attribute name= "pJobFunction" column="pJobFunction" type ="STRING" />
+	    	<attribute name= "pJobFunctionCode" column="pJobFunctionCode" type ="STRING" />     	
+	    	<attribute name= "pJobPayGrade" column="pJobPayGrade" type ="STRING" />
+	    	<attribute name= "pJobPayGradeCode" column="pJobPayGradeCode" type ="STRING" />  
+	    	<attribute name= "pJobCode" column="pJobCode" type ="STRING" /> 
+	    	<attribute name= "pJobName" column="pJobName" type ="STRING" />
+	    	
+	    	<attribute name= "departmentExternalCode" column="dept_externalCode" type ="STRING" />
+	    	<attribute name= "subDepartmentExternalCode" column="sub_dept_externalCode" type ="STRING" />
+	    	<attribute name= "subSubDepartmentExternalCode" column="sub_sub_dept_externalCode" type ="STRING" /> 
+	    	
+	    	<attribute name= "countryName" column="countryName" type ="STRING" /> 
+	    	<attribute name= "stateName" column="stateName" type ="STRING" /> 
+	    </dataquery> 
+	    <dataquery name="dPositionManager_EditPositionDescription" dbquery="qPositionManager_EditPositionDescription" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "positionId" column="position_id" type ="STRING" />
+	    	<attribute name= "positionTitle" column="position_title" type ="STRING" />
+	    	<attribute name= "positionCode" column="position_code" type ="STRING" />
+	    	<attribute name= "positionOwnerId" column="position_owner_id" type ="STRING" />	
+	    	<attribute name= "requestedByUserId" column="position_requested_by" type ="STRING" />
+	    	<attribute name= "departmentId" column="dept_id" type ="STRING" />
+	    	<attribute name= "subDepartmentId" column="sub_dept_id" type ="STRING" />
+	    	<attribute name= "subSubDepartmentId" column="sub_sub_dept_id" type ="STRING" />
+	    	<attribute name= "sub3DepartmentId" column="sub3_dept_id" type ="STRING" />
+	    	<attribute name= "sub4DepartmentId" column="sub4_dept_id" type ="STRING" />
+	    	<attribute name= "noOfOpenings" column="position_no_of_openings" type ="STRING" />
+	    	<attribute name= "hireByDate" column="position_date_expiry" type ="STRING" />
+	    	<attribute name= "positionLevel" column="position_level" type ="STRING" />	    	
+	    	<attribute name= "note" column="position_note" type ="STRING" />
+	    	<attribute name= "responsibilities" column="responsibilities" type ="STRING" />
+	    	<attribute name= "positionReferalFees" column="position_referal_fees" type ="STRING" />
+	    	<attribute name= "locationId" column="location_id" type ="STRING" />
+	    	<attribute name= "budgetItemId" column="budget_item_id" type ="STRING" />	    	
+	    	<attribute name= "gradeId" column="grade_id" type ="STRING" />	    	
+	    	<attribute name= "bandId" column="band_id" type ="STRING" />
+	    	<attribute name= "buId" column="bu_id" type ="STRING" />	    	
+	    	<attribute name= "costCenterId" column="cost_center_id" type ="STRING" />
+	    	<attribute name= "typeOfVacancy" column="type_of_vacancy" type ="STRING" />
+	    	<attribute name= "replacementEmpCode" column="replacement_emp_code" type ="STRING" />
+	    	<attribute name= "positionTypeExtInt" column="position_type_ext_int" type ="STRING" />
+	    	<attribute name= "positionClone" column="position_clone" type ="STRING" />	 
+	    	<attribute name= "notifyUserIds" column="notify_user_ids" type ="STRING" />
+	    	<attribute name= "approvalUserIds" column="approval_user_ids" type ="STRING" />      	
+	    	<attribute name= "contactPersonName" column="contact_person_name" type ="STRING" />	    	
+	    	<attribute name= "jobIndustryCode" column="job_industry_code" type ="STRING" />	    	
+	    	<attribute name= "jobFunctionCode" column="job_function_code" type ="STRING" />	  	    
+	    	<attribute name= "jobRoleCode" column="job_role_code" type ="STRING" />
+	    	<attribute name= "jobKeywords" column="job_keywords" type ="STRING" />
+	    	<attribute name= "country" column="country" type ="STRING" />
+	    	<attribute name= "minimumSalary" column="minimum_salary" type ="STRING" />
+	    	<attribute name= "maximumSalary" column="maximum_salary" type ="STRING" />
+	    	<attribute name= "benefitsDescription" column="benefits_description" type ="STRING" />
+	    	<attribute name= "displaySalary" column="display_salary" type ="STRING" />
+	    	<attribute name= "desiredCandidateSummaryText" column="desired_candidate_summary_text" type ="STRING" />	 
+	    	<attribute name= "contactPersonEmail" column="contact_person_email" type ="STRING" />
+	    	<attribute name= "applyByWebURL" column="apply_by_web_url" type ="STRING" />   	
+	    	<attribute name= "jobFeedResponseEmail" column="job_feed_response_email" type ="STRING" />
+	    	<attribute name= "salaryCurrency" column="salary_currency" type ="STRING" />     	
+	    	<attribute name= "isNaukriPublished" column="is_published_to_naukri" type ="STRING" /> 
+	    	
+	    	<attribute name= "pLocationId" column="division_id_ap" type ="STRING" />
+	    	<attribute name= "pSubLocationId" column="region_id_ap" type ="STRING" />     	
+	    	<attribute name= "pSubSubLocationId" column="location_id_ap" type ="STRING" /> 
+	    	<attribute name= "positionCodeForAP" column="sf_position_code" type ="STRING" />
+	    	 
+	    	<attribute name= "pJobFunctionId" column="job_function_id_ap" type ="STRING" />
+	    	<attribute name= "pJobPayGradeId" column="job_paygrade_id_ap" type ="STRING" />     	
+	    	<attribute name= "pJobCodeId" column="job_code_id_ap" type ="STRING" /> 
+	    	
+	    	<attribute name= "countryId" column="country_id_ap" type ="STRING" />     	
+	    	<attribute name= "stateId" column="state_id_ap" type ="STRING" /> 
+	    </dataquery>
+	    <dataquery name="dPositionManager_UpdatePositionDescription" dbquery="qPositionManager_UpdatePositionDescription" />
+	    <dataquery name="dPositionManager_UpdatePositionNaukriDescription" dbquery="qPositionManager_UpdatePositionNaukriDescription" />
+	    <!-- End: Position Description -->
+	    <!-- Start: Position Requirements -->
+	    <dataquery name="dPositionManager_ViewPositionRequirements" dbquery="qPositionManager_ViewPositionRequirements" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "positionId" column="position_id" type ="STRING" />
+	    	<attribute name= "degreeTitle" column="degree_title" type ="STRING" />
+	    	<attribute name= "branchName" column="branch_name" type ="STRING" />	    	
+	    	<attribute name= "minimumExperience" column="position_min_exp" type ="STRING" />
+	    	<attribute name= "maximumExperience" column="position_max_exp" type ="STRING" />
+	    	<attribute name= "primarySkills" column="position_primary_skills" type ="STRING" />
+	    	<attribute name= "secondarySkills" column="position_secondary_skills" type ="STRING" />
+	    	<attribute name= "requirements" column="requirements" type ="STRING" />
+	    </dataquery> 
+	    <dataquery name="dPositionManager_EditPositionRequirements" dbquery="qPositionManager_EditPositionRequirements" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "positionId" column="position_id" type ="STRING" />
+	    	<attribute name= "degreeId" column="degree_id" type ="STRING" />
+	    	<attribute name= "branchId" column="branch_id" type ="STRING" />	    	
+	    	<attribute name= "minimumExperience" column="position_min_exp" type ="STRING" />
+	    	<attribute name= "maximumExperience" column="position_max_exp" type ="STRING" />
+	    	<attribute name= "requirements" column="requirements" type ="STRING" />
+	    </dataquery> 
+	    <dataquery name="dPositionManager_UpdatePositionRequirements" dbquery="qPositionManager_UpdatePositionRequirements" />
+	    <dataquery name="dPositionManager_DeletePositionSkills" dbquery="qPositionManager_DeletePositionSkills" />
+	    <dataquery name="dPositionManager_InsertPositionSkill" dbquery="qPositionManager_InsertPositionSkill" />
+	    <dataquery name="dPositionManager_GetSkillsMasterList" dbquery="qPositionManager_GetSkillsMasterList" object="com.talentPool.masters.dataobject.SkillData">
+	    	<attribute name= "skillId" column="skill_id" type ="STRING" />
+	    	<attribute name= "skillName" column="skill" type ="STRING" />	    	
+	    </dataquery>
+	    <dataquery name="dPositionManager_GetSkillsForPosition" dbquery="qPositionManager_GetSkillsForPosition" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "skills" column="skills" type ="STRING" />    	
+	    </dataquery>		        
+	    <!-- End: Position Requirements -->
+	    <!-- Start: Position Hiring Process -->
+	    <dataquery name="dPositionManager_ViewPositionHiringProcess" dbquery="qPositionManager_ViewPositionHiringProcess" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "stepTitle" column="position_step_title" type ="STRING" />
+	    	<attribute name= "isOptional" column="position_step_isoptional" type ="STRING" />	
+	    	<attribute name= "isDefault" column="position_step_isdefault" type ="STRING" />
+	    	<attribute name= "assignedToUsers" column="assigned_to_users" type ="STRING" />
+	    	<attribute name= "scheduledByUsers" column="scheduled_by_users" type ="STRING" />
+	    	<attribute name= "decisionMakerUsers" column="decision_maker_users" type ="STRING" />
+	    </dataquery>
+	    <dataquery name="dPositionManager_EditPositionHiringProcess" dbquery="qPositionManager_EditPositionHiringProcess" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "stepId" column="position_step_id" type ="STRING" />
+	    	<attribute name= "stepMasterId" column="step_id" type ="STRING" />
+	    	<attribute name= "stepTitle" column="position_step_title" type ="STRING" />
+	    	<attribute name= "feedbackFormId" column="feedback_form_id" type ="STRING" />
+	    	<attribute name= "stepRank" column="position_step_rank" type ="STRING" />	 	    	   	
+	    	<attribute name= "isDefault" column="position_step_isdefault" type ="STRING" />	
+	    	<attribute name= "isScheduled" column="position_step_isscheduled" type ="STRING" />
+	    	<attribute name= "assignedTo" column="assigned_to" type ="STRING" />
+	    	<attribute name= "scheduledBy" column="scheduled_by" type ="STRING" />
+	    	<attribute name= "decisionMaker" column="decision_makers" type ="STRING" />
+	    	<attribute name= "assignedToUsers" column="assigned_to_users" type ="STRING" />
+	    	<attribute name= "scheduledByUsers" column="scheduled_by_users" type ="STRING" />
+	    	<attribute name= "decisionMakerUsers" column="decision_maker_users" type ="STRING" />	    	
+	    	<attribute name= "isOptional" column="position_step_isoptional" type ="STRING" />	    	
+	    	<attribute name= "stepLevel" column="position_step_level" type ="STRING" />
+	    	<attribute name= "isInterviewerCanConfirm" column="is_interviewer_can_confirm" type ="STRING" />	
+	    	<attribute name= "isDecisionMakerSameAsAssignedTo" column="is_dMaker_sameAs_asgnTo" type ="STRING" />
+	    	<attribute name= "isNotifyToCandidate" column="is_notify_to_candidate" type ="STRING" />	
+            <attribute name= "applicantFeedbackFormId" column="applicant_feedback_form_id" type ="STRING" />	    	    	    	
+	    </dataquery>
+	    <dataquery name="dPositionManager_AlterPositionStepRank" dbquery="qPositionManager_AlterPositionStepRank" />
+	    <dataquery name="dPositionManager_2_AlterPositionStepRank" dbquery="qPositionManager_2_AlterPositionStepRank" />
+	    <dataquery name="dPositionManager_EditPositionStepFollowupMessages" dbquery="qPositionManager_EditPositionStepFollowupMessages" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "messageId" column="status_message_id" type ="STRING" />
+	    	<attribute name= "message" column="status_message" type ="STRING" />	    	
+	    	<attribute name= "isDefault" column="is_default" type ="STRING" />	    	
+	    </dataquery>
+		<dataquery name="dPositionManager_GetActiveUsers" dbquery="qPositionManager_GetActiveUsers" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "userId" column="user_id" type ="STRING" />
+	    	<attribute name= "userName" column="user_name" type ="STRING" />
+	    	<attribute name= "roleId" column="role_id" type ="STRING" />
+	    	<attribute name= "roleTitle" column="role_title" type ="STRING" />	  	
+	    </dataquery>	
+	     <dataquery name="dPositionManager_GetActiveRecruiters" dbquery="qPositionManager_GetActiveRecruiters" object="com.talentPool.positions.dataobject.UserData">
+	    	<attribute name= "userId" column="user_id" type ="STRING" />
+	    	<attribute name= "userName" column="user_name" type ="STRING" />  
+	    	<attribute name= "userEmail" column="user_email" type ="STRING" />	  	
+	    </dataquery>
+	    <dataquery name="dPositionManager_GetActiveHRManagerUsers" dbquery="qPositionManager_GetActiveHRManagerUsers" object="com.talentPool.positions.dataobject.UserData">
+	    	<attribute name= "userId" column="user_id" type ="STRING" />
+	    	<attribute name= "userName" column="user_name" type ="STRING" />  
+	    	<attribute name= "userEmail" column="user_email" type ="STRING" />	  	
+	    </dataquery>	        
+	    <dataquery name="dPositionManager_AddPositionStep" dbquery="qPositionManager_AddPositionStep" />
+	    <dataquery name="dPositionManager_UpdatePositionStep" dbquery="qPositionManager_UpdatePositionStep" />
+	    <dataquery name="dPositionManager_DeletePositionStep" dbquery="qPositionManager_DeletePositionStep" />
+	    <dataquery name="dPositionManager_DeletePositionStepByStepMasterId" dbquery="qPositionManager_DeletePositionStepByStepMasterId" />
+	    <dataquery name="dPositionManager_GetPositionTemplatesForStep" dbquery="qPositionManager_GetPositionTemplatesForStep" object="com.talentPool.positions.dataobject.StepData">
+	    	<attribute name= "positionId" column="position_id" type ="INT" />
+	    	<attribute name= "stepRank" column="position_step_rank" type ="STRING" />
+	    </dataquery>	    
+	    <dataquery name="dPositionManager_GetNoOfCandidatesInProcessForStep" dbquery="qPositionManager_GetNoOfCandidatesInProcessForStep" />	    	    
+	    <dataquery name="dPositionManager_ChangeStepRank" dbquery="qPositionManager_ChangeStepRank" />	    
+	    <dataquery name="dPositionManager_UpdateStatusMessages" dbquery="qPositionManager_UpdateStatusMessages" />	    
+	    <dataquery name="dPositionManager_InsertStatusMessages" dbquery="qPositionManager_InsertStatusMessages" />	    
+	    <dataquery name="dPositionManager_DeleteStatusMessages" dbquery="qPositionManager_DeleteStatusMessages" />	    
+	    <dataquery name="dPositionManager_AddOrUpdatePositionStepUsers" dbquery="qPositionManager_AddOrUpdatePositionStepUsers" />
+	    <dataquery name="dPositionManager_GetPositionStepUsers" dbquery="qPositionManager_GetPositionStepUsers"  object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "positionId" column="position_id" type ="STRING" /> 	
+	    	<attribute name= "positionStepId" column="position_step_id" type ="STRING" /> 
+	    	<attribute name= "userIds" column="user_ids" type ="STRING" /> 		
+	    	<attribute name= "userNames" column="user_names" type ="STRING" /> 	
+	    	<attribute name= "isResponsibleForScheduling" column="is_responsible_for_scheduling" type ="STRING" /> 	
+	    	<attribute name= "isAuthorizedToMove" column="is_authorized_to_move" type ="STRING" /> 	
+	    </dataquery>
+		<dataquery name="dPositionManager_DeletePositionStepUsers" dbquery="qPositionManager_DeletePositionStepUsers" />	
+		
+	    <dataquery name="dPositionManager_GetNoOfResponseForFeedbackForm" dbquery="qPositionManager_GetNoOfResponseForFeedbackForm" />
+	    
+	    <dataquery name="dPositionManager_CheckDuplicateSteps" dbquery="qPositionManager_CheckDuplicateSteps"/>
+	    <!-- End: Position Hiring Process -->
+	    <!-- Start: Add New Position -->
+	    <dataquery name="dPositionManager_AddNewPosition" dbquery="qPositionManager_AddNewPosition" />
+	    <dataquery name="dPositionManager_AddNaukriPositionFields" dbquery="qPositionManager_AddNaukriPositionFields" />
+	     <dataquery name="dPositionManager_UpdateNaukriPositionFields" dbquery="qPositionManager_UpdateNaukriPositionFields" />
+	    <!-- End: Add New Position -->
+	    <dataquery name="dPositionManager_GetPosition" dbquery="qPositionManager_GetPosition" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "positionName" column="position_title" type ="STRING" /> 	
+	    	<attribute name= "positionCode" column="position_code" type ="STRING" /> 	
+	    </dataquery>	
+	    <dataquery name="dPositionManager_GetPositionNames" dbquery="qPositionManager_GetPositionNames" />
+	    <dataquery name="dPositionManager_GetDeptName" dbquery="qPositionManager_GetDeptName" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "deptName" column="dept_name" type ="STRING" /> 	
+	    </dataquery>	
+	    <!-- Start: Publish Position -->   
+	    <dataquery name="dPositionManager_GetPositionVendors" dbquery="qPositionManager_GetPositionVendors" object="com.talentPool.positions.dataobject.PositionVendorData">
+	    	<attribute name= "sourceTypeId" column="source_type_id" type ="STRING" /> 	
+	    	<attribute name= "sourceType" column="source_type" type ="STRING" /> 	
+	    	<attribute name= "sourceId" column="source_id" type ="STRING" /> 	
+	    	<attribute name= "sourceTitle" column="source_title" type ="STRING" /> 	
+	    	<attribute name= "positionOpenToVendor" column="is_position_open_to_vendor" type ="STRING" /> 	
+	    </dataquery>
+	    <dataquery name="dPositionManager_GetPositionRule" dbquery="qPositionManager_GetPositionRule" object="com.talentPool.positions.dataobject.PositionRuleData">
+	    	<attribute name= "ruleId" column="rule_id" type ="STRING" /> 	
+	    	<attribute name= "ruleType" column="rule_type" type ="STRING" /> 	
+	    	<attribute name= "positionId" column="position_id" type ="STRING" /> 	
+	    	<attribute name= "degreeId" column="degree_id" type ="STRING" /> 	
+	    	<attribute name= "branchId" column="branch_id" type ="STRING" />
+	    	<attribute name= "minExp" column="min_exp" type ="STRING" />
+	    	<attribute name= "maxExp" column="max_exp" type ="STRING" />
+	    	<attribute name= "currentLocation" column="current_location" type ="STRING" /> 	
+	    </dataquery>
+	    
+	    <dataquery name="dPositionManager_InsertPositionVendors" dbquery="qPositionManager_InsertPositionVendors"/>
+	    <dataquery name="dPositionManager_InsertPositionRule" dbquery="qPositionManager_InsertPositionRule"/>
+	    <dataquery name="dPositionManager_InsertdPositionRuleInstitutes" dbquery="qPositionManager_InsertdPositionRuleInstitutes"/>
+	    <dataquery name="dPositionManager_DeletePositionVendor" dbquery="qPositionManager_DeletePositionVendor"/>
+	    <dataquery name="dPositionManager_DeletePositionRule" dbquery="qPositionManager_DeletePositionRule"/>
+	    <dataquery name="dPositionManager_DeletePositionRuleInstitutes" dbquery="qPositionManager_DeletePositionRuleInstitutes"/>
+	    <dataquery name="dGetPositionRuleInstituteList" dbquery="qGetPositionRuleInstituteList" object="com.talentPool.positions.dataobject.RuleInstituteData">
+	    	<attribute name="ruleId"  column="rule_id" type="INT" />
+         	<attribute name="instituteId"  column="institute_id" type="INT" />
+	    </dataquery>
+	    <!-- End: Publish Position -->
+	    <dataquery name="dPositionManager_GetPositionIdForPositionCode" dbquery="qPositionManager_GetPositionIdForPositionCode"/>
+	    
+	    <dataquery name="dPositionManager_GetUsersForPosition" dbquery="qPositionManager_GetUsersForPosition" object="com.talentPool.positions.dataobject.UserData">
+	    	<attribute name= "userId" column="user_id" type ="STRING" />
+	    	<attribute name= "userEmail" column="USER_EMAIL" type ="STRING" />
+	    	<attribute name= "userName" column="userName" type ="STRING" />
+	    </dataquery>
+	     <dataquery name="dPositionManager_GetRecruiterForPosition" dbquery="qPositionManager_GetRecruiterForPosition" object="com.talentPool.positions.dataobject.UserData">
+	    	<attribute name= "userId" column="user_id" type ="STRING" />
+	    	<attribute name= "userEmail" column="USER_EMAIL" type ="STRING" />
+	    	<attribute name= "userName" column="userName" type ="STRING" />
+	    </dataquery>
+	    
+	      <dataquery name="dPositionManager_GetUsersForRole" dbquery="qPositionManager_GetUsersForRole" object="com.talentPool.positions.dataobject.UserData">
+	    	<attribute name= "userId" column="user_id" type ="STRING" />
+	    	<attribute name= "userEmail" column="USER_EMAIL" type ="STRING" />
+	    	<attribute name= "userName" column="userName" type ="STRING" />
+	    </dataquery>
+	    <dataquery name="dPositionManager_GetRequisitionApprovalUsersForPosition" dbquery="qPositionManager_GetRequisitionApprovalUsersForPosition" object="com.talentPool.positions.dataobject.UserData">
+	    	<attribute name= "userId" column="user_id" type ="STRING" />
+	    	<attribute name= "userName" column="user_name" type ="STRING" />
+	    </dataquery>
+	    <!-- Start copy position steps -->
+	    <dataquery name="dPositionManager_GetStepsForPosition" dbquery="qPositionManager_GetStepsForPosition" object="com.talentPool.positions.dataobject.StepData">
+	    	<attribute name= "stepId" column="position_step_id" type ="INT" /> 
+	    </dataquery>
+	    <dataquery name="dPositionManager_GetStepDetails" dbquery="qPositionManager_GetStepDetails" object="com.talentPool.positions.dataobject.StepData">
+	    	<attribute name= "stepId" column="position_step_id" type ="INT" />
+	    	<attribute name= "positionId" column="position_id" type ="INT" />
+	    	<attribute name= "stepTitle" column="position_step_title" type ="STRING" />
+	    	<attribute name= "stepRank" column="position_step_rank" type ="STRING" />
+	    	<attribute name= "stepStaus" column="position_step_status" type ="INT" />
+	    	<attribute name= "stepDescription" column="position_step_description" type ="STRING" />
+	    	<attribute name= "stepOptional" column="position_step_isoptional" type ="INT" />
+	    	<attribute name= "defaultStep" column="position_step_isdefault" type ="STRING" />
+	    	<attribute name= "stepScheduled" column="position_step_isscheduled" type ="INT" />
+    		<attribute name= "stepInterviewerConfirm" column="is_interviewer_can_confirm" type ="INT" />
+    		<attribute name= "stepLevel" column="position_step_level" type ="STRING" />
+    		<attribute name= "feedbackFormId" column="feedback_form_id" type ="STRING" />
+    		<attribute name= "stepMakerSameAsAsgnTo" column="is_dMaker_sameAs_asgnTo" type ="INT" />
+    		<attribute name= "stepNotifyToCandidate" column="is_notify_to_candidate" type ="INT" />		
+	    </dataquery>
+	    <dataquery name="dPositionManager_CopyPositionStep" dbquery="qPositionManager_CopyPositionStep"/>
+	    <dataquery name="dPositionManager_CopyPositionStepUsers" dbquery="qPositionManager_CopyPositionStepUsers"/>
+	    <dataquery name="dPositionManager_CopyPositionStepStatusMessages" dbquery="qPositionManager_CopyPositionStepStatusMessages"/>
+	    <!-- End copy position steps -->
+	    <dataquery name="dPositionManager_GetRequisitionStatus" dbquery="qPositionManager_GetRequisitionStatus" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "positionStatus" column="position_status" type ="STRING" />
+	    	<attribute name= "requisitionStepName" column="requisition_approval_step_name" type ="STRING" />
+	    	<attribute name= "feedbackDecision" column="feedback_decision" type ="STRING" />
+	    	<attribute name= "feedbackDate" column="feedback_date" type ="STRING" />
+		</dataquery>
+		<dataquery name="dPositionManager_GetNoOfCandidatesProcessed" dbquery="qPositionManager_GetNoOfCandidatesProcessed"/>
+		<dataquery name="dPositionManager_GetStepRank" dbquery="qPositionManager_GetStepRank"/>
+		<dataquery name="dPositionManager_GetPositionStepName" dbquery="qPositionManager_GetPositionStepName"/>
+		<dataquery name="dPositionManager_UpdatePositionPriority" dbquery="qPositionManager_UpdatePositionPriority"/>
+		<dataquery name="dPositionManager_UpdatePositionRule" dbquery="qPositionManager_UpdatePositionRule"/>
+		<dataquery name="dPositionManager_GetpositionStatus" dbquery="qPositionManager_GetpositionStatus" />
+		<dataquery name="dPositionManager_GetSubDepartments" dbquery="qPositionManager_GetSubDepartments" object="com.talentPool.masters.dataobject.DepartmentData">
+	       <attribute name="itemId"  column="dept_id" type="INT" />
+	       <attribute name="itemName"  column="dept_name" type="STRING" />
+	       <attribute name="itemExternalCode"  column="dept_externalCode" type="STRING" />
+	    </dataquery>
+	    <dataquery name="dPositionManager_GetAllPositionsToPublishForWalkIn" dbquery="qPositionManager_GetAllPositionsToPublishForWalkIn" object="com.talentPool.positions.dataobject.PositionData">
+	       <attribute name="positionId"  column="position_id" type="INT" />
+	       <attribute name="positionReferenceCode"  column="position_code" type="STRING" />
+	       <attribute name="positionTitle"  column="position_title" type="STRING" />
+	       <attribute name="publishedForWalkIn"  column="is_published_for_walk_in" type="STRING" />
+	       <attribute name="publishedEmployeePortal"  column="is_published_for_emp_portal" type="STRING" />
+	       <attribute name="locationName"  column="location_name" type="STRING" />
+	       <attribute name="employeeApplyRefer"  column="employee_apply_refer" type="STRING" />	       
+	    </dataquery>
+	    <dataquery name="dPositionManager_GetAllPositionsToPublishToWebsite" dbquery="qPositionManager_GetAllPositionsToPublishToWebsite" object="com.talentPool.positions.dataobject.PositionData">
+	       <attribute name="positionId"  column="position_id" type="INT" />
+	       <attribute name="positionReferenceCode"  column="position_code" type="STRING" />
+	       <attribute name="positionTitle"  column="position_title" type="STRING" />
+	       <attribute name="publishToSite"  column="is_published_to_web_site" type="STRING" />
+	       <attribute name="locationName"  column="location_name" type="STRING" />	       
+	    </dataquery>	    
+	    <dataquery name="dPositionManager_GetAllPositionsToPublishToNaukri" dbquery="qPositionManager_GetAllPositionsToPublishToNaukri" object="com.talentPool.positions.dataobject.PositionData">
+	       <attribute name="positionId"  column="position_id" type="INT" />
+	       <attribute name="positionReferenceCode"  column="position_code" type="STRING" />
+	       <attribute name="positionTitle"  column="position_title" type="STRING" />
+	       <attribute name="publishToSite"  column="is_published_to_naukri" type="STRING" />
+	       <attribute name="locationName"  column="location_name" type="STRING" />	       
+	    </dataquery>	 
+	    <dataquery name="dPositionManager_GetAllPositionsToPublishForSocial" dbquery="qPositionManager_GetAllPositionsToPublishForSocial" object="com.talentPool.positions.dataobject.PositionData">
+	       <attribute name="positionId"  column="position_id" type="INT" />
+	       <attribute name="positionReferenceCode"  column="position_code" type="STRING" />
+	       <attribute name="positionTitle"  column="position_title" type="STRING" />
+	       <attribute name="lastPostedSocialMediaType"  column="last_posted_on" type="STRING" />
+	       <attribute name="lastPostedSocialMediaDate"  column="last_posted_date" type="STRING" />	       
+	    </dataquery>
+	    <dataquery name="dPositionManager_GetAllPositionsToPublishToVendorPortal" dbquery="qPositionManager_GetAllPositionsToPublishToVendorPortal" object="com.talentPool.positions.dataobject.PositionData">
+	       <attribute name="positionId"  column="position_id" type="INT" />
+	       <attribute name="positionReferenceCode"  column="position_code" type="STRING" />
+	       <attribute name="positionTitle"  column="position_title" type="STRING" />
+	       <attribute name="locationName"  column="location_name" type="STRING" />	       
+	       <attribute name="publishedToVendors"  column="is_published_to_vendors" type="STRING" />
+	       <attribute name="positionVendors"  column="vendors" type="STRING" />
+		 </dataquery>	    
+	    <dataquery name="dPositionManager_GetPositionsToPublishToSite" dbquery="qPositionManager_GetPositionsToPublishToSite" object="com.talentPool.positions.dataobject.PositionData">
+	       <attribute name="positionId"  column="position_id" type="INT" />
+	       <attribute name="positionReferenceCode"  column="position_code" type="STRING" />
+	       <attribute name="positionTitle"  column="position_title" type="STRING" />
+	       <attribute name="locationName"  column="location_name" type="STRING" />
+	       <attribute name="publishToSite"  column="is_published_to_web_site" type="STRING" />
+	    </dataquery>	
+	    <dataquery name="dPositionManager_UpdatePositionPublishedForWalkInField" dbquery="qPositionManager_UpdatePositionPublishedForWalkInField" />		    
+	    <dataquery name="dPositionManager_GetPublishedForWalkInPositionsForALocation" dbquery="qPositionManager_GetPublishedForWalkInPositionsForALocation" object="com.talentPool.positions.dataobject.PositionData">
+	       <attribute name="positionId"  column="position_id" type="INT" />
+	       <attribute name="positionTitle"  column="position_title" type="STRING" />
+	    </dataquery>	    
+	    <dataquery name="dPositionManager_GetNumberOfPositionsCreatedInCurrentFinancialYear" dbquery="qPositionManager_GetNumberOfPositionsCreatedInCurrentFinancialYear" />
+	    <dataquery name="dPositionManager_GetSearchablePositionFields" dbquery="qPositionManager_GetSearchablePositionFields" object="com.talentPool.common.db.SimpleDataObject">
+	   		<attribute name= "positionId" column="position_id" type ="STRING" />
+	   		<attribute name= "positionTitle" column="position_title" type ="STRING" />
+	    	<attribute name= "minimumExperience" column="position_min_exp" type ="STRING" />
+		   	<attribute name= "maximumExperience" column="position_max_exp" type ="STRING" /> 
+		   	<attribute name= "currentLocation" column="location_name" type ="STRING" /> 
+	  		<attribute name= "primarySkills" column="primary_skills" type ="STRING" />
+	  		<attribute name= "secondarySkills" column="secondary_skills" type ="STRING" />
+	  		<attribute name= "degreeId" column="degree_id" type ="STRING" />
+	  		<attribute name= "branchId" column="branch_id" type ="STRING" />
+   		</dataquery>
+	    <dataquery name="dPositionManager_GetPositionDepartment" dbquery="qPositionManager_GetPositionDepartment"/>
+	    <dataquery name="dPositionManager_InsertPositionBranch" dbquery="qPositionManager_InsertPositionBranch"/>
+	    <dataquery name="dPositionManager_InsertPositionLocations" dbquery="qPositionManager_InsertPositionLocations"/>
+	    <dataquery name="dPositionManager_InsertPositionDegree" dbquery="qPositionManager_InsertPositionDegree"/>
+	    <dataquery name="dPositionManager_DeletePositionBranches" dbquery="qPositionManager_DeletePositionBranches"/>
+	    <dataquery name="dPositionManager_DeletePositionLocations" dbquery="qPositionManager_DeletePositionLocations"/>
+	    <dataquery name="dPositionManager_DeletePositionDegrees" dbquery="qPositionManager_DeletePositionDegrees"/>
+	    <dataquery name="dPositionManager_GetPositionFilters" dbquery="qPositionManager_GetPositionFilters" object="com.talentPool.common.db.SimpleDataObject">
+	        <attribute name="filterId" column="filter_id" type ="STRING" />
+	        <attribute name="filterShortName" column="filter_short_name" type ="STRING" />
+	        <attribute name="filterFullName" column="filter_full_name" type ="STRING" />
+		</dataquery>	    
+	    <dataquery name="dPositionManager_GetRequisitionApprovalTemplateId" dbquery="qPositionManager_GetRequisitionApprovalTemplateId" object="com.talentPool.positions.dataobject.PositionData">
+	  	    <attribute name="requisitionApprovalTemplateId" column="requisition_approval_template_id" type="INT"/>
+	  	</dataquery> 
+		<dataquery name="dPositionManager_updatePublishDates" dbquery="qPositionManager_updatePublishDates"/>
+		<dataquery name="dPositionManager_UpdatePositionPublishDetails" dbquery="qPositionManager_UpdatePositionPublishDetails"/>
+		<dataquery name="dPositionManager_GetPositionDetailsForaPosition" dbquery="qPositionManager_GetPositionDetailsForaPosition" object="com.talentPool.positions.dataobject.PositionData">
+	       	<attribute name= "positionId" column="position_id" type ="STRING" /> 	
+	    	<attribute name= "positionTitle" column="position_title" type ="STRING" />
+	    	<attribute name= "positionReferenceCode" column="position_code" type ="STRING" />
+	    	<attribute name= "positionOwnerName" column="position_owner_name" type ="STRING" />
+	    	<attribute name= "locationName"  column="location" type="STRING" />
+	    	<attribute name= "positionCreationDate"  column="position_date_created" type="String" />
+	    	<attribute name= "noOfPositions"  column="position_no_of_openings" type="STRING" />
+	    	<attribute name= "departmentName"  column="dept_name" type="STRING" />
+	    	<attribute name= "subDeptName"  column="sub_dept_name" type="STRING" />
+	    	<attribute name= "groupName"  column="sub_sub_dept_name" type="STRING" />
+	    	<attribute name= "sub3DeptName"  column="sub3_dept_name" type="STRING" />
+	    	<attribute name= "sub4DeptName"  column="sub4_dept_name" type="STRING" />
+	    	<attribute name= "positionLevel"  column="position_level" type="STRING" />
+	    	<attribute name= "referalFees"  column="position_referal_fees" type="STRING" />
+	    	<attribute name= "responsibilities"  column="responsibilities" type="STRING" />
+	    	<attribute name= "requirements"  column="requirements" type="STRING" />
+	    	<attribute name= "positionExpiryDate"  column="position_date_expiry" type="STRING" />
+	    	<attribute name= "primarySkillsAsString"  column="primary_skills" type="STRING" />
+	    	<attribute name= "secondarySkillsAsString"  column="secondary_skills" type="STRING" />
+	    	<attribute name= "experience"  column="experience" type="STRING" />
+	    	<attribute name= "education"  column="education" type="STRING" />
+	    	<attribute name= "branchName"  column="branch" type="STRING" />
+	    	<attribute name= "positionNote"  column="position_note" type="STRING" />
+			<attribute name= "requestedBy"  column="requested_by" type="STRING" />
+			<attribute name= "approvedBy"  column="approved_by" type="STRING" />
+			<attribute name= "gradeName"  column="grade_name" type="STRING" />
+			<attribute name= "bandName"  column="band_name" type="STRING" />
+			<attribute name= "budgetItemName"  column="budget_item_name" type="STRING" />
+		</dataquery>
+		<dataquery name="dPositionManager_PositionSummaryDetails" dbquery="qPositionManager_PositionSummaryDetails" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "positionId" column="position_id" type ="STRING" />
+	    	<attribute name= "positionTitle" column="position_title" type ="STRING" />
+	    	<attribute name= "positionCode" column="position_code" type ="STRING" />	    	
+	    	<attribute name= "positionOwnerName" column="position_owner_name" type ="STRING" />
+	    	<attribute name= "requestedByUserName" column="name" type ="STRING" />
+			<attribute name= "positionStatus" column="position_status" type="STRING"/>
+			<attribute name= "currentNoOfOpenings" column="position_current_openings" type ="INT" />
+	    	<attribute name= "noOfOpenings" column="position_no_of_openings" type ="STRING" />
+	    	<attribute name= "hireByDate" column="position_date_expiry" type ="STRING" />
+	    	<attribute name= "note" column="position_note" type ="STRING" />
+	    	<attribute name= "responsibilities" column="responsibilities" type ="STRING" />
+	    	<attribute name= "positionCreateDate" column="position_date_created" type ="STRING" />
+	    	<attribute name= "departmentName" column="dept_name" type ="STRING" />
+	    	<attribute name= "subDepartmentName" column="sub_dept_name" type ="STRING" />
+	    	<attribute name= "subSubDepartmentName" column="sub_sub_dept_name" type ="STRING" />
+	    	<attribute name= "positionLevel" column="position_level" type ="STRING" />	    	
+	    	<attribute name= "positionReferalFees" column="position_referal_fees" type ="STRING" />	    	
+	    	<attribute name= "locationName" column="location_name" type ="STRING" />	    	
+	    	<attribute name= "budgetItemName" column="budget_item_name" type ="STRING" />	  	    
+	    	<attribute name= "gradeName" column="grade_name" type ="STRING" />	  	
+	    	<attribute name= "bandName" column="band_name" type ="STRING" />	  		
+	    </dataquery> 
+	   <dataquery name="dPositionManager_getDistinctPositionSteps" dbquery="qPositionManager_getDistinctPositionSteps" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "positionStepTitle" column="position_step_title" type ="STRING" />
+	    	<attribute name= "positionStepLevel" column="position_step_level" type ="STRING" />
+	    </dataquery>
+	    
+	    <dataquery name="dPositionManager_DeletePositionBU" dbquery="qPositionManager_DeletePositionBU"/>
+	    <dataquery name="dPositionManager_InsertPositionBU" dbquery="qPositionManager_InsertPositionBU"/>
+	     
+	    <dataquery name="dPositionManager_DeletePositionCostCenter" dbquery="qPositionManager_DeletePositionCostCenter"/>
+	    <dataquery name="dPositionManager_InsertPositionCostCenter" dbquery="qPositionManager_InsertPositionCostCenter"/>
+	    
+	    <dataquery name="dPositionManager_IsPositionCodeExist" dbquery="qPositionManager_IsPositionCodeExist" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "positionId" column="position_id" type ="STRING" />
+	    	<attribute name= "positionCode" column="position_code" type ="STRING" />
+	    </dataquery>
+	    <dataquery name="dPositionManager_UpdatePositionPostingHistory" dbquery="qPositionManager_UpdatePositionPostingHistory"/>
+	    <dataquery name="dPositionManager_GetAllSourcesAndLastPostedDatesForPosition" dbquery="qPositionManager_GetAllSourcesAndLastPostedDatesForPosition" object="com.talentPool.common.db.SimpleDataObject">
+	        <attribute name="sourceId" column="source_id" type="STRING"/>
+	        <attribute name="lastPostedDate" column="last_posted_date" type="STRING"/>
+	    </dataquery>
+	    <dataquery name="dPositionManager_UpdatePositionNaukriStatus" dbquery="qPositionManager_UpdatePositionNaukriStatus"/>
+	    <dataquery name="dPositionManager_GetAllCandidatesAppliedForPosition" dbquery="qPositionManager_GetAllCandidatesAppliedForPosition" object="com.talentPool.selectionProcess.dataobject.SelectionProcessData">
+	        <attribute name="applicantId" column="applicant_id" type="STRING"/>
+	        <attribute name="applicantName" column="applicant_name" type="STRING"/>
+	        <attribute name="applicantSourceTitle" column="source_title" type="STRING"/>
+	        <attribute name="appliedDate" column="applied_date" type="STRING"/>
+	    </dataquery>
+	    <dataquery name="dPositionManager_GetHasCandidatesAppliedForPosition" dbquery="qPositionManager_GetHasCandidatesAppliedForPosition" object="com.talentPool.selectionProcess.dataobject.SelectionProcessData">
+	        <attribute name="applicantId" column="applicant_id" type="STRING"/>
+	        <attribute name="applicantName" column="applicant_name" type="STRING"/>
+	        <attribute name="applicantSourceTitle" column="source_title" type="STRING"/>
+	        <attribute name="appliedDate" column="applied_date" type="STRING"/>
+	    </dataquery>
+	    <dataquery name="dPositionManager_InsertPositionDropInfo" dbquery="qPositionManager_InsertPositionDropInfo"/>
+	    <dataquery name="dPositionManager_GetPositionDropReasonAndComment" dbquery="qPositionManager_GetPositionDropReasonAndComment" object="com.talentPool.common.db.SimpleDataObject">
+	        <attribute name="dropReason" column="drop_reason" type="STRING"/>
+	        <attribute name="dropComment" column="drop_comment" type="STRING"/>
+	    </dataquery>
+	    <dataquery name="dPositionManager_GetPostionIdForCustomField" dbquery="qPositionManager_GetPostionIdForCustomField"/>
+	</dataqueries>   
+</dbmap>

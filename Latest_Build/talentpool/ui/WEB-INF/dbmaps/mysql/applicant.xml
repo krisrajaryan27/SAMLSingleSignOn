@@ -1,0 +1,651 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+   <dbqueries>
+   		<!-- Start : delete Applicant -->
+       <dbquery name="qApplicantManager_DeleteOutbounds">
+			delete from tp_outbound where entity_type = ?	and entity_id in (@@)
+       </dbquery>
+       <dbquery name="qApplicantManager_DeleteCommunications">
+			delete from tp_communications 	where applicant_id in (@@)
+       </dbquery>
+       <dbquery name="qApplicantManager_DeleteMessagesTo">
+			delete from tp_messages_to
+			where message_id in (select message_id from tp_messages where applicant_id in (@@))
+       </dbquery>
+       <dbquery name="qApplicantManager_DeleteMessages">
+			delete from tp_messages where applicant_id in (@@)
+       </dbquery>
+       <dbquery name="qApplicantManager_DeleteAppointmentAttendees">
+			delete from tp_appointment_attendees
+			where appointment_id in (select appointment_id from tp_appointments where applicant_id in (@@))
+       </dbquery>
+       <dbquery name="qApplicantManager_DeleteAppointments">
+			delete from tp_appointments where applicant_id in (@@)
+       </dbquery>
+       <dbquery name="qApplicantManager_DeleteAppointmentNotifications">
+			delete from tp_appointments_notifications where applicant_id in (@@)
+       </dbquery>
+       <dbquery name="qApplicantManager_DeleteApplicantStatusMessages">
+			delete from tp_applicant_status_messages where applicant_id in (@@)
+       </dbquery>
+       <dbquery name="qApplicantManager_DeleteApplicantSkills">
+			delete from tp_applicant_skills where applicant_id in (@@)
+       </dbquery>
+       <dbquery name="qApplicantManager_DeleteApplicantSelectionProcessTraits">
+			delete from tp_applicant_selection_process_traits
+			where process_id in (select process_id from tp_applicant_selection_process where applicant_id in (@@))
+       </dbquery>
+       <dbquery name="qApplicantManager_DeleteApplicantSelectionProcess">
+			delete from tp_applicant_selection_process where applicant_id in (@@)
+       </dbquery>
+       <dbquery name="qApplicantManager_GetApplicantEmailAttachments">
+			SELECT attachment_id, attachment_file_path, attachment_original_file_name,
+			attachment_content_type, attachment_content_id, attachment_type 
+			FROM tp_applicant_inbox_email_attachments 
+			WHERE email_id in (select email_id from tp_applicant_inbox_emails where applicant_id in (@@))
+       </dbquery>
+       <dbquery name="qApplicantManager_DeleteApplicantEmailAttachments">
+			delete from tp_applicant_inbox_email_attachments
+			where email_id in (select email_id from tp_applicant_inbox_emails where applicant_id in (@@))
+       </dbquery>
+       <dbquery name="qApplicantManager_DeleteApplicantEmails">
+			delete from tp_applicant_inbox_emails where applicant_id in (@@)
+       </dbquery>
+       <dbquery name="qApplicantManager_DeleteApplicantEducationalInfo">
+			delete from tp_applicant_educational_info where applicant_id in (@@)
+       </dbquery>
+       <dbquery name="qApplicantManager_DeleteFlags">
+			delete from tp_applicant_flags where applicant_id in (@@)
+       </dbquery>
+       <dbquery name="qApplicantManager_DeleteCustomFieldsValues">
+       		delete from tp_custom_field_values_applicant where entity_id in (@@)
+       </dbquery>
+       <dbquery name="qApplicantManager_DeleteLastViewed">
+       		delete from tp_last_viewed where entity_id in (@@) and entity_type=?
+       </dbquery>
+       <dbquery name="qApplicantManager_GetMinApplicantDateCreated">
+			SELECT CAST(MIN(applicant_date_created) AS CHAR) FROM tp_applicants WHERE applicant_id IN (@@)
+       </dbquery> 
+        <dbquery name="qApplicantManager_GetApplicantResumeLockedDate">
+			SELECT CAST(resume_locked_date AS CHAR) FROM tp_applicants WHERE applicant_id = ?
+       </dbquery>
+        <dbquery name="qApplicantManager_GetApplicantsCountForResumeVendor">
+			select COUNT(DISTINCT applicant_id) from tp_applicants where applicant_position_id=? and source_id=?
+       </dbquery> 
+       <dbquery name="qApplicantManager_GetApplicantsInSummaryReport">
+			SELECT COUNT(DISTINCT applicant_id) FROM tp_cr_event_log WHERE applicant_id IN (@@)
+       </dbquery> 
+       <dbquery name="qApplicantManager_DeleteApplicant">
+			delete from tp_applicants where applicant_id in (@@)
+       </dbquery> 
+       <dbquery name="qApplicantManager_InsertOrUpdateApplicantFlag">
+			insert into tp_applicant_flags (applicant_id,flag_id)
+			values (?, ?)
+			on duplicate key update flag_id = ?
+       </dbquery>
+       <dbquery name="qApplicantManager_DeleteDeselectedFlags">
+			delete from tp_applicant_flags
+			where flag_id IN (SELECT flag_id FROM tp_flags WHERE flag_type=? OR user_id=? )
+			and flag_id not in (@@)
+			and applicant_id in (@@)
+       </dbquery>       
+       <dbquery name="qApplicantManager_DeleteApplicantDocuments">
+		    DELETE FROM tp_applicant_documents 	WHERE applicant_id in (@@)
+       </dbquery>
+        <dbquery name="qApplicantManager_DeleteApplicantTextResume">
+		    DELETE FROM tp_applicant_text_resumes WHERE applicant_id in (@@)
+       </dbquery>
+       <!-- Start : Vendor Management -->
+       <!-- End : delete Applicant -->
+       <!-- Start : get applicant email -->
+		<dbquery name="qApplicantManager_GetApplicantEmails">
+			SELECT 	applicant_email1, applicant_email2 FROM tp_applicants WHERE applicant_id=?
+		</dbquery>
+		<dbquery name="qApplicantManager_GetApplicantEmailsConsiderSource">
+			SELECT ta.applicant_email1, ta.applicant_email2, 
+			CASE WHEN ts.is_send_email_to_source=? THEN
+				CASE WHEN tu.USER_EMAIL is null then
+				ts.source_email 
+				ELSE
+				tu.USER_EMAIL
+				END 
+			END AS source_email
+			
+			FROM tp_applicants ta LEFT JOIN tp_users tu ON ( ta.source_id= tu.user_source_id AND ta.user_id=tu.user_id),
+			tp_sources ts
+			WHERE
+			ta.source_id= ts.source_id
+			AND ta.applicant_id=?
+		</dbquery>
+		<!-- End : get applicant email -->
+		<dbquery name="qApplicantManager_GetApplicantPhonesConsiderSource">
+			SELECT applicant_home_phone, applicant_home_phone_is_invalid,
+			applicant_cell_phone, applicant_cell_phone_is_invalid,
+			applicant_work_phone, applicant_work_phone_is_invalid,
+			CASE WHEN ts.is_send_sms_to_source=? THEN
+				CASE WHEN tu.USER_CELL_PHONE is null then
+				ts.source_mobile 
+				ELSE
+				tu.USER_CELL_PHONE
+				END 
+			END AS source_mobile
+			FROM tp_applicants ta LEFT JOIN tp_users tu ON ( ta.source_id= tu.user_source_id AND ta.user_id=tu.user_id),
+			tp_sources ts
+			WHERE
+			ta.source_id= ts.source_id
+			AND ta.applicant_id=?
+		</dbquery>
+		<dbquery name="qApplicantManager_GetUsersForSource">
+			SELECT USER_ID, USER_NAME, concat(USER_FNAME,' ',USER_LNAME) AS name, user_email 
+			FROM tp_users 
+			WHERE USER_STATUS=? AND USER_SOURCE_ID=?
+		</dbquery>
+		<dbquery name="qApplicantManager_GetApplicantCustomFields">
+			SELECT tcfv.custom_field_id, tcfv.custom_field_value, 
+			tcf.custom_field_name, tcf.custom_field_type, tcf.custom_field_display_name,
+			tcf.custom_field_entity_type, tcf.custom_field_rank
+			FROM tp_custom_field_values_applicant tcfv , tp_custom_fields tcf
+			WHERE tcfv.custom_field_id=tcf.custom_field_id
+			AND tcfv.entity_id=?
+			ORDER BY tcf.custom_field_rank
+		</dbquery>
+		<dbquery name="qApplicantManager_GetVendorCvLimit">
+			select ts.source_cv_limit from tp_sources ts where  ts.source_id=?
+		</dbquery>
+		<dbquery name="qApplicantManager_GetSourceId">
+			SELECT source_id FROM tp_sources WHERE source_title = ?
+		</dbquery>
+		<dbquery name="qApplicantManager_GetCandidateLastStepFeedback">
+			SELECT TBL.user_name, GROUP_CONCAT(TBL.feedback SEPARATOR '&lt;br/&gt;') AS feedback
+			FROM
+			(
+			SELECT taspt.process_id, taspt.feedback_form_field_id, taspt.trait_comment, 
+			taspt.user_id, taspt.rating_field_id, CONCAT(tu.USER_FNAME, ' ', tu.USER_LNAME) AS user_name,
+			tff.feedback_field_title, trf.rating_field_desc,
+			IF((trf.rating_field_desc IS NULL || trf.rating_field_desc = '') AND (taspt.trait_comment IS NULL || taspt.trait_comment = ''), '', CONCAT('&lt;br/&gt;&amp;nbsp;&amp;nbsp;', tff.feedback_field_title, IF(IFNULL(trf.rating_field_desc, 1), '', CONCAT('&lt;br/&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;', 'Rating : ', trf.rating_field_desc)), IF(IFNULL(taspt.trait_comment, 1) OR taspt.trait_comment = '', '', CONCAT('&lt;br/&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;', 'Comment : ', taspt.trait_comment)))) AS feedback
+			FROM tp_applicant_selection_process_traits taspt
+			LEFT JOIN tp_users tu ON (tu.USER_ID = taspt.user_id)
+			LEFT JOIN tp_feedback_form_fields tfff ON (tfff.feedback_form_field_id = taspt.feedback_form_field_id)
+			LEFT JOIN tp_rating_fields trf ON (trf.rating_field_id = taspt.rating_field_id)
+			LEFT JOIN tp_feedback_fields tff ON (tff.feedback_field_id = tfff.feedback_field_id)
+			WHERE process_id = (
+						SELECT process_id
+						FROM tp_applicant_selection_process
+						WHERE process_id > (	
+									SELECT process_id
+									FROM tp_applicant_selection_process
+									WHERE applicant_id = ?
+									AND position_step_id_to = ?
+									AND position_id = ?
+									ORDER BY process_id DESC
+									LIMIT 0,1
+								   )
+						AND applicant_id = ?
+					    )
+			ORDER BY user_name, tff.feedback_field_title
+			) TBL
+			GROUP BY TBL.user_id
+		</dbquery>		
+       <dbquery name="qApplicantManager_CreateBrowserImportSessionDocument">
+       		INSERT INTO tp_browser_import_session_documents
+			(session_id, document_path, file_name, comment_url, date_created)
+			VALUES
+			(?, ?, ?, ?, NOW())
+       </dbquery>
+       <dbquery name="qApplicantManager_GetBrowserImportSessionDocument">
+       		SELECT document_id, document_path, file_name
+			FROM tp_browser_import_session_documents
+			WHERE session_id = ? ORDER BY date_created
+       </dbquery>
+       <dbquery name="qApplicantManager_UpdateBrowserImportSessionDocumentStatus">
+       		UPDATE tp_browser_import_session_documents
+			SET import_status = ?
+			WHERE session_id = ?
+       </dbquery>
+       <dbquery name="qApplicantManager_GetBrowserImportSessionCommentUrl">
+       		SELECT CONCAT(REPLACE(tbisd.comment_url, ';', '&amp;'), ?, " ", ?, " on ", date_format(ta.applicant_date_created, '%d-%b-%y'), " at ", date_format(ta.applicant_date_created, '%h:%i %p')) as commentUrl
+			FROM tp_browser_import_session_documents tbisd, tp_applicants ta 
+			WHERE ta.applicant_id = ?
+			AND tbisd.session_id= ?
+			AND tbisd.comment_url IS NOT NULL AND tbisd.comment_url != ''
+       </dbquery>
+		<dbquery name="qApplicantManager_ChangeConfidentiality">
+			UPDATE tp_applicants SET is_confidential=? WHERE applicant_id=?
+		</dbquery>
+		<dbquery name="qApplicantManager_GetApplicantCurrentStepId">
+			SELECT applicant_step_id FROM tp_applicants WHERE applicant_id=?
+		</dbquery>
+		<dbquery name="qApplicantManager_GetApplicantData">
+			SELECT 	ta.applicant_id, ta.applicant_name, ta.applicant_city,
+			ta.applicant_email1, ta.applicant_email2, ta.applicant_home_phone, ta.applicant_cell_phone,
+			ta.applicant_work_phone, ta.applicant_working_since,
+			ta.applicant_date_joined, ta.applicant_current_employer, ta.current_ctc, ta.expected_ctc,
+			ta.applicant_level_offered, ta.applicant_designation_offered, ta.offered_ctc, ta.offered_basic,
+			ta.input_salary_variable, ta.applicant_position_id, tp.position_code,tp.position_title,
+			ta.employee_code,ta.applicant_hrms_code, 
+			GROUP_CONCAT(DISTINCT tl.location_name SEPARATOR ', ') AS location_name,
+			GROUP_CONCAT(DISTINCT tsk.skill SEPARATOR ', ') AS applicant_skills,
+			CONCAT(YEAR(FROM_DAYS(DATEDIFF(CURDATE() , ta.applicant_working_since))),' ','yrs',' ', MONTH(FROM_DAYS(DATEDIFF(CURDATE(), ta.applicant_working_since))),' ','mos') AS applicant_experience,
+			tp.position_note,tp.position_level,
+			td.dept_name,
+			tsd.dept_name as sub_dept_name,
+			tssd.dept_name as sub_sub_dept_name,
+			tbb.band_name,tbg.grade_name,
+			ta.source_id, ts.source_title,
+			now() AS today_date,
+			(select inbox_display_name from tp_inbox_settings) as company_name, 
+			GROUP_CONCAT(DISTINCT tbu.bu_name) AS bu_name, tst.source_type, tst.source_type_category,
+			ta.applicant_date_created
+			FROM tp_applicants ta
+			LEFT JOIN tp_applicant_skills tas ON (tas.applicant_id=ta.applicant_id) 
+			LEFT JOIN tp_skills tsk ON (tsk.skill_id=tas.skill_id) 
+			LEFT JOIN tp_positions tp ON (ta.applicant_position_id = tp.position_id)
+			LEFT JOIN tp_departments td ON (td.dept_id = tp.dept_id)
+			LEFT JOIN tp_departments tsd ON (tsd.dept_id = tp.sub_dept_id)
+			LEFT JOIN tp_departments tssd ON (tssd.dept_id = tp.sub_sub_dept_id)
+			LEFT JOIN tp_sources ts ON (ts.source_id = ta.source_id)
+			LEFT JOIN tp_position_locations tpl ON (tpl.position_id = tp.position_id)
+			LEFT JOIN tp_location_ap tl ON (tl.location_id = tpl.location_id)
+			LEFT JOIN tp_budget_bands tbb ON (tbb.band_id = tp.band_id)
+			LEFT JOIN tp_budget_grades tbg ON (tbg.grade_id = tp.grade_id)
+			LEFT JOIN tp_position_business_unit tppbu ON (tp.position_id = tppbu.position_id)
+			LEFT JOIN tp_business_unit tbu ON (tppbu.bu_id = tbu.bu_id)
+			LEFT JOIN tp_source_types tst ON (ts.source_type_id = tst.source_type_id)
+			WHERE ta.applicant_id=?
+			Group By tp.position_id
+		</dbquery>
+		<dbquery name="qApplicantManager_getApplicantNameandSource">
+			SELECT ta.applicant_name, ts.source_title
+			FROM tp_applicants ta
+			LEFT JOIN tp_sources ts ON (ts.source_id = ta.source_id)
+			WHERE ta.applicant_id=?
+		</dbquery>
+		<dbquery name="qApplicantManager_GetVendorEmailAddress">
+		SELECT tu.user_email
+		FROM tp_applicants ta LEFT JOIN tp_users tu ON (ta.vendor_id=tu.user_id)
+		WHERE ta.applicant_id=?
+	</dbquery>
+	<dbquery name="qApplicantManager_DeleteInboxEmailsForApplicant">
+		delete from tp_inbox_emails where applicant_id in (@@)
+    </dbquery>
+    <dbquery name="qApplicantManager_GetApplicantGrade">
+		select 
+		 tp.grade_id
+		from
+		 tp_applicants ta,tp_positions tp 
+		where 
+		 ta.applicant_position_id=tp.position_id AND
+		 ta.applicant_id=?
+   </dbquery>
+   <dbquery name="qApplicantManager_GetApplicantGradeCTCBasic">
+   		select 
+		 tp.grade_id, ta.offered_ctc, ta.offered_basic, ta.input_salary_variable
+		from
+		 tp_applicants ta,tp_positions tp 
+		where 
+		 ta.applicant_position_id=tp.position_id AND
+		 ta.applicant_id=?
+   </dbquery>
+   <dbquery name="qApplicantManager_GetApplicantFlagsName">
+	   	SELECT GROUP_CONCAT(DISTINCT flag_text SEPARATOR ' ,') 
+		FROM tp_applicant_flags taf, tp_flags tf
+		WHERE applicant_id = ?
+		AND taf.flag_id=tf.flag_id
+   </dbquery>
+   <dbquery name="qApplicantManager_GetJoinedApplicantSummaryDetails">
+		SELECT 	
+		ta.applicant_id, 
+		ta.applicant_name, 
+		ta.applicant_city,
+		ta.applicant_email1,
+		ta.applicant_home_phone,
+		ta.applicant_cell_phone,
+		ta.applicant_work_phone,
+		ta.applicant_date_created,
+		ta.applicant_date_joined,
+		tp.position_id,
+		tp.position_date_expiry,
+		tp.position_code,
+		tp.position_title,
+		ta.applicant_current_employer,
+		tst.source_type	as source_of_hire,
+		ts.source_title as referred_by,
+		CASE WHEN ts.employee_code is null THEN
+			''
+		ELSE
+			ts.employee_code
+		END as referred_by_number,
+		ta.offered_ctc,
+		ta.applicant_level_offered as level_offered,
+		ta.applicant_designation_offered as designation_offered,
+		ta.applicant_notice_period as notice_period
+		FROM tp_applicants ta
+		LEFT JOIN tp_positions tp ON (ta.applicant_position_id = tp.position_id)
+		LEFT JOIN tp_sources ts ON (ts.source_id=ta.source_id)
+		LEFT JOIN tp_source_types tst ON (tst.source_type_id=ts.source_type_id)
+		WHERE ta.applicant_id=?
+   </dbquery>
+   <dbquery name="qApplicantManager_GetApplicantRecruiters">
+	   	select CONCAT(tu.user_fname,' ',tu.user_lname) as user_name,ts.employee_code
+		FROM tp_position_step_users tpsu
+		LEFT JOIN tp_users tu ON (tpsu.user_id=tu.user_id)
+		LEFT JOIN tp_sources ts ON (tu.user_source_id=ts.source_id)
+		LEFT JOIN tp_user_roles tur ON (tur.USER_ID=tu.user_id)
+		WHERE 
+		tpsu.position_id=? AND
+		tur.role_id=?
+		GROUP BY tu.user_id
+   </dbquery>
+   <dbquery name="qApplicantManager_GetApplicantInterviewers">
+	   	select CONCAT(tu.user_fname,' ',tu.user_lname) as user_name,ts.employee_code
+		FROM tp_position_step_users tpsu
+		LEFT JOIN tp_users tu ON (tpsu.user_id=tu.user_id)
+		LEFT JOIN tp_sources ts ON (tu.user_source_id=ts.source_id)
+		LEFT JOIN tp_user_roles tur ON (tur.USER_ID=tu.user_id)
+		WHERE 
+		tpsu.position_id=? AND
+		tur.role_id=?
+		GROUP BY tu.user_id
+   </dbquery>
+   <dbquery name="qApplicantManager_BlackListApplicant">
+     	INSERT INTO tp_applicant_blacklist_history
+		(applicant_id, reason, type, user_id, date_created)
+		VALUES
+		(?, ?, ?, ?, NOW())
+   </dbquery>
+   <dbquery name="qApplicantManager_UpdateApplicantStatus">
+      	UPDATE tp_applicants
+		SET applicant_status = ?
+		WHERE applicant_id = ?
+	</dbquery>
+	<dbquery name="qApplicantManager_GetApplicantBlackListHistoryDetails">
+      	Select tabh.interaction_id,tabh.applicant_id,tabh.reason,tabh.type,
+      	tabh.user_id,concat(tu.user_fname,' ',tu.user_lname) AS user_name,
+      	tabh.date_created FROM tp_applicant_blacklist_history tabh
+      	LEFT JOIN tp_users tu ON (tu.user_id=tabh.user_id) 
+      	 where tabh.interaction_id=?
+	</dbquery>
+	<dbquery name="qGetApplicantCurrentDetails">
+      	Select tacd.applicant_id, tacd.current_basic, tacd.current_designation , tacd.current_level  
+      	FROM tp_applicant_current_details tacd
+      	WHERE tacd.applicant_id=?
+	</dbquery>	
+	<dbquery name="qInsertApplicantCurrentDetails">
+  		INSERT INTO tp_applicant_current_details(applicant_id, current_basic, current_designation, current_level) VALUES (?,?,?,?) 
+	</dbquery>	
+	<dbquery name="qUpdateApplicantCurrentDetails">
+     	UPDATE tp_applicant_current_details SET current_basic=?, current_designation=?, current_level=? WHERE applicant_id=?
+	</dbquery>	
+	<dbquery name="qIsApplicantCurrentDetailsPresent">
+     	SELECT count(1) FROM tp_applicant_current_details WHERE applicant_id=?
+	</dbquery>
+	<dbquery name="qUpdateApplicantCurrentCTC">
+     	UPDATE tp_applicants SET current_ctc=? WHERE applicant_id=?
+	</dbquery>		
+	<dbquery name="qApplicantManager_insertApplicantToken">
+	    INSERT INTO tp_applicant_oauthtoken (applicant_id, source_id, oauth_token)
+		SELECT ?, source_id, oauth_token FROM tp_uuid_oauth_map WHERE uuid = ?
+	</dbquery>
+	<dbquery name="qApplicantManager_ApplicantIdFromEmail">
+	  SELECT applicant_id from tp_applicants WHERE applicant_email1 = ?
+	</dbquery>
+	<dbquery name="qApplicantManager_GetPositionAppliedForByCandidate">
+	    SELECT ta.applicant_step_id,taprm.position_id,tp.position_title,taprm.applicant_original_resume_path,
+	    taprm.applicant_original_doc_path, tff.feedback_form_title
+	    FROM tp_applicant_applied_position_resume_mapping taprm
+		LEFT JOIN tp_positions tp ON taprm.position_id = tp.position_id
+		LEFT JOIN tp_applicants ta ON (ta.applicant_position_id = taprm.position_id and ta.applicant_id=taprm.applicant_id)
+		LEFT JOIN tp_position_steps tps ON (tp.position_id=tps.position_id and tps.position_step_id=ta.applicant_step_id)
+		LEFT JOIN tp_feedback_forms tff ON (tps.applicant_feedback_form_id = tff.feedback_form_id)
+		WHERE taprm.applicant_id=? @@ ORDER BY ta.applicant_step_id DESC
+	</dbquery>
+	<dbquery name="qApplicantManager_GetApplicantTextResumes">
+	    SELECT applicant_text_resume FROM tp_applicant_text_resumes WHERE applicant_id=?
+	</dbquery>
+	<dbquery name="qApplicantManager_InsertIntoEventSched">
+	    INSERT INTO tp_applicant_sched_queue (applicant_id,index_status) VALUES(?,?) ON DUPLICATE KEY UPDATE index_status=?
+	</dbquery>
+	<dbquery name="qApplicantManager_getSourceTitleExisting">
+			SELECT  ts.source_title
+			FROM tp_sources ts
+			WHERE ts.source_title=?
+		</dbquery>
+	<dbquery name="qApplicantManager_InsertCandidateApplicantMapping">
+	    INSERT INTO tp_candidate_applicant_mapping (candidate_id,applicant_id) VALUES (?,?) ON DUPLICATE KEY UPDATE applicant_id=VALUES(applicant_id)
+	</dbquery>
+	<dbquery name="qApplicantManager_DeleteApplicantCandidateMapping">
+		DELETE FROM tp_candidate_applicant_mapping WHERE applicant_id IN (@@)   
+	</dbquery>
+	<dbquery name="qUpdateProfilePicPath">
+		UPDATE tp_applicants SET profile_pic_path=? WHERE applicant_id=?
+	</dbquery>
+   </dbqueries>
+   <dataqueries>
+   		<!-- Start : delete Applicant -->
+   	   <dataquery name="dApplicantManager_DeleteOutbounds" dbquery="qApplicantManager_DeleteOutbounds"/>
+   	   <dataquery name="dApplicantManager_DeleteCommunications" dbquery="qApplicantManager_DeleteCommunications"/>
+   	   <dataquery name="dApplicantManager_DeleteMessagesTo" dbquery="qApplicantManager_DeleteMessagesTo"/>
+   	   <dataquery name="dApplicantManager_DeleteMessages" dbquery="qApplicantManager_DeleteMessages"/>
+   	   <dataquery name="dApplicantManager_DeleteAppointmentAttendees" dbquery="qApplicantManager_DeleteAppointmentAttendees"/>
+   	   <dataquery name="dApplicantManager_DeleteAppointments" dbquery="qApplicantManager_DeleteAppointments"/>
+   	   <dataquery name="dApplicantManager_DeleteAppointmentNotifications" dbquery="qApplicantManager_DeleteAppointmentNotifications"/>
+   	   <dataquery name="dApplicantManager_DeleteApplicantStatusMessages" dbquery="qApplicantManager_DeleteApplicantStatusMessages"/>
+   	   <dataquery name="dApplicantManager_DeleteApplicantSkills" dbquery="qApplicantManager_DeleteApplicantSkills"/>
+   	   <dataquery name="dApplicantManager_DeleteApplicantSelectionProcessTraits" dbquery="qApplicantManager_DeleteApplicantSelectionProcessTraits"/>
+   	   <dataquery name="dApplicantManager_DeleteApplicantSelectionProcess" dbquery="qApplicantManager_DeleteApplicantSelectionProcess"/>   	   
+   	   <dataquery name="dApplicantManager_GetApplicantEmailAttachments" dbquery="qApplicantManager_GetApplicantEmailAttachments" object="com.talentPool.inbox.dataobject.AttachmentData">
+       		<attribute name="attachmentId" column="attachment_id" type="INT"/>
+			<attribute name="attachmentFilePath" column="attachment_file_path" type="STRING"/>
+			<attribute name="originalFileName" column="attachment_original_file_name" type="STRING"/>
+			<attribute name="contentType" column="attachment_content_type" type="STRING"/>
+			<attribute name="contentId" column="attachment_content_id" type="STRING"/>
+			<attribute name="attachmentType" column="attachment_type" type="STRING"/>
+       </dataquery>
+   	   <dataquery name="dApplicantManager_DeleteApplicantEmailAttachments" dbquery="qApplicantManager_DeleteApplicantEmailAttachments"/>
+   	   <dataquery name="dApplicantManager_DeleteApplicantEmails" dbquery="qApplicantManager_DeleteApplicantEmails"/>
+   	   <dataquery name="dApplicantManager_DeleteApplicantEducationalInfo" dbquery="qApplicantManager_DeleteApplicantEducationalInfo"/>
+   	   <dataquery name="dApplicantManager_DeleteFlags" dbquery="qApplicantManager_DeleteFlags"/>
+   	   <dataquery name="dApplicantManager_DeleteCustomFieldsValues" dbquery="qApplicantManager_DeleteCustomFieldsValues"/>
+   	   <dataquery name="dApplicantManager_DeleteLastViewed" dbquery="qApplicantManager_DeleteLastViewed"/>
+   	   <dataquery name="dApplicantManager_GetApplicantsInSummaryReport" dbquery="qApplicantManager_GetApplicantsInSummaryReport"/>
+   	   <dataquery name="dApplicantManager_GetMinApplicantDateCreated" dbquery="qApplicantManager_GetMinApplicantDateCreated"/>
+   	   <dataquery name="dApplicantManager_DeleteApplicant" dbquery="qApplicantManager_DeleteApplicant"/>       
+   	   <dataquery name="dApplicantManager_InsertOrUpdateApplicantFlag" dbquery="qApplicantManager_InsertOrUpdateApplicantFlag"/>          	   
+   	   <dataquery name="dApplicantManager_DeleteDeselectedFlags" dbquery="qApplicantManager_DeleteDeselectedFlags"/>          	      	   
+   	   <dataquery name="dApplicantManager_DeleteApplicantDocuments" dbquery="qApplicantManager_DeleteApplicantDocuments"/>
+   	   <dataquery name="dApplicantManager_DeleteApplicantTextResume" dbquery="qApplicantManager_DeleteApplicantTextResume"/>       
+        <dataquery name="dApplicantManager_GetApplicantsCountForResumeVendor" dbquery="qApplicantManager_GetApplicantsCountForResumeVendor"/>
+       <!-- End : delete Applicant -->
+       <dataquery name="dApplicantManager_GetApplicantResumeLockedDate" dbquery="qApplicantManager_GetApplicantResumeLockedDate"/>
+       <!-- Start : get applicant email -->
+   	   <dataquery name="dApplicantManager_GetApplicantEmails" dbquery="qApplicantManager_GetApplicantEmails" object="com.talentPool.applicant.dataobject.ApplicantData">
+		    <attribute name= "applicantEmail1" column="applicant_email1" type ="STRING" />
+		    <attribute name= "applicantEmail2" column="applicant_email2" type ="STRING" />
+	   </dataquery>
+   	   <dataquery name="dApplicantManager_GetApplicantEmailsConsiderSource" dbquery="qApplicantManager_GetApplicantEmailsConsiderSource" object="com.talentPool.applicant.dataobject.ApplicantData">
+		    <attribute name= "applicantEmail1" column="applicant_email1" type ="STRING" />
+		    <attribute name= "applicantEmail2" column="applicant_email2" type ="STRING" />
+		    <attribute name= "sourceEmail" column="source_email" type ="STRING" />
+	   </dataquery>
+	   <!-- End : get applicant email -->
+   	   <dataquery name="dApplicantManager_GetApplicantPhonesConsiderSource" dbquery="qApplicantManager_GetApplicantPhonesConsiderSource" object="com.talentPool.applicant.dataobject.ApplicantData">
+			<attribute name= "applicantHomePhone" column="applicant_home_phone" type ="STRING" />
+			<attribute name= "applicantHomePhoneIsInvalid" column="applicant_home_phone_is_invalid" type ="STRING" />
+			<attribute name= "applicantCellPhone" column="applicant_cell_phone" type ="STRING" />
+			<attribute name= "applicantCellPhoneIsInvalid" column="applicant_cell_phone_is_invalid" type ="STRING" />
+			<attribute name= "applicantWorkPhone" column="applicant_work_phone" type ="STRING" />
+			<attribute name= "applicantWorkPhoneIsInvalid" column="applicant_work_phone_is_invalid" type ="STRING" />
+			<attribute name= "sourceMobile" column="source_mobile" type ="STRING" />
+	   </dataquery>
+	   <dataquery name="dApplicantManager_GetUsersForSource" dbquery="qApplicantManager_GetUsersForSource" object="com.talentPool.user.dataobject.LoginData">
+		   <attribute name= "userId" column="USER_ID" type ="STRING" />
+		   <attribute name= "userName" column="USER_NAME" type ="STRING" />
+		   <attribute name= "name" column="name" type ="STRING" />
+		   <attribute name= "email" column="USER_EMAIL" type ="STRING" />
+	   </dataquery>
+	   <!-- Start : get applicant custom Fields -->
+	   <dataquery name="dApplicantManager_GetApplicantCustomFields" dbquery="qApplicantManager_GetApplicantCustomFields" object="com.talentPool.custom.dataobject.CustomFieldData">
+			<attribute name= "fieldId" column="custom_field_id" type ="STRING" />
+			<attribute name= "fieldValue" column="custom_field_value" type ="STRING" />
+			<attribute name= "fieldName" column="custom_field_name" type ="STRING" />
+			<attribute name= "fieldType" column="custom_field_type" type ="STRING" />
+			<attribute name= "fieldDisplayName" column="custom_field_display_name" type ="STRING" />
+			<attribute name= "fieldEntityType" column="custom_field_entity_type" type ="STRING" />
+			<attribute name= "fieldRank" column="custom_field_rank" type ="INT" />
+	   </dataquery>
+	   <!-- Vendor cv Limit -->
+	   <dataquery name="dApplicantManager_GetVendorCvLimit" dbquery="qApplicantManager_GetVendorCvLimit" />
+	   <!-- End Vendor cv Limit -->
+	   <!-- End : get applicant custom Fields -->
+   	   <dataquery name="dApplicantManager_GetSourceId" dbquery="qApplicantManager_GetSourceId" />
+	   <dataquery name="dApplicantManager_GetCandidateLastStepFeedback" dbquery="qApplicantManager_GetCandidateLastStepFeedback" object="com.talentPool.common.db.SimpleDataObject">
+		   <attribute name= "userName" column="user_name" type ="STRING" />
+		   <attribute name= "feedback" column="feedback" type ="STRING" />
+	   </dataquery>
+	   <dataquery name="dApplicantManager_CreateBrowserImportSessionDocument" dbquery="qApplicantManager_CreateBrowserImportSessionDocument" />				
+	   <dataquery name="dApplicantManager_GetBrowserImportSessionDocument" dbquery="qApplicantManager_GetBrowserImportSessionDocument" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name="documentId" column="document_id" type ="STRING" />
+		    <attribute name="documentPath" column="document_path" type ="STRING" />
+		    <attribute name="fileName" column="file_name" type ="STRING" />
+	   </dataquery>		
+	   <dataquery name="dApplicantManager_UpdateBrowserImportSessionDocumentStatus" dbquery="qApplicantManager_UpdateBrowserImportSessionDocumentStatus" />	    
+	   <dataquery name="dApplicantManager_GetBrowserImportSessionCommentUrl" dbquery="qApplicantManager_GetBrowserImportSessionCommentUrl" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name="commentUrl" column="commentUrl" type ="STRING" />
+	   </dataquery>		    	   
+	   <dataquery name="dApplicantManager_ChangeConfidentiality" dbquery="qApplicantManager_ChangeConfidentiality"/>
+	   <dataquery name="dApplicantManager_GetApplicantData" dbquery="qApplicantManager_GetApplicantData" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name= "applicant_id" column="applicant_id" type ="STRING" />
+			<attribute name= "applicant_name" column="applicant_name" type ="STRING" />
+			<attribute name= "applicant_city" column="applicant_city" type ="STRING" />
+			<attribute name= "applicant_email1" column="applicant_email1" type ="STRING" />
+			<attribute name= "applicant_email2" column="applicant_email2" type ="STRING" />
+			<attribute name= "applicant_home_phone" column="applicant_home_phone" type ="INT" />
+			<attribute name= "applicant_cell_phone" column="applicant_cell_phone" type ="STRING" />
+			<attribute name= "applicant_work_phone" column="applicant_work_phone" type ="INT" />
+			<attribute name= "applicant_skills" column="applicant_skills" type ="INT" />
+			<attribute name= "applicant_working_since" column="applicant_working_since" type ="STRING" />
+			<attribute name= "applicant_experience" column="applicant_experience" type ="STRING" />
+			<attribute name= "applicant_date_joined" column="applicant_date_joined" type ="INT" />
+			<attribute name= "applicant_current_employer" column="applicant_current_employer" type ="INT" />
+			<attribute name= "current_ctc" column="current_ctc" type ="INT" />
+			<attribute name= "expected_ctc" column="expected_ctc" type ="INT" />
+			<attribute name= "applicant_level_offered" column="applicant_level_offered" type ="INT" />
+			<attribute name= "applicant_designation_offered" column="applicant_designation_offered" type ="INT" />
+			<attribute name= "offered_ctc" column="offered_ctc" type ="STRING" />
+			<attribute name= "offered_basic" column="offered_basic" type ="STRING" />
+			<attribute name= "input_salary_variable" column="input_salary_variable" type ="STRING" />
+			<attribute name= "employee_code" column="employee_code" type ="INT" />
+			<attribute name= "applicant_position_id" column="applicant_position_id" type ="INT" />
+			<attribute name= "position_code" column="position_code" type ="STRING" />
+			<attribute name= "position_title" column="position_title" type ="INT" />
+			<attribute name= "location_name" column="location_name" type ="STRING" />
+			<attribute name= "position_note" column="position_note" type ="STRING" />
+			<attribute name= "position_level" column="position_level" type ="STRING" />
+			<attribute name= "dept_name" column="dept_name" type ="STRING" />
+			<attribute name= "sub_dept_name" column="sub_dept_name" type ="STRING" />
+			<attribute name= "sub_sub_dept_name" column="sub_sub_dept_name" type ="STRING" />
+			<attribute name= "band_name" column="band_name" type ="STRING" />
+			<attribute name= "grade_name" column="grade_name" type ="STRING" />
+			<attribute name= "source_id" column="source_id" type ="INT" />
+			<attribute name= "source_title" column="source_title" type ="STRING" />
+			<attribute name= "company_name" column="company_name" type ="STRING" />
+			<attribute name= "today_date" column="today_date" type ="STRING" />
+			<attribute name= "applicantHrmsCode" column="applicant_hrms_code" type ="STRING" />
+			<attribute name= "position_business_unit" column="bu_name" type ="STRING" />
+			<attribute name= "source_type" column="source_type" type ="STRING" />
+			<attribute name= "source_type_category" column="source_type_category" type ="STRING" />
+			<attribute name= "applicant_date_created" column="applicant_date_created" type ="STRING" />
+			<attribute name= "profile_pic_path" column="profile_pic_path" type ="STRING" />
+	   </dataquery>	   
+
+      <dataquery name="dApplicantManager_getApplicantNameandSource" dbquery="qApplicantManager_getApplicantNameandSource" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name= "applicant_name" column="applicant_name" type ="STRING" />
+			<attribute name= "source_title" column="source_title" type ="STRING" />
+	   </dataquery>	   
+   	   <dataquery name="dApplicantManager_GetApplicantCurrentStepId" dbquery="qApplicantManager_GetApplicantCurrentStepId"/>
+   	   <dataquery name="dApplicantManager_GetVendorEmailAddress" dbquery="qApplicantManager_GetVendorEmailAddress"/>   	   
+   	   <dataquery name="dApplicantManager_DeleteInboxEmailsForApplicant" dbquery="qApplicantManager_DeleteInboxEmailsForApplicant"/>
+   	   <dataquery name="dApplicantManager_GetApplicantGrade" dbquery="qApplicantManager_GetApplicantGrade" />
+   	   <dataquery name="dApplicantManager_GetApplicantGradeCTCBasic" dbquery="qApplicantManager_GetApplicantGradeCTCBasic" object="com.talentPool.common.db.SimpleDataObject" >
+	   	   	<attribute name= "offeredCtc" column="offered_ctc" type ="STRING" />
+	   	   	<attribute name= "offeredBasic" column="offered_basic" type ="STRING" />
+	   	   	<attribute name= "gradeId" column="grade_id" type ="STRING" />
+	   	   	<attribute name= "inputSalaryVariable" column="input_salary_variable" type ="STRING" />
+   	   </dataquery>
+   	   <dataquery name="dApplicantManager_GetApplicantFlagsName" dbquery="qApplicantManager_GetApplicantFlagsName"/>
+   	   <dataquery name="dApplicantManager_GetJoinedApplicantSummaryDetails" dbquery="qApplicantManager_GetJoinedApplicantSummaryDetails" object="com.talentPool.common.db.SimpleDataObject" >
+   	   		<attribute name= "applicant_id" column="applicant_id" type ="STRING" />
+   	   		<attribute name= "applicant_name" column="applicant_name" type ="STRING" />
+   	   		<attribute name= "applicant_city" column="applicant_city" type ="STRING" />
+   	   		<attribute name= "applicant_email1" column="applicant_email1" type ="STRING" />
+   	   		<attribute name= "applicant_home_phone" column="applicant_home_phone" type ="STRING" />
+   	   		<attribute name= "applicant_cell_phone" column="applicant_cell_phone" type ="STRING" />
+   	   		<attribute name= "applicant_work_phone" column="applicant_work_phone" type ="STRING" />
+   	   		<attribute name= "date_received" column="applicant_date_created" type ="STRING" />
+   	   		<attribute name= "actual_date_of_hire" column="applicant_date_joined" type ="STRING" />
+   	   		<attribute name= "positionId" column="position_id" type ="STRING" />
+   	   		<attribute name= "projected_hire_by_date" column="position_date_expiry" type ="STRING" />
+   	   		<attribute name= "positionCode" column="position_code" type ="STRING" />
+   	   		<attribute name= "positionTitle" column="position_title" type ="STRING" />
+   	   		<attribute name= "current_employer" column="applicant_current_employer" type ="STRING" />
+   	   		<attribute name= "source_of_hire" column="source_of_hire" type ="STRING" />
+   	   		<attribute name= "referred_by" column="referred_by" type ="STRING" />
+   	   		<attribute name= "referred_by_number" column="referred_by_number" type ="STRING" />
+   	   		<attribute name= "notice_period" column="notice_period" type ="STRING" />
+   	   		<attribute name= "designation_offered" column="designation_offered" type ="STRING" />
+   	   		<attribute name= "level_offered" column="level_offered" type ="STRING" />
+   	   		<attribute name= "offered_ctc" column="offered_ctc" type ="STRING" />
+   	   </dataquery>
+   	   <dataquery name="dApplicantManager_GetApplicantRecruiters" dbquery="qApplicantManager_GetApplicantRecruiters" object="com.talentPool.common.db.SimpleDataObject" >
+   	   		<attribute name="recruiterId" column="employee_code"></attribute>
+   	   		<attribute name="recruiterName" column="user_name"></attribute>
+   	   </dataquery>
+   	   <dataquery name="dApplicantManager_GetApplicantInterviewers" dbquery="qApplicantManager_GetApplicantInterviewers" object="com.talentPool.common.db.SimpleDataObject" >
+   	   		<attribute name="interviewerId" column="employee_code"></attribute>
+   	   		<attribute name="interviewerName" column="user_name"></attribute>
+   	   </dataquery>
+   	   <dataquery name="dApplicantManager_BlackListApplicant" dbquery="qApplicantManager_BlackListApplicant" />
+   	   <dataquery name="dApplicantManager_UpdateApplicantStatus" dbquery="qApplicantManager_UpdateApplicantStatus" />
+   	   <dataquery name="dApplicantManager_GetApplicantBlackListHistoryDetails" dbquery="qApplicantManager_GetApplicantBlackListHistoryDetails" object="com.talentPool.applicant.dataobject.ApplicantBlackListHistoryData">
+   	   		<attribute name= "interactionId" column="interaction_id" type ="STRING" />
+   	   		<attribute name= "applicantId" column="applicant_id" type ="STRING" />
+   	   		<attribute name= "blackListReason" column="reason" type ="STRING" />
+   	   		<attribute name= "interactionType" column="type" type ="STRING" />
+   	   		<attribute name= "userId" column="user_id" type ="STRING" />
+   	   		<attribute name= "userName" column="user_name" type ="STRING" />
+   	   		<attribute name= "dateCreated" column="date_created" type ="STING" />
+   	   </dataquery>
+   	   <dataquery name="dGetApplicantCurrentDetails" dbquery="qGetApplicantCurrentDetails" object="com.talentPool.applicant.dataobject.ApplicantCurrentDetails">
+   	   		<attribute name= "applicantId" column="applicant_id" type ="STRING" />
+   	   		<attribute name= "currentBasic" column="current_basic" type ="STING" />
+   	   		<attribute name= "currentDesignation" column="current_designation" type ="STING" />
+   	   		<attribute name= "currentLevel" column="current_level" type ="STING" />
+   	   </dataquery>
+   	   <dataquery name="dInsertApplicantCurrentDetails" dbquery="qInsertApplicantCurrentDetails" />
+   	   <dataquery name="dUpdateApplicantCurrentDetails" dbquery="qUpdateApplicantCurrentDetails"  />
+   	   <dataquery name="dIsApplicantCurrentDetailsPresent" dbquery="qIsApplicantCurrentDetailsPresent"  />
+   	   <dataquery name="dApplicantManager_ApplicantIdFromEmail" dbquery="qApplicantManager_ApplicantIdFromEmail"  />
+   	   <dataquery name="dUpdateApplicantCurrentCTC" dbquery="qUpdateApplicantCurrentCTC"  />
+   	   <dataquery name="dApplicantManager_insertApplicantToken" dbquery="qApplicantManager_insertApplicantToken"  />
+   	   <dataquery name="dApplicantManager_GetPositionAppliedForByCandidate" dbquery="qApplicantManager_GetPositionAppliedForByCandidate" object="com.talentPool.positions.dataobject.PositionData">
+   	   		<attribute name="positionId" column="position_id" type="STRING"/>
+   	   		<attribute name="positionTitle" column="position_title" type="STRING"/>
+   	   		<attribute name="docResumePath" column="applicant_original_doc_path" type="STRING"/>
+   	   		<attribute name="htmlResumePath" column="applicant_original_resume_path" type="STRING"/>
+   	   		<attribute name="feedBackformTitle" column="feedback_form_title" type="STRING"/>
+   	   </dataquery>
+   	   <dataquery name="dApplicantManager_GetApplicantTextResumes" dbquery="qApplicantManager_GetApplicantTextResumes"  object="com.talentPool.common.db.SimpleDataObject">
+   	   		<attribute name="textResume" column="applicant_text_resume" type="STRING"/>    
+   	   </dataquery>
+   	   <dataquery name="dApplicantManager_InsertIntoEventSched" dbquery="qApplicantManager_InsertIntoEventSched"/>
+   	    <dataquery name="dApplicantManager_getSourceTitleExisting" dbquery="qApplicantManager_getSourceTitleExisting" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name= "source_title" column="source_title" type ="STRING" />
+	   </dataquery>	 
+   	   <dataquery name="dApplicantManager_InsertCandidateApplicantMapping" dbquery="qApplicantManager_InsertCandidateApplicantMapping"/>
+   	   <dataquery name="dApplicantManager_DeleteApplicantCandidateMapping" dbquery="qApplicantManager_DeleteApplicantCandidateMapping"/>
+   	   <dataquery name="dUpdateProfilePicPath" dbquery="qUpdateProfilePicPath"/>
+   </dataqueries>   
+</dbmap>

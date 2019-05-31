@@ -1,0 +1,111 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>
+		<dbquery name="qReportDesignManager_InsertReportDesign">
+			INSERT INTO tp_reports (report_name, report_type, group_by, sort_by, sort_with, 
+			sort_criteria, view_type, date_created, user_id, report_desc, report_file_path,
+			sheet_index,row_index )VALUES(?,?,?,?,?,?,?,now(),?,?,?,?,?)
+		</dbquery>
+		<dbquery name="qReportDesignManager_InsertReportColumns">
+			INSERT INTO tp_report_columns(report_id,column_name,column_type,column_rank)
+			VALUES (?,?,?,?)
+		</dbquery>
+		<dbquery name="qReportDesignManager_InsertReportFilters">
+			INSERT INTO tp_report_filters(report_id, filter_id)
+			VALUES (?,?)
+		</dbquery>		
+		<dbquery name="qReportDesignManager_GetAllReports">
+			SELECT report_id, report_name,1 as canDeleteReport FROM tp_reports WHERE report_type NOT IN (?)
+		</dbquery>
+		<dbquery name="qReportDesignManager_GetCustomReportsForUser">
+			SELECT distinct tr.report_id, tr.report_name, tr.user_id=? as canDeleteReport
+			FROM tp_reports  tr
+			LEFT JOIN tp_report_levels trl ON (trl.report_id=tr.report_id AND trl.report_type=1)
+			WHERE (trl.level_id IN (SELECT level_id FROM tp_report_level_user WHERE user_id=?) OR tr.user_id=?)
+			AND tr.report_type NOT IN (?)
+		</dbquery>
+		<dbquery name="qReportDesignManager_GetReportData">
+			SELECT tr.report_id, tr.report_name, tr.report_type, tr.group_by, tr.sort_by, 
+			tr.sort_with, tr.sort_criteria, tr.view_type, tr.report_desc,
+			tr.report_file_path, tr.sheet_index, tr.row_index,
+			group_concat(distinct trc.column_name) AS columns,
+			group_concat(distinct trf.filter_id) AS filters,
+			group_concat(distinct trl.level_id)as levels
+			FROM tp_reports tr 
+			LEFT JOIN tp_report_columns trc ON (trc.report_id=tr.report_id)
+			LEFT JOIN tp_report_filters trf ON (trf.report_id=tr.report_id)
+			LEFT JOIN tp_report_levels trl ON(trl.report_id=tr.report_id)
+			WHERE tr.report_id=?
+			GROUP BY tr.report_id
+		</dbquery>
+		<dbquery name="qReportDesignManager_DeleteCustomReportColumns">
+			DELETE FROM tp_report_columns WHERE report_id=?
+		</dbquery>
+		<dbquery name="qReportDesignManager_DeleteCustomReportFilters">
+			DELETE FROM tp_report_filters WHERE report_id=?
+		</dbquery>
+		<dbquery name="qReportDesignManager_DeleteCustomReport">
+			DELETE FROM tp_reports WHERE report_id=?
+		</dbquery>
+		<dbquery name="qReportDesignManager_DeleteCustomReportLevels">
+			DELETE FROM tp_report_levels WHERE report_id=?
+		</dbquery>
+		<dbquery name="qReportDesignManager_GetReportResultData">
+			SELECT tap.applicant_name, tap.applicant_id FROM tp_applicants tap
+		</dbquery>
+		<dbquery name="qReportDesignManager_GetReportColumnData">
+			SELECT column_name, column_type, column_rank FROM tp_report_columns WHERE report_id=?
+		</dbquery>
+		<dbquery name="qReportDesignManager_updateReportDesign">
+			UPDATE tp_reports set report_name=?, report_type=?, group_by=?, sort_by=?, 
+			sort_with=?, sort_criteria=?, view_type=?, report_desc=? ,report_file_path=?, 
+			sheet_index=?, row_index=? WHERE report_id=?
+		</dbquery>		
+	</dbqueries>
+	<dataqueries>
+	    <dataquery name="dReportDesignManager_InsertReportDesign" dbquery="qReportDesignManager_InsertReportDesign"/>
+	    <dataquery name="dReportDesignManager_InsertReportColumns" dbquery="qReportDesignManager_InsertReportColumns"/>
+	    <dataquery name="dReportDesignManager_InsertReportFilters" dbquery="qReportDesignManager_InsertReportFilters"/>
+	    <dataquery name="dReportDesignManager_GetAllReports" dbquery="qReportDesignManager_GetAllReports" object="com.talentPool.reportDesign.dataobject.ReportData">
+	    	<attribute name= "reportId" column="report_id" type ="STRING" />
+	    	<attribute name= "reportName" column="report_name" type ="STRING" />
+	    	<attribute name= "canDeleteReport" column="canDeleteReport" type ="STRING" />	    	
+	    </dataquery>
+	    <dataquery name="dReportDesignManager_GetCustomReportsForUser" dbquery="qReportDesignManager_GetCustomReportsForUser" object="com.talentPool.reportDesign.dataobject.ReportData">
+	    	<attribute name= "reportId" column="report_id" type ="STRING" />
+	    	<attribute name= "reportName" column="report_name" type ="STRING" />
+	    	<attribute name= "canDeleteReport" column="canDeleteReport" type ="STRING" />	    	
+	    </dataquery>
+	    <dataquery name="dReportDesignManager_GetReportData" dbquery="qReportDesignManager_GetReportData" object="com.talentPool.reportDesign.dataobject.ReportData">
+	    	<attribute name= "reportId" column="report_id" type ="STRING" />
+	    	<attribute name= "reportName" column="report_name" type ="STRING" />
+	    	<attribute name= "reportType" column="report_type" type ="STRING" />
+	    	<attribute name= "reportDescription" column="report_desc" type ="STRING" />
+	    	<attribute name= "groupBy" column="group_by" type ="STRING" />
+	    	<attribute name= "sortBy" column="sort_by" type ="STRING" />
+	    	<attribute name= "sortWith" column="sort_with" type ="STRING" />
+	    	<attribute name= "sortCriteria" column="sort_criteria" type ="STRING" />
+	    	<attribute name= "reportFormat" column="view_type" type ="STRING" />
+	    	<attribute name= "columns" column="columns" type ="STRING" />
+	    	<attribute name= "filters" column="filters" type ="STRING" />
+	    	<attribute name= "levelPermissions" column="levels" type ="STRING" />
+	    	<attribute name= "reportFilePath" column="report_file_path" type ="STRING" />
+	    	<attribute name= "sheetIndex" column="sheet_index" type ="STRING" />
+	    	<attribute name= "rowIndex" column="row_index" type ="STRING" />
+	    </dataquery>	 
+	    <dataquery name="dReportDesignManager_DeleteCustomReportColumns" dbquery="qReportDesignManager_DeleteCustomReportColumns"/>
+	    <dataquery name="dReportDesignManager_DeleteCustomReport" dbquery="qReportDesignManager_DeleteCustomReport"/>
+	    <dataquery name="dReportDesignManager_DeleteCustomReportFilters" dbquery="qReportDesignManager_DeleteCustomReportFilters"/>
+	    <dataquery name="dReportDesignManager_DeleteCustomReportLevels" dbquery="qReportDesignManager_DeleteCustomReportLevels"/>
+	    <dataquery name="dReportDesignManager_GetReportResultData" dbquery="qReportDesignManager_GetReportResultData"/>
+	    <dataquery name="dReportDesignManager_GetReportColumnData" dbquery="qReportDesignManager_GetReportColumnData" object="com.talentPool.reportDesign.dataobject.ColumnData">
+	    	<attribute name= "columnName" column="column_name" type ="STRING" />
+	    	<attribute name= "columnType" column="column_type" type ="STRING" />
+	    	<attribute name= "columnRank" column="column_rank" type ="STRING" />
+	    </dataquery>   
+	      <dataquery name="dReportDesignManager_updateReportDesign" dbquery="qReportDesignManager_updateReportDesign"/>
+	</dataqueries>    
+</dbmap>

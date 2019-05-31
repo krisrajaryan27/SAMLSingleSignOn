@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+<dbqueries>
+	<dbquery name="qDesktopSearch_getApplicantsToAttach">
+		SELECT  ta.applicant_id, ta.applicant_name, ta.applicant_email1, ta.applicant_email2 
+		FROM tp_applicants ta
+		@@
+	</dbquery>
+	<dbquery name="qDesktopSearch_GetApplicantName">
+		SELECT applicant_name FROM tp_applicants WHERE applicant_id=?
+	</dbquery>
+	<dbquery name="qDesktopSearch_GetSourceIdFromName">
+		select source_id from tp_sources where source_title like ?
+	</dbquery>
+</dbqueries>
+<dataqueries>   
+    <dataquery name="dDesktopSearch_getApplicantsToAttach" dbquery="qDesktopSearch_getApplicantsToAttach" object="com.talentPool.applicant.dataobject.ApplicantData">
+		<attribute name= "applicantId" column="applicant_id" type ="STRING" />
+        <attribute name= "applicantName" column="applicant_name" type ="STRING" />
+        <attribute name= "applicantEmail1" column="applicant_email1" type ="STRING" />
+        <attribute name= "applicantEmail2" column="applicant_email2" type ="STRING" />
+    </dataquery>    
+    <dataquery name="dDesktopSearch_GetApplicantName" dbquery="qDesktopSearch_GetApplicantName" />
+    <dataquery name="dDesktopSearch_GetSourceIdFromName" dbquery="qDesktopSearch_GetSourceIdFromName"/>
+</dataqueries>   
+</dbmap>

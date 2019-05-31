@@ -1,0 +1,114 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>	
+	    <dbquery name="qDocumentManager_AddApplicantDocument">
+	    	INSERT INTO tp_applicant_documents
+	    	(applicant_id,file_name,document_path,user_id,date_created,document_is_hidden)
+			VALUES(?,?,?,?,now(),?)
+	    </dbquery>  
+	    <dbquery name="qDocumentManager_updateApplicantDocument">
+	    	UPDATE tp_applicant_documents SET file_name=?, document_path=?, 
+					user_id=?, date_created=now() WHERE document_id=?
+	    </dbquery>  
+	    <dbquery name="qDocumentManager_GetApplicantDocuments">
+		    SELECT tad.document_id, tad.applicant_id, tad.file_name, tad.document_path, tad.user_id, tad.date_created,
+			CONCAT(tu.user_fname,' ',tu.user_lname) as name, tad.document_is_hidden
+			FROM tp_applicant_documents tad, tp_users tu
+			WHERE tad.USER_ID=tu.USER_ID AND
+			tad.applicant_id in (@@)
+			ORDER BY tad.date_created DESC
+	    </dbquery>  
+	    <dbquery name="qDocumentManager_GetApplicantDocumentData">
+		    SELECT tad.document_id, tad.applicant_id, tad.file_name, tad.document_path, tad.user_id, tad.date_created,
+		    tad.document_is_hidden
+			FROM tp_applicant_documents tad
+			WHERE tad.document_id=?
+	    </dbquery>  
+	    <dbquery name="qDocumentManager_DeleteApplicantDocument">
+		    DELETE FROM tp_applicant_documents 	WHERE document_id=?
+	    </dbquery>  
+		<dbquery name="qDocumentManager_DeletePositionDocument">
+		    DELETE FROM tp_position_documents WHERE document_id=? and position_id=?
+	    </dbquery>  
+	    <dbquery name="qDocumentManager_hideOrShowApplicantDocument">
+		    UPDATE tp_applicant_documents SET document_is_hidden = CASE WHEN document_is_hidden=? THEN ? ELSE ? END  
+			WHERE document_id=?
+	    </dbquery>  
+		 <dbquery name="qDocumentManager_GetPositionDocumentData">
+		    SELECT tad.file_name, tad.document_path
+			FROM tp_position_documents tad
+			WHERE tad.document_id=?
+	    </dbquery>
+		<dbquery name="qDocumentManager_GetPositionDocuments">
+			SELECT 	
+				tad.document_id,tad.position_id,tad.file_name, tad.document_path, tad.user_id, tad.date_created,
+				CONCAT(tu.user_fname,' ',tu.user_lname) as name, tad.document_is_hidden
+			FROM 	
+				tp_position_documents tad, tp_users tu
+			WHERE 
+				tad.USER_ID=tu.USER_ID AND
+				tad.position_id =?
+				ORDER BY tad.date_created DESC
+		</dbquery>
+		<dbquery name="qDocumentManager_AddPositionDocument">
+	    	INSERT INTO tp_position_documents
+	    	(position_id,file_name,document_path,user_id,date_created)
+			VALUES(?,?,?,?,now())
+	    </dbquery>
+		<dbquery name="qDocumentManager_hideOrShowPositionDocument">
+		    UPDATE tp_position_documents SET document_is_hidden = CASE WHEN document_is_hidden=? THEN ? ELSE ? END  
+			WHERE document_id=?
+	    </dbquery>
+	    <dbquery name="qDocumentManager_CopyPositionDocuments">
+	    	INSERT INTO tp_position_documents (position_id,file_name,document_path,user_id,date_created, document_is_hidden)
+	    	SELECT ?, file_name,document_path,user_id,now(),document_is_hidden
+			FROM tp_position_documents WHERE position_id=?
+	    </dbquery>
+	</dbqueries>
+	<dataqueries>
+	    <dataquery name="dDocumentManager_AddApplicantDocument" dbquery="qDocumentManager_AddApplicantDocument" />
+	    <dataquery name="dDocumentManager_updateApplicantDocument" dbquery="qDocumentManager_updateApplicantDocument" />
+	    <dataquery name="dDocumentManager_GetApplicantDocuments" dbquery="qDocumentManager_GetApplicantDocuments" object="com.talentPool.documents.dataobject.DocumentData">
+	    	<attribute name= "documentId" column="document_id" type ="STRING" />
+	    	<attribute name= "applicantId" column="applicant_id" type ="STRING" />
+	    	<attribute name= "originalFileName" column="file_name" type ="STRING" />	    	
+	    	<attribute name= "relativeFilePath" column="document_path" type ="STRING" />
+	    	<attribute name= "userId" column="user_id" type ="STRING" />
+	    	<attribute name= "dateCreated" column="date_created" type ="DATE" />
+	    	<attribute name= "ownerName" column="name" type ="STRING" />
+	    	<attribute name= "documentIsHidden" column="document_is_hidden" type ="STRING" />
+	    </dataquery>
+	    <dataquery name="dDocumentManager_GetApplicantDocumentData" dbquery="qDocumentManager_GetApplicantDocumentData" object="com.talentPool.documents.dataobject.DocumentData">
+	    	<attribute name= "documentId" column="document_id" type ="STRING" />
+	    	<attribute name= "applicantId" column="applicant_id" type ="STRING" />
+	    	<attribute name= "originalFileName" column="file_name" type ="STRING" />	    	
+	    	<attribute name= "relativeFilePath" column="document_path" type ="STRING" />
+	    	<attribute name= "userId" column="user_id" type ="STRING" />
+	    	<attribute name= "dateCreated" column="date_created" type ="DATE" />
+	    	<attribute name= "documentIsHidden" column="document_is_hidden" type ="STRING" />
+	    </dataquery>
+	    <dataquery name="dDocumentManager_DeleteApplicantDocument" dbquery="qDocumentManager_DeleteApplicantDocument" />
+	    <dataquery name="dDocumentManager_hideOrShowApplicantDocument" dbquery="qDocumentManager_hideOrShowApplicantDocument" />
+		<dataquery name="dDocumentManager_AddPositionDocument" dbquery="qDocumentManager_AddPositionDocument" />
+		<dataquery name="dDocumentManager_GetPositionDocuments" dbquery="qDocumentManager_GetPositionDocuments" object="com.talentPool.documents.dataobject.DocumentData">
+	    	<attribute name= "documentId" column="document_id" type ="STRING" />
+	    	<attribute name= "positionId" column="position_id" type ="STRING" />
+	    	<attribute name= "originalFileName" column="file_name" type ="STRING" />	    	
+	    	<attribute name= "relativeFilePath" column="document_path" type ="STRING" />
+	    	<attribute name= "userId" column="user_id" type ="STRING" />
+	    	<attribute name= "dateCreated" column="date_created" type ="DATE" />
+	    	<attribute name= "ownerName" column="name" type ="STRING" />
+	    	<attribute name= "documentIsHidden" column="document_is_hidden" type ="STRING" />
+	    </dataquery>
+		 <dataquery name="dDocumentManager_GetPositionDocumentData" dbquery="qDocumentManager_GetPositionDocumentData" object="com.talentPool.documents.dataobject.DocumentData">
+	    	<attribute name= "originalFileName" column="file_name" type ="STRING" />	    	
+	    	<attribute name= "relativeFilePath" column="document_path" type ="STRING" />
+	    </dataquery>
+		<dataquery name="dDocumentManager_DeletePositionDocument" dbquery="qDocumentManager_DeletePositionDocument" />
+		<dataquery name="dDocumentManager_hideOrShowPositionDocument" dbquery="qDocumentManager_hideOrShowPositionDocument" />
+		<dataquery name="dDocumentManager_CopyPositionDocuments" dbquery="qDocumentManager_CopyPositionDocuments" />
+	</dataqueries>   
+</dbmap>

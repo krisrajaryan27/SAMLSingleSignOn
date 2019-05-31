@@ -1,0 +1,40 @@
+TABLE.timePopUpOuter{ 
+	/*background-color:white;*/
+	background-color:#F2F2F2;
+	/*border:1px solid #888;*/
+	border:1px solid #99CC01; 
+	margin:0px;
+	padding:0px;
+}
+TABLE.timePopUp{ 
+	background-color:#F2F2F2;
+	/*background-color:#F0FFFF;*/
+	border:none;
+	margin:0px;
+	padding:0px;
+	border-spacing: 0px;
+}
+.timePopUp TD, TD.header{
+	padding:2px;
+	border:0px;
+	border-collapse: separate;
+	border-spacing: 0px;
+	text-align:center;
+	margin:0;
+	/*font-size:11px;*/
+	/*font-family:verdana;*/
+}
+.timePopUp TD.header{
+	border-bottom: 1px solid #99CC01;
+	font-weight:bold;
+}
+.timePopUp TD.AMCell{
+	background-color:#D0E4A3;
+	/*background-color:#98F5FF;*/
+	cursor:hand;
+}
+.timePopUp TD.PMCell{
+	background-color:#FFFFFF;
+	/*background-color:#FFE4C4;*/
+	cursor:hand;
+}

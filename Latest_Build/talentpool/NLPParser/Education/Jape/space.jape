@@ -1,0 +1,26 @@
+/*
+*  basicinfo_email.jape
+*
+*/
+
+Phase: customspacetoken
+Input: SpaceToken Token
+Options: control = appelt
+
+Rule: customspacetoken_control
+(
+ {SpaceToken.kind == control}
+)
+:spacetoken -->
+:spacetoken.CustomSpaceToken = {kind = "control", rule = "customspacetoken_control"}
+
+Rule: customspacetoken_space
+(
+ ({SpaceToken.kind == space})[4,50]
+)
+:spacetoken -->
+:spacetoken.Token = {kind = "space", rule = "customspacetoken_space"},
+{
+	gate.AnnotationSet oldCollege = (gate.AnnotationSet)bindings.get("spacetoken");
+	outputAS.removeAll(oldCollege);
+}

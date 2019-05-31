@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+   <dbqueries>
+       <dbquery name="qApplicationManager_GetReleaseInfo">
+        SELECT product_code, product_name, version_number, build_number, date_of_installation
+		FROM tp_release_info order by rel_id desc
+       </dbquery>
+       <dbquery name="qApplicationManager_GetCustomLabels">
+       	select custom_label_key, custom_label_value
+		from tp_custom_labels
+       </dbquery>
+       <dbquery name="qApplicationManager_GetProductVersion">
+       		SELECT build_number FROM tp_release_info ORDER BY rel_id desc LIMIT 0,1
+       </dbquery>
+   </dbqueries>
+   <dataqueries>
+       <dataquery name="dApplicationManager_GetReleaseInfo" dbquery="qApplicationManager_GetReleaseInfo" object="com.talentPool.common.db.SimpleDataObject">
+       		<attribute name="productCode"  column="product_code" type="STRING" />
+       		<attribute name="productName"  column="product_name" type="STRING" />
+       		<attribute name="versionNumber"  column="version_number" type="STRING" />
+       		<attribute name="buildNumber"  column="build_number" type="STRING" />       		
+       		<attribute name="installDate"  column="date_of_installation" type="STRING" />   
+       </dataquery>
+       <dataquery name="dApplicationManager_GetCustomLabels" dbquery="qApplicationManager_GetCustomLabels" object="com.talentPool.common.db.SimpleDataObject">
+       		<attribute name="key"  column="custom_label_key" type="STRING" />
+       		<attribute name="value"  column="custom_label_value" type="STRING" />
+       </dataquery>
+       <dataquery name="dApplicationManager_GetProductVersion" dbquery="qApplicationManager_GetProductVersion"/>
+   </dataqueries>   
+</dbmap>

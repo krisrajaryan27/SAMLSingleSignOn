@@ -1,0 +1,122 @@
+Attribute VB_Name = "Module1"
+//Microsoft Developer Studio generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "C:\Program Files\Microsoft Visual Studio\VC98\MFC\Include\afxres.h"
+#include "C:\Program Files\Microsoft Visual Studio\VC98\Include\dlgs.h"
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (U.S.) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+#ifdef _WIN32
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+#endif //_WIN32
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE DISCARDABLE
+BEGIN
+    "resource.h\0"
+End
+
+2 TEXTINCLUDE DISCARDABLE
+BEGIN
+    "#include ""C:\\Program Files\\Microsoft Visual Studio\\VC98\MFC\\Include\\afxres.h""\r\n"
+    "#include ""C:\\Program Files\\Microsoft Visual Studio\\VC98\\Include\\dlgs.h""\0"
+End
+
+3 TEXTINCLUDE DISCARDABLE
+BEGIN
+    "\r\n"
+    "\0"
+End
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+/////////////////////////////////////////////////////////////////////////////
+
+1900 DIALOG FIXED IMPURE  0, 0, 277, 145
+STYLE DS_CONTROL | WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS
+Font 8, "MS Sans Serif"
+BEGIN
+    LTEXT "", 1119, 0, 6, 277, 36
+    PUSHBUTTON "&Password...", IDC_BUTTONPWD, 129, 43, 50, 14
+    PUSHBUTTON "Add With &Wildcards", IDC_BUTTONWILD, 185, 43, 87, 14
+    LTEXT "Ac&tion:", IDC_LBLACTION, 6, 43, 38, 8
+    COMBOBOX        IDC_CBOACTION,6,54,116,48,CBS_DROPDOWNLIST | WS_VSCROLL |
+                    WS_TABSTOP
+    LTEXT "&Compression:", IDC_LBLCOMPRESS, 5, 70, 60, 8
+    COMBOBOX        IDC_CBOCOMPRESS,6,81,116,56,CBS_DROPDOWNLIST | WS_VSCROLL |
+                    WS_TABSTOP
+    LTEXT "&Multiple disk spanning", IDC_LBLSPAN, 6, 97, 93, 8
+    COMBOBOX        IDC_CBOSPAN,6,108,116,56,CBS_DROPDOWNLIST | WS_VSCROLL |
+                    WS_TABSTOP
+    CONTROL         "Store filenames in &8.3 format",IDC_CHK83,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,6,126,119,10
+    GROUPBOX "Folders", IDC_GRPFOLDERS, 129, 61, 143, 32, WS_GROUP
+    CONTROL         "&Include subfolders",IDC_CHKSUBFLDR,"Button",BS_AUTOCHECKBOX |
+                    WS_TABSTOP , 134, 70, 90, 10
+    CONTROL         "&Save extra folder info",IDC_CHKEXTRAFLDR,"Button",BS_AUTOCHECKBOX |
+                    WS_TABSTOP , 134, 80, 90, 10
+    GROUPBOX "Attributes", IDC_GRPATTRS, 129, 97, 143, 42
+    CONTROL         "Include only if archive attribute is set",IDC_CHKINCARCHSET,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,133,106,137,10
+    CONTROL         "Reset archive attribute",IDC_CHKRESETARCH,"Button",BS_AUTOCHECKBOX |
+                    WS_TABSTOP , 133, 116, 137, 10
+    CONTROL         "Include system and hidden files",IDC_CHKINCHIDSYS,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,133,126,137,10
+End
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO DISCARDABLE
+BEGIN
+    DLG_OPENFILE , DIALOG
+    BEGIN
+        LeftMargin , 7
+        RightMargin , 278
+        TopMargin , 7
+        BottomMargin , 202
+    End
+End
+#endif    // APSTUDIO_INVOKED
+
+#endif    // English (U.S.) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

@@ -1,0 +1,1 @@
+<p><strong>Requisition approval Pending notification</strong> <br /> <br /> Hi, <br /><br /> Please find the Following requisition Status. <br /> Position: $REQUISITION_TITLE <br /> Status: $REQUISITION_STATUS <br /> Person Assigned:$USER_FNAME<br /> <br /> <strong>Note:</strong> This auto generated email, please do not reply to this email</p>

@@ -1,0 +1,412 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<title>Untitled Document</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<script type="text/javascript" src="prototype.js"></script>
+<script type="text/javascript" src="effects.js"></script>
+<script type="text/javascript" src="../selectoption.js"></script>
+<script type="text/javascript" src="selectbox.js"></script>
+<!--link rel="stylesheet" media="all" type="text/css" href="default.css" /-->
+
+<style>
+body,input, div,a{
+font-family:Verdana, Arial, Helvetica, sans-serif;
+font-size:10px;
+}
+
+
+input, div{
+border:1px solid #9EAC64;
+background-color:#F3F9DC;
+}
+pre{
+font-family:verdana;
+font-size:10px;
+}
+a {
+ color:#265644;
+ text-decoration:underline;
+}
+.dropdowndiv{
+	scrollbar-track-color: #FFFFFF;
+	scrollbar-arrow-color: #265644;
+	scrollbar-face-color: #DDEBA5;
+	scrollbar-3dlight-color:#9EAC64;
+	scrollbar-shadow-color: #9EAC64;
+	scrollbar-darkshadow-color: #DDEBA5;
+	scrollbar-highlight-color: #DDEBA5;
+
+	-moz-box-sizing: border-box;
+    box-sizing: border-box;
+    border:1px solid #9EAC64;
+	overflow:auto;
+	background-color:#F3F9DC;
+	padding:0px;
+	margin:0px;
+}
+.dropdowndiv div {
+    cursor:default;
+	border:0px solid #000099;
+	padding-top:0px; /*keep padding top and bottom as 0*/
+	padding-bottom:0px;
+	margin:0px;
+	height:14px;
+	overflow:hidden;
+}
+.dropdowndiv div.selected {
+    background-color: #000066;
+    color: #FFFFFF;
+}
+.dropdowntextbox {
+	border:1px solid #9EAC64;
+	background-color:#F3F9DC;
+	height:13px;
+	margin:0px;
+	padding:0px 2px;
+}
+.dropdowntextboxfocused{
+	background-color:#000066;
+	color:#FFFFFF;
+}
+.dropdownimage {
+	height:13px;
+	margin:0px 0px -3px 0px;
+	padding:0px;
+}
+.age {
+	height:23px;
+	margin:0px 0px -3px -15px;
+	padding:0px;
+}
+.containerdiv{
+	border:0px solid #265644;
+	padding:0px;
+	margin:0px;
+}
+
+.containerdiv div.header{
+	font-family:verdana;
+	font-size:10px;
+	font-weight:bold;
+	background-color:#9EAC64;
+	color:#ffffff;
+	height:10px;
+	padding:0px;
+	margin:0px;
+}
+.containerdiv div.footer{
+	font-size:1px;
+	background-color:#9EAC64;
+	color:#ffffff;
+	height:2px;
+
+}
+.Level_0{
+	font-weight:bold;
+	color:#006699;
+}
+.Level_1{
+	font-weight:normal;
+	padding-left:15px;
+}
+.newMenuCss{
+	color: red;
+}
+</style>
+</head>
+<body style="margin:10px; ">
+<b>TalentPool Controls: SelectBox</b><br><br>
+<script type="text/javascript">
+var opts = new Array();
+opts[0] = new SelectOption('1','Electronics And Telecommunication Engineering',0,'',false,{cs:'newMenuCss'});
+opts[1] = new SelectOption('2','Mechanical Engineering');
+opts[2] = new SelectOption('3','Computer Science');
+opts[3] = new SelectOption('4','Electrical Engineering');
+opts[4] = new SelectOption('5','Electronics" Engineering');
+opts[5] = new SelectOption('6','Metallurgy');
+opts[6] = new SelectOption('7','Civil');
+opts[7] = new SelectOption('8','Production');
+opts[8] = new SelectOption('9','Instrumentation');
+
+
+var x=null;
+var m=null;
+
+
+
+</script>
+<b>Normal Text Box:</b><br><br>
+<script type="text/javascript">
+var x = new SelectBox(opts,'5','icon_down_arrow.gif',{namesonly:false, width:'180px', size:18});
+x.setOnChangeHandler('onChange');
+document.write(x.getHtml());
+x.init();
+</script>
+<br><br><br>
+<b>Tests:</b>
+<ul>
+<li>
+<a href="#" onClick="javascript:alert(x.getSelectedIndex());">getSelectedIndex()</a>
+</li>
+<li>
+<a href="#" onClick="javascript:alert(x.getSelectedId());">getSelectedId()</a>
+</li>
+<li>
+<a href="#" onClick="javascript:x.clearDropDown();">clearDropDown()</a>
+</li>
+<li>
+<a href="#" onClick="javascript:reinit();">reInitialize</a>
+</li>
+<li>
+<a href="#" onClick="javascript:alert(x.getText(x.getSelectedIndex()));">getText(sectedIndex)</a>
+</li>
+<li>
+<a href="#" onClick="javascript:alert(x.getIndexWithId(3));">getIndexWithId(3)</a>
+</li>
+<li>
+<a href="#" onClick="javascript:x.setSelected(x.getIndexWithId(3));">setSelected(getIndexWithId(3))</a>
+</li>
+<li>
+<a href="#" onClick="javascript:x.disable();">disable()</a>
+</li>
+<li>
+<a href="#" onClick="javascript:x.enable();">enable()</a>
+</li>
+<li>
+<a href="#" onClick="javascript:x.hideMe();">hide()</a>
+</li>
+<li>
+<a href="#" onClick="javascript:x.showMe();">show()</a>
+</li>
+
+</ul>
+<br>
+
+
+<b>Text Box with header and footer:</b><br><br>
+<script type="text/javascript">
+var m = new SelectBox(opts,'5','icon_down_arrow.gif',{namesonly:false, width:'180px', size:8});
+m.setContainerTemplates('<div class=\"header\">Degrees</div>','<div class=\"footer\"></div>');
+m.setOnChangeHandler('onChange');
+document.write(m.getHtml());
+m.init();
+function onChange(selectedId){
+	//alert('onChange is handled');
+}
+function reinit(){
+	var m = new Array();
+	for(t=0;t<1000;t++){
+		m[t] = new SelectOption('1',t+' = Electronics And Telecommunication Engineering');
+	}
+	x.reInitialize(m,'2');
+}
+
+</script>
+<br><br><br>
+<b>Select Box with Parent Childs:</b><br><br>
+
+<script type="text/javascript">
+var P_arr = new Array();
+var C_arr = new Array();
+var P = null;
+
+P = new SelectOption('P1','Department1');
+var C1 = new SelectOption('C1','Java Developer - Team Lead Doodle Bop',1);
+var C2 = new SelectOption('C2','Java Developer2',1);
+C_arr = new Array();
+C_arr[C_arr.length]=C1;
+C_arr[C_arr.length]=C2;
+P.setChilds(C_arr);
+P_arr[P_arr.length]=P;
+
+P = new SelectOption('P2','Department2');
+var C1 = new SelectOption('C3','Position1',1);
+var C2 = new SelectOption('C4','Position2',1);
+C_arr = new Array();
+C_arr[C_arr.length]=C1;
+C_arr[C_arr.length]=C2;
+P.setChilds(C_arr);
+P_arr[P_arr.length]=P;
+
+var levelStyles = new Array();
+levelStyles[0]="Level_0";
+levelStyles[1]="Level_1";
+
+var t = new SelectBox(P_arr,'5','icon_down_arrow.gif',{namesonly:false, width:'180px', size:8, oStyles:levelStyles});
+document.write(t.getHtml());
+t.init();
+function reinitT(){
+	t.reInitialize(P_arr,'2');
+}
+
+</script>
+<br><br><br>
+<b>Tests:</b>
+<ul>
+<li>
+<a href="#" onClick="javascript:alert(t.getSelectedIndex());">getSelectedIndex()</a>
+</li>
+<li>
+<a href="#" onClick="javascript:alert(t.getSelectedId());">getSelectedId()</a>
+</li>
+<li>
+<a href="#" onClick="javascript:t.clearDropDown();">clearDropDown()</a>
+</li>
+<li>
+<a href="#" onClick="javascript:reinitT();">reInitialize</a>
+</li>
+<li>
+<a href="#" onClick="javascript:alert(t.getText(t.getSelectedIndex()));">getText(sectedIndex)</a>
+</li>
+<li>
+<a href="#" onClick="javascript:alert(t.getIndexWithId('C1'));">getIndexWithId('C1')</a>
+</li>
+<li>
+<a href="#" onClick="javascript:t.setSelected(x.getIndexWithId('C1'));">setSelected(getIndexWithId('C1'))</a>
+</li>
+<li>
+<a href="#" onClick="javascript:t.disable();">disable()</a>
+</li>
+<li>
+<a href="#" onClick="javascript:t.enable();">enable()</a>
+</li>
+
+</ul>
+<br>
+
+
+<br><br><br><br>
+<b>Creating Control</b>
+<br>
+<br><b>//Create an array of options</b>
+<pre>
+//value and names
+var opts = new Array();
+opts[0] = new SelectOption('1','Electronics And Telecommunication Engineering');
+opts[1] = new SelectOption('2','Mechanical Engineering');
+opts[2] = new SelectOption('3','Computer Science');
+opts[3] = new SelectOption('4','Electrical Engineering');
+opts[4] = new SelectOption('5','Electronics" Engineering');
+opts[5] = new SelectOption('6','Metallurgy');
+opts[6] = new SelectOption('7','Civil');
+opts[7] = new SelectOption('8','Production');
+opts[8] = new SelectOption('9','Instrumentation');
+</pre>
+<b>//Instantiate the control</b>
+<pre>
+var x = new SelectBox(opts,'1','icon_down_arrow.gif',{namesonly:false, width:'180px', size:18});
+x.setContainerTemplates('&lt;div class=\"header\"&gt;Degrees&lt;/div&gt;','&lt;div class=\"footer\"&gt;&lt;/div&gt;'); 	////Optional step
+x.setOnChangeHandler('onChange');		////Optional step
+document.write(x.getHtml());
+x.init();
+</pre>
+<b>Constructor:</b>
+<br><br>
+<b>SelectBox(optionsArray,initialSelectedId,imagePath,{namesonly:false, width:'180px', size:18})</b>
+<pre>
+optionsArray
+	Array of options
+
+imagePath
+	Path of arrow image
+
+imagePath
+	Id of the Image for arrow button
+
+{namesonly:false, width:'180px', size:8}
+	These are the different options you can specify while initializing the control
+
+	namesonly:false
+		if you don't have values for the options in that case this is true.
+
+		For example, in above example you have list where you have ids for each option,
+		then you create the option as below and set namesonly:false
+		new SelectOption('2','Mechanical Engineering');
+
+		in case you have just list, specify value as null and set namesonly:true
+		new SelectOption(null,'Mechanical Engineering');
+
+	width:'180px'
+		width of the control
+
+	size:8
+		Size of the drop down box, determoines number of options visible at a time in the dropdown,
+		also required for pageup and pagedown, default is 10.
+
+	textboxclass:'dropdowntextbox'
+	 	default class for textbox is 'dropdowntextbox'
+	textboxfocussedclass:'dropdowntextboxfocused'
+	 	default class for textbox is 'dropdowntextboxfocused'
+	imageclass:'dropdownimage'
+	 	default class for textbox is 'dropdownimage'
+	containerclass:'containerdiv'
+	 	default class for textbox is 'containerdiv'
+	layerclass:'dropdowndiv'
+	 	default class for textbox is 'dropdowndiv'
+</pre>
+
+<b>Methods:</b>
+<br><br>
+<b>setContainerTemplates(headerTemplate,footerTemplate)</b>
+<pre>
+	Adds header and footer to container div,
+	should be defined before getHtml()
+</pre>
+<b>getHtml()</b>
+<pre>
+	returns the html for control
+</pre>
+<b>init()</b>
+<pre>
+	initiates control, make sure you call getHtml() before this.
+</pre>
+<b>setOnChangeHandler(functionName)</b>
+<pre>
+	Assign function which is called on change event of the box
+	x.setOnChangeHandler('onChange');
+	function onChange(selectedId){
+		alert(selectedId);
+	}
+</pre>
+<b>getSelectedIndex()</b>
+<pre>
+	returns selectedIndex
+	default 0, null if dropdown is empty
+</pre>
+<b>getSelectedId()</b>
+<pre>
+	return selected Id
+	default 0, null if dropdown is empty
+</pre>
+
+<b>getText(sectedIndex)</b>
+<pre>
+	return text at the index passed
+	default 0, null if index out of bound
+</pre>
+<b>clearDropDown()</b>
+<pre></pre>
+<b>reInitialize(opts, initialSelectedId)</b>
+<pre>
+	Reinitialize the dropdown with given options and preselect the element with id same as initialSelectedId
+</pre>
+<b>getIndexWithId(id)</b>
+<pre>
+	return the first index of the given id
+</pre>
+<b>setSelected(index)</b>
+<pre>
+	select the element at specified index
+</pre>
+<b>disable</b>
+<pre>
+	disable the control
+</pre>
+<b>enable</b>
+<pre>
+	enable the control
+</pre>
+</body>
+</html>

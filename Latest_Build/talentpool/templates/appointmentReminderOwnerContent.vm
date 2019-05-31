@@ -1,0 +1,48 @@
+<p> </p>
+<table cellspacing="8" cellpadding="5" align="center" bgcolor="#9EAC64">
+<tbody>
+<tr>
+<td class="header">Interview Reminder</td>
+</tr>
+<tr>
+<td bgcolor="#FFFFFF">
+<table cellspacing="2" cellpadding="3">
+<tbody>
+<tr>
+<td class="lightGreen">Candidate:</td>
+<td><a href="$LINK_TO_ORIGINAL_RESUME">$CANDIDATE_NAME</a></td>
+</tr>
+<tr>
+<td class="lightGreen">Date:</td>
+<td>$APPOINTMENT_DATE</td>
+</tr>
+<tr>
+<td class="lightGreen">Time:</td>
+<td>$APPOINTMENT_TIME_FROM</td>
+</tr>
+<tr>
+<td class="lightGreen">Position:</td>
+<td>$APPOINTMENT_POSITION_NAME</td>
+</tr>
+<tr>
+<td class="lightGreen">Step:</td>
+<td>$POSITION_STEP_NAME</td>
+</tr>
+<tr>
+<td class="lightGreen">Interview Mode:</td>
+<td>$APPOINTMENT_INTERVIEW_MODE</td>
+</tr>
+<tr>
+<td class="lightGreen">Interview Mode Details:</td>
+<td><p>$APPOINTMENT_INTERVIEW_MODE_DETAILS</p><p>&nbsp;</p></td>
+
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+<tr>
+<td>&nbsp;</td>
+</tr>
+</tbody>
+</table>

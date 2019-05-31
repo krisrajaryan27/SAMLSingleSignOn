@@ -1,0 +1,80 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>	
+	    <dbquery name="qMastersManager_GetNaukriLocationByName">
+       		select city_id
+			from tp_naukri_location_codes
+			where upper(city) = upper(?)
+       </dbquery> 
+       <dbquery name="qMastersManager_GetNaukriUGDegreeByName">
+       		select case count(*) when 0 then 16 else course_id end from tp_ug_education_codes where upper(course) = upper(?);
+       </dbquery>
+       <dbquery name="qMastersManager_GetNaukriPGDegreeByName">
+       		select case count(*) when 0 then 18 else course_id end from tp_pg_education_codes where upper(course) = upper(?);
+       </dbquery>
+       <!-- dbquery name="qMastersManager_GetNaukriPPGDegreeByName">
+       		select course_id
+			from tp_ppg_education_codes
+			where upper(course) = upper(?)
+       </dbquery-->
+        <!-- dbquery name="qMastersManager_GetNaukriUGDBranchByName">
+       		select specialization_id
+			from tp_ug_education_specialization
+			where upper(specialization) = upper(?)
+			AND course_id in (@@)
+       </dbquery-->
+       <dbquery name="qMastersManager_GetNaukriUGDBranchByName">
+           	select specialization_id from tp_ug_education_specialization as tu
+			where tu.course_id in (@@) and (upper(tu.specialization) = upper(?))
+			union
+			select specialization_id from 
+			(select * from tp_ug_education_specialization as tu
+			where tu.course_id in (@@) and (upper(tu.specialization) = upper(?) or upper(tu.specialization) = upper('Other'))) as t
+			where not exists (select * from tp_ug_education_specialization as t1 where t1.course_id = t.course_id and t1.course_id in (@@) and (upper(t1.specialization) = upper(?)))
+			union
+			select specialization_id from tp_ug_education_specialization  where course_id in (@@)  group by course_id having count(*)=1
+       </dbquery>
+       <!-- dbquery name="qMastersManager_GetNaukriPGDBranchByName">
+       		select specialization_id
+			from tp_pg_education_specialization
+			where upper(specialization) = upper(?)
+			AND course_id in (@@)
+
+       </dbquery-->
+       <dbquery name="qMastersManager_GetNaukriPGDBranchByName">
+			select specialization_id from tp_pg_education_specialization as tu
+			where tu.course_id in (@@) and (upper(tu.specialization) = upper(?))
+			union
+			select specialization_id from 
+			(select * from tp_pg_education_specialization as tu
+			where tu.course_id in (@@) and (upper(tu.specialization) = upper(?) or upper(tu.specialization) = upper('Other'))) as t
+			where not exists (select * from tp_pg_education_specialization as t1 where t1.course_id = t.course_id and t1.course_id in (@@) and (upper(t1.specialization) = upper(?)))
+			union
+			select specialization_id from tp_pg_education_specialization  where course_id in (@@)  group by course_id having count(*)=1
+           
+       </dbquery>
+       <!--dbquery name="qMastersManager_GetNaukriPPGDBranchByName">
+       		select specialization_id
+			from tp_ppg_education_specialization
+			where upper(specialization) = upper(?)
+			AND course_id in (@@)
+
+       </dbquery-->
+       <dbquery name="qMastersManager_GetNaukriMaxExpForMinExp">
+           SELECT max_allowed_exp FROM tp_naukri_experience WHERE min_exp = floor(?);
+       </dbquery>
+    </dbqueries>
+   <dataqueries>
+       <dataquery name="dMastersManager_GetNaukriLocationByName" dbquery="qMastersManager_GetNaukriLocationByName"/>
+       <dataquery name="dMastersManager_GetNaukriUGDegreeByName" dbquery="qMastersManager_GetNaukriUGDegreeByName"/>
+       <dataquery name="dMastersManager_GetNaukriPGDegreeByName" dbquery="qMastersManager_GetNaukriPGDegreeByName"/>
+       <!-- dataquery name="dMastersManager_GetNaukriPPGDegreeByName" dbquery="qMastersManager_GetNaukriPPGDegreeByName"/-->
+       <dataquery name="dMastersManager_GetNaukriUGDBranchByName" dbquery="qMastersManager_GetNaukriUGDBranchByName"/>
+       <dataquery name="dMastersManager_GetNaukriPGDBranchByName" dbquery="qMastersManager_GetNaukriPGDBranchByName"/>
+       <!-- dataquery name="dMastersManager_GetNaukriPPGDBranchByName" dbquery="qMastersManager_GetNaukriPPGDBranchByName"/-->
+       <dataquery name="dMastersManager_GetNaukriMaxExpForMinExp" dbquery="qMastersManager_GetNaukriMaxExpForMinExp"/>
+   </dataqueries>
+</dbmap>

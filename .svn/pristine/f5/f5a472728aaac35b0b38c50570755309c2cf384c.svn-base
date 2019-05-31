@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>
+		<!--Common Section **************************************************-->
+		<dbquery name="qPermission_GetPositionUserCount">
+			SELECT count(*) FROM  tp_positions tp
+			WHERE 
+			tp.position_id = ?
+			AND
+			(
+			tp.position_id IN (
+				SELECT su.position_id FROM tp_position_step_users su, tp_position_steps ps 
+				WHERE su.position_step_id = ps.position_step_id and ps.position_step_status = ? AND
+				su.user_id = ?
+				)
+			OR 
+			tp.position_requested_by =?
+			OR
+			tp.position_id IN (
+				SELECT distinct position_id FROM tp_requisition_approval_feedback 
+				WHERE by_user_id=? OR to_user_id=?
+				)
+			)
+		</dbquery>
+		<!--End Common Section **********************************************-->
+	</dbqueries>
+	<dataqueries>
+		<!--Common Section **************************************************************-->
+	    <dataquery name="dPermission_GetPositionUserCount" dbquery="qPermission_GetPositionUserCount"/>
+		<!--Common Section **************************************************************-->
+	</dataqueries>   
+</dbmap>

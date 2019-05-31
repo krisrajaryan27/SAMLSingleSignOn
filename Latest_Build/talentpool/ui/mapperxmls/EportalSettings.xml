@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mapping xmlns="http://castor.exolab.org/" xmlns:cst="http://castor.exolab.org/">
+    <description xmlns="">Castor generated mapping file</description>
+    <class name="com.talentPool.employeeservice.dataobject.EPortalSettings">
+        <description xmlns="">Default mapping for class com.talentPool.employeeservice.dataobject.EPortalSettings</description>
+        <map-to xml="EPortalSettings"/>
+        <field name="EPortalSettingsMap" type="java.lang.Object" collection="map">
+            <bind-xml name="EPortalSettingsMap" node="element"/>
+        </field>
+    </class>
+</mapping>

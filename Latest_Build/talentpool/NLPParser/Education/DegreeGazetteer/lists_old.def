@@ -1,0 +1,36 @@
+B.A.lst:degree:B.A.
+B.Arch.lst:degree:B.Arch
+B.B.A.lst:degree:B.B.A
+BCA.lst:degree:BCA
+B.Com.lst:degree:B.Com
+BDS.lst:degree:BDS
+B.E_B.Tech.lst:degree:B.E/B.Tech
+B.Ed.lst:degree:B.Ed
+BHM.lst:degree:BHM
+BL_LLB.lst:degree:BL/LLB
+B.Pharm.lst:degree:B.Pharm
+B.Sc.lst:degree:B.Sc
+CA.lst:degree:CA
+Diploma.lst:degree:Diploma
+ICWA.lst:degree:ICWA
+M.A.lst:degree:M.A
+M.Arch.lst:degree:M.Arch
+MBA.lst:degree:MBA
+MBBS.lst:degree:MBBS
+MCA.lst:degree:MCA
+MD.lst:degree:MD
+M.Com.lst:degree:M.Com
+MS.lst:degree:MS
+M.Ed.lst:degree:M.Ed
+M.E_M.Tech.lst:degree:M.E/M.Tech
+ML_LLM.lst:degree:ML/LLM
+M.Pharm.lst:degree:M.Pharm
+Mphil.lst:degree:Mphil
+M.Sc.lst:degree:M.Sc
+PGDCA.lst:degree:PGDCA
+PG Diploma.lst:degree:PG Diploma
+PGDM.lst:degree:PGDM
+Phd.lst:degree:Phd
+Other_Bachelor.lst:degree:Other Graduation
+Other_Master.lst:degree:Other Post Graduation
+branches.lst:branch

@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<!DOCTYPE hibernate-mapping PUBLIC
+"-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+"http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+<hibernate-mapping>
+	<class name="com.talentPool.customReports.dataobject.CRColumn" table="tp_custom_report_columns">
+		<id name="columnId" type="long" column="column_id">
+			<generator class="increment"/>
+		</id>
+		<property name="columnProperty" type="string" column="column_property" not-null="true" />
+		<property name="columnDisplayName" type="string" column="column_display_name" not-null="true" />
+		<property name="columnType" type="string" column="column_type" />
+		<property name="columnDataType" type="string" column="column_data_type" not-null="true" />
+		<property name="columnDbname" type="string" column="column_dbname" not-null="true" />
+		<property name="columnWidth" type="integer" column="column_width" not-null="true" />
+		<property name="isActive" type="boolean" column="is_active" />
+		<property name="tableType" type="string" column="table_type" />
+		<property name="isCustomField" type="boolean" column="is_custom_field" />
+	</class>
+</hibernate-mapping>

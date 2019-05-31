@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>
+		<!-- Start: Last Viewed -->
+		<dbquery name="qRecentViewManager_InsertLastViewed">
+			insert into tp_last_viewed 
+			(entity_id, entity_type, entity_date_viewed, entity_viewed_by)
+			values 
+			(?, ?, now(), ?)
+		</dbquery>
+		<dbquery name="qRecentViewManager_GetLastViewedEntities">
+			SELECT  entity_id, entity_type, 
+				CASE WHEN entity_type=? THEN
+					(SELECT applicant_name FROM tp_applicants WHERE applicant_id=tplv.entity_id)
+				ELSE
+					(SELECT @@ FROM tp_positions WHERE position_id=tplv.entity_id)
+				END AS description, 
+				last_viewed 
+			FROM (
+				SELECT entity_id , entity_type , max(entity_date_viewed) as last_viewed
+				FROM  tp_last_viewed  WHERE entity_viewed_by=?
+				@@
+				GROUP BY entity_id , entity_type
+				ORDER BY  last_viewed desc LIMIT 0, 7
+			) AS tplv
+		</dbquery>
+		<dbquery name="qRecentViewManager_GetLastViewedPositions">
+			SELECT entity_id ,tps.@@ as description,entity_type , max(entity_date_viewed) as last_viewed
+			FROM  
+				tp_last_viewed  tlv,
+				tp_positions tps 
+			WHERE tps.position_id = tlv.entity_id and
+			entity_viewed_by=?
+			AND entity_type=?
+			GROUP BY entity_id , entity_type
+			ORDER BY  last_viewed desc LIMIT 0, 5
+		</dbquery>
+		<!-- End: Last Viewed -->
+	</dbqueries>
+	<dataqueries>
+		<!-- Start: Last Viewed -->
+		<dataquery name="dRecentViewManager_InsertLastViewed" dbquery="qRecentViewManager_InsertLastViewed" />
+		<dataquery name="dRecentViewManager_GetLastViewedEntities" dbquery="qRecentViewManager_GetLastViewedEntities" object="com.talentPool.user.dataobject.LastViewedEntity">
+			<attribute name="entityId" column="entity_id" type="STRING"/>
+	        <attribute name="entityType" column="entity_type" type="STRING"/>
+	        <attribute name="description" column="description" type="STRING"/>
+	        <attribute name="lastViewed" column="last_viewed" type="STRING"/>		
+		</dataquery>
+		<dataquery name="dRecentViewManager_GetLastViewedPositions" dbquery="qRecentViewManager_GetLastViewedPositions" object="com.talentPool.user.dataobject.LastViewedEntity">
+			<attribute name="entityId" column="entity_id" type="STRING"/>
+	        <attribute name="entityType" column="entity_type" type="STRING"/>
+	        <attribute name="description" column="description" type="STRING"/>
+	        <attribute name="lastViewed" column="last_viewed" type="STRING"/>		
+		</dataquery>
+		<!-- End: Last Viewed -->
+	</dataqueries>   
+</dbmap>

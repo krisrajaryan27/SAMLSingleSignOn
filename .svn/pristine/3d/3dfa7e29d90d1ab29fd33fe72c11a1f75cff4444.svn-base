@@ -1,0 +1,1570 @@
+/**
+ * 
+ */
+package com.talentPool.common.utils;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.net.UnknownHostException;
+import java.sql.Date;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.TimeZone;
+import java.util.Map.Entry;
+import java.util.MissingResourceException;
+import java.util.Properties;
+import java.util.Random;
+import java.util.ResourceBundle;
+import java.util.Scanner;
+import java.util.StringTokenizer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.apache.commons.lang.StringEscapeUtils;
+import org.apache.commons.lang.StringUtils;
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Whitelist;
+import org.xml.sax.SAXException;
+import org.xml.sax.helpers.AttributesImpl;
+import org.jsoup.nodes.Document.OutputSettings;
+
+import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.ClientResponse;
+import com.sun.jersey.api.client.WebResource;
+import com.talentPool.common.CommonConstants;
+import com.talentPool.common.Logger.TPLogger;
+import com.talentPool.common.constants.DateConstants;
+import com.talentPool.common.db.SimpleDataObject;
+import com.talentPool.common.properties.GlobalApplicationProperties;
+import com.talentPool.common.properties.GlobalConstants;
+import com.talentPool.common.properties.TPApplicationProperties;
+import com.talentPool.common.properties.TPLabels;
+import com.talentPool.common.xmlutils.XMLWriter;
+import com.talentPool.custom.constants.CustomFieldConstants;
+import com.talentPool.custom.dataobject.CustomFieldData;
+import com.talentPool.search.SearchConstants;
+import com.talentPool.search.dataobjects.SearchCriteriaData;
+
+/**
+ * @author shivprasad
+ * 
+ */
+public class Utils {
+	public static final long MILLIS_IN_A_DAY = 1000 * 60 * 60 * 24;
+
+	// public static String regUserName = "[a-z0-9.\\-_]*";
+	public static final String regName = "[a-z0-9.\\-_ ]*";
+	public static final String regEmail = "[a-z0-9.\\-_]+@([a-z0-9\\-_]+\\.)+(" + "com|net|org|edu|int|mil|gov|arpa|biz|" + "aero|name|coop|info|pro|museum|tv|([a-z]{2}))";
+	public static final String regNumberOnly = "[0-9]+";
+	// Date Expressions
+	public static final String dateSeparator = "/";
+	public static final String dateDescSeparator = "-";
+	public static final String regEUDateFormat = "dd/MM/yyyy";
+	public static final String regDDMMMYYYYFormat = "dd-MMM-yyyy";
+	public static final String regDDMMMYYFormat = "dd-MMM-yy";
+	public static final String regMMMYYYYFormat = "MMM-yyyy";
+	public static final String regMMMYYFormat = "MMM-yy";
+	public static final String regDDMMMFormat = "dd-MMM";
+	public static final String regYYYYFormat = "yyyy";
+	public static final String redDDMMYYYYFormat = "dd-MM-yyyy";
+	public static final String redYYYYMMDDFormat = "yyyy-MM-dd";
+	public static final String regEEEDDMMMYY = "EEE, dd-MMM-yy";
+	public static final String regEEEDDMMM = "EEE, dd-MMM";
+	public static final String regddMMMyyyyhhmma = "dd-MMM-yyyy hh:mm a";
+	public static final String reghhmma = "hh:mm a";
+	public static final String regDDMMYYYYHHMMSSEFromat = "dd-MM-yyyy hh:mm:ss a";
+	public static final String regDateTimeFormat = "dd/MM/yyyy hh:mm a";
+	public static final String regDDMMMhhmmaFormat = "dd-MMM hh:mm a";
+	public static final String regDDMMYYYYHHMMSSFromat = "dd/MM/yyyy hh:mm:ss";
+	public static final String regDDMMYYYYHHMMSSsssFromat = "yyyy-MM-dd HH:mm:ss.SSS";
+	public static final String regDDMMYYYYhhmmssFromat = "yyyy-MM-dd hh:mm:ss";
+	
+	public static final String excludeSpecialChararacters = "^[^'~\\^!\\[\\]<>%$&#]*$";
+	
+	public static final String EXP_FRESHER = "Fresher";
+	public static final String EXP_YRS = "yrs";
+	public static final String EXP_MOS = "mos";
+	/**
+	 * Constant is moved to <code>{@link DateConstants}</code>
+	 */
+	@Deprecated
+	public static final String dbDateFormat = "yyyy-MM-dd HH:mm:ss";
+	
+	
+	/**
+	 * @param root
+	 * @param path
+	 * @return the concatenated file path.
+	 * 
+	 * while appennding it automatically checks for "\" or "/" at the end of the root and at the
+	 * start of the path
+	 */
+	public static String concatFilePath(String root, String path) {
+		if (root == null)
+			return path;
+		else if (path == null)
+			return root;
+		StringBuffer sb = new StringBuffer();
+		boolean isEnded = false;
+		if (root.endsWith("/") || root.endsWith("\\")) {
+			isEnded = true;
+		}
+		sb.append(root);
+		if (path.startsWith("/") || path.startsWith("\\")) {
+			if (isEnded) {
+				sb.append(path.substring(1));
+			} else {
+				sb.append(path);
+			}
+		} else {
+			if (isEnded) {
+				sb.append(path);
+			} else {
+				sb.append("/");
+				sb.append(path);
+			}
+		}
+		return sb.toString();
+	}
+
+	/**
+	 * Removes tabs, newlines and redundant spaces from a string Basically for building a single
+	 * line query from one that was broken across multiple lines.
+	 * 
+	 * @param inputStr
+	 * @return
+	 */
+	public static String removeExtraWhiteSpace(String inputStr) {
+		StringBuffer newSb = new StringBuffer();
+		int size = inputStr.length();
+		char prevC = 'a';
+		for (int i = 0; i < size; i++) {
+			char c = inputStr.charAt(i);
+			if (c == '\n' || c == '\t' || c == '\r') {
+				c = ' ';
+			}
+			if (c == ' ') {
+				if (prevC == ' ') {
+					// skip
+				} else {
+					newSb.append(c);
+				}
+			} else {
+				newSb.append(c);
+			}
+			prevC = c;
+		}
+		return newSb.toString().trim();
+	}
+
+	public static boolean isBlankOrNull(String s) {
+		return (s == null || "".equals(s.trim()) || "null".equals(s.trim()));
+	}
+
+	public static boolean isBlankOrNullOrDefault(String s, String defaultValue){
+		return isBlankOrNull(s)|| s.equals(defaultValue);
+	}
+	
+	/**
+	 * Checks whether the given string is null or blank or -1 (default value) 
+	 * @param str
+	 * @return true if str is NULL or "" or "-1"
+	 * <br> else false
+	 * @see Utils#isBlankOrNull(String)
+	 * @see Utils#isBlankOrNullOrDefault(String, String)
+	 */
+	public static boolean isBlankOrNullOrDefault(String str){
+		return isBlankOrNullOrDefault(str, CommonConstants.DEFAULT_SELECT_VALUE);
+	}
+	
+	/**
+	 * @param count
+	 *            length of random String
+	 * @param start
+	 *            lower limit of range
+	 * @param end
+	 *            upper limit of range
+	 * @param letters
+	 *            true - letters are allowed
+	 * @param numbers
+	 *            true - numbers are allowed
+	 * @param chars
+	 *            set of characters to be used
+	 * @param random
+	 *            object of java.util.Random classs
+	 * @return
+	 */
+	public static String getRandomString(int count, int start, int end, boolean letters, boolean numbers, char[] chars, Random random) {
+		if (count == 0) {
+			return "";
+		} else if (count < 0) {
+			throw new IllegalArgumentException("Requested random string length " + count + " is less than 0.");
+		}
+		if ((start == 0) && (end == 0)) {
+			end = 'z' + 1;
+			start = ' ';
+			if (!letters && !numbers) {
+				start = 0;
+				end = Integer.MAX_VALUE;
+			}
+		}
+
+		StringBuffer buffer = new StringBuffer();
+		int gap = end - start;
+
+		while (count-- != 0) {
+			char ch;
+			if (chars == null) {
+				ch = (char) (random.nextInt(gap) + start);
+			} else {
+				ch = chars[random.nextInt(gap) + start];
+			}
+			if ((letters && numbers && Character.isLetterOrDigit(ch)) || (letters && Character.isLetter(ch)) || (numbers && Character.isDigit(ch)) || (!letters && !numbers)) {
+				buffer.append(ch);
+			} else {
+				count++;
+			}
+		}
+		return buffer.toString();
+	}
+
+	/**
+	 * 
+	 * @param input
+	 *            String to be validated
+	 * @param pattern
+	 *            Pattern to be matched
+	 * @return true if pattern is matched else return false
+	 */
+	public static boolean isValidPattern(String input, String pattern) {
+		Pattern p = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE | Pattern.MULTILINE);
+		Matcher m = p.matcher(input);
+		return (m.matches());
+
+	}
+
+	public static java.util.Date convertToDate(String input, String dateFormat) {
+		java.util.Date dt = null;
+		try {
+			if (!isBlankOrNull(input)) {
+				SimpleDateFormat sdfInput = new SimpleDateFormat(dateFormat);
+				dt = sdfInput.parse(input);
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().debug("Error While converting to util date", e);
+			dt = null;
+		}
+		return dt;
+	}
+	
+	public static java.util.Date convertHoursToDateWithTimeZone(String input, String dateFormat) {
+		java.util.Date dt = null;
+		try {
+				Date startTime = new Date(System.currentTimeMillis());
+				GregorianCalendar cal = new GregorianCalendar();
+				cal.setTime(startTime);
+				cal.set(java.util.Calendar.HOUR_OF_DAY, Integer.parseInt(input.substring(0, input.indexOf(":"))));
+				cal.set(java.util.Calendar.MINUTE, Integer.parseInt(input.substring(input.indexOf(":")+1, input.length())));
+				dt = cal.getTime();
+		} catch (Exception e) {
+			TPLogger.getLogger().debug("Error While converting to util date", e);
+			dt = null;
+		}
+		return dt;
+	}
+	
+	public static String getDateStringConvertedToOtherDateFormat(String dateString , String srcDateFormat, String destDateFormat){
+		java.util.Date date = convertToDate(dateString, srcDateFormat);
+		return getDateConvertedToString(date, destDateFormat);
+	}
+	
+
+	public static java.util.Date adjustDateBy(java.util.Date d, int unit, int numberOfUnits) {
+		java.util.GregorianCalendar cal = new java.util.GregorianCalendar();
+		cal.setTime(d);
+		cal.add(unit, numberOfUnits);
+		return cal.getTime();
+	}
+	
+	/**
+	 * @author PraveenK 
+	 * Increments date by one day 
+	 * @param date
+	 * @return
+	 */
+	public static java.util.Date datePlusPlus(java.util.Date date) {
+		return Utils.adjustDateBy(date, Calendar.DATE, +1);
+	}
+
+	public static java.sql.Date convertToSQLDate(String input, String dateFormat) {
+		java.sql.Date dt = null;
+		try {
+			dt = new Date(convertToDate(input, dateFormat).getTime());
+		} catch (Exception e) {
+			TPLogger.getLogger().debug("Error While converting to sql date", e);
+			dt = null;
+		}
+		return dt;
+	}
+
+	public static java.sql.Date convertDateToSQLDate(java.util.Date input) {
+		java.sql.Date dt = null;
+		try {
+			if (input != null) {
+				dt = new Date(input.getTime());
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().debug("Error While converting to sql date", e);
+			dt = null;
+		}
+		return dt;
+	}
+
+	public static String getDateConvertedToString(java.util.Date dt, String dateFormat) {
+		try {
+			DateFormat format = new SimpleDateFormat(dateFormat);
+			return format.format(dt);
+		} catch (Exception e) {
+			TPLogger.getLogger().debug("Error While parsing send date: setting send date to null", e);
+		}
+		return "";
+	}
+	
+	public static String getCurrentTimeStamp() {
+		try {
+			DateFormat format = new SimpleDateFormat("HH:mm:ss");
+			return format.format(new java.util.Date());
+		} catch (Exception e) {
+			TPLogger.getLogger().debug("Error While parsing send date: setting send date to null", e);
+		}
+		return "";
+	}
+
+	public static String getFormattedRecord(String input) {
+		try {
+			input = input.replaceAll("&#44;", ",");
+			input = input.replaceAll("&#124;", "|");
+			input = input.replaceAll("&#58;", ":");
+			input = input.replaceAll("&#95;", "_");
+		} catch (Exception e) {
+		}
+		return input;
+	}
+
+	/*
+	 * Added by Shivprasad : Reference can be found at
+	 * http://www.koders.com/java/fid469723E78254774BEC5E0E17D580B2DA38BA3658.aspx
+	 */
+	/**
+	 * <p>
+	 * Creates a random string based on a variety of options, using default source of randomness.
+	 * </p>
+	 * 
+	 * <p>
+	 * This method has exactly the same semantics as
+	 * {@link #random(int,int,int,boolean,boolean,char[],Random)}, but instead of using an
+	 * externally supplied source of randomness, it uses the internal static {@link Random}
+	 * instance.
+	 * </p>
+	 * 
+	 * @param count
+	 *            the length of random string to create
+	 * @param start
+	 *            the position in set of chars to start at
+	 * @param end
+	 *            the position in set of chars to end before
+	 * @param letters
+	 *            only allow letters?
+	 * @param numbers
+	 *            only allow numbers?
+	 * @param chars
+	 *            the set of chars to choose randoms from. If <code>null</code>, then it will use
+	 *            the set of all chars.
+	 * @return the random string
+	 * @throws ArrayIndexOutOfBoundsException
+	 *             if there are not <code>(end - start) + 1</code> characters in the set array.
+	 */
+	public static String random(int count, int start, int end, boolean letters, boolean numbers, char[] chars, Random random) {
+		if (count == 0) {
+			return "";
+		} else if (count < 0) {
+			throw new IllegalArgumentException("Requested random string length " + count + " is less than 0.");
+		}
+		if ((start == 0) && (end == 0)) {
+			end = 'z' + 1;
+			start = ' ';
+			if (!letters && !numbers) {
+				start = 0;
+				end = Integer.MAX_VALUE;
+			}
+		}
+
+		StringBuffer buffer = new StringBuffer();
+		int gap = end - start;
+
+		while (count-- != 0) {
+			char ch;
+			if (chars == null) {
+				ch = (char) (random.nextInt(gap) + start);
+			} else {
+				ch = chars[random.nextInt(gap) + start];
+			}
+			if ((letters && numbers && Character.isLetterOrDigit(ch)) || (letters && Character.isLetter(ch)) || (numbers && Character.isDigit(ch)) || (!letters && !numbers)) {
+				buffer.append(ch);
+			} else {
+				count++;
+			}
+		}
+		return buffer.toString();
+	}
+
+	/**
+	 * 
+	 * @param data
+	 * @param separator
+	 * @return arraylist of keys separated by separator passed
+	 */
+	public static List<String> getKeys(String data, String separator) {
+		List<String> list = new ArrayList<String>();
+		if (isBlankOrNull(data))
+			return list;
+		StringTokenizer st = new StringTokenizer(data, separator);
+		while (st.hasMoreTokens()) {
+			String token = st.nextToken();
+			list.add(token);
+		}
+		return list;
+	}
+
+	public static String convertArrayListIntoCommaSptdString(ArrayList arrayList) {
+		String commaSptdString = "";
+		try {
+			for (int i = 0; i < arrayList.size(); i++) {
+				if (i != (arrayList.size() - 1)) {
+					commaSptdString = commaSptdString + arrayList.get(i) + ", ";
+				} else {
+					commaSptdString = commaSptdString + arrayList.get(i);
+				}
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("error while converting String array into String", e);
+		}
+		return commaSptdString;
+	}
+
+	public static String convertArrayIntoCommaSptdString(String[] arr) {
+		String commaSptdString = "";
+		try {
+			for (int i = 0; arr != null && i < arr.length; i++) {
+				
+				if (i != (arr.length - 1)) {
+					commaSptdString += arr[i]==null?"": arr[i]+ ", ";
+				} else {
+					commaSptdString += arr[i]==null?"": arr[i];
+				}
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("error while converting String array into String", e);
+		}
+		return commaSptdString;
+	}
+
+	public static String getXMLForSessionExpiry() {
+		return "<?xml version=\"1.0\" standalone=\"yes\"?><session-expired>1</session-expired>";
+	}
+
+	public static String getXMLForError() {
+		ArrayList<String> errors = new ArrayList<String>();
+		errors.add("Error");
+		return getXMLForError(errors);
+	}
+
+	public static String getXMLForError(List errors) {
+		StringWriter sWr = new StringWriter();
+		XMLWriter wr = new XMLWriter(sWr);
+		try {
+			wr.startDocument();
+			wr.startElement("errors");
+			if (errors != null && errors.size() > 0) {
+				for (int indx = 0; indx < errors.size(); indx++) {
+					wr.startElement("error");
+					wr.characters((String) errors.get(indx));
+					wr.endElement("error");
+				}
+			}
+			wr.endElement("errors");
+			wr.endDocument();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while creating error xml", e);
+		}
+		return sWr.toString();
+	}
+
+	public static String getXMLForIds(String commaSepids) {
+		StringWriter sWr = new StringWriter();
+		XMLWriter wr = new XMLWriter(sWr);
+		String[] ids = commaSepids.split(",");
+		try {
+			wr.startDocument();
+			wr.startElement("ids");
+			for (int i = 0; i < ids.length; i++) {
+				wr.startElement("id");
+				wr.characters(ids[i]);
+				wr.endElement("id");
+			}
+			wr.endElement("ids");
+			wr.endDocument();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting XML content for Delete Email", e);
+		}
+		return sWr.getBuffer().toString();
+	}
+
+	public static String getXMLForTagName(String tagName, String jsArray) {
+		StringWriter sWr = new StringWriter();
+		XMLWriter wr = new XMLWriter(sWr);
+		try {
+			wr.startDocument();
+			wr.startElement(tagName);
+			wr.characters(isBlankOrNull(jsArray) ? "" : jsArray);
+			wr.endElement(tagName);
+			wr.endDocument();
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error", e);
+		}
+		return sWr.toString();
+	}
+
+	public static String getHostName() throws UnknownHostException {
+		java.net.InetAddress i = java.net.InetAddress.getLocalHost();
+		return i.getHostName();
+	}
+
+	/**
+	 * Method to build the search filter string.
+	 * 
+	 * @param cData
+	 *            The search criteria data.
+	 * @return The search filter string.
+	 */
+	public static String getSearchFilterString(SearchCriteriaData cData) {
+		StringBuffer sb = new StringBuffer();
+		if (!Utils.isBlankOrNull(cData.getDegree())) {
+			if (cData.getDegreeCriteria().equals(SearchConstants.OR)) {
+				sb.append("Any ");
+			} else {
+				sb.append("All ");
+			}
+			String[] arrDegreeIds = cData.getDegree().split(",");
+			for (int i = 0; arrDegreeIds != null && i < arrDegreeIds.length; i++) {
+				String degreeId = arrDegreeIds[i].trim();
+				if (i > 0) {
+					sb.append(", ");
+				}
+				sb.append(CommonUtils.getDegreeName(degreeId));
+			}
+			sb.append(" | ");
+		}
+		if (!Utils.isBlankOrNull(cData.getBranch())) {
+			String[] arrDegreeIds = cData.getBranch().split(",");
+			for (int i = 0; arrDegreeIds != null && i < arrDegreeIds.length; i++) {
+				String branchId = arrDegreeIds[i].trim();
+				if (i > 0) {
+					sb.append(", ");
+				}
+				sb.append(CommonUtils.getBranchName(branchId));
+			}
+			sb.append(" | ");
+		}
+		if (!Utils.isBlankOrNull(cData.getSourceTypeId())) {
+			sb.append(CommonUtils.getSourceTypeName(cData.getSourceTypeId()) + " | ");
+		}
+
+		if (!Utils.isBlankOrNull(cData.getResumeTypeId())) {
+			sb.append(CommonUtils.getResumeTypeName(cData.getResumeTypeId()) + " | ");
+		}
+
+		if (!Utils.isBlankOrNull(cData.getSource())) {
+			sb.append(cData.getSource() + " | ");
+		}
+		if (!Utils.isBlankOrNull(cData.getCurrentEmployer())) {
+			sb.append(cData.getCurrentEmployer() + " | ");
+		}
+		if (!Utils.isBlankOrNull(cData.getPassport())) {
+			sb.append(cData.getPassport() + " | ");
+		}
+		if (!Utils.isBlankOrNull(cData.getCurrentLocation())) {
+			sb.append(cData.getCurrentLocation() + " | ");
+		}
+		if (!Utils.isBlankOrNull(cData.getImportDaysFilter()) && !"-1".equals(cData.getImportDaysFilter())) {
+			sb.append(TPLabels.getLabel("search_applicant.home.label.import_date") + " " + getFilterString(cData.getImportDaysFilter(), cData.getImportDaysFromDate(), cData.getImportDaysToDate()));
+		}
+		if (!Utils.isBlankOrNull(cData.getBirthDayFilter()) && !"-1".equals(cData.getBirthDayFilter())) {
+			sb.append(TPLabels.getLabel("search_applicant.home.label.date_of_birth") + " " + getFilterString(cData.getBirthDayFilter(), cData.getBirthDaysFromDate(), cData.getBirthDaysToDate()));
+		}
+		if (!Utils.isBlankOrNull(cData.getLastInteractionFilter()) && !"-1".equals(cData.getLastInteractionFilter())) {
+			sb.append(TPLabels.getLabel("search_applicant.home.label.last_interaction") + " " + getFilterString(cData.getLastInteractionFilter(), cData.getLastInteractionFromDate(), cData.getLastInteractionToDate()));
+		}
+		if (cData.getExcludeInprocess().equals(SearchConstants.SEARCH_NOT_INPROCESS)) {
+			sb.append(TPLabels.getLabel("search_applicant.home.label.exclude_candidates_in_process"));
+			if (!isBlankOrNull(cData.getExcludeRejectedInPast())) {
+				sb.append(", " + TPLabels.getLabel("search_applicant.home.label.exclude_rejected"));
+			}
+			sb.append(" | ");
+		} else if (cData.getExcludeInprocess().equals(SearchConstants.SEARCH_INPROCESS)) {
+			sb.append(TPLabels.getLabel("search_applicant.home.label.candidates_in_process") + " | ");
+		}else if(SearchConstants.SEARCH_BLACKLISTED.equals(cData.getExcludeInprocess())){
+			sb.append(TPLabels.getLabel("black_list.label.blackListed") + " | ");
+		}else if(SearchConstants.SEARCH_APPLIED_STAGE.equals(cData.getExcludeInprocess())){
+			sb.append(TPLabels.getLabel("search_applicant.home.label.candidates_in_applied") + " | ");
+		}
+		if (!Utils.isBlankOrNull(cData.getRejectReason())) {
+			sb.append(TPLabels.getLabel("search_applicant.home.label.include_rejected") + " ");
+			String[] arrDegreeIds = cData.getRejectReason().split(",");
+			for (int i = 0; arrDegreeIds != null && i < arrDegreeIds.length; i++) {
+				String rejectId = arrDegreeIds[i].trim();
+				if (i > 0) {
+					sb.append(", ");
+				}
+				if (rejectId.equals(SearchConstants.REJECTED_IN_SHORTLIST)) {
+					sb.append(TPLabels.getLabel("search_applicant.home.label.rejected_in_shortlist"));
+				} else if (rejectId.equals(SearchConstants.REJECTED_IN_SELECTION)) {
+					sb.append(TPLabels.getLabel("search_applicant.home.label.rejected_in_selection"));
+				} else if (rejectId.equals(SearchConstants.REJECTED_IN_HIRE)) {
+					sb.append(TPLabels.getLabel("search_applicant.home.label.rejected_in_hire"));
+				} else if (rejectId.equals(SearchConstants.REJECTED_POSITION_CLOSED)) {
+					sb.append(TPLabels.getLabel("common.due_to")+" "+TPLabels.getLabel("common.position")+" "+TPLabels.getLabel("common.closed"));
+				}
+			}
+			sb.append(" | ");
+		}
+		if (!Utils.isBlankOrNull(cData.getFlag())) {
+			String[] arrDegreeIds = cData.getFlag().split(",");
+			for (int i = 0; arrDegreeIds != null && i < arrDegreeIds.length; i++) {
+				String flagId = arrDegreeIds[i].trim();
+				if (i > 0) {
+					sb.append(", ");
+				}
+				sb.append(CommonUtils.getFlagText(flagId));
+			}
+			sb.append(" | ");
+		}
+
+		ArrayList<CustomFieldData> customFields = cData.getCustomFields();
+		if (customFields != null) {
+			for (int i = 0; i < customFields.size(); i++) {
+				CustomFieldData customFieldData = customFields.get(i);
+				String vals = convertArrayIntoCommaSptdString(customFieldData.getFieldValues());
+
+				if (!isBlankOrNull(vals)) {
+					if (customFieldData.getFieldType().equals(CustomFieldConstants.TYPE_NUMBER) || customFieldData.getFieldType().equals(CustomFieldConstants.TYPE_DATE)) {
+						if (!isBlankOrNull(customFieldData.getRangeCriteria())) {
+							if (customFieldData.getRangeCriteria().equals(SearchConstants.CRITERIA_EQUAL_TO)) {
+								sb.append("Equals to " + vals + " | ");
+							} else if (customFieldData.getRangeCriteria().equals(SearchConstants.CRITERIA_GREATER_THAN)) {
+								sb.append("Greater than " + vals + " | ");
+							} else if (customFieldData.getRangeCriteria().equals(SearchConstants.CRITERIA_LESS_THAN)) {
+								sb.append("Less than " + vals + " | ");
+							} else if (customFieldData.getRangeCriteria().equals(SearchConstants.CRITERIA_BETWEEN)) {
+								String[] valsto = customFieldData.getToValues();
+								sb.append("Between " + vals + " and " + valsto[0] + " | ");
+							} else if (customFieldData.getRangeCriteria().equals(SearchConstants.CRITERIA_NOT_SPECIFIED)) {
+								sb.append(SearchConstants.CRITERIA_NOT_SPECIFIED + " | ");
+							}
+						}
+					} else {
+						sb.append(vals + " | ");
+					}
+
+				}
+			}
+		}
+		String filterStr = sb.toString();
+		if (filterStr.length() > 0) {
+			filterStr = filterStr.substring(0, filterStr.length() - 2);
+		}
+		return filterStr;
+	}
+
+	private static String getFilterString(String range, java.util.Date fromVal, java.util.Date toVal) {
+		StringBuffer sb = new StringBuffer();
+		String toValString = DateUtils.getSystemDateFormat(toVal);
+		String fromValString = DateUtils.getSystemDateFormat(fromVal);
+		if (SearchConstants.CRITERIA_EQUAL_TO.equals(range)) {
+			sb.append("Equals to " + fromValString + " | ");
+		} else if (SearchConstants.CRITERIA_GREATER_THAN.equals(range)) {
+			sb.append("Greater than " + fromValString + " | ");
+		} else if (SearchConstants.CRITERIA_LESS_THAN.equals(range)) {
+			sb.append("Less than " + fromValString + " | ");
+		} else if (SearchConstants.CRITERIA_BETWEEN.equals(range)) {			
+			sb.append("Between " + fromValString + " and " + toValString + " | ");
+		} else if (SearchConstants.CRITERIA_NOT_SPECIFIED.equals(range)) {
+			sb.append(SearchConstants.CRITERIA_NOT_SPECIFIED + " | ");
+		}
+		return sb.toString();
+	}
+	/**
+	 * Creates list from passed arrayList of SimpleDO using property param This is used for
+	 * autocompleter code
+	 * 
+	 * @param lst
+	 * @param param
+	 * @return
+	 */
+	public static String getListInXML(ArrayList lst, String param) {
+		StringWriter sWr = new StringWriter();
+		try {
+			if (lst != null) {
+				XMLWriter wr = new XMLWriter(sWr);
+				wr.startDocument();
+				wr.startElement("ul");
+				for (int i = 0; i < lst.size(); i++) {
+					SimpleDataObject sdo = (SimpleDataObject) lst.get(i);
+					String name = sdo.getString(param);
+					wr.startElement("li");
+					wr.characters(name);
+					wr.endElement("li");
+				}
+				wr.endElement("ul");
+				wr.endDocument();
+			}
+		} catch (SAXException e) {
+			TPLogger.getLogger().error("Error while getting xml from list", e);
+		}
+		return sWr.getBuffer().toString();
+	}	
+	
+	
+	/**
+	 * Creates list from passed arrayList of SimpleDO using property param1, param2 This is used for
+	 * autocompleter code
+	 * Added for asian paints autocompleter by Arvind Khatik
+	 * @param lst
+	 * @param param
+	 * @return
+	 */
+	// Added for Asian Paints
+	public static String getListInXML(ArrayList lst, String param1, String param2) {
+		StringWriter sWr = new StringWriter();
+		try {
+			if (lst != null) {
+				XMLWriter wr = new XMLWriter(sWr);
+				wr.startDocument();
+				wr.startElement("ul");
+				for (int i = 0; i < lst.size(); i++) {
+					SimpleDataObject sdo = (SimpleDataObject) lst.get(i);
+					String name = sdo.getString(param1);
+					String id = sdo.getString(param2);
+					wr.startElement("li");
+					wr.characters(name + " - " + id);
+					wr.endElement("li");
+				}
+				wr.endElement("ul");
+				wr.endDocument();
+			}
+		} catch (SAXException e) {
+			TPLogger.getLogger().error("Error while getting xml from list", e);
+		}
+		return sWr.getBuffer().toString();
+	}
+	
+	// Added for Asian Paints
+	public static String getNameInXML(ArrayList lst, String param1) {
+		StringWriter sWr = new StringWriter();
+		if (lst != null) {
+			//XMLWriter wr = new XMLWriter(sWr);
+			//wr.startDocument();
+			//wr.startElement("ul");
+			for (int i = 0; i < lst.size(); i++) {
+				SimpleDataObject sdo = (SimpleDataObject) lst.get(i);
+				String name = sdo.getString(param1);
+				sWr.write(name);
+				//wr.startElement("li");
+				//wr.characters(name);
+			//	wr.endElement("li");
+			}
+			//wr.endElement("ul");
+			//wr.endDocument();
+		}
+		return sWr.getBuffer().toString();
+	}	
+	
+	public static String getNameInXML(ArrayList lst, String param1, String param2) {
+		StringWriter sWr = new StringWriter();
+		if (lst != null) {
+			//XMLWriter wr = new XMLWriter(sWr);
+			//wr.startDocument();
+			//wr.startElement("ul");
+			for (int i = 0; i < lst.size(); i++) {
+				SimpleDataObject sdo = (SimpleDataObject) lst.get(i);
+				String name = StringUtils.EMPTY;
+				if (!Utils.isBlankOrNull(sdo.getString(param2))) {
+					String jobName = sdo.getString(param1);
+					if (Utils.isBlankOrNull(jobName)) {
+						jobName = StringUtils.EMPTY;
+					}
+					name = jobName + " (" + sdo.getString(param2) + ")";
+				}
+				sWr.write(name);
+				//wr.startElement("li");
+				//wr.characters(name);
+			//	wr.endElement("li");
+			}
+			//wr.endElement("ul");
+			//wr.endDocument();
+		}
+		return sWr.getBuffer().toString();
+	}	
+	
+	public static String getExperienceConstructed(java.util.Date workingSince) {
+		String exp = "";
+		if (workingSince != null) {
+			Calendar cal1 = Calendar.getInstance();
+			Calendar cal2 = Calendar.getInstance();
+			cal1.setTime(workingSince);
+			int yearDiff = cal2.get(Calendar.YEAR) - cal1.get(Calendar.YEAR);
+			int monthDiff = yearDiff * 12 + cal2.get(Calendar.MONTH) - cal1.get(Calendar.MONTH);
+			int yrs = 0;
+			if (monthDiff != 0) {
+				yrs = monthDiff / 12;
+				if (yrs > 0) {
+					exp = yrs + " " + EXP_YRS;
+				}
+			}
+			int mos = monthDiff % 12;
+			if (mos > 0) {
+				if (yrs > 0) {
+					exp += " ";
+				}
+				exp += mos + " " + EXP_MOS;
+			}
+		}
+		if (exp.length() <= 0) {
+			exp = EXP_FRESHER;
+		}
+		return exp;
+	}
+	
+	public static double getExperienceInNumberFormat(java.util.Date workingSince) {
+		double exp = 0;
+		if (workingSince != null) {
+			Calendar cal1 = Calendar.getInstance();
+			Calendar cal2 = Calendar.getInstance();
+			cal1.setTime(workingSince);
+			int yearDiff = cal2.get(Calendar.YEAR) - cal1.get(Calendar.YEAR);
+			int monthDiff = yearDiff * 12 + cal2.get(Calendar.MONTH) - cal1.get(Calendar.MONTH);
+			int yrs = 0;
+			if (monthDiff != 0) {
+				yrs = monthDiff / 12;
+				if(yrs >0){
+					exp = yrs;
+				}
+			}
+			int mos = monthDiff % 12;
+			if (mos > 0) {
+				exp = yrs+(mos/365);
+			}
+		}
+		return exp;
+	}
+
+	public static String setDynamicParamsAndReturnQmarks(String strIds, ArrayList<String> dynamicContent) {
+		String qMarks = "";
+		try {
+			String[] arrIds = strIds.split(",");
+			for (int i = 0; i < arrIds.length; i++) {
+				qMarks += (i > 0) ? ",?" : "?";
+				dynamicContent.add(arrIds[i].trim());
+			}
+
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+		return qMarks;
+	}
+
+	public static String getQmarks(int noOfQmarks) {
+		String qMarks = "";
+		try {
+			for (int i = 0; i < noOfQmarks; i++) {
+				qMarks += (i > 0) ? ",?" : "?";
+			}
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+		return qMarks;
+	}
+
+	public static String getDateDiffenence(java.util.Date Date1, java.util.Date Date2) {
+		String exp = "";
+		if (Date1 != null) {
+			exp = String.valueOf(getDateDiffenenceInLong(Date1,Date2));
+		}
+		return exp;
+	}
+	public static String getDateDiffenenceIncludeLastDay(java.util.Date Date1, java.util.Date Date2) {
+		if (Date1 != null) {
+			if(Date1.after(Date2)){
+				return String.valueOf(getDateDiffenenceInLong(Date1,Date2));
+			}else if(Date1.before(Date2)){
+				return String.valueOf(getDateDiffenenceInLong(Date1,Date2)+1);
+			}else if(Date1.equals(Date2)) {
+				return "0";
+			}
+		}
+		return "";
+	}
+	private static long getDateDiffenenceInLong(java.util.Date Date1, java.util.Date Date2) {
+		long days = 0;
+		Calendar cal1 = Calendar.getInstance();
+		Calendar cal2 = Calendar.getInstance();
+		cal1.setTime(Date1);
+		cal2.setTime(Date2);
+		days = cal2.getTimeInMillis() - cal1.getTimeInMillis();
+		days = days / (1000 * 60 * 60 * 24);
+		return days;
+	}
+	
+	public static String replaceUserEmailWithInboxEmail(String userEmailId, String inboxEmailId) {
+		int indx = userEmailId.indexOf("<");
+		String returnString = userEmailId.substring(0, indx) + " <" + inboxEmailId + ">";
+		return returnString;
+	}
+
+	public static Properties loadAppliocationLabels(String fileName) {
+		Properties properties = new Properties();
+		try {
+			if (Utils.isBlankOrNull(fileName)) {
+				fileName = "talentpoollabels.properties";
+			}
+			String labelsFolder = Utils.concatFilePath(Utils.concatFilePath(TPApplicationProperties.getProperty("application.path"), TPApplicationProperties.getProperty("ui.dir")),
+					TPApplicationProperties.getProperty("label.folder.relative"));
+			String labelFileName = Utils.concatFilePath(labelsFolder, fileName);
+			properties.load(new FileInputStream(labelFileName));
+		} catch (FileNotFoundException e) {
+			TPLogger.getLogger().error("Error while loading application labels", e);
+		} catch (IOException e) {
+			TPLogger.getLogger().error("Error while loading application labels", e);
+		}
+		return properties;
+	}
+
+	public static void saveAppliocationLabels(Properties properties) {
+		try {
+			if (properties != null) {
+				String labelsFolder = Utils.concatFilePath(Utils.concatFilePath(TPApplicationProperties.getProperty("application.path"), TPApplicationProperties.getProperty("ui.dir")),
+						TPApplicationProperties.getProperty("label.folder.relative"));
+				String labelFileName = Utils.concatFilePath(labelsFolder, "talentpoollabels.properties");
+				properties.store(new FileOutputStream(labelFileName), null);
+			}
+		} catch (FileNotFoundException e) {
+			TPLogger.getLogger().error("Error while saving application labels", e);
+		} catch (IOException e) {
+			TPLogger.getLogger().error("Error while saving application labels", e);
+		}
+	}
+
+	public static String getEmailAddress(String emailAddress) {
+		if (emailAddress != null && emailAddress.indexOf("<") > 0) {
+			emailAddress = emailAddress.substring(emailAddress.indexOf("<") + 1, emailAddress.length() - 1);
+		}
+		return emailAddress;
+	}
+
+	public static String removeExtendedAsciiChars(String input) {
+		for(int i = 128; i <= 255; i++) {
+			input = input.replaceAll(""+(char) i, "");
+		}
+		return input;
+	}
+	
+	public static String getXMLForContent(String tagName, String content) {
+		StringWriter sWr = new StringWriter();
+		XMLWriter wr = new XMLWriter(sWr);
+		try {
+			wr.startDocument();
+			wr.startElement(tagName);
+			wr.characters(wr.doubleEscape(content));
+			wr.endElement(tagName);
+			wr.endDocument();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return sWr.toString();
+	}
+
+	public static String getXMLForMap(Map<String, Object> map) {
+		StringWriter sWr = new StringWriter();
+		XMLWriter wr = new XMLWriter(sWr);
+		try {
+			wr.startDocument();
+			wr.startElement("content");
+			for (String key : map.keySet()) {
+				wr.startElement(key);
+				wr.characters(wr.doubleEscape(map.get(key)+""));
+				wr.endElement(key);
+			}			
+			wr.endElement("content");
+			wr.endDocument();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return sWr.toString();
+	}
+	
+	public static String getXMLForMapForDHTMLGrid(Map<String, Object> map){
+		StringWriter sWr = new StringWriter();
+		XMLWriter wr = new XMLWriter(sWr);
+		try {
+			int cnt=0;
+			wr.startDocument();
+			wr.startElement("rows");
+			for (String key : map.keySet()) {
+				AttributesImpl atr = new AttributesImpl();
+				atr.addAttribute("", "id", "", "",""+cnt++);
+				wr.startElement("", "row", "", atr);
+
+				AttributesImpl atr1 = new AttributesImpl();
+				atr1.addAttribute("", "name", "", "", "key");
+				wr.startElement("", "userdata", "", atr1);
+				wr.characters(key);
+				wr.endElement("userdata");
+				
+				wr.startElement("cell");
+				wr.characters(wr.doubleEscape(map.get(key)+""));
+				wr.endElement("cell");
+				wr.endElement("row");
+			}			
+			wr.endElement("rows");
+			wr.endDocument();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return sWr.toString();
+	}
+
+	public static String escapeHTML(String html) {
+		return StringEscapeUtils.escapeHtml(html);
+	}
+	
+	public static String escapeJavaScript(String js) {
+		return StringEscapeUtils.escapeJavaScript(js);
+	}
+	
+	public static String escapeXml(String s) {
+		return s.replaceAll("&", "&amp;").replaceAll(">", "&gt;").replaceAll("<", "&lt;").replaceAll("\"", "&quot;").replaceAll("'", "&apos;");
+	}
+	
+	public static boolean isDateInFuture(java.util.Date d) {
+		try {
+			java.util.Date now = Calendar.getInstance().getTime();
+			if (d.after(now)) {
+				return true;
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().debug(GlobalConstants.ERROR, e);
+		}
+		return false;
+	}
+	
+	public static String stopBOTS(String email) {
+		if(!isBlankOrNull(email) && GlobalConstants.ENABLED.equals(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_SHOW_BOT_RESISTANT_EMAIL_ID))) {
+			email = email.replace("@", " at ").replace(".", " dot ");
+		}
+		return email;
+	}
+	
+	
+	/**
+	 * This method loads instance variables (static and non final) of objClass from the varMap 
+	 * @param objClass
+	 * @param varMap
+	 */
+	public static void loadStaticVariables(Class objClass,Map varMap) {
+		Field[] fldClass = null;
+		fldClass = objClass.getDeclaredFields();
+		int modifierVal = 0;
+		try {
+			for (int i = 0; i < fldClass.length; i++){
+				fldClass[i].setAccessible(true);
+				modifierVal = fldClass[i].getModifiers();
+				if(!Modifier.isFinal(modifierVal) && Modifier.isStatic(modifierVal))
+					if(varMap.containsKey(fldClass[i].getName()))
+						fldClass[i].set(null,varMap.get(fldClass[i].getName()));
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error in loading Static Variables", e);
+		}
+	}
+
+	/**
+	 * @deprecated This method is replaced by <code>{@link DateUtils}.getSystemDateFormat(date);</code>.
+     * @deprecated
+	 */
+	@Deprecated
+	public static String getSystemDateFormat(java.util.Date date){
+		String convertedDate = null;
+		try {
+			convertedDate = getDateConvertedToString(date, regDDMMMYYYYFormat);
+		} catch (Exception e) {
+			TPLogger.getLogger().debug(GlobalConstants.ERROR, e);
+			convertedDate = null;
+		}
+		return convertedDate;
+	}
+	
+	public static String getBlankIfNull(String str){
+		return isBlankOrNull(str)?"":str;
+	}
+	
+	public static String getBlankIfNull(Integer intgr){
+		return intgr==null?"":intgr+"";
+	}
+	
+	@SuppressWarnings("unchecked")
+	public static void escapeJavaScript(SimpleDataObject sdo) {
+		Map sdoMap =  sdo.getAttributes();
+		Iterator  objMapIterator =  sdoMap.entrySet().iterator();
+		Map.Entry pairs = null;
+		while (objMapIterator.hasNext()) {
+	        pairs = (Map.Entry)objMapIterator.next();
+	        if(pairs.getValue()instanceof java.lang.String){
+	        	sdoMap.put(pairs.getKey(), Utils.escapeJavaScript(pairs.getValue().toString()));
+	        }
+	    }
+	}
+	
+	public static String replaceSpaceWithUnderscore(String text){
+		return isBlankOrNull(text)?text:text.trim().replace(" ","_"); 
+	}
+	
+	public static String replaceSpaceWithDoubleUnderscore(String text){
+		return Utils.isBlankOrNull(text)?text:text.trim().replace(" ","__"); 
+	}
+	
+	public static String convertToLowerCase(String text){
+		return Utils.isBlankOrNull(text)?text:text.toLowerCase(); 
+	}
+	
+	public static void getJSArraySelectOption(String key,String value,StringBuffer sb){
+		sb.append("new SelectOption('" + key+ "','" + value+ "')");
+	}
+	
+	public static void getJSArraySelectOption(String key,String value,StringBuilder sb){
+		sb.append("new SelectOption('" + key+ "','" + value+ "')");
+	}
+	
+	public static void getJSArraySelectOption(int key,String value,StringBuilder sb){
+		getJSArraySelectOption(key+"", value, sb);
+	}
+	
+	/**
+	 * Returns a URL built using the method parameters
+	 * Eg:
+	 * <code>http://hostanem:port/alias
+	 * </code>
+	 * @param hostName
+	 * @param port
+	 * @param alias
+	 * @return
+	 */
+	public static String buildURL(String protocol,String hostName, String port, String alias, String queryString){
+		StringBuilder path = new StringBuilder();
+		protocol = Utils.isBlankOrNull(protocol)?"http":protocol;
+		if(!Utils.isBlankOrNull(port))
+			path.append(protocol).append("://"+hostName).append(":").append(port).append("/").append(alias).append("/").append(queryString);
+		else
+			path.append(protocol).append("://").append(hostName).append("/").append(alias).append("/").append(queryString);
+		return path.toString();
+	}
+	
+	public static String buildTalentPoolURL(String queryString){
+		String externalLink = TPApplicationProperties.getProperty("application.external_IP");
+		String url = "", systemName = "";
+		if(!Utils.isBlankOrNull(externalLink)) {
+			systemName = externalLink;			
+		} else {
+			systemName = TPApplicationProperties.getProperty("system.name");			
+		}
+		url = Utils.buildURL(TPApplicationProperties.getProperty("application.protocol"),
+				systemName, 
+				TPApplicationProperties.getProperty("application.port"), 
+				TPApplicationProperties.getProperty("application.alias"),queryString);
+		
+		return url;
+	}
+	
+	public static String buildSocialURL(String queryString){
+		return Utils.buildURL(TPApplicationProperties.getProperty("social.protocol"),
+				TPApplicationProperties.getProperty("social.hostname"), 
+				TPApplicationProperties.getProperty("social.port"), 
+				TPApplicationProperties.getProperty("social.alias"),queryString);
+	}
+	
+	/**
+	 * @param queryString
+	 * @return tvendor URL
+	 */
+	public static String buildTvendorURL(String queryString){
+		String alias = "";
+		try {
+			ResourceBundle rb = ResourceBundle.getBundle("tvendor");			
+			alias = rb.getString("application.alias");
+		} catch (MissingResourceException mre) {
+			TPLogger.getLogger().debug("Resource/Key not found");
+			alias = "tvendor";
+		}
+		return Utils.buildURL(TPApplicationProperties.getProperty("application.protocol"),
+				CommonConstants.HOST_NAME, 
+				TPApplicationProperties.getProperty("application.port"), 
+				alias,queryString);
+	}
+	
+	/**
+	 * @param queryString
+	 * @return temployee URL
+	 */
+	public static String buildTemployeeURL(String queryString){
+		String alias = "";
+		try {
+			ResourceBundle rb = ResourceBundle.getBundle("temployee");			
+			alias = rb.getString("application.alias");
+		} catch (MissingResourceException mre) {
+			TPLogger.getLogger().debug("Resource/Key not found");
+			alias = "temployee";
+		}
+		return Utils.buildURL(TPApplicationProperties.getProperty("application.protocol"),
+				CommonConstants.HOST_NAME, 
+				TPApplicationProperties.getProperty("application.port"), 
+				alias,queryString);
+	}
+	
+	public static String buildExternalTalentPoolURL(String queryString){
+		return Utils.buildURL(TPApplicationProperties.getProperty("application.protocol"),
+				TPApplicationProperties.getProperty("application.external_IP"), 
+				TPApplicationProperties.getProperty("application.port"), 
+				TPApplicationProperties.getProperty("application.alias"),queryString);
+	}
+	
+	public static String getStringTrimmed(String value,int length) {
+		return ((value.length() > length) ? value.substring(0, length-2) + "..." : ((value.length() == 0) ? "&nbsp;" : value));
+	}
+	
+	/**
+	 * Converts Comma delimited String to Distinct Collection 
+	 * @param groupBy
+	 * @param drb
+	 * @param reportType
+	 */
+	public static List<String> convertCommaSepStringToDistinctList(String commaDelimitedStr){
+		return convertStringToDistinctList(commaDelimitedStr, CommonConstants.DEFAULT_DELIMITER);
+	}
+	
+	/**
+	 * Converts delimited String to Distinct Collection 
+	 * @param groupBy
+	 * @param drb
+	 * @param reportType
+	 */
+	public static List<String> convertStringToDistinctList(String delimitedStr,String delimiter){
+		String[] entities = delimitedStr.split(delimiter);
+		List<String> lst = new  ArrayList<String>();
+		for (String entity : entities) {
+			if(!Utils.isBlankOrNull(entity) && !lst.contains(entity)){
+				lst.add(entity);
+			}
+		}
+		return lst;
+	}
+
+	public static boolean isListEmptyOrNull(List list) {
+		return (list == null || list.isEmpty());
+	}
+	
+	public static boolean isMapEmptyOrNull(Map map) {
+		return (map == null || map.isEmpty());
+	}
+	
+	/**
+	 * This is valid for maps with one to one key-value relation
+	 * @param map
+	 * @param value
+	 * @return
+	 */
+	public static <T, E> T getKeyByValue(Map<T, E> map, E value) {
+	    for (Entry<T, E> entry : map.entrySet()) {
+	        if (value.equals(entry.getValue())) {
+	            return entry.getKey();
+	        }
+	    }
+	    return null;
+	}
+
+	public static String replaceQMarksWithDynamicContent(String dynaParam,
+			ArrayList<String> dynamicContent) {
+		while(dynamicContent.size() > 0) {
+			dynaParam = dynaParam.replaceFirst("\\?", "'"+dynamicContent.remove(0)+"'");
+		}
+		
+		return dynaParam;
+	}
+
+	public static boolean searchInFile(File f, String searchString) {
+        boolean result = false;
+        Scanner in = null;
+        try {
+            in = new Scanner(new FileReader(f));
+            while(in.hasNextLine() && !result) {
+                result = in.nextLine().indexOf(searchString) >= 0;
+            }
+        }
+        catch(IOException e) {
+            e.printStackTrace();      
+        }
+        finally {
+            try { 
+            	in.close() ; 
+            } catch(Exception e) {
+            }  
+        }
+        return result;
+    }
+
+	public static boolean hasValidCharacter(String input) {
+		Pattern p = Pattern.compile(excludeSpecialChararacters);
+		Matcher m = p.matcher(input);
+		return (m.matches());
+	}
+	
+	public static boolean isInteger(String str){
+		try {
+			Integer.parseInt(str);
+			return true;
+		} catch (NumberFormatException nfe) {
+			return false;
+		}
+	}
+	
+	public static boolean isNumeric(String str){
+		if(!Utils.isBlankOrNull(str)){
+			return str.matches("\\d+(\\.\\d+)?");
+		}
+		return false;
+	}
+
+	/**
+	 * The method will return the difference between two dates. in string format like 4.11 years.
+	 * @param fromDate
+	 * @param toDate
+	 * @return
+	 */
+	public static Integer getDateDifferenceInMonths(java.util.Date fromDate, java.util.Date toDate){
+		Integer diff = 0;
+		try{
+			Calendar calendar = Calendar.getInstance();			
+			calendar.setTime(fromDate);
+			int fromYear=calendar.get(Calendar.YEAR);
+			int fromMonth=calendar.get(Calendar.MONTH);			
+			calendar.setTime(toDate);
+			int toYear=calendar.get(Calendar.YEAR);
+			int toMonth=calendar.get(Calendar.MONTH);						
+			//diff=Math.abs((toYear-fromYear)*calendar.getMaximum(Calendar.MONTH)+(calendar.getMaximum(Calendar.MONTH)+(toMonth-calendar.getMaximum(Calendar.MONTH))-(fromMonth-1)));
+			diff=Math.abs((toYear-fromYear)*12+(12+(toMonth-12)-(fromMonth-1)));					
+		}catch (Exception e) {
+			TPLogger.getLogger().debug(GlobalConstants.ERROR,e);
+		}		
+		return diff;		
+	}
+	
+	public static String getDateDifferenceInYearMonthString(java.util.Date fromDate, java.util.Date toDate, Integer numOfMonths){
+		String yrMonStr="";
+		Integer monDiff=0;
+		try{
+			if(numOfMonths==null && fromDate!=null && toDate!=null){
+				monDiff=getDateDifferenceInMonths(fromDate,toDate);
+			}else if(numOfMonths!=null && fromDate==null && toDate==null){
+				monDiff =numOfMonths;
+			}
+			Integer year = monDiff/12;
+			Integer month = monDiff%12;
+			if(month>0){
+			yrMonStr = year+"yrs "+month+"months"; 
+			} else {
+				yrMonStr = year+"yrs ";
+			}
+			
+		}catch (Exception e) {
+			TPLogger.getLogger().debug(GlobalConstants.ERROR,e);
+		}
+		return yrMonStr;
+	}	
+	
+	public static String getExperienceInDecimalFormat(java.util.Date workingSince) {
+		String yrMonStr = "";
+		Integer monDiff=0;
+		try{
+			monDiff = getDateDifferenceInMonths(workingSince,Calendar.getInstance().getTime());
+			Integer year = monDiff/12;
+			Integer month = monDiff%12-1;
+			yrMonStr = year+"."+month; 
+			
+		}catch (Exception e) {
+			TPLogger.getLogger().debug(GlobalConstants.ERROR,e);
+		}
+		return yrMonStr;
+	}
+	
+	/**
+	 * Converts Comma delimited String to Distinct Collection 
+	 */
+	public static List<String> convertCommaSepStringToList(String commaDelimitedStr){
+		return convertStringToList(commaDelimitedStr, CommonConstants.DEFAULT_DELIMITER);
+	}
+	
+	/**
+	 * Converts delimited String to Distinct Collection 
+	 */
+	public static List<String> convertStringToList(String delimitedStr,String delimiter){
+		List<String> lst = new  ArrayList<String>();
+		if(delimitedStr!=null){
+			String[] entities = delimitedStr.split(delimiter);
+			for (String entity : entities) {
+				if(!Utils.isBlankOrNull(entity) && !lst.contains(entity)){
+					lst.add(entity);
+				}
+			}			
+		}
+		return lst;
+	}
+	public static ArrayList<String> convertStringArrayIntoArrayList(String[] strArray) {
+		ArrayList<String> arList = new ArrayList<String>();
+		try {
+			if (strArray != null) {
+				for (int i = 0; i < strArray.length; i++) {
+					arList.add(strArray[i]);
+				}
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return arList;
+	}
+	/**
+	 * @param inputArray
+	 * @return
+	 */
+	public static String[] getArrayCopy(String[] inputArray) {
+		if (inputArray == null) {
+			return null;
+		} else {
+			return Arrays.copyOf(inputArray, inputArray.length);
+		}
+	}
+
+	public static String getTextContentFromHTML(String inptStr) {
+		String result=null;
+		if(Utils.isBlankOrNull(inptStr)){
+			result = "";
+		}else{
+			inptStr= inptStr.replaceAll("&nbsp;"," ");
+			String htmlString = Jsoup.clean(inptStr, "", Whitelist.none().addTags("br", "p"), new OutputSettings().prettyPrint(true));
+			result = Jsoup.clean(htmlString, "", Whitelist.none(), new OutputSettings().prettyPrint(false));
+		}
+		return result;
+	}
+
+	/**
+	 * @param dt
+	 * @param dateFormat
+	 * @param timezone
+	 * @return
+	 * 
+	 * to convert with rest to a given timezone
+	 */
+	public static String getDateConvertedToStringWithTimezone(java.util.Date dt,
+			String dateFormat, String timezone) {
+		try {
+			DateFormat format = new SimpleDateFormat(dateFormat);
+			format.setTimeZone(TimeZone.getTimeZone(timezone));
+			return format.format(dt);
+		} catch (Exception e) {
+			TPLogger.getLogger().debug("Error While parsing send date: setting send date to null", e);
+		}
+		return "";
+	}
+
+	
+	/**
+	 * @param request
+	 * @return
+	 * 
+	 * to form url from the incoming request
+	 */
+	public static String buildTalentPoolURLFromIncomingRequestObject(HttpServletRequest request){
+		String tmp = request.getRequestURI();
+		String requestUrl =request.getScheme()+"://"+request.getServerName()+":"+request.getServerPort()+tmp.substring(0,StringUtils.ordinalIndexOf(tmp, "/", 2));
+		return requestUrl;
+	}
+	
+	public static double getExperienceInNumber(java.util.Date workingSince) {
+		double exp = 0;
+		if (workingSince != null) {
+			Calendar cal1 = Calendar.getInstance();
+			Calendar cal2 = Calendar.getInstance();
+			cal1.setTime(workingSince);
+			int yearDiff = cal2.get(Calendar.YEAR) - cal1.get(Calendar.YEAR);
+			int monthDiff = yearDiff * 12 + cal2.get(Calendar.MONTH) - cal1.get(Calendar.MONTH);
+			int yrs = 0;
+			if (monthDiff != 0) {
+				yrs = monthDiff / 12;
+				if(yrs >0){
+					exp = yrs;
+				}
+			}
+			int mos = monthDiff % 12;
+			if (mos > 0) {
+				double mos1=0.0;
+				if(mos<10){
+					mos1=mos*.1;
+				
+				}
+				else{
+					if(mos==10){
+						mos1=0.10;
+					}
+					else{
+						mos1=mos/100;
+					}
+					
+				}
+				exp = yrs+mos1;
+			}
+		}
+		return exp;
+	}
+	
+	public static void resetSettingsOnCandidatePortal(){
+		Client client = Client.create();
+		WebResource webResource = client.resource(TPApplicationProperties.getProperty("candidate.portal.reset.appFields.url"));
+		ClientResponse response = webResource.type("text/plain").get(ClientResponse.class);
+		String res = response.getEntity(String.class);
+		TPLogger.getLogger().debug("candidate portal applicant fields reset " + res);
+		response.close();
+	}
+}

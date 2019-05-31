@@ -1,0 +1,3690 @@
+<%@page import="com.talentPool.positions.manager.PositionManagerForAP"%>
+<%@ taglib uri="/WEB-INF/tld/struts-html.tld" prefix="html"%>
+<%@ taglib uri="/WEB-INF/tld/struts-bean.tld" prefix="bean"%>
+<%@ taglib uri="/WEB-INF/tld/struts-logic.tld" prefix="logic"%>
+<%@ page
+	import="org.apache.struts.Globals,
+								com.talentPool.positions.form.PositionForm,
+								com.talentPool.positions.PositionConstants,
+								com.talentPool.common.db.SimpleDataObject,
+								com.talentPool.budget.BudgetConstants,
+								com.talentPool.custom.constants.CustomFieldConstants,
+								com.talentPool.masters.constants.MastersConstants,
+								com.talentPool.custom.utils.CustomFieldUtils,
+								com.talentPool.user.manager.ModuleSet,
+								com.talentPool.budget.utils.BudgetUtils,
+								com.talentPool.common.properties.TPApplicationProperties,
+								com.talentPool.positions.manager.PositionScreenConfigurationManager,
+								com.talentPool.positions.constants.PositionConfigurationConstants,
+								com.talentPool.positions.utils.PositionUtils,
+								com.talentPool.positions.dataobject.PositionFieldData"%>
+<%@page
+	import="com.talentPool.common.properties.GlobalApplicationProperties"%>
+<%@page import="com.talentPool.common.properties.GlobalConstants"%>
+<%@page import="java.util.ArrayList"%>
+<%@page import="java.util.List"%>
+<%@page import="com.talentPool.custom.dataobject.CustomFieldData"%>
+<%@page import="com.talentPool.positions.action.PositionActionForAP"%>
+<%@page import="com.talentPool.positions.dataobject.PositionDataForAP"%>
+<link rel="stylesheet" type="text/css"
+	href="themes/default/CalendarPopup.css" />
+<script src="js/dhtmlxGrid/dhtmlXCommon.js"></script>
+<script src="js/dhtmlxGrid/dhtmlXGrid.js"></script>
+<script src="js/dhtmlxGrid/dhtmlxgrid_filter.js"></script>
+<script src="js/dhtmlxGrid/dhtmlXGridCell.js"></script>
+<script src="js/dhtmlxGrid/dhtmlXGrid_excell_link.js"></script>
+<script src="js/dhtmlxGrid/dhtmlXGrid_drag.js"></script>
+<script language="javascript" type="text/javascript"
+	src="js/tiny_mce/tiny_mce.js"></script>
+<script src="js/submodal/common.js"></script>
+<script src="js/submodal/subModal.js"></script>
+<script language="JavaScript" src="js/calender/CalendarPopup.js"></script>
+<script language="JavaScript" src="js/calender/dateFormatter.js"
+	type="text/javascript"></script>
+<script language="JavaScript" src="js/selectoption.js"
+	type="text/javascript"></script>
+<script language="JavaScript" src="js/selectbox/selectbox.js"
+	type="text/javascript"></script>
+<script language="JavaScript" src="js/doClasses/IdValueClass.js"
+	type="text/javascript"></script>
+<script language="JavaScript" src="js/commonFunctions.js"
+	type="text/javascript"></script>
+<script language="JavaScript" src="js/ajaxfunctions.js"
+	type="text/javascript"></script>
+<script language="JavaScript" src="js/customfields/customfield.js"></script>
+<script language="JavaScript"
+	src="js/customfields/customfieldvalidator.js"></script>
+<script language="JavaScript" src="js/checkboxlist/checkboxlist.js"
+	type="text/javascript"></script>
+<script language="JavaScript"
+	src="js/checkboxandradiogroup/checkboxradiogroup.js"
+	type="text/javascript"></script>
+<script language="JavaScript" src="js/tpSelectListFunctions.js"></script>
+<script language="JavaScript" src="js/scripta/lib/prototype.js"
+	type="text/javascript"></script>
+<script language="JavaScript" src="js/scripta/src/effects.js"
+	type="text/javascript"></script>
+<script language="JavaScript" src="js/scripta/src/controls.js"
+	type="text/javascript"></script>
+<script language="JavaScript" src="js/calender/CalendarPopup.js"></script>
+<script language="JavaScript" src="js/calender/dateFormatter.js"
+	type="text/javascript"></script>
+<script language="JavaScript" src="js/selectoption.js"
+	type="text/javascript"></script>
+<script language="JavaScript" src="js/selectbox/selectbox.js"
+	type="text/javascript"></script>
+<script language="JavaScript" src="js/checkboxlist/checkboxlist.js"
+	type="text/javascript"></script>
+<script language="JavaScript"
+	src="js/checkboxandradiogroup/checkboxradiogroup.js"
+	type="text/javascript"></script>
+<script language="JavaScript" src="js/tpmenu/tpmenu.js"
+	type="text/javascript"></script>
+<script language="JavaScript" src="js/tpmenu/tpmenuhandler.js"
+	type="text/javascript"></script>
+<script language="JavaScript" src="js/ajaxfunctions.js"
+	type="text/javascript"></script>
+<script language="JavaScript" src="js/commonFunctions.js"
+	type="text/javascript"></script>
+<script src="js/submodal/common.js"></script>
+<script src="js/submodal/subModal.js"></script>
+
+<script language="JavaScript" src="js/customfields/customfield.js"></script>
+<script language="JavaScript"
+	src="js/customfields/customfieldvalidator.js"></script>
+<script language="JavaScript" type="text/javascript"
+	src="js/tooltip/balloon.config.js"></script>
+<script language="JavaScript" type="text/javascript"
+	src="js/tooltip/balloon.js"></script>
+<script language="JavaScript" type="text/javascript"
+	src="js/tooltip/box.js"></script>
+	<script language="JavaScript" src="js/utils/autopopulate_updater.js" type="text/javascript"></script>
+<script language="JavaScript" type="text/javascript"
+	src="js/tooltip/yahoo-dom-event.js"></script>
+<script language="JavaScript" type="text/javascript"
+	src="js/tooltip/tip_ajaxcall.js"></script>
+<link rel="stylesheet" type="text/css"
+	href="themes/default/autoComplete.css">
+<link rel="stylesheet" type="text/css"
+	href="themes/default/searchTpMenu.css">
+<% ArrayList customFields = (ArrayList)request.getAttribute("customFields"); 
+ArrayList positionFields = PositionScreenConfigurationManager.getPositionDescriptionFields();
+%>
+<script>
+var selectBoxBudgetItems;
+var selectBoxPositionOwner;
+var selectBoxRequisitioner;
+var selectBoxDepartment;
+var selectBoxSub3Department;
+var selectBoxSub4Department;
+var selectBoxGrade;
+var selectBoxBand;
+var selectBoxBudgetItems;
+var selectPositionType;
+var selectBoxCountries;
+var selectBoxJobIndustryCodes;
+var selectBoxJobAreaCodes;
+var selectBoxJobRoleCodes;
+var selectBoxJobCurrency;
+var selectBoxDisplaySalary;
+var selectBoxLocation;
+var selectBoxSubLocation;
+var selectBoxSubSubLocation;
+var selectBoxJobFunction
+var selectBoxJobPayGrade
+var selectBoxJobCode
+var selectBoxCountry
+var selectBoxState
+</script>
+<script>
+tinyMCE.init({
+	mode : "exact",
+	elements : "responsibilities",
+	theme : "advanced",
+	theme_advanced_toolbar_location : "top",
+	theme_advanced_toolbar_align : "left",
+	theme_advanced_buttons1 : "newdocument,bold,italic,underline,forecolor,backcolor,bullist,numlist,separator,undo,redo,cut,copy,paste,justifyleft,justifyright,formatselect,fontselect,fontsizeselect",
+	theme_advanced_buttons2 : "",
+	theme_advanced_buttons3 : "",
+	force_br_newlines: true,
+	theme_advanced_disable : "anchor",
+	theme_advanced_path : false
+});
+<%=CustomFieldUtils.getArrayForCustomFieldsForPositionDescriptionShow(customFields)%>
+</script>
+<style>
+table.filterGrid td {
+	padding: 0px;
+}
+</style>
+<div class="contentDiv">
+	<div id="autocomplete" class="autocomplete"></div>
+	<%
+		if(request.getAttribute(Globals.ERROR_KEY)!=null){
+	%>
+	<table id="m_errortable">
+		<tr>
+			<td class="header" colspan="2"><b><bean:message
+						key="errors.following_errors" /></b></td>
+		</tr>
+		<tr>
+			<td class="message" colspan="2"><html:errors /></td>
+		</tr>
+		<%
+		if(request.getAttribute("warnings")!=null){
+	%>
+		<tr>
+			<td><b><bean:message key="position_parser.label.field_name" /></b></td>
+			<td><b><bean:message key="position_parser.label.specified" /></b></td>
+			<td><b><bean:message key="position_parser.label.taken_as" /></b></td>
+		</tr>
+		<logic:iterate id="warning" name="warnings" scope="request"
+			type="java.util.List">
+			<tr>
+				<td><%=warning.get(0)%></td>
+				<td><%=warning.get(1)%></td>
+				<td><%=warning.get(2)%></td>
+			</tr>
+		</logic:iterate>
+		<% } %>
+	</table>
+	<br />
+	<% } %>
+	<%@ include file="positionTabs.jsp"%>
+	<div id="outerDiv" class="outerDiv" style="border-top: 0px;">
+		<html:form action="/position">
+			<html:hidden property="mode" name="positionForm" />
+			<html:hidden property="dir" name="positionForm" />
+			<html:hidden property="step" name="positionForm" />
+			<html:hidden property="positionId" name="positionForm" />
+			<html:hidden property="locationId" name="positionForm" />
+			<html:hidden property="showCondition" name="positionForm" />
+			<html:hidden property="positionStatus" name="positionForm" />
+			<html:hidden property="sendPositionChangeNotification"
+				name="positionForm" />
+			<html:hidden property="buId" name="positionForm" />
+			<html:hidden property="costCenterId" name="positionForm" />
+			<html:hidden property="typeOfVacancy" name="positionForm" />
+			<html:hidden property="positionTypeExtInt" name="positionForm" />
+			<html:hidden property="positionClone" name="positionForm" />
+
+
+			<logic:equal name="positionForm" property="dir"
+				value="<%=PositionConstants.DIR_VIEW_POSITION%>">
+				<table width="100%" border="0" cellspacing="0" cellpadding="0">
+					<tr>
+						<td valign="top" width="50%"
+							style="border-right: 1px solid #cccccc;">
+							<div class="contentDiv">
+								<table width="100%" border="0" cellspacing="0" cellpadding="0"
+									class="posinput">
+									<%
+								for(int j=0; j<positionFields.size();j++){
+									PositionFieldData fieldData = (PositionFieldData)positionFields.get(j);
+									String fieldId = fieldData.getFieldId();
+									String fieldType = fieldData.getFieldType();
+									String showValue = fieldData.getFieldPositionShow();
+									if(showValue.equals(PositionConfigurationConstants.FIELD_SHOW)){						
+										if(fieldType.equals(PositionConfigurationConstants.FIELD_TYPE_NORMAL)){														
+											if(fieldId.equals(PositionConfigurationConstants.FIELD_NAME)){
+									%>
+									<tr>
+										<td class="label"><logic:notEqual name="positionForm"
+												property="positionStatus"
+												value="<%=PositionConstants.POSITION_STATUS_TEMPLATE%>">
+												<bean:message key="common.position_name" />
+											</logic:notEqual> <logic:equal name="positionForm" property="positionStatus"
+												value="<%=PositionConstants.POSITION_STATUS_TEMPLATE%>">
+												<bean:message key="common.position_template_name" />
+											</logic:equal></td>
+										<td><bean:write name="positionForm"
+												property="positionName" /></td>
+									</tr>
+									<%}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_CODE)){
+									%>
+									<tr>
+										<td class="label"><bean:message
+												key="common.position_code" /></td>
+										<td><bean:write name="positionForm"
+												property="positionCode" /></td>
+									</tr>
+									<%}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_CODE_AP)){
+									%>
+									<tr>
+										<td class="label"><bean:message
+												key="common.position_code_ap" /></td>
+										<td><bean:write name="positionForm"
+												property="positionCodeForAP" /></td>
+									</tr>
+									<%}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_CREATED_ON)){
+									%>
+									<tr>
+										<td class="label"><bean:message key="common.position" />
+											<bean:message key="position.description.created_on" /></td>
+										<td><bean:write name="positionForm"
+												property="positionCreateDate" /></td>
+									</tr>
+									<%}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_REQUESTEDBY)){
+									%>
+									<tr>
+										<td class="label"><bean:message
+												key="position.description.requested_by" /></td>
+										<td><bean:write name="positionForm"
+												property="requisitioner" /></td>
+									</tr>
+									<%}
+										if(PositionConfigurationConstants.FIELD_POSITION_OWNER.equals(fieldId)){
+									%>
+									<tr>
+										<td class="label"><bean:message
+												key="global.position_owner" /></td>
+										<td><bean:write name="positionForm"
+												property="positionOwnerName" /></td>
+									</tr>
+									<%		
+										}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_DEPARTMENT_LEVELS)){
+									%>
+									<tr>
+										<td class="label"><%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_DEPARTMENT_LEVEL_1) %></td>
+										<td><bean:write name="positionForm" property="department" /></td>
+									</tr>
+									<tr>
+										<td class="label"><%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_DEPARTMENT_LEVEL_2) %></td>
+										<td><bean:write name="positionForm"
+												property="subDepartment" /></td>
+									</tr>
+									<tr>
+										<td class="label"><%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_DEPARTMENT_LEVEL_3) %></td>
+										<td><bean:write name="positionForm"
+												property="subSubDepartment" /></td>
+									</tr>
+									<% if(MastersConstants.DEPARTMENT_LEVEL_4.equals(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_MAX_DEPT_LEVEL)) || MastersConstants.DEPARTMENT_LEVEL_5.equals(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_MAX_DEPT_LEVEL))){%>
+									<tr>
+										<td class="label"><%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_DEPARTMENT_LEVEL_4) %></td>
+										<td><bean:write name="positionForm"
+												property="sub3Department" /></td>
+									</tr>
+									<%} %>
+									<% if(MastersConstants.DEPARTMENT_LEVEL_5.equals(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_MAX_DEPT_LEVEL))){%>
+									<tr>
+										<td class="label"><%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_DEPARTMENT_LEVEL_5) %></td>
+										<td><bean:write name="positionForm"
+												property="sub4Department" /></td>
+									</tr>
+									<%} %>
+									<%		
+										}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_GRADE)){
+									%>
+									<tr>
+										<td class="label"><%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_BUDGET_ITEM_GRADE_LABEL)%></td>
+										<td><bean:write name="positionForm" property="gradeName" /></td>
+									</tr>
+									<%		
+										}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_BAND)){
+									%>
+									<tr>
+										<td class="label"><%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_BUDGET_ITEM_BAND_LABEL)%></td>
+										<td><bean:write name="positionForm" property="bandName" /></td>
+									</tr>
+									<%		
+										}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_BUDGET_ITEM)){
+									%>
+									<% if (ModuleSet.isMODULE_BUDGET() && BudgetUtils.isBudgetModuleActive()) { %>
+									<tr>
+										<td class="label"><bean:message
+												key="position.description.budget_item" /></td>
+										<td><bean:write name="positionForm"
+												property="budgetItemName" /></td>
+									</tr>
+									<%} %>
+
+									<%} if(fieldId.equals(PositionConfigurationConstants.FIELD_TYPE_OF_VACANCY)){
+									%>
+									<tr>
+										<td class="label"><bean:message
+												key="position.description.type_of_vacancy" /></td>
+										<td><logic:equal name="positionForm"
+												property="typeOfVacancy"
+												value="<%=PositionConstants.POSITIONS_TYPE_OF_VACANCY_FRESH%>">
+												<bean:message key="position.description.fresh" />
+											</logic:equal> <logic:equal name="positionForm" property="typeOfVacancy"
+												value="<%=PositionConstants.POSITIONS_TYPE_OF_VACANCY_REPLACEMENT%>">
+												<bean:message key="position.description.replacement" />
+											</logic:equal></td>
+									</tr>
+									<%} %>
+									<logic:equal name="positionForm" property="typeOfVacancy"
+										value="<%=PositionConstants.POSITIONS_TYPE_OF_VACANCY_REPLACEMENT%>">
+										<% if(fieldId.equals(PositionConfigurationConstants.FIELD_REPLACEMENT_EMP_CODE)){ %>
+										<tr>
+											<td class="label"><bean:message
+													key="position.description.replacement_emp_code" /></td>
+											<td><bean:write name="positionForm"
+													property="replacementEmpCode" /></td>
+										</tr>
+										<% } %>
+									</logic:equal>
+
+									<%	
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_POSITION_TYPE_EXT_INT)){											
+									%>
+
+									<tr>
+										<td class="label"><bean:message
+												key="position.description.position_type_ext_int" /></td>
+										<td><logic:equal name="positionForm"
+												property="positionTypeExtInt"
+												value="<%=PositionConstants.POSITIONS_TYPE_EXTERNAL%>">
+												<bean:message
+													key="position.description.position_type_external" />
+											</logic:equal> <logic:equal name="positionForm"
+												property="positionTypeExtInt"
+												value="<%=PositionConstants.POSITIONS_TYPE_INTERNAL%>">
+												<bean:message
+													key="position.description.position_type_internal" />
+											</logic:equal> <logic:equal name="positionForm"
+												property="positionTypeExtInt" value="0">
+
+											</logic:equal></td>
+									</tr>
+
+									<%	} 	if(fieldId.equals(PositionConfigurationConstants.FIELD_FUNCTION)){
+										%>
+									<tr>
+										<td class="label"><%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_FUNCTION) %></td>
+										<td><bean:write name="positionForm"
+												property="pJobFunction" /></td>
+									</tr>
+									<%		
+											}if(fieldId.equals(PositionConfigurationConstants.FIELD_PAY_GRADE)){
+												%>
+									<tr>
+										<td class="label"><%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_PAY_GRADE) %></td>
+										<td><bean:write name="positionForm"
+												property="pJobPayGrade" /></td>
+									</tr>
+									<%		
+														}if(fieldId.equals(PositionConfigurationConstants.FIELD_JOB_CODE)){
+															%>
+									<tr>
+										<td class="label"><%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_JOB_CODE) %></td>
+										<td><bean:write name="positionForm" property="pJobCode" /></td>
+									</tr>
+									<%		
+																	}
+														if(fieldId.equals(PositionConfigurationConstants.FIELD_COUNTRIES)){
+															%>
+									<tr>
+										<td class="label"><%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_COUNTRIES) %></td>
+										<td><bean:write name="positionForm"
+												property="countryName" /></td>
+									</tr>
+									<tr>
+										<td class="label"><%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_STATES) %></td>
+										<td><bean:write name="positionForm" property="stateName" /></td>
+									</tr>
+									<%		
+																}
+											
+									if(fieldId.equals(PositionConfigurationConstants.FIELD_LOCATION_LEVELS)){
+										%>
+									<tr>
+										<td class="label"><%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_LOCATION_LEVEL_1) %></td>
+										<td><bean:write name="positionForm" property="pLocation" /></td>
+									</tr>
+									<tr>
+										<td class="label"><%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_LOCATION_LEVEL_2) %></td>
+										<td><bean:write name="positionForm"
+												property="pSubLocation" /></td>
+									</tr>
+									<tr>
+										<td class="label"><%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_LOCATION_LEVEL_3) %></td>
+										<td><bean:write name="positionForm"
+												property="pSubSubLocation" /></td>
+									</tr>
+									<%		
+											}%>
+									<%-- 	if(fieldId.equals(PositionConfigurationConstants.FIELD_LOCATION)){
+									%>
+									<tr>
+										<td class="label"><bean:message key="position.description.location" />
+										&nbsp;<span title='<bean:message key="common.searchable" />' class="searchableStar">*</span></td>
+										<td><bean:write name="positionForm" property="locationName" /></td>
+									</tr>		
+									<%	}	%>		 --%>
+									<logic:notEqual name="positionForm" property="positionStatus"
+										value="<%=PositionConstants.POSITION_STATUS_TEMPLATE%>">
+										<%	
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_VACANCIES)){
+									%>
+										<tr>
+											<td class="label"><bean:message key="common.vacancies" /></td>
+											<td><bean:write name="positionForm" property="vacancies" /></td>
+										</tr>
+										<%	}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_HIRE_BY_DATE)){
+									%>
+										<tr>
+											<td class="label"><bean:message
+													key="position.description.hire_by_date" /></td>
+											<td><bean:write name="positionForm"
+													property="hireByDate" /></td>
+										</tr>
+										<%		
+										}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_CONTACT_PERSON_NAME)){
+									%>
+										<tr>
+											<td class="label"><bean:message
+													key="position.naukri.contact_peerson_name" /></td>
+											<td><bean:write name="positionForm"
+													property="contactPersonName" /></td>
+										</tr>
+										<%		
+										}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_JOB_INDUSTRY_CODE)){
+									%>
+										<tr>
+											<td class="label"><bean:message
+													key="position.naukri.job_industry_code" /></td>
+											<td><bean:write name="positionForm"
+													property="jobIndustryCode" /></td>
+										</tr>
+										<%		
+										}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_JOB_FUNCTION_CODE)){
+									%>
+										<tr>
+											<td class="label"><bean:message
+													key="position.naukri.job_function_code" /></td>
+											<td><bean:write name="positionForm"
+													property="jobFunctionCode" /></td>
+											<%		
+										}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_JOB_ROLE_CODE)){
+									%>
+										
+										<tr>
+											<td class="label"><bean:message
+													key="position.naukri.job_role_code" /></td>
+											<td><bean:write name="positionForm"
+													property="jobRoleCode" /></td>
+										</tr>
+										<%		
+										}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_JOB_KEYWORDS)){
+									%>
+										<tr>
+											<td class="label"><bean:message
+													key="position.naukri.job_keywords" /></td>
+											<td><bean:write name="positionForm"
+													property="jobKeywords" /></td>
+										</tr>
+										<%		
+										}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_COUNTRY)){
+									%>
+										<tr>
+											<td class="label"><bean:message
+													key="position.naukri.country" /></td>
+											<td><bean:write name="positionForm" property="country" /></td>
+										</tr>
+										<%		
+										}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_MINIMUM_SALARY)){
+									%>
+										<tr>
+											<td class="label"><bean:message
+													key="position.naukri.minimum_salary" /></td>
+											<td><bean:write name="positionForm"
+													property="minimumSalary" /></td>
+										</tr>
+										<%		
+										}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_MAXIMUM_SALARY)){
+									%>
+										<tr>
+											<td class="label"><bean:message
+													key="position.naukri.maximum_salary" /></td>
+											<td><bean:write name="positionForm"
+													property="maximumSalary" /></td>
+										</tr>
+										<%		
+										}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_BENEFITS_DESCRIPTION)){
+									%>
+										<tr>
+											<td class="label"><bean:message
+													key="position.naukri.benefits_description" /></td>
+											<td><bean:write name="positionForm"
+													property="benefitsDescription" /></td>
+										</tr>
+										<%		
+										}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_DISPLAY_SALARY)){
+									%>
+										<tr>
+											<td class="label"><bean:message
+													key="position.naukri.display_salary" /></td>
+											<td><bean:write name="positionForm"
+													property="displaySalary" /></td>
+										</tr>
+										<%		
+										}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_DESIRED_CANDIDATE_SUMMARY)){
+									%>
+										<tr>
+											<td class="label"><bean:message
+													key="position.naukri.desired_candidate_summary" /></td>
+											<td><bean:write name="positionForm"
+													property="desiredCandidateSummaryText" /></td>
+										</tr>
+										<%		
+										}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_CONTACT_PERSON_EMAIL)){
+									%>
+										<tr>
+											<td class="label"><bean:message
+													key="position.naukri.contact_person_email" /></td>
+											<td><bean:write name="positionForm"
+													property="contactPersonEmail" /></td>
+										</tr>
+										<%		
+										}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_APPLY_BY_WEB_URL)){
+									%>
+										<tr>
+											<td class="label"><bean:message
+													key="position.naukri.apply_by_web_url" /></td>
+											<td><bean:write name="positionForm"
+													property="applyByWebURL" /></td>
+										</tr>
+										<%		
+										}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_JOB_FIELD_RESPONSE_EMAIL)){
+									%>
+										<tr>
+											<td class="label"><bean:message
+													key="position.naukri.job_field_response_email" /></td>
+											<td><bean:write name="positionForm"
+													property="jobFeedResponseEmail" /></td>
+										</tr>
+										<%		
+										}
+										if(fieldId.equals(PositionConfigurationConstants.SALARY_CURRENCY)){
+									%>
+										<tr>
+											<td class="label"><bean:message
+													key="position.naukri.salary_currency" /></td>
+											<td><bean:write name="positionForm"
+													property="salaryCurrency" /></td>
+										</tr>
+
+										<%
+										}
+									%>
+									</logic:notEqual>
+									<%
+										if("1".equals(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_BUSINESS_UNIT_PROPERTY))){ 
+																	if(fieldId.equals(PositionConfigurationConstants.FIELD_BUSINESS_UNIT)){
+									%>
+									<tr>
+										<td class="label"><%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_BUSINESS_UNIT_LABEL)%></td>
+										<td><bean:write name="positionForm" property="buName" /></td>
+									</tr>
+									<%
+										}}
+									%>
+									<%
+										if("1".equals(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_COST_CENTER_PROPERTY))){
+																if(fieldId.equals(PositionConfigurationConstants.FIELD_COST_CENTER)){
+									%>
+									<tr>
+										<td class="label"><%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_COST_CENTER_LABEL)%></td>
+										<td><bean:write name="positionForm"
+												property="costCenterName" /></td>
+									</tr>
+									<%
+										} } 										
+																	if(fieldId.equals(PositionConfigurationConstants.FIELD_LEVEL)){
+									%>
+									<tr>
+										<td class="label"><bean:message key="common.position" />
+											<bean:message key="common.level" /></td>
+										<td><bean:write name="positionForm"
+												property="positionLevel" /></td>
+									</tr>
+									<%
+										}
+																	if(fieldId.equals(PositionConfigurationConstants.FIELD_REFERAL_FEES)){
+									%>
+									<tr>
+										<td class="label"><bean:message
+												key="position.description.position_referal_fees" /></td>
+										<td><bean:write name="positionForm"
+												property="positionReferalFees" /></td>
+									</tr>
+									<%
+																			}
+																										if(fieldId.equals(PositionConfigurationConstants.FIELD_NOTE)){
+																		%>
+									<tr>
+										<td class="label"><bean:message
+												key="position.description.note" /></td>
+										<td><textarea rows="5" cols="60" readonly="readonly"><bean:write
+													name="positionForm" property="note" /></textarea></td>
+									</tr>
+									<%
+										} }
+																	else{													
+																		if(customFields!=null && customFields.size()>0){ 
+																			for(int i=0; i<customFields.size();i++){											
+																				CustomFieldData data = (CustomFieldData)customFields.get(i);
+																				String customFieldId = data.getFieldName();
+																				if(fieldId.equals(customFieldId)){
+									%>
+									<tr>
+										<td class="label"><%=data.getFieldDisplayName()%></td>
+										<td><%=data.getDisplayValue()%></td>
+									</tr>
+									<%
+																}
+																									}
+																								}
+																							}
+																						}}
+															%>
+								</table>
+							</div>
+						</td>
+					</tr>
+					<%
+							for(int j=0; j<positionFields.size();j++){
+													PositionFieldData fieldData = (PositionFieldData)positionFields.get(j); 
+													String fieldId = fieldData.getFieldId();
+													if(fieldId.equals(PositionConfigurationConstants.FIELD_RESPONSIBILITIES)){
+														String showValue = fieldData.getFieldPositionShow();
+														if(showValue.equals(PositionConfigurationConstants.FIELD_SHOW)){
+						%>
+
+					<tr>
+						<td valign="top">
+							<div class="contentDiv">
+								<table width="100%" border="0" cellspacing="0" cellpadding="0"
+									class="posinput">
+									<tr>
+										<td class="label"><bean:message
+												key="position.description.job_responsibilities" />:</td>
+									</tr>
+									<tr>
+										<td>
+											<div>
+												<html:textarea styleId="responsibilities"
+													property="responsibilities" name="positionForm"
+													styleClass="inputBox" cols="90" rows="15"></html:textarea>
+											</div>
+										</td>
+									</tr>
+								</table>
+							</div>
+						</td>
+					</tr>
+					<%
+							}
+										}
+									}
+						%>
+				</table>
+				<br />
+			</logic:equal>
+
+			<logic:notEqual name="positionForm" property="dir"
+				value="<%=PositionConstants.DIR_VIEW_POSITION%>">
+				<html:hidden property="requisitionerId" name="positionForm" />
+				<html:hidden property="positionOwnerId" name="positionForm" />
+				<html:hidden property="departmentId" name="positionForm" />
+				<html:hidden property="subDepartmentId" name="positionForm" />
+				<html:hidden property="subSubDepartmentId" name="positionForm" />
+				<html:hidden property="sub3DepartmentId" name="positionForm" />
+				<html:hidden property="sub4DepartmentId" name="positionForm" />
+				<html:hidden property="draftId" name="positionForm" />
+				<html:hidden property="draftName" name="positionForm" />
+				<html:hidden property="finishCopyPosition" name="positionForm" />
+				<html:hidden property="budgetItemId" name="positionForm" />
+				<html:hidden property="gradeId" name="positionForm" />
+				<html:hidden property="bandId" name="positionForm" />
+				<html:hidden property="copyFrom" name="positionForm" />
+				<html:hidden property="jobIndustryCode" name="positionForm" />
+				<html:hidden property="jobFunctionCode" name="positionForm" />
+				<html:hidden property="jobRoleCode" name="positionForm" />
+				<html:hidden property="country" name="positionForm" />
+				<html:hidden property="salaryCurrency" name="positionForm" />
+				<html:hidden property="displaySalary" name="positionForm" />
+				<html:hidden property="pLocationId" name="positionForm" />
+				<html:hidden property="pSubLocationId" name="positionForm" />
+				<html:hidden property="pSubSubLocationId" name="positionForm" />
+				<html:hidden property="pJobFunctionId" name="positionForm" />
+				<html:hidden property="pJobPayGradeId" name="positionForm" />
+				<html:hidden property="pJobCodeId" name="positionForm" />
+				<html:hidden property="countryId" name="positionForm" />
+				<html:hidden property="stateId" name="positionForm" />
+
+				<table width="100%" border="0" cellspacing="0" cellpadding="0">
+					<tr>
+						<td valign="top" width="50%"
+							style="border-right: 1px solid #cccccc;">
+							<div class="contentDiv">
+								<table width="100%" border="0" cellspacing="0" cellpadding="0"
+									class="posinput">
+									<%
+								for(int j=0; j<positionFields.size();j++){
+															PositionFieldData fieldData = (PositionFieldData)positionFields.get(j); 
+															String fieldId = fieldData.getFieldId();
+															String fieldType = fieldData.getFieldType();
+															String showValue = fieldData.getFieldPositionShow();
+															String isMandatory = fieldData.getFieldPositionMandatory();
+															if(showValue.equals(PositionConfigurationConstants.FIELD_SHOW)){
+							%>
+									<logic:equal name="positionForm" property="positionStatus"
+										value="<%=PositionConstants.POSITION_STATUS_TEMPLATE%>">
+										<%
+												isMandatory = PositionConfigurationConstants.FIELD_NOT_MANDATORY;
+											%>
+									</logic:equal>
+									<%
+											if(fieldType.equals(PositionConfigurationConstants.FIELD_TYPE_NORMAL)){														
+																				if(fieldId.equals(PositionConfigurationConstants.FIELD_NAME)){  
+																					 isMandatory = PositionConfigurationConstants.FIELD_MANDATORY;
+										%>
+									<tr>
+										<td class="label2"><logic:notEqual name="positionForm"
+												property="positionStatus"
+												value="<%=PositionConstants.POSITION_STATUS_TEMPLATE%>">
+												<bean:message key="common.position_name" />
+											</logic:notEqual> <logic:equal name="positionForm" property="positionStatus"
+												value="<%=PositionConstants.POSITION_STATUS_TEMPLATE%>">
+												<bean:message key="common.position_template_name" />
+											</logic:equal> <%
+											if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){
+										%> <span class="star">*</span> <%
+											}
+										%></td>
+										<td><html:text name="positionForm"
+												property="positionName" size="41" styleClass="Grey"
+												maxlength="100" styleId="positionName" readonly="false" /></td>
+									</tr>
+									<%
+										}
+																	if(fieldId.equals(PositionConfigurationConstants.FIELD_CODE)){
+									%>
+									<logic:notEqual name="positionForm" property="positionStatus"
+										value="<%=PositionConstants.POSITION_STATUS_TEMPLATE%>">
+										<tr>
+											<td class="label2"><bean:message
+													key="common.position_code" /> <%
+											if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){
+										%> <span class="star">*</span> <%
+											}
+										%></td>
+											<td>
+												<%
+												if(GlobalConstants.DISABLED.equals(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_COPY_POSITION_WITH_CODE))){ 
+											%> <html:text name="positionForm" property="positionCode"
+													size="41" maxlength="50" styleClass="Grey" readonly="true" />
+												&nbsp; <a href="#"
+												onclick="javascript: onClickAutoGeneratePositionCode();">
+													<bean:message key="position.description.auto_generate" />
+											</a> <% }else{ %> <logic:equal name="positionForm"
+													property="positionClone"
+													value="<%=PositionConstants.POSITIONS_NOT_CLONE%>">
+													<html:text name="positionForm" property="positionCode"
+														size="41" maxlength="50" styleClass="Grey" readonly="true" />
+														&nbsp;
+														<a href="#"
+														onclick="javascript: onClickAutoGeneratePositionCode();">
+														<bean:message key="position.description.auto_generate" />
+													</a>
+												</logic:equal> <logic:equal name="positionForm" property="positionClone"
+													value="<%=PositionConstants.POSITIONS_CLONE%>">
+													<html:text name="positionForm" property="positionCode"
+														size="41" maxlength="50" styleClass="Grey" readonly="true" />
+												</logic:equal> <%} %>
+											</td>
+										</tr>
+									</logic:notEqual>
+									<%}
+																	
+									
+																	
+									
+								
+																	
+															
+																	//Added by Arvind Khatik		
+																	if(fieldId.equals(PositionConfigurationConstants.FIELD_CODE_AP)){  
+																		 isMandatory = PositionConfigurationConstants.FIELD_MANDATORY;
+							%>
+									<tr>
+										<td class="label2"><logic:notEqual name="positionForm"
+												property="positionStatus"
+												value="<%=PositionConstants.POSITION_STATUS_TEMPLATE%>">
+												<bean:message key="common.position_code_ap" />
+											</logic:notEqual> <%
+								if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){
+							%> <span class="star">*</span> <%
+								}
+							%></td>
+										<td><html:text name="positionForm" 
+												property="positionCodeForAP" size="41" maxlength="100" onchange="javascript:showAutoPopulateLink();"
+												styleClass="Grey" styleId="positionCodeForAP" /> <html:text
+												name="positionForm" property="positionCodeForAPDisabled"
+												size="41" maxlength="100" styleClass="Grey"
+												style="display:none" readonly="true"
+												styleId="positionCodeForAP_disabled" /> 
+												&nbsp; <a href="#" id="autopopulate"
+											onclick="javascript:getPositionData();" style="display: none;"> <bean:message
+													key="position.description.auto_populate" />
+										</a></td>
+										<td id="wait">
+										</td>
+
+									</tr>
+									<%
+							}//end of if FIELD_CODE_AP								
+																	
+								
+										
+										if(PositionConfigurationConstants.FIELD_POSITION_OWNER.equals(fieldId)){
+									%>
+									<tr>
+										<td class="label2"><bean:message
+												key="global.position_owner" /> <%if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){
+																				%> <span class="star">*</span> <%
+											}
+										%></td>
+
+										<td><script language="JavaScript">									
+												var opts = <bean:write name="positionForm" property="jsArrayPositionOwners" filter="false"/>;											
+												var opt = [new SelectOption('-1','<bean:message key="common.selectlist.select" />')];
+												positionOwners = opt.concat(opts);
+												selectBoxPositionOwner = new SelectBox(positionOwners,'<bean:write name="positionForm" property="positionOwnerId" />','images/btn_dropdown.gif',{namesonly:false, width:'262px', size:15, textboxclass:'Grey'});
+												document.write(selectBoxPositionOwner.getHtml());
+												selectBoxPositionOwner.init();
+											</script></td>
+									</tr>
+									<%
+										}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_REQUESTEDBY)){
+									%>
+									<tr>
+										<td class="label2"><bean:message
+												key="position.description.requested_by" /> <%
+																					if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){
+																				%> <span class="star">*</span> <%
+											}
+										%></td>
+										<td>
+											<div id="requisitionerFlag">
+												<script language="JavaScript">									
+												var opts = <bean:write name="positionForm" property="jsArrayRequisitioners" filter="false"/>;											
+												var opt = [new SelectOption('-1','<bean:message key="common.selectlist.select" />')];
+												requisitioners = opt.concat(opts);
+												selectBoxRequisitioner = new SelectBox(requisitioners,'<bean:write name="positionForm" property="requisitionerId" />','images/btn_dropdown.gif',{namesonly:false, width:'262px', size:15, textboxclass:'Grey'});
+												document.write(selectBoxRequisitioner.getHtml());
+												selectBoxRequisitioner.init();
+											</script>
+											</div>
+										</td>
+									</tr>
+									<%
+										}
+																	if(fieldId.equals(PositionConfigurationConstants.FIELD_DEPARTMENT_LEVELS)){
+									%>
+
+									<tr>
+										<td class="label2"><%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_DEPARTMENT_LEVEL_1)%>
+											<%
+											if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){
+										%> <span class="star">*</span> <%
+											}
+										%></td>
+										<td><script language="JavaScript">	
+											var opts = <bean:write name="positionForm" property="jsArrayDepartments" filter="false"/>;											
+											var opt = [new SelectOption('-1','<bean:message key="common.selectlist.default" />')];
+											departments = opt.concat(opts);
+											selectBoxDepartment = new SelectBox(departments,'<bean:write name="positionForm" property="departmentId" />','images/btn_dropdown.gif',{namesonly:false, width:'262px', size:15, textboxclass:'Grey'});
+											selectBoxDepartment.setOnChangeHandler('loadSubdepartments');
+											document.write(selectBoxDepartment.getHtml());
+											selectBoxDepartment.init();
+											</script></td>
+									</tr>
+									<%
+										}
+																	if(fieldId.equals(PositionConfigurationConstants.FIELD_DEPARTMENT_LEVEL_2)){
+									%>
+									<tr>
+										<td class="label2"><%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_DEPARTMENT_LEVEL_2)%>
+											<%
+											if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){
+										%> <span class="star">*</span> <%
+											}
+										%></td>
+										<td><script language="JavaScript">	
+											var opts = <bean:write name="positionForm" property="jsArraySubDepartments" filter="false"/>;											
+											var opt = [new SelectOption('-1','<bean:message key="common.selectlist.default" />')];
+											departments = opt.concat(opts);
+											selectBoxSubDepartment = new SelectBox(departments,'<bean:write name="positionForm" property="subDepartmentId" />','images/btn_dropdown.gif',{namesonly:false, width:'262px', size:15, textboxclass:'Grey'});
+											selectBoxSubDepartment.setOnChangeHandler('loadSubSubdepartments');
+											document.write(selectBoxSubDepartment.getHtml());
+											selectBoxSubDepartment.init();
+											</script></td>
+									</tr>
+									<%
+										}
+																	if(fieldId.equals(PositionConfigurationConstants.FIELD_DEPARTMENT_LEVEL_3)){
+									%>
+									<tr>
+
+										<td class="label2"><%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_DEPARTMENT_LEVEL_3)%>
+											<%
+											if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){
+										%> <span class="star">*</span> <%
+											}
+										%></td>
+										<td><script language="JavaScript">	
+											var opts = <bean:write name="positionForm" property="jsArraySubSubDepartments" filter="false"/>;											
+											var opt = [new SelectOption('-1','<bean:message key="common.selectlist.default" />')];
+											departments = opt.concat(opts);
+											selectBoxSubSubDepartment = new SelectBox(departments,'<bean:write name="positionForm" property="subSubDepartmentId" />','images/btn_dropdown.gif',{namesonly:false, width:'262px', size:15, textboxclass:'Grey'});
+											selectBoxSubSubDepartment.setOnChangeHandler('loadSub3departments');
+											document.write(selectBoxSubSubDepartment.getHtml());
+											selectBoxSubSubDepartment.init();
+											</script></td>
+									</tr>
+									<%
+										}
+																	if(fieldId.equals(PositionConfigurationConstants.FIELD_DEPARTMENT_LEVEL_4)){
+									%>
+									<tr id="dept_level_4">
+										<td class="label2"><%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_DEPARTMENT_LEVEL_4)%>
+											<%
+											if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){
+										%> <span class="star">*</span> <%
+											}
+										%></td>
+										<td><script language="JavaScript">	
+												var opts = <bean:write name="positionForm" property="jsArraySub3Departments" filter="false"/>;											
+												var opt = [new SelectOption('-1','<bean:message key="common.selectlist.default" />')];
+												departments = opt.concat(opts);
+												selectBoxSub3Department = new SelectBox(departments,'<bean:write name="positionForm" property="sub3DepartmentId" />','images/btn_dropdown.gif',{namesonly:false, width:'262px', size:15, textboxclass:'Grey'});
+												selectBoxSub3Department.setOnChangeHandler('loadSub4departments');
+												document.write(selectBoxSub3Department.getHtml());
+												selectBoxSub3Department.init();
+											</script></td>
+									</tr>
+									<%
+										}
+																	if(fieldId.equals(PositionConfigurationConstants.FIELD_DEPARTMENT_LEVEL_5)){
+									%>
+									<tr id="dept_level_5">
+										<td class="label2"><%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_DEPARTMENT_LEVEL_5)%>
+											<%
+											if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){
+										%> <span class="star">*</span> <%
+											}
+										%></td>
+										<td><script language="JavaScript">	
+												var opts = <bean:write name="positionForm" property="jsArraySub4Departments" filter="false"/>;											
+												var opt = [new SelectOption('-1','<bean:message key="common.selectlist.default" />')];
+												departments = opt.concat(opts);
+												selectBoxSub4Department = new SelectBox(departments,'<bean:write name="positionForm" property="sub4DepartmentId" />','images/btn_dropdown.gif',{namesonly:false, width:'262px', size:15, textboxclass:'Grey'});
+												document.write(selectBoxSub4Department.getHtml());
+												selectBoxSub4Department.init();
+											</script></td>
+									</tr>
+									<%
+										}
+																	
+																	if(fieldId.equals(PositionConfigurationConstants.FIELD_FUNCTION)){
+																		%>
+
+									<tr>
+										<td class="label2"><%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_FUNCTION)%>
+											<%
+																				if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){
+																			%> <span class="star">*</span> <%
+																				}
+																			%></td>
+										<td><script language="JavaScript">	
+																						var opts = <bean:write name="positionForm" property="jsArrayJobFunction" filter="false"/>;											
+																						var opt = [new SelectOption('-1','<bean:message key="common.selectlist.default" />')];
+																						jobFunction = opt.concat(opts);
+																						selectBoxJobFunction = new SelectBox(jobFunction,'<bean:write name="positionForm" property="pJobFunctionId" />','images/btn_dropdown.gif',{namesonly:false, width:'262px', size:15, textboxclass:'Grey'});
+																						document.write(selectBoxJobFunction.getHtml());
+																						selectBoxJobFunction.init();
+																				</script></td>
+									</tr>
+									<%
+																			}
+																	
+																	if(fieldId.equals(PositionConfigurationConstants.FIELD_PAY_GRADE)){
+																		%>
+
+									<tr>
+										<td class="label2"><%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_PAY_GRADE)%>
+											<%
+																				if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){
+																			%> <span class="star">*</span> <%
+																				}
+																			%></td>
+										<td><script language="JavaScript">	
+																						var opts = <bean:write name="positionForm" property="jsArrayJobPayGrade" filter="false"/>;											
+																						var opt = [new SelectOption('-1','<bean:message key="common.selectlist.default" />')];
+																						jobPayGrade = opt.concat(opts);
+																						selectBoxJobPayGrade = new SelectBox(jobPayGrade,'<bean:write name="positionForm" property="pJobPayGradeId" />','images/btn_dropdown.gif',{namesonly:false, width:'400px', size:15, textboxclass:'Grey'});
+																						document.write(selectBoxJobPayGrade.getHtml());
+																						selectBoxJobPayGrade.init();
+																				</script></td>
+									</tr>
+									<%
+																			}
+																	
+																	if(fieldId.equals(PositionConfigurationConstants.FIELD_JOB_CODE)){
+																		%>
+
+									<tr>
+										<td class="label2"><%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_JOB_CODE)%>
+											<%
+																				if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){
+																			%> <span class="star">*</span> <%
+																				}
+																			%></td>
+										<td><script language="JavaScript">	
+																						var opts = <bean:write name="positionForm" property="jsArrayJobCode" filter="false"/>;											
+																						var opt = [new SelectOption('-1','<bean:message key="common.selectlist.default" />')];
+																						jobCode = opt.concat(opts);
+																						selectBoxJobCode = new SelectBox(jobCode,'<bean:write name="positionForm" property="pJobCodeId" />','images/btn_dropdown.gif',{namesonly:false, width:'400px', size:15, textboxclass:'Grey'});
+																						document.write(selectBoxJobCode.getHtml());
+																						selectBoxJobCode.init();
+																				</script></td>
+									</tr>
+									<%
+																			}
+					
+																	
+																	
+																	
+																	
+																	
+																	if(fieldId.equals(PositionConfigurationConstants.FIELD_LOCATION_LEVEL_1)){
+																		%>
+
+									<tr>
+										<td class="label2"><%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_LOCATION_LEVEL_1)%>
+											<%
+																				if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){
+																			%> <span class="star">*</span> <%
+																				}
+																			%></td>
+										<td><script language="JavaScript">	
+																						var opts = <bean:write name="positionForm" property="jsArrayLocations" filter="false"/>;											
+																						var opt = [new SelectOption('-1','<bean:message key="common.selectlist.default" />')];
+																						locations = opt.concat(opts);
+																						selectBoxLocation = new SelectBox(locations,'<bean:write name="positionForm" property="pLocationId" />','images/btn_dropdown.gif',{namesonly:false, width:'400px', size:15, textboxclass:'Grey'});
+																						selectBoxLocation.setOnChangeHandler('loadSublocations');
+																						document.write(selectBoxLocation.getHtml());
+																						selectBoxLocation.init();
+																				</script></td>
+									</tr>
+									<%
+																			}
+																										if(fieldId.equals(PositionConfigurationConstants.FIELD_LOCATION_LEVEL_2)){
+																		%>
+									<tr>
+										<td class="label2"><%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_LOCATION_LEVEL_2)%>
+											<%
+																				if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){
+																			%> <span class="star">*</span> <%
+																				}
+																			%></td>
+										<td><script language="JavaScript">	
+																					var opts = <bean:write name="positionForm" property="jsArraySubLocations" filter="false"/>;											
+																					var opt = [new SelectOption('-1','<bean:message key="common.selectlist.default" />')];
+																					locations = opt.concat(opts);
+																					selectBoxSubLocation = new SelectBox(locations,'<bean:write name="positionForm" property="pSubLocationId" />','images/btn_dropdown.gif',{namesonly:false, width:'400px', size:15, textboxclass:'Grey'});
+																					document.write(selectBoxSubLocation.getHtml());
+																					selectBoxSubLocation.init();
+																				</script></td>
+									</tr>
+									<%
+																			}
+																										if(fieldId.equals(PositionConfigurationConstants.FIELD_LOCATION_LEVEL_3)){
+																		%>
+									<tr>
+
+										<td class="label2"><%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_LOCATION_LEVEL_3)%>
+											<%
+																				if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){
+																			%> <span class="star">*</span> <%
+																				}
+																			%></td>
+										<td><script language="JavaScript">	
+											var opts = <bean:write name="positionForm" property="jsArraySubSubLocations" filter="false"/>;											
+											var opt = [new SelectOption('-1','<bean:message key="common.selectlist.default" />')];
+											locations = opt.concat(opts);
+											selectBoxSubSubLocation = new SelectBox(locations,'<bean:write name="positionForm" property="pSubSubLocationId" />','images/btn_dropdown.gif',{namesonly:false, width:'400px', size:15, textboxclass:'Grey'});
+											document.write(selectBoxSubSubLocation.getHtml());
+											selectBoxSubSubLocation.init();
+																				</script></td>
+									</tr>
+									<%
+																			}
+																										
+																										if(fieldId.equals(PositionConfigurationConstants.FIELD_COUNTRIES)){
+																											%>
+
+									<tr>
+										<td class="label2"><%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_COUNTRIES)%>
+											<%
+																													if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){
+																												%> <span class="star">*</span> <%
+																													}
+																												%></td>
+										<td><script language="JavaScript">	
+																															var opts = <bean:write name="positionForm" property="jsArrayCountry" filter="false"/>;											
+																															var opt = [new SelectOption('-1','<bean:message key="common.selectlist.default" />')];
+																															countries = opt.concat(opts);
+																															selectBoxCountry = new SelectBox(countries,'<bean:write name="positionForm" property="countryId" />','images/btn_dropdown.gif',{namesonly:false, width:'400px', size:15, textboxclass:'Grey'});
+																															selectBoxCountry.setOnChangeHandler('loadStates');
+																															document.write(selectBoxCountry.getHtml());
+																															selectBoxCountry.init();
+																															
+																													
+																													</script></td>
+									</tr>
+									<%
+																												}
+																																			if(fieldId.equals(PositionConfigurationConstants.FIELD_STATES)){
+																											%>
+									<tr>
+										<td class="label2"><%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_STATES)%>
+											<%
+																													if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){
+																												%> <span class="star">*</span> <%
+																													}
+																												%></td>
+										<td><script language="JavaScript">	
+																														var opts = <bean:write name="positionForm" property="jsArrayState" filter="false"/>;											
+																														var opt = [new SelectOption('-1','<bean:message key="common.selectlist.default" />')];
+																														states = opt.concat(opts);
+																														selectBoxState = new SelectBox(states,'<bean:write name="positionForm" property="stateId" />','images/btn_dropdown.gif',{namesonly:false, width:'400px', size:15, textboxclass:'Grey'});
+																														document.write(selectBoxState.getHtml());
+																														selectBoxState.init();
+																														
+																													</script></td>
+									</tr>
+									<%
+																												}
+																	
+																	
+																	
+																	
+																	
+																	if(fieldId.equals(PositionConfigurationConstants.FIELD_GRADE)){
+									%>
+									<tr>
+										<td class="label2"><%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_BUDGET_ITEM_GRADE_LABEL)%>
+											<%
+												if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){
+											%> <span class="star">*</span> <%
+											} else if (ModuleSet.isMODULE_BUDGET() && BudgetUtils.isBudgetModuleActive() && GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_BUDGET_MODE).equals(BudgetConstants.BUDGET_MODE_ENFORCE)){
+										%> <span class="star">*</span> <%
+											}
+										%></td>
+										<td><script language="JavaScript">									
+												var opts = <bean:write name="positionForm" property="jsArrayGrades" filter="false"/>;											
+												var opt = [new SelectOption('-1','<bean:message key="common.selectlist.select" />')];
+												grades = opt.concat(opts);
+												selectBoxGrade = new SelectBox(grades,'<bean:write name="positionForm" property="gradeId" />','images/btn_dropdown.gif',{namesonly:false, width:'262px', size:15, textboxclass:'Grey'});
+												selectBoxGrade.setOnChangeHandler('retrieveHireByDateAndBudgetItems');
+												document.write(selectBoxGrade.getHtml());
+												selectBoxGrade.init();
+											</script></td>
+									</tr>
+									<%
+										}
+																	if(fieldId.equals(PositionConfigurationConstants.FIELD_BAND)){
+									%>
+									<tr>
+										<td class="label2"><%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_BUDGET_ITEM_BAND_LABEL)%>
+											<%
+										if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){
+									%> <span class="star">*</span> <%
+											} else if (ModuleSet.isMODULE_BUDGET() && BudgetUtils.isBudgetModuleActive() && GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_BUDGET_MODE).equals(BudgetConstants.BUDGET_MODE_ENFORCE)){
+										%> <span class="star">*</span> <%
+											}
+										%></td>
+										<td><script language="JavaScript">									
+											var opts = <bean:write name="positionForm" property="jsArrayBands" filter="false"/>;											
+											var opt = [new SelectOption('-1','<bean:message key="common.selectlist.select" />')];
+											bands = opt.concat(opts);
+											selectBoxBand = new SelectBox(bands,'<bean:write name="positionForm" property="bandId" />','images/btn_dropdown.gif',{namesonly:false, width:'262px', size:15, textboxclass:'Grey'});
+											selectBoxBand.setOnChangeHandler('loadBudgetItems');
+											document.write(selectBoxBand.getHtml());
+											selectBoxBand.init();
+										</script>
+									</tr>
+									<%
+										}
+																	if(fieldId.equals(PositionConfigurationConstants.FIELD_BUDGET_ITEM)){
+									%>
+									<%
+									 	if (ModuleSet.isMODULE_BUDGET() && BudgetUtils.isBudgetModuleActive()) {
+									 %>
+									<tr id="budgetItemShow" style="display:;">
+										<td class="label2"><bean:message
+												key="position.description.budget_item" /> <%
+											if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){
+										%> <span class="star">*</span> <%
+											}
+										%></td>
+										<td><script language="JavaScript">									
+												var opts = <bean:write name="positionForm" property="jsArrayBudgetItems" filter="false"/>;											
+												var opt = [new SelectOption('-1','<bean:message key="common.selectlist.select" />')];
+												budgetItems = opt.concat(opts);
+												selectBoxBudgetItems = new SelectBox(budgetItems,'<bean:write name="positionForm" property="budgetItemId" />','images/btn_dropdown.gif',{namesonly:false, width:'262px', size:15, textboxclass:'Grey'});
+												document.write(selectBoxBudgetItems.getHtml());
+												selectBoxBudgetItems.init();
+											</script></td>
+									</tr>
+									<%	} 
+									 	}if(fieldId.equals(PositionConfigurationConstants.FIELD_TYPE_OF_VACANCY)){
+									%>
+
+									<tr>
+										<td class="label2"><bean:message
+												key="position.description.type_of_vacancy" /> <%
+											if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){
+										%> <span class="star">*</span> <%
+											}
+										%></td>
+										<td><img src="images/radiobutton.gif"
+											name='imgTypeOfVacancy'
+											id='img_TypeOfVacancy_<%=PositionConstants.POSITIONS_TYPE_OF_VACANCY_FRESH%>'
+											onclick="javascript:onRadioChange(this,'<%=PositionConstants.POSITIONS_TYPE_OF_VACANCY_FRESH%>');"
+											style="margin-bottom: -1px;" />&nbsp; <bean:message
+												key="position.description.fresh" />&nbsp; <img
+											src="images/radiobutton.gif" name='imgTypeOfVacancy'
+											id='img_TypeOfVacancy_<%=PositionConstants.POSITIONS_TYPE_OF_VACANCY_REPLACEMENT%>'
+											onclick="javascript:onRadioChange(this,'<%=PositionConstants.POSITIONS_TYPE_OF_VACANCY_REPLACEMENT%>');"
+											style="margin-bottom: -1px;" />&nbsp; <bean:message
+												key="position.description.replacement" />&nbsp;</td>
+									</tr>
+
+									<%	}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_REPLACEMENT_EMP_CODE)){
+									%>
+									<tr id="repEmpCodeAdd" style="display: none;">
+										<td class="label">&nbsp;</td>
+										<td style="padding-left: 82px;"><bean:message
+												key="position.description.replacement_emp_code" /> <%
+											if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){
+										%> <span class="star">*</span> <%
+											}
+										%> <html:text name="positionForm"
+												property="replacementEmpCode" styleClass="Grey" size="20"
+												styleId="replacementEmpCode" /></td>
+									</tr>
+									<%	}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_POSITION_TYPE_EXT_INT)){
+									%>
+									<logic:equal value="true" name="permissionSet" scope="session"
+										property="PERMISSION_FOR_POSITION_TYPE_DECISION_MAKER">
+										<tr>
+											<td class="label2"><bean:message
+													key="position.description.position_type_ext_int" /> <%if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){ %>
+												<span class="star">*</span> <% } %></td>
+											<td><script type="text/javascript">
+													var opts = new Array();
+													opts[0] = new SelectOption('0','<bean:message key="common.selectlist.select"/>');
+													opts[1] = new SelectOption('<%=PositionConstants.POSITIONS_TYPE_EXTERNAL%>','<bean:message key="position.description.position_type_external" />');
+													opts[2] = new SelectOption('<%=PositionConstants.POSITIONS_TYPE_INTERNAL%>','<bean:message key="position.description.position_type_internal" />');												
+													selectPositionType = new SelectBox(opts,'<bean:write name="positionForm" property="positionTypeExtInt" />','images/btn_dropdown.gif',{namesonly:false, width:'262px', size:15, textboxclass:'Grey'});
+													document.write(selectPositionType.getHtml());
+													selectPositionType.init();
+												</script></td>
+										</tr>
+									</logic:equal>
+									<% }%>
+									<%-- 		if(fieldId.equals(PositionConfigurationConstants.FIELD_LOCATION)){
+									%>
+									<tr>
+										<td class="label2"><bean:message key="position.description.location" />
+										&nbsp;
+										<%if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){ %>
+											<span class="star">*</span>
+										<%} %>
+										<span title='<bean:message key="common.searchable" />' class="searchableStar">*</span>
+										</td>
+										<td align="left" >
+											<table cellspacing="0" cellpadding="0" border="0" class="filterGrid" >
+												<tr>
+													<td style="vertical-align: top;" align="left">
+														<table cellpadding="0" cellspacing="0">
+															<tr>
+																<td>
+																	<input id="locationFilter" name="locationFilter" type="text" size="49" onfocus="onFilterFocus('locationFilter')" value="Filter" style="width:256px;color: graytext; border-bottom: 0px;" onclick="onFilterFocus('locationFilter','Filter');" onblur="onFilterUnfocus('locationFilter','Filter')"/>
+																</td>
+															</tr>
+															<tr>
+																<td class="gridborder" style="padding: 0px;">
+																	<div id="LOCATIONS_GRD" class="gridbox" style="width:259px;height:100px;"></div>
+																</td>
+															</tr>
+														</table>			
+													</td>		
+													<td style="padding: 10px;vertical-align: middle;" >					
+														<a href="#" onclick="javascript: selectItem(locationsGrid,locationsGridSelected);return false;" title="<bean:message key='common.add' />" >
+															<img src="images/ico_rightarrow.gif"  border="0" />
+														</a>
+														<br/>
+														<a href="#" onclick="javascript: deselectItem(locationsGridSelected,locationsGrid);return false;" title="<bean:message key='common.remove' />" >
+															<img src="images/ico_leftarrow.gif"  border="0" />
+														</a> 
+													</td>					
+													<td style="vertical-align: top;">
+														<table cellpadding="0" cellspacing="0">
+															<tr>
+																<td class="gridborder">
+																	<div id="LOCATIONS_GRD_SELECTED"  class="gridbox" style="width:240px;height:118px;"></div>
+																</td>
+															</tr>
+														</table>
+													</td>
+												</tr>
+											</table>			
+										</td>
+									</tr>					
+									<%} %>					 --%>
+									<logic:notEqual name="positionForm" property="positionStatus"
+										value="<%=PositionConstants.POSITION_STATUS_TEMPLATE%>">
+										<%										
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_VACANCIES)){
+									%>
+										<tr>
+											<td class="label2"><bean:message key="common.vacancies" />
+												<%if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){ %>
+												<span class="star">*</span> <%} %></td>
+											<td><html:text name="positionForm" property="vacancies"
+													size="4" styleClass="Grey" /></td>
+										</tr>
+										<%		
+										}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_HIRE_BY_DATE)){
+									%>
+										<tr>
+											<td class="label2"><bean:message
+													key="position.description.hire_by_date" /> <%if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){ %>
+												<span class="star">*</span> <%} %></td>
+											<td><html:text name="positionForm" property="hireByDate"
+													styleId="hireByDate"
+													onblur="javascript: getFormattedDate(this);" size="12"
+													maxlength="10" styleClass="Grey" /> <img
+												src="images/ico_cal.gif"
+												onClick="popUpCal.select(document.getElementById('hireByDate'),'hireByDate','dd/MM/yyyy'); return false;" />
+											</td>
+										</tr>
+										<%} %>
+									</logic:notEqual>
+									<%
+									if("1".equals(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_BUSINESS_UNIT_PROPERTY))){
+									if(fieldId.equals(PositionConfigurationConstants.FIELD_BUSINESS_UNIT)){
+									%>
+									<tr>
+										<td class="label2"><%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_BUSINESS_UNIT_LABEL)%>
+											&nbsp; <%if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){ %>
+											<span class="star">*</span> <%} %></td>
+										<td align="left">
+											<table cellspacing="0" cellpadding="0" border="0"
+												class="filterGrid">
+												<tr>
+													<td style="vertical-align: top;" align="left">
+														<table cellpadding="0" cellspacing="0">
+															<tr>
+																<td><input id="buFilter" name="buFilter"
+																	type="text" size="49"
+																	onfocus="onFilterFocus('buFilter')" value="Filter"
+																	style="width: 256px; color: graytext; border-bottom: 0px;"
+																	onclick="onFilterFocus('buFilter','Filter');"
+																	onblur="onFilterUnfocus('buFilter','Filter')" /></td>
+															</tr>
+															<tr>
+																<td class="gridborder" style="padding: 0px;">
+																	<div id="BU_GRD" class="gridbox"
+																		style="width: 259px; height: 100px;"></div>
+																</td>
+															</tr>
+														</table>
+													</td>
+													<td style="padding: 10px; vertical-align: middle;"><a
+														href="#"
+														onclick="javascript: selectItem(buGrid,buGridSelected);return false;"
+														title="<bean:message key='common.add' />"> <img
+															src="images/ico_rightarrow.gif" border="0" />
+													</a> <br /> <a href="#"
+														onclick="javascript: deselectItem(buGridSelected,buGrid);return false;"
+														title="<bean:message key='common.remove' />"> <img
+															src="images/ico_leftarrow.gif" border="0" />
+													</a></td>
+													<td style="vertical-align: top;">
+														<table cellpadding="0" cellspacing="0">
+															<tr>
+																<td class="gridborder">
+																	<div id="BU_GRD_SELECTED" class="gridbox"
+																		style="width: 240px; height: 118px;"></div>
+																</td>
+															</tr>
+														</table>
+													</td>
+												</tr>
+											</table>
+										</td>
+									</tr>
+									<%} }
+									if("1".equals(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_COST_CENTER_PROPERTY))){
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_COST_CENTER)){
+									%>
+									<tr>
+										<td class="label2"><%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_COST_CENTER_LABEL)%>
+											&nbsp; <%if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){ %>
+											<span class="star">*</span> <%} %></td>
+										<td align="left">
+											<table cellspacing="0" cellpadding="0" border="0"
+												class="filterGrid">
+												<tr>
+													<td style="vertical-align: top;" align="left">
+														<table cellpadding="0" cellspacing="0">
+															<tr>
+																<td><input id="costCenterFilter"
+																	name="costCenterFilter" type="text" size="49"
+																	onfocus="onFilterFocus('costCenterFilter')"
+																	value="Filter"
+																	style="width: 256px; color: graytext; border-bottom: 0px;"
+																	onclick="onFilterFocus('costCenterFilter','Filter');"
+																	onblur="onFilterUnfocus('costCenterFilter','Filter')" />
+																</td>
+															</tr>
+															<tr>
+																<td class="gridborder" style="padding: 0px;">
+																	<div id="COST_CENTER_GRD" class="gridbox"
+																		style="width: 259px; height: 100px;"></div>
+																</td>
+															</tr>
+														</table>
+													</td>
+													<td style="padding: 10px; vertical-align: middle;"><a
+														href="#"
+														onclick="javascript: selectItem(costCenterGrid,costCenterGridSelected);return false;"
+														title="<bean:message key='common.add' />"> <img
+															src="images/ico_rightarrow.gif" border="0" />
+													</a> <br /> <a href="#"
+														onclick="javascript: deselectItem(costCenterGridSelected,costCenterGrid);return false;"
+														title="<bean:message key='common.remove' />"> <img
+															src="images/ico_leftarrow.gif" border="0" />
+													</a></td>
+													<td style="vertical-align: top;">
+														<table cellpadding="0" cellspacing="0">
+															<tr>
+																<td class="gridborder">
+																	<div id="COST_CENTER_GRD_SELECTED" class="gridbox"
+																		style="width: 240px; height: 118px;"></div>
+																</td>
+															</tr>
+														</table>
+													</td>
+												</tr>
+											</table>
+										</td>
+									</tr>
+									<%} } %>
+
+									<%												
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_LEVEL)){
+									%>
+									<tr>
+										<td class="label2" valign="top"><bean:message
+												key="common.position" /> <bean:message key="common.level" />
+											<%if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){ %>
+											<span class="star">*</span> <%} %></td>
+										<td><html:text name="positionForm"
+												property="positionLevel" styleClass="Grey" size="20"
+												maxlength="20" /></td>
+									</tr>
+									<%		
+										}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_REFERAL_FEES)){
+									%>
+									<tr>
+										<td class="label2"><bean:message
+												key="position.description.position_referal_fees" /> <%if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){ %>
+											<span class="star">*</span> <%} %></td>
+										<td><html:text name="positionForm"
+												property="positionReferalFees" styleClass="Grey" size="20"
+												maxlength="20" /></td>
+									</tr>
+									<%		
+										}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_CONTACT_PERSON_NAME)){
+									%>
+									<tr>
+										<td class="label2"><bean:message
+												key="position.naukri.contact_peerson_name" /> <%if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){ %>
+											<span class="star">*</span> <%} %></td>
+										<td><html:text name="positionForm"
+												property="contactPersonName" styleClass="Grey" size="50"
+												maxlength="50" /></td>
+									</tr>
+									<%		
+										}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_JOB_INDUSTRY_CODE)){
+									%>
+									<tr>
+										<td class="label2"><bean:message
+												key="position.naukri.job_industry_code" /> <%if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){ %>
+											<span class="star">*</span> <%} %></td>
+										<td><script language="JavaScript">									
+												var opts = <bean:write name="positionForm" property="jsArrayJobIndustryCodes" filter="false"/>;											
+												var opt = [new SelectOption('-1','<bean:message key="common.selectlist.select" />')];
+												industryCodes = opt.concat(opts);
+												selectBoxJobIndustryCodes = new SelectBox(industryCodes,'<bean:write name="positionForm" property="jobIndustryCode" />','images/btn_dropdown.gif',{namesonly:false, width:'300px', size:15, textboxclass:'Grey'});
+												document.write(selectBoxJobIndustryCodes.getHtml());
+												selectBoxJobIndustryCodes.init();
+											</script></td>
+									</tr>
+									<%		
+										}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_JOB_FUNCTION_CODE)){
+									%>
+									<tr>
+										<td class="label2"><bean:message
+												key="position.naukri.job_function_code" /> <%if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){ %>
+											<span class="star">*</span> <%} %></td>
+										<td><script language="JavaScript">									
+												var opts = <bean:write name="positionForm" property="jsArrayJobFunctionalAreaCodes" filter="false"/>;											
+												var opt = [new SelectOption('-1','<bean:message key="common.selectlist.select" />')];
+												industryCodes = opt.concat(opts);
+												selectBoxJobAreaCodes = new SelectBox(industryCodes,'<bean:write name="positionForm" property="jobFunctionCode" />','images/btn_dropdown.gif',{namesonly:false, width:'300px', size:15, textboxclass:'Grey'});
+												selectBoxJobAreaCodes.setOnChangeHandler('loadJobRoleCodes');
+												document.write(selectBoxJobAreaCodes.getHtml());
+												selectBoxJobAreaCodes.init();
+											</script></td>
+									</tr>
+									<%		
+										}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_JOB_ROLE_CODE)){
+									%>
+									<tr>
+										<td class="label2"><bean:message
+												key="position.naukri.job_role_code" /> <%if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){ %>
+											<span class="star">*</span> <%} %></td>
+										<td><script language="JavaScript">									
+												var opts = <bean:write name="positionForm" property="jsArrayJobRoleCodes" filter="false"/>;											
+												var opt = [new SelectOption('-1','<bean:message key="common.selectlist.select" />')];
+												industryCodes = opt.concat(opts);
+												selectBoxJobRoleCodes = new SelectBox(industryCodes,'<bean:write name="positionForm" property="jobRoleCode" />','images/btn_dropdown.gif',{namesonly:false, width:'300px', size:15, textboxclass:'Grey'});
+												document.write(selectBoxJobRoleCodes.getHtml());
+												selectBoxJobRoleCodes.init();
+											</script></td>
+									</tr>
+									<%		
+										}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_JOB_KEYWORDS)){
+									%>
+									<tr>
+										<td class="label2"><bean:message
+												key="position.naukri.job_keywords" /> <%if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){ %>
+											<span class="star">*</span> <%} %></td>
+										<td><html:text name="positionForm" property="jobKeywords"
+												styleClass="Grey" size="70" maxlength="70" /></td>
+									</tr>
+									<%		
+										}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_COUNTRY)){
+									%>
+									<tr>
+										<td class="label2"><bean:message
+												key="position.naukri.country" /> <%if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){ %>
+											<span class="star">*</span> <%} %></td>
+										<td><script language="JavaScript">									
+												var opts = <bean:write name="positionForm" property="jsArrayCountries" filter="false"/>;											
+												var opt = [new SelectOption('-1','India')];
+												industryCodes = opt.concat(opts);
+												selectBoxCountries = new SelectBox(industryCodes,'<bean:write name="positionForm" property="country" />','images/btn_dropdown.gif',{namesonly:false, width:'220px', size:15, textboxclass:'Grey'});
+												document.write(selectBoxCountries.getHtml());
+												selectBoxCountries.init();
+											</script></td>
+									</tr>
+									<%		
+										}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_MINIMUM_SALARY)){
+									%>
+									<tr>
+										<td class="label2"><bean:message
+												key="position.naukri.minimum_salary" /> <%if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){ %>
+											<span class="star">*</span> <%} %></td>
+										<td><html:text name="positionForm"
+												property="minimumSalary" styleClass="Grey" size="20"
+												maxlength="20" /></td>
+									</tr>
+									<%		
+										}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_MAXIMUM_SALARY)){
+									%>
+									<tr>
+										<td class="label2"><bean:message
+												key="position.naukri.maximum_salary" /> <%if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){ %>
+											<span class="star">*</span> <%} %></td>
+										<td><html:text name="positionForm"
+												property="maximumSalary" styleClass="Grey" size="20"
+												maxlength="20" /></td>
+									</tr>
+									<%		
+										}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_BENEFITS_DESCRIPTION)){
+									%>
+									<tr>
+										<td class="label2"><bean:message
+												key="position.naukri.benefits_description" /> <%if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){ %>
+											<span class="star">*</span> <%} %></td>
+										<td><html:text name="positionForm"
+												property="benefitsDescription" styleClass="Grey" size="70"
+												maxlength="70" /></td>
+									</tr>
+									<%		
+										}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_DISPLAY_SALARY)){
+									%>
+									<tr>
+										<td class="label2"><bean:message
+												key="position.naukri.display_salary" /> <%if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){ %>
+											<span class="star">*</span> <%} %></td>
+										<td><script>
+											var opts = [new SelectOption('Y','Yes'), new SelectOption('N','No')];
+											var selectBoxDisplaySalary = new SelectBox(opts,'<bean:write name="positionForm" property="displaySalary" />','images/btn_dropdown.gif',{namesonly:false, width:'120px', size:15});
+					   						document.write(selectBoxDisplaySalary.getHtml());
+					   						selectBoxDisplaySalary.init();
+								 		</script></td>
+									</tr>
+									<%		
+										}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_DESIRED_CANDIDATE_SUMMARY)){
+									%>
+									<tr>
+										<td class="label2"><bean:message
+												key="position.naukri.desired_candidate_summary" /> <%if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){ %>
+											<span class="star">*</span> <%} %></td>
+										<td><html:text name="positionForm"
+												property="desiredCandidateSummaryText" styleClass="Grey"
+												size="70" maxlength="70" /></td>
+									</tr>
+									<%		
+										}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_CONTACT_PERSON_EMAIL)){
+									%>
+									<tr>
+										<td class="label2"><bean:message
+												key="position.naukri.contact_person_email" /> <%if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){ %>
+											<span class="star">*</span> <%} %></td>
+										<td><html:text name="positionForm"
+												property="contactPersonEmail" styleClass="Grey" size="50"
+												maxlength="50" /></td>
+									</tr>
+									<%		
+										}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_APPLY_BY_WEB_URL)){
+									%>
+									<tr>
+										<td class="label2"><bean:message
+												key="position.naukri.apply_by_web_url" /> <%if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){ %>
+											<span class="star">*</span> <%} %></td>
+										<td><html:text name="positionForm"
+												property="applyByWebURL" styleClass="Grey" size="50"
+												maxlength="50" /></td>
+									</tr>
+									<%		
+										}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_JOB_FIELD_RESPONSE_EMAIL)){
+									%>
+									<tr>
+										<td class="label2"><bean:message
+												key="position.naukri.job_field_response_email" /> <%if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){ %>
+											<span class="star">*</span> <%} %></td>
+										<td><html:text name="positionForm"
+												property="jobFeedResponseEmail" styleClass="Grey" size="50"
+												maxlength="50" /></td>
+									</tr>
+									<%		
+										}
+										if(fieldId.equals(PositionConfigurationConstants.SALARY_CURRENCY)){
+									%>
+									<tr>
+										<td class="label2"><bean:message
+												key="position.naukri.salary_currency" /> <%if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){ %>
+											<span class="star">*</span> <%} %></td>
+										<td><script>
+											var opts = [new SelectOption('Rupees','Rupees'), new SelectOption('U.S Dollars','U.S Dollars')];
+											var selectBoxJobCurrency = new SelectBox(opts,'<bean:write name="positionForm" property="salaryCurrency" />','images/btn_dropdown.gif',{namesonly:false, width:'120px', size:15});
+					   						document.write(selectBoxJobCurrency.getHtml());
+					   						selectBoxJobCurrency.init();
+								 		</script></td>
+									</tr>
+									<%		
+										}
+										if(fieldId.equals(PositionConfigurationConstants.FIELD_NOTE)){
+									%>
+									<tr>
+										<td class="label2" valign="top"><bean:message
+												key="position.description.note" /> <%if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){ %>
+											<span class="star">*</span> <%} %></td>
+										<td><html:textarea name="positionForm" property="note"
+												cols="60" rows="5" styleClass="Grey" /></td>
+									</tr>
+									<%} }
+										else{							
+										if(customFields!=null && customFields.size()>0){
+											for(int i=0; i<customFields.size();i++){
+												CustomFieldData data = (CustomFieldData)customFields.get(i);			
+												if(fieldId.equals(data.getFieldName())){
+									%>
+									<tr>
+										<td class="label2" valign="top"><%=data.getFieldDisplayName() %>
+											<%if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){ %>
+											<span class="star">*</span> <%} %></td>
+										<td><%=data.getUI()%></td>
+									</tr>
+									<%} } } }}}%>
+								</table>
+							</div>
+						</td>
+					</tr>
+					<%
+								for(int j=0; j<positionFields.size();j++){
+									PositionFieldData fieldData = (PositionFieldData)positionFields.get(j); 
+									String fieldId = fieldData.getFieldId();
+									String isMandatory = fieldData.getFieldPositionMandatory();
+									
+									if(fieldId.equals(PositionConfigurationConstants.FIELD_RESPONSIBILITIES)){
+										String showValue = fieldData.getFieldPositionShow();
+										if(showValue.equals(PositionConfigurationConstants.FIELD_SHOW)){						
+											%>
+					<logic:equal name="positionForm" property="positionStatus"
+						value="<%=PositionConstants.POSITION_STATUS_TEMPLATE%>">
+						<% isMandatory = PositionConfigurationConstants.FIELD_NOT_MANDATORY;%>
+					</logic:equal>
+					<tr>
+						<td valign="top">
+							<div class="contentDiv">
+								<table width="100%" border="0" cellspacing="0" cellpadding="0"
+									class="posinput">
+									<tr>
+										<td class="label"><bean:message
+												key="position.description.job_responsibilities" />: <%if(isMandatory.equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)){ %>
+											<span class="star">*</span> <%} %></td>
+									</tr>
+									<tr>
+										<td class="label" style="width: 380px;">Copy <bean:message
+												key="position.tabs.description" /> from <a href="#"
+											class="green" onclick="showPositionSelectBox();">another
+												Position</a> or <a href="#" class="green"
+											onclick="showTemplateSelectBox();">Template</a>
+										</td>
+									</tr>
+									<tr>
+										<td>
+											<div>
+												<html:textarea styleId="responsibilities"
+													property="responsibilities" name="positionForm"
+													styleClass="inputBox" cols="90" rows="15"></html:textarea>
+											</div>
+										</td>
+									</tr>
+								</table>
+							</div>
+						</td>
+					</tr>
+					<%}}} %>
+				</table>
+				<br />
+			</logic:notEqual>
+		</html:form>
+	</div>
+	<table width="100%" border="0" cellspacing="0" cellpadding="0">
+		<logic:equal name="positionForm" property="dir"
+			value="<%=PositionConstants.DIR_VIEW_POSITION%>">
+			<tr>
+				<td colspan="2"><br />
+					<div class="navBtn" style="float: right;">
+						<logic:notEqual name="positionForm" property="positionStatus"
+							value="<%=PositionConstants.POSITION_STATUS_TEMPLATE%>">
+							<logic:equal value="true" name="permissionSet" scope="session"
+								property="PERMISSION_EDIT_POSITIONS">
+								<a href="#" style="width: 50px;" class="active"
+									onclick="javascript:editDescription();"><span
+									class="rightC"></span><span class="leftC"></span> <bean:message
+										key="common.edit" /></a>
+							</logic:equal>
+						</logic:notEqual>
+						<logic:equal name="positionForm" property="positionStatus"
+							value="<%=PositionConstants.POSITION_STATUS_TEMPLATE%>">
+							<logic:equal value="true" name="permissionSet" scope="session"
+								property="PERMISSION_CREATE_POSITION_TEMPLATE">
+								<a href="#" style="width: 50px;" class="active"
+									onclick="javascript:editDescription();"><span
+									class="rightC"></span><span class="leftC"></span> <bean:message
+										key="common.edit" /></a>
+							</logic:equal>
+						</logic:equal>
+						<a href="#" style="width: 60px; margin-left: 5px;" class="active"
+							onclick="javascript:backToPositionHome();"><span
+							class="rightC"></span><span class="leftC"></span> <bean:message
+								key="common.cancel" /></a>
+					</div></td>
+			</tr>
+		</logic:equal>
+		<logic:equal name="positionForm" property="dir"
+			value="<%=PositionConstants.DIR_EDIT_POSITION%>">
+			<tr>
+				<td colspan="2"><br />
+					<div class="navBtn" style="float: right;">
+						<a href="#" style="width: 50px;" class="active"
+							onclick="javascript:saveDescription();"><span class="rightC"></span><span
+							class="leftC"></span> <bean:message key="common.save" /></a> <a
+							href="#" style="width: 60px; margin-left: 5px;" class="active"
+							onclick="javascript:cancelEditDescription();"><span
+							class="rightC"></span><span class="leftC"></span> <bean:message
+								key="common.cancel" /></a>
+					</div></td>
+			</tr>
+		</logic:equal>
+		<logic:equal name="positionForm" property="dir"
+			value="<%=PositionConstants.DIR_ADD_POSITION%>">
+			<tr>
+				<td colspan="2"><br /> <logic:notEqual name="positionForm"
+						property="positionStatus"
+						value="<%=PositionConstants.POSITION_STATUS_TEMPLATE%>">
+						<div class="navBtn" style="float: left;">
+							<a href="#" style="width: 110px;" class="active"
+								onclick="javascript:saveAsDraft();"><span class="rightC"></span><span
+								class="leftC"></span> <bean:message
+									key="add_position.label.save_as_draft" /></a>
+						</div>
+					</logic:notEqual>
+					<div class="navBtn" style="float: right;">
+						<a href="#" style="width: 50px;" class="active"
+							onclick="javascript:addDescription();"><span class="rightC"></span><span
+							class="leftC"></span> <bean:message key="common.next" /></a> <a
+							href="#" style="width: 60px; margin-left: 5px;" class="active"
+							onclick="javascript:backToPositionHome();"><span
+							class="rightC"></span><span class="leftC"></span> <bean:message
+								key="common.cancel" /></a>
+					</div></td>
+			</tr>
+		</logic:equal>
+		<logic:equal name="positionForm" property="dir"
+			value="<%=PositionConstants.DIR_COPY_POSITION%>">
+			<tr>
+				<td colspan="2"><br /> <logic:notEqual name="positionForm"
+						property="positionStatus"
+						value="<%=PositionConstants.POSITION_STATUS_TEMPLATE%>">
+						<div class="navBtn" style="float: left;">
+							<a href="#" style="width: 110px;" class="active"
+								onclick="javascript:saveAsDraft();"><span class="rightC"></span><span
+								class="leftC"></span> <bean:message
+									key="add_position.label.save_as_draft" /></a>
+						</div>
+					</logic:notEqual>
+					<div class="navBtn" style="float: right;">
+						<a href="#" style="width: 50px;" class="active"
+							onclick="javascript:copyPosition(false);"><span
+							class="rightC"></span><span class="leftC"></span> <bean:message
+								key="common.next" /></a> <a href="#"
+							style="width: 60px; margin-left: 5px;" class="active"
+							onclick="javascript:copyPosition(true);return false;"><span
+							class="rightC"></span><span class="leftC"></span> <bean:message
+								key="common.finish" /></a> <a href="#"
+							style="width: 60px; margin-left: 5px;" class="active"
+							onclick="javascript:backToPositionHome();"><span
+							class="rightC"></span><span class="leftC"></span> <bean:message
+								key="common.cancel" /></a>
+					</div></td>
+			</tr>
+		</logic:equal>
+	</table>
+	<br />
+</div>
+<logic:notEqual name="positionForm" property="dir"
+	value="<%=PositionConstants.DIR_VIEW_POSITION%>">
+	<DIV id="calDiv"
+		style="position: absolute; background: #FFFFFF; z-index: 1000;"></DIV>
+	<script language="JavaScript">
+var popUpCal = new CalendarPopup("calDiv"); 
+popUpCal.showNavigationDropdowns();
+
+var dtf = new DateFormatter();
+dtf.setDisplayFormat('DD/MM/YYYY');
+function getFormattedDate(obj){
+	if(obj.value.trim()!=''){
+  	  if(!dtf.checkDate(obj)){
+  		obj.select();
+  		alert('<bean:message key="calendar.error.invalid_date"/>');
+  		obj.focus();
+  		return false;
+  	  }else {
+  		return true;
+  	  }
+	}
+	return true;
+}
+
+//Auto Populate Position Data For asian Paints BEGIN
+var asianPaintsPositionCode;
+function showAutoPopulateLink(){
+	if( document.positionForm.positionCodeForAP.value == ''){
+		
+	}else{
+		document.getElementById("autopopulate").style="";
+	}
+	
+}
+function getPositionData(){
+	var errors = '';
+	document.getElementById("autopopulate").style="display:none";
+	if( document.positionForm.positionCodeForAP.value == ''){
+		errors = addError(errors, '- <bean:message key="common.position_code_ap" />');
+	}
+	
+	if(errors == ''){
+		document.positionForm.positionName.value = '';
+		showUpdater('wait',{setHeight: false, setWidth: false, offsetLeft: -400, offsetTop: 230});
+		getCompanyData();
+		
+	}else{
+		alert('Following field is mandatory to auto populate position data: \n'+errors);
+	}
+	
+}
+
+function getPayGradeName(){
+	var val = document.getElementById('positionCodeForAP').value
+	var pars = "mode=getJobPayGradeJSForAP&&positionCodeForAP=" + val;
+	var myAjax = ajaxCall("position.do",'get',pars,populatePayGradeName, reportError);	
+	hideUpdater('wait');
+	
+}
+
+function populatePayGradeName(request){
+	xmlFile = request.responseXML;
+	if(!isValidSession(xmlFile,'<%=TPApplicationProperties.getProperty("redirect_on_session_expired")%>'))return;
+	if(!isErrorXml(xmlFile)){
+		var op = request.responseText;
+		var index = selectBoxJobPayGrade.getIndexWithId(op);
+		selectBoxJobPayGrade.setSelected(index);
+	}else{
+		var index = selectBoxJobPayGrade.getIndexWithId("-1");
+		selectBoxJobPayGrade.setSelected(index);
+	}
+}
+
+function getJobCodeName(){
+	var val = document.getElementById('positionCodeForAP').value
+	var pars = "mode=getJobCodeJSForAP&&positionCodeForAP=" + val;
+	var myAjax = ajaxCall("position.do",'get',pars,populateJobCodeName, reportError);	
+	
+}
+
+function populateJobCodeName(request){
+	xmlFile = request.responseXML;
+	if(!isValidSession(xmlFile,'<%=TPApplicationProperties.getProperty("redirect_on_session_expired")%>'))return;
+	if(!isErrorXml(xmlFile)){
+		var op = request.responseText;
+		var index = selectBoxJobCode.getIndexWithId(op);
+		selectBoxJobCode.setSelected(index);
+	}else{
+		var index = selectBoxJobCode.getIndexWithId("-1");
+		selectBoxJobCode.setSelected(index);
+	}	 
+	getPayGradeName();
+}
+
+function getJobFunctionName(){
+	var val = document.getElementById('positionCodeForAP').value
+	var pars = "mode=getJobFunctionJSForAP&&positionCodeForAP=" + val;
+	var myAjax = ajaxCall("position.do",'get',pars,populateJobFunctionName, reportError);	
+	
+}
+
+function populateJobFunctionName(request){
+	xmlFile = request.responseXML;
+	if(!isValidSession(xmlFile,'<%=TPApplicationProperties.getProperty("redirect_on_session_expired")%>'))return;
+	if(!isErrorXml(xmlFile)){
+		var op = request.responseText;
+		var index = selectBoxJobFunction.getIndexWithId(op);
+		selectBoxJobFunction.setSelected(index);
+	}else{
+		var index = selectBoxJobFunction.getIndexWithId("-1");
+		selectBoxJobFunction.setSelected(index);
+	}	
+	getJobCodeName();
+
+}
+
+function getPositionName(){
+	var val = document.getElementById('positionCodeForAP').value
+	var pars = "mode=getPositionNameForAP&&positionCodeForAP=" + val;
+	var myAjax = ajaxCall("position.do",'get',pars,populatePositionName, reportError);	
+	
+}
+
+function populatePositionName(request){
+	xmlFile = request.responseXML;
+	if(!isValidSession(xmlFile,'<%=TPApplicationProperties.getProperty("redirect_on_session_expired")%>'))return;
+	if(!isErrorXml(xmlFile)){
+		var positionName = request.responseText;
+		if(positionName == "null"){
+			document.positionForm.positionName.value = "";
+		}else{
+			document.positionForm.positionName.value = positionName;
+		}
+			
+	} 
+}
+
+function getCompanyData(){
+	var val = document.getElementById('positionCodeForAP').value
+	var pars = "mode=getCompanyJSForAP&&positionCodeForAP=" + val;
+	var myAjax = ajaxCall("position.do",'get',pars,populateCompanyData, reportError);	
+	
+}
+
+function getBusinessUnitData(){
+	var val = document.getElementById('positionCodeForAP').value
+	var pars = "mode=getBusinessUnitJSForAP&&positionCodeForAP=" + val;
+	var myAjax = ajaxCall("position.do",'get',pars,populateBusinessUnitData, reportError);	
+	
+}
+
+function getDepartmentData(){
+	var val = document.getElementById('positionCodeForAP').value
+	var pars = "mode=getDepartmentJSForAP&&positionCodeForAP=" + val;
+	var myAjax = ajaxCall("position.do",'get',pars,populateDepartmentData, reportError);	
+	
+}
+
+
+function populateCompanyData(request) {
+	xmlFile = request.responseXML;
+	if(!isValidSession(xmlFile,'<%=TPApplicationProperties.getProperty("redirect_on_session_expired")%>'))return;
+	if(!isErrorXml(xmlFile)){
+		var op = request.responseText;
+		var index = selectBoxDepartment.getIndexWithId(op);
+		selectBoxDepartment.setSelected(index);
+	}else{
+		var index = selectBoxDepartment.getIndexWithId("-1");
+		selectBoxDepartment.setSelected(index);
+	}
+	getBusinessUnitData();
+
+}
+
+function populateBusinessUnitData(request) {
+	xmlFile = request.responseXML;
+	if(!isValidSession(xmlFile,'<%=TPApplicationProperties.getProperty("redirect_on_session_expired")%>'))return;
+	if(!isErrorXml(xmlFile)){
+		var op = request.responseText;
+		var index = selectBoxSubDepartment.getIndexWithId(op);
+		selectBoxSubDepartment.setSelected(index);
+	}else{
+		var index = selectBoxSubDepartment.getIndexWithId("-1");
+		selectBoxSubDepartment.setSelected(index);
+	}	
+	getDepartmentData();
+	getPositionName();
+
+}
+
+function populateDepartmentData(request) {
+	xmlFile = request.responseXML;
+	if(!isValidSession(xmlFile,'<%=TPApplicationProperties.getProperty("redirect_on_session_expired")%>'))return;
+	if(!isErrorXml(xmlFile)){
+		var op = request.responseText;
+		var index = selectBoxSubSubDepartment.getIndexWithId(op);
+		selectBoxSubSubDepartment.setSelected(index);
+	}else{
+		var index = selectBoxSubSubDepartment.getIndexWithId("-1");
+		selectBoxSubSubDepartment.setSelected(index);
+	}		
+	getDivisionData();
+	
+}
+
+function getDivisionData(){
+	var val = document.getElementById('positionCodeForAP').value
+	var pars = "mode=getDivisionJSForAP&&positionCodeForAP=" + val;
+	var myAjax = ajaxCall("position.do",'get',pars,populateDivisionData, reportError);	
+	
+}
+
+function getRegionData(){
+	var val = document.getElementById('positionCodeForAP').value
+	var pars = "mode=getRegionJSForAP&&positionCodeForAP=" + val;
+	var myAjax = ajaxCall("position.do",'get',pars,populateRegionData, reportError);	
+	
+}
+
+function getLocationData(){
+	var val = document.getElementById('positionCodeForAP').value
+	var pars = "mode=getLocationJSForAP&&positionCodeForAP=" + val;
+	var myAjax = ajaxCall("position.do",'get',pars,populateLocationData, reportError);	
+	
+}
+
+
+function populateDivisionData(request) {
+	xmlFile = request.responseXML;
+	if(!isValidSession(xmlFile,'<%=TPApplicationProperties.getProperty("redirect_on_session_expired")%>'))return;
+	if(!isErrorXml(xmlFile)){
+		var op = request.responseText;
+		var index = selectBoxLocation.getIndexWithId(op);
+		selectBoxLocation.setSelected(index);
+	}else{
+		var index = selectBoxLocation.getIndexWithId("-1");
+		selectBoxLocation.setSelected(index);
+	}
+	getRegionData();
+	
+}
+
+function populateRegionData(request) {
+	xmlFile = request.responseXML;
+	if(!isValidSession(xmlFile,'<%=TPApplicationProperties.getProperty("redirect_on_session_expired")%>'))return;
+	if(!isErrorXml(xmlFile)){
+		var op = request.responseText;
+		var index = selectBoxSubLocation.getIndexWithId(op);
+		selectBoxSubLocation.setSelected(index);
+	}else{
+		var index = selectBoxSubLocation.getIndexWithId("-1");
+		selectBoxSubLocation.setSelected(index);
+	}	
+	getLocationData();
+	
+	
+}
+
+function populateLocationData(request) {
+	xmlFile = request.responseXML;
+	if(!isValidSession(xmlFile,'<%=TPApplicationProperties.getProperty("redirect_on_session_expired")%>'))return;
+	if(!isErrorXml(xmlFile)){
+		var op = request.responseText;
+		var index = selectBoxSubSubLocation.getIndexWithId(op);
+		selectBoxSubSubLocation.setSelected(index);
+	}else{
+		var index = selectBoxSubSubLocation.getIndexWithId("-1");
+		selectBoxSubSubLocation.setSelected(index);
+	}		
+	getJobFunctionName();
+	
+}
+
+function loadStates() {
+	  var val = selectBoxCountry.getSelectedId();
+	  var pars = "mode=getStateJS&countryId=" + val;
+	  var myAjax = ajaxCall("position.do",'get',pars,updateStates, reportError);
+	}
+	function updateStates(request){
+	 	xmlFile = request.responseXML;
+		if(!isValidSession(xmlFile,'<%=TPApplicationProperties.getProperty("redirect_on_session_expired")%>'))return;
+		if(!isErrorXml(xmlFile)){
+			var op = request.responseText;
+			var opts = eval(op);
+			var m = [new SelectOption('-1', '<bean:message key='common.selectlist.default' />')];
+			opts = m.concat(opts);
+			selectBoxState.reInitialize(opts, '');
+		}
+	}
+
+
+function loadSublocations() {
+	  var val = selectBoxLocation.getSelectedId();
+	  var pars = "mode=getSubLocationRegionJS&pLocationId=" + val;
+	  var myAjax = ajaxCall("position.do",'get',pars,updateSublocations, reportError);
+	}
+	function updateSublocations(request){
+	 	xmlFile = request.responseXML;
+		if(!isValidSession(xmlFile,'<%=TPApplicationProperties.getProperty("redirect_on_session_expired")%>'))return;
+		if(!isErrorXml(xmlFile)){
+			var op = request.responseText;
+			var opts = eval(op);
+			var m = [new SelectOption('-1', '<bean:message key='common.selectlist.default' />')];
+			opts = m.concat(opts);
+			selectBoxSubLocation.reInitialize(opts, '');
+			m = [new SelectOption('-1', '<bean:message key='common.selectlist.default' />')];
+			selectBoxSubSubLocation.reInitialize(m, '');
+		}
+		loadSubSublocations();
+	}
+
+	function loadSubSublocations() {
+	  var val = selectBoxLocation.getSelectedId();
+	  var pars = "mode=getSubLocationJS&pLocationId=" + val;
+	  var myAjax = ajaxCall("position.do",'get',pars,updateSubSublocations, reportError);
+	}
+	function updateSubSublocations(request){
+	 	xmlFile = request.responseXML;
+		if(!isValidSession(xmlFile,'<%=TPApplicationProperties.getProperty("redirect_on_session_expired")%>'))return;
+		if(!isErrorXml(xmlFile)){
+			var op = request.responseText;
+			var opts = eval(op);
+			var m = [new SelectOption('-1', '<bean:message key='common.selectlist.default' />')];
+			opts = m.concat(opts);
+			selectBoxSubSubLocation.reInitialize(opts, '');
+		}	
+	 
+	}
+// Auto Populate Position Data For asian Paints END
+
+
+var dtfo = new DateFormatter();
+function getFDate(obj,format){
+	dtfo.setDisplayFormat(format);
+	if(obj.value.trim()!=''){
+	if(!dtfo.checkDate(obj)){
+		obj.select();
+		alert("Please enter date in " + format + " format");
+		obj.focus();
+		return false;
+	}else {
+		return true;
+	}
+	}
+	return true;
+}
+</script>
+</logic:notEqual>
+<script language="JavaScript">
+
+// Start: JS for Add Position Description.
+function backToPositionHome() {
+	if(document.positionForm.showCondition.value==<%=PositionConstants.POSITION_STATUS_TEMPLATE%>){
+		window.location=uncache("positionTemplate.do?mode=positionTemplatesHome");
+	}else{
+		window.location=uncache("position.do?mode=positionsHome");
+	}	
+	return true;
+}
+
+function saveAsDraft() {
+	var url="position.do?mode=savePositionAsDraft&positionId="+document.positionForm.positionId.value;
+	window.setTimeout("showInPopUp('"+url+"',500,250,onGetDraftName,true);",10);
+}
+
+function onGetDraftName(returnVal) {	
+	populateDescription();
+	validCustomfields('<%=CustomFieldConstants.DEFAULT_SELECT_OPTION%>', '<%=CustomFieldConstants.TYPE_DROPDOWN%>', '<%=CustomFieldConstants.TYPE_LISTBOX%>', '<%=CustomFieldConstants.TYPE_CHECKBOX%>', '<%=CustomFieldConstants.TYPE_RADIO%>', false);
+	document.positionForm.mode.value='savePositionAsDraft';
+	document.positionForm.draftName.value=returnVal;	
+	document.positionForm.submit();
+	return true;
+}
+
+function showInPopUp(url,width,height,returnFun, close){
+	showPopWin(url, width, height, returnFun,close);
+}
+
+function addDescription() {
+	errors = validateData();
+	if (errors.length > 0) {
+		alert(errors);
+		return false;
+	} else if(!validateCustomfields()){
+		return false;
+	}
+	populateDescription();			
+	//document.positionForm.jsArrayResponsibilities.value=_responsibilities.toString();
+	document.positionForm.mode.value='<%=PositionConstants.MODE_ADD_POSITION%>';
+	document.positionForm.submit();
+	return true;
+}
+
+function validateCustomfields(){
+	if(document.positionForm.positionStatus.value==<%=PositionConstants.POSITION_STATUS_TEMPLATE %>){		
+		return validCustomfields('<%=CustomFieldConstants.DEFAULT_SELECT_OPTION%>', '<%=CustomFieldConstants.TYPE_DROPDOWN%>', '<%=CustomFieldConstants.TYPE_LISTBOX%>', '<%=CustomFieldConstants.TYPE_CHECKBOX%>', '<%=CustomFieldConstants.TYPE_RADIO%>', false);
+	}else{
+		return validCustomfields('<%=CustomFieldConstants.DEFAULT_SELECT_OPTION%>', '<%=CustomFieldConstants.TYPE_DROPDOWN%>', '<%=CustomFieldConstants.TYPE_LISTBOX%>', '<%=CustomFieldConstants.TYPE_CHECKBOX%>', '<%=CustomFieldConstants.TYPE_RADIO%>', true);
+	}
+	return true;
+}
+
+function copyPosition(finishCopy) {
+	errors = validateData();	
+	if (errors.length > 0) {
+		alert(errors);
+		return false;
+	} else if(!validateCustomfields()){
+		return false;
+	}
+	populateDescription();	
+	//document.positionForm.jsArrayResponsibilities.value=_responsibilities.toString();
+	document.positionForm.mode.value='<%=PositionConstants.MODE_COPY_POSITION%>';
+	document.positionForm.finishCopyPosition.value=finishCopy;
+	document.positionForm.submit();
+	return true;
+}
+function populateDescription() {
+		document.positionForm.requisitionerId.value=selectBoxRequisitioner.getSelectedId();		
+		if(selectBoxCountries){
+			document.positionForm.country.value=selectBoxCountries.getSelectedId();
+		}
+		if(selectBoxJobIndustryCodes){
+			document.positionForm.jobIndustryCode.value=selectBoxJobIndustryCodes.getSelectedId();
+		}
+		if(selectBoxJobAreaCodes){
+			document.positionForm.jobFunctionCode.value=selectBoxJobAreaCodes.getSelectedId();
+		}
+		if(selectBoxJobRoleCodes){
+			document.positionForm.jobRoleCode.value=selectBoxJobRoleCodes.getSelectedId();
+		}
+		if(selectBoxJobCurrency){
+			document.positionForm.salaryCurrency.value=selectBoxJobCurrency.getSelectedId();
+		}
+		if(selectBoxDisplaySalary){
+			document.positionForm.displaySalary.value=selectBoxDisplaySalary.getSelectedId();
+		}
+		if(selectBoxPositionOwner){
+			document.positionForm.positionOwnerId.value=selectBoxPositionOwner.getSelectedId();
+		}
+		if(selectBoxBudgetItems){
+			document.positionForm.budgetItemId.value=selectBoxBudgetItems.getSelectedId();
+		}			
+	/* 	if(locationsGridSelected) {
+			document.positionForm.locationId.value=locationsGridSelected.getAllItemIds();
+		} */
+		if(selectBoxGrade){
+			document.positionForm.gradeId.value=selectBoxGrade.getSelectedId();
+		}
+		if(selectBoxBand){
+			document.positionForm.bandId.value=selectBoxBand.getSelectedId();
+		}
+		if(selectPositionType){
+			document.positionForm.positionTypeExtInt.value=selectPositionType.getSelectedId();			
+		}
+		if(selectBoxDepartment){
+			document.positionForm.departmentId.value=selectBoxDepartment.getSelectedId();
+			document.positionForm.subDepartmentId.value=selectBoxSubDepartment.getSelectedId();
+			document.positionForm.subSubDepartmentId.value=selectBoxSubSubDepartment.getSelectedId();
+			if(selectBoxSub3Department){
+				document.positionForm.sub3DepartmentId.value=selectBoxSub3Department.getSelectedId();
+			}
+			if(selectBoxSub4Department){
+				document.positionForm.sub4DepartmentId.value=selectBoxSub4Department.getSelectedId();
+			}
+		}
+		if(selectBoxLocation){
+			document.positionForm.pLocationId.value=selectBoxLocation.getSelectedId();
+			document.positionForm.pSubLocationId.value=selectBoxSubLocation.getSelectedId();
+			document.positionForm.pSubSubLocationId.value=selectBoxSubSubLocation.getSelectedId();
+		}
+		if(selectBoxJobFunction){
+			document.positionForm.pJobFunctionId.value=selectBoxJobFunction.getSelectedId();
+		}
+		if(selectBoxJobPayGrade){
+			document.positionForm.pJobPayGradeId.value=selectBoxJobPayGrade.getSelectedId();
+		}
+		if(selectBoxJobCode){
+			document.positionForm.pJobCodeId.value=selectBoxJobCode.getSelectedId();
+		}
+		if(selectBoxCountry){
+			document.positionForm.countryId.value=selectBoxCountry.getSelectedId();
+			document.positionForm.stateId.value=selectBoxState.getSelectedId();
+		}
+		<% if("1".equals(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_BUSINESS_UNIT_PROPERTY))){%>
+		if(buGridSelected) {
+			document.positionForm.buId.value=buGridSelected.getAllItemIds();
+		}
+		<%}%>
+		<% if("1".equals(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_COST_CENTER_PROPERTY))){%> 
+		if(costCenterGridSelected) {
+			document.positionForm.costCenterId.value=costCenterGridSelected.getAllItemIds();
+		}
+		<%}%>
+		
+}
+
+function copyResponsibilities(id) {
+	if(id!=null){
+		var pars = "mode=copyResponsibilities&positionId=" + id;
+		var myAjax = ajaxCall("position.do",'get',pars,updateResponsibilities, reportError);
+	}
+}
+
+function updateResponsibilities(request){
+	  xmlFile = request.responseXML;
+	  if(!isValidSession(xmlFile,'<%=TPApplicationProperties.getProperty("redirect_on_session_expired")%>')) return;
+	  var respo = xmlFile.getElementsByTagName("Responsibilities")[0];
+	  tinyMCE.activeEditor.setContent(respo.firstChild.nodeValue);
+}
+
+
+// Start: JS for View Position Description.
+function editDescription() {
+	document.positionForm.dir.value='<%=PositionConstants.DIR_EDIT_POSITION%>';
+	document.positionForm.submit();
+	return true;
+}
+// End: JS for View Position Description.
+
+// Start: JS for Edit Position Description.
+
+function cancelEditDescription() {
+	document.positionForm.dir.value='<%=PositionConstants.DIR_VIEW_POSITION%>';
+	document.positionForm.mode.value='description';
+	document.positionForm.submit();
+	return true;
+}
+
+function saveDescription() {		
+	errors = validateData();
+	if (errors.length > 0) {
+		alert(errors);
+		return false;
+	} else if(!validateCustomfields()){
+		return false;
+	}
+	populateDescription();			
+
+	if(<%= GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_SEND_POSITION_CHANGE_NOTIFICATION).equals(GlobalConstants.ENABLED)%>){
+		if(document.positionForm.positionStatus.value!=<%=PositionConstants.POSITION_STATUS_TEMPLATE %> && confirm('<bean:message key="position.lable.confirm_send_position_change_notification"/>')){
+			document.positionForm.sendPositionChangeNotification.value='<%=GlobalConstants.ENABLED%>';
+	  	}else{
+	  		document.positionForm.sendPositionChangeNotification.value='<%=GlobalConstants.DISABLED%>';
+	  	}
+	}
+	//document.positionForm.jsArrayResponsibilities.value=_responsibilities.toString();
+	document.positionForm.mode.value='<%=PositionConstants.MODE_SAVE_DESCRIPTION%>';
+	document.positionForm.submit();
+	return true;
+}
+
+function validateData() {
+	errors = '';
+
+	var isMandatory = false;
+	<%
+	for(int j=0; j<positionFields.size();j++){
+		PositionFieldData fieldData = (PositionFieldData)positionFields.get(j); 
+		String fieldId = fieldData.getFieldId();
+		String fieldType = fieldData.getFieldType();
+		String showValue = fieldData.getFieldPositionShow();
+		%>
+		isMandatory = <%= fieldData.getFieldPositionMandatory().equalsIgnoreCase(PositionConfigurationConstants.FIELD_MANDATORY)%>
+		<%
+		if(showValue.equals(PositionConfigurationConstants.FIELD_SHOW) ){				
+			if(fieldType.equals(PositionConfigurationConstants.FIELD_TYPE_NORMAL)){														
+				if(fieldId.equals(PositionConfigurationConstants.FIELD_NAME)){
+		%>
+		
+	var positionName = document.positionForm.positionName.value;
+	if (isMandatory && positionName.trim() == '') {		
+		if(document.positionForm.positionStatus.value!=<%=PositionConstants.POSITION_STATUS_TEMPLATE %>){		
+			errors = addError(errors, '- <bean:message key="common.position_name" />');
+		}else{
+			errors = addError(errors, '- <bean:message key="common.template" /><bean:message key="common.name" />');
+		}
+	}
+
+	<%		
+		}
+	%>
+	if(document.positionForm.positionStatus.value!=<%=PositionConstants.POSITION_STATUS_TEMPLATE %>){		
+		<%
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_CODE)){
+		%>
+			var positionCode = document.positionForm.positionCode.value;
+			if (isMandatory && positionCode.trim() == '') {
+				errors = addError(errors, '- <bean:message key="common.position_code" />');
+			}
+		<%		
+			}	
+		if(fieldId.equals(PositionConfigurationConstants.FIELD_CODE_AP)){
+				%>
+				var positionCodeForAP = document.positionForm.positionCodeForAP.value;
+				if (isMandatory && positionCodeForAP.trim() == '') {
+					errors = addError(errors, '- <bean:message key="common.position_code_ap" />');
+				}
+			<%		
+				}
+		if(fieldId.equals(PositionConfigurationConstants.FIELD_POSITION_OWNER)){
+		%>
+			if(selectBoxPositionOwner){
+				var positionOwnerId = selectBoxPositionOwner.getSelectedId();
+				if (isMandatory && positionOwnerId == -1) {
+					errors = addError(errors, '- <bean:message key="global.position_owner" />');
+				}
+			}
+		<%		
+			} if(fieldId.equals(PositionConfigurationConstants.FIELD_JOB_INDUSTRY_CODE)){
+		%>
+			if(selectBoxJobIndustryCodes){
+				var positionOwnerId = selectBoxJobIndustryCodes.getSelectedId();
+				if (isMandatory && positionOwnerId == -1) {
+					errors = addError(errors, '- <bean:message key="position.naukri.job_industry_code" />');
+			}
+			}
+			<%		
+			} if(fieldId.equals(PositionConfigurationConstants.FIELD_JOB_FUNCTION_CODE)){
+		%>
+			if(selectBoxJobAreaCodes){
+				var positionOwnerId = selectBoxJobAreaCodes.getSelectedId();
+				if (isMandatory && positionOwnerId == -1) {
+					errors = addError(errors, '- <bean:message key="position.naukri.job_function_code" />');
+				}
+			}
+			<%		
+			} if(fieldId.equals(PositionConfigurationConstants.FIELD_JOB_ROLE_CODE)){
+		%>
+			if(selectBoxJobRoleCodes){
+				var positionOwnerId = selectBoxJobRoleCodes.getSelectedId();
+				if (isMandatory && positionOwnerId == -1) {
+					errors = addError(errors, '- <bean:message key="position.naukri.job_role_code" />');
+				}
+			}
+			<%		
+			}
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_REQUESTEDBY)){
+		%>
+			var requisitionerId = selectBoxRequisitioner.getSelectedId();
+			if (isMandatory && requisitionerId == -1) {
+				errors = addError(errors, '- <bean:message key="position.description.requisitioner" />');
+			}	
+		<%		
+			}
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_DEPARTMENT_LEVELS)){
+		%>
+			if (isMandatory && selectBoxDepartment.getSelectedId() == -1) {
+				errors = addError(errors, '- <%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_DEPARTMENT_LEVEL_1) %>');
+			}
+		<%		
+			}
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_DEPARTMENT_LEVEL_2)){
+		%>
+			if (isMandatory && selectBoxSubDepartment.getSelectedId() == -1) {
+				errors = addError(errors, '- <%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_DEPARTMENT_LEVEL_2) %>');
+			}
+		<%	
+			}
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_DEPARTMENT_LEVEL_3)){
+		%>
+			if (isMandatory && selectBoxSubSubDepartment.getSelectedId() == -1) {
+				errors = addError(errors, '- <%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_DEPARTMENT_LEVEL_3) %>');
+			}
+		<%	
+			}
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_DEPARTMENT_LEVEL_4)){
+		%>
+			if (isMandatory && selectBoxSub3Department.getSelectedId() == -1) {
+				errors = addError(errors, '- <%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_DEPARTMENT_LEVEL_4) %>');
+			}
+		<%	
+			}
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_DEPARTMENT_LEVEL_5)){
+		%>
+			if (isMandatory && selectBoxSub4Department.getSelectedId() == -1) {
+				errors = addError(errors, '- <%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_DEPARTMENT_LEVEL_5) %>');
+			}
+		<%	
+			}
+			
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_FUNCTION)){
+				%>
+					if (isMandatory && selectBoxJobFunction.getSelectedId() == -1) {
+						errors = addError(errors, '- <%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_FUNCTION) %>');
+					}
+				<%		
+					}
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_PAY_GRADE)){
+				%>
+					if (isMandatory && selectBoxJobPayGrade.getSelectedId() == -1) {
+						errors = addError(errors, '- <%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_PAY_GRADE) %>');
+					}
+				<%		
+					}
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_JOB_CODE)){
+				%>
+					if (isMandatory && selectBoxJobCode.getSelectedId() == -1) {
+						errors = addError(errors, '- <%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_JOB_CODE) %>');
+					}
+				<%		
+					}
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_COUNTRIES)){
+				%>
+					if (isMandatory && selectBoxCountry.getSelectedId() == -1) {
+						errors = addError(errors, '- <%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_COUNTRIES) %>');
+					}
+				<%		
+					}
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_STATES)){
+				%>
+					if (isMandatory && selectBoxState.getSelectedId() == -1) {
+						errors = addError(errors, '- <%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_STATES) %>');
+					}
+				<%		
+					}
+			
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_LOCATION_LEVEL_1)){
+				%>
+					if (isMandatory && selectBoxLocation.getSelectedId() == -1) {
+						errors = addError(errors, '- <%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_LOCATION_LEVEL_1) %>');
+					}
+				<%		
+					}
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_LOCATION_LEVEL_2)){
+				%>
+					if (isMandatory && selectBoxSubLocation.getSelectedId() == -1) {
+						errors = addError(errors, '- <%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_LOCATION_LEVEL_2) %>');
+					}
+				<%		
+					}
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_LOCATION_LEVEL_3)){
+				%>
+					if (isMandatory && selectBoxSubSubLocation.getSelectedId() == -1) {
+						errors = addError(errors, '- <%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_LOCATION_LEVEL_3) %>');
+					}
+				<%		
+					}%>
+				
+			
+		<%-- 	
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_LOCATION)){
+		%>
+			var locationIds = locationsGridSelected.getAllItemIds();
+			if(isMandatory && locationIds==''){
+				errors = addError(errors, '- <bean:message key="position.description.location" />');
+			} 
+			}--%>
+		<%			
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_VACANCIES)){
+		%>
+			var vacancies = document.positionForm.vacancies.value;		
+			if (isMandatory && vacancies.trim() == '') {
+				errors = addError(errors, '- <bean:message key="common.vacancies" />');
+			}			
+		<%		
+			}
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_HIRE_BY_DATE)){
+		%>
+			var hireByDate = document.positionForm.hireByDate.value;
+			if(isMandatory){
+				if (hireByDate.trim() == '') {
+					errors = addError(errors, '- <bean:message key="position.description.hire_by_date" />');
+				} else{
+					if(!dtf.checkDate($('hireByDate'))) {
+						errors = addError(errors, '- <bean:message key="common.please_enter" /> <bean:message key="common.position" /> <bean:message key="position.description.hire_by_date" />');
+					}
+				}
+			}
+		<%		
+			}
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_BUSINESS_UNIT)
+				&&	"1".equals(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_BUSINESS_UNIT_PROPERTY))){
+				
+		%>
+			var buIds = buGridSelected.getAllItemIds();
+			if(isMandatory && buIds==''){
+				errors = addError(errors, '- <%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_BUSINESS_UNIT_LABEL)%>');
+			}
+		<%			
+			}
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_COST_CENTER)
+				&&	"1".equals(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_COST_CENTER_PROPERTY))){
+		%>
+			var costCenterIds = costCenterGridSelected.getAllItemIds();
+			if(isMandatory && costCenterIds==''){
+				errors = addError(errors, '- <%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_COST_CENTER_LABEL)%>');
+			}	
+		<%		
+			}
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_LEVEL)){
+		%>
+			var positionLevel = document.positionForm.positionLevel.value;
+			if (isMandatory && positionLevel.trim() == '') {
+				errors = addError(errors, '- <bean:message key="common.position" /> <bean:message key="common.level" />');
+			}			
+		<%		
+			}
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_CONTACT_PERSON_NAME)){
+		%>
+			var positionLevel = document.positionForm.contactPersonName.value;
+			if (isMandatory && positionLevel.trim() == '') {
+				errors = addError(errors, '- <bean:message key="position.naukri.contact_peerson_name" />');
+			}
+			<%		
+			}
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_JOB_KEYWORDS)){
+		%>
+			var positionLevel = document.positionForm.jobKeywords.value;
+			if (isMandatory && positionLevel.trim() == '') {
+				errors = addError(errors, '- <bean:message key="position.naukri.job_keywords" />');
+			}
+			<%		
+			}
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_MINIMUM_SALARY)){
+		%>
+			var positionLevel = document.positionForm.minimumSalary.value;
+			if (isMandatory && positionLevel.trim() == '') {
+				errors = addError(errors, '- <bean:message key="position.naukri.minimum_salary" />');
+			}
+			<%		
+			}
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_MAXIMUM_SALARY)){
+		%>
+			var positionLevel = document.positionForm.maximumSalary.value;
+			if (isMandatory && positionLevel.trim() == '') {
+				errors = addError(errors, '- <bean:message key="position.naukri.maximum_salary" />');
+			}
+			<%		
+			}
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_BENEFITS_DESCRIPTION)){
+		%>
+			var positionLevel = document.positionForm.benefitsDescription.value;
+			if (isMandatory && positionLevel.trim() == '') {
+				errors = addError(errors, '- <bean:message key="position.naukri.benefits_description" />');
+			}
+			<%		
+			}
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_DISPLAY_SALARY)){
+		%>
+			var positionLevel = document.positionForm.displaySalary.value;
+			if (isMandatory && positionLevel.trim() == '') {
+				errors = addError(errors, '- <bean:message key="position.naukri.display_salary" />');
+			}
+			<%		
+			}
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_DESIRED_CANDIDATE_SUMMARY)){
+		%>
+			var positionLevel = document.positionForm.desiredCandidateSummaryText.value;
+			if (isMandatory && positionLevel.trim() == '') {
+				errors = addError(errors, '- <bean:message key="position.naukri.desired_candidate_summary" />');
+			}
+			<%		
+			}
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_CONTACT_PERSON_EMAIL)){
+		%>
+			var positionLevel = document.positionForm.contactPersonEmail.value;
+			if (isMandatory && positionLevel.trim() == '') {
+				errors = addError(errors, '- <bean:message key="position.naukri.contact_person_email" />');
+			}
+			<%		
+			}
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_APPLY_BY_WEB_URL)){
+		%>
+			var positionLevel = document.positionForm.applyByWebURL.value;
+			if (isMandatory && positionLevel.trim() == '') {
+				errors = addError(errors, '- <bean:message key="position.naukri.apply_by_web_url" />');
+			}
+			<%		
+			}
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_JOB_FIELD_RESPONSE_EMAIL)){
+		%>
+			var positionLevel = document.positionForm.jobFeedResponseEmail.value;
+			if (isMandatory && positionLevel.trim() == '') {
+				errors = addError(errors, '- <bean:message key="position.naukri.job_field_response_email" />');
+			}
+		<%		
+			}
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_REFERAL_FEES)){
+		%>
+			var referalFees = document.positionForm.positionReferalFees.value;
+			if (isMandatory && referalFees.trim() == '') {
+				errors = addError(errors, '- <bean:message key="position.description.position_referal_fees" />');
+			}
+		<%		
+			}
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_REPLACEMENT_EMP_CODE)){
+		%>
+			var replaceEmpCode = document.positionForm.replacementEmpCode.value;			
+			if (isMandatory && replaceEmpCode.trim() == '') {
+				errors = addError(errors, '- <bean:message key="position.description.replacement_emp_code" />');
+			}
+		
+		<%		
+			}
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_POSITION_TYPE_EXT_INT)){
+		%>
+		<logic:equal value="true" name="permissionSet" scope="session" property="PERMISSION_FOR_POSITION_TYPE_DECISION_MAKER">
+			if(selectPositionType){
+				var positionType = selectPositionType.getSelectedId();				
+				if (isMandatory && positionType.trim() == 0) {
+					errors = addError(errors, '- <bean:message key="position.description.position_type_ext_int" />');
+				}
+			}
+		</logic:equal>	
+		<%
+			}
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_NOTE)){
+		%>
+			var note = document.positionForm.note.value;
+			if (isMandatory && note.trim() == '') {
+				errors = addError(errors, '- <bean:message key="position.description.note" />');
+			}
+			
+			var typeOfVacancy = document.positionForm.typeOfVacancy.value;
+		<%		
+			}
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_RESPONSIBILITIES)){
+		%>
+			var responsibilities = tinyMCE.activeEditor.getContent();
+			if (isMandatory && responsibilities.trim() == '') {
+				errors = addError(errors, '- <bean:message key="position.description.job_responsibilities" />');
+			}
+		<%		
+			}
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_GRADE)){			
+				if (ModuleSet.isMODULE_BUDGET() && BudgetUtils.isBudgetModuleActive()) { 
+					if(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_BUDGET_MODE).equals(BudgetConstants.BUDGET_MODE_ENFORCE)){
+						%>
+						isMandatory = true;
+						<%
+					}
+				}
+				%>
+				var gradeId = selectBoxGrade.getSelectedId();
+				if (isMandatory && gradeId == '-1') {
+					errors = addError(errors, '- <%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_BUDGET_ITEM_GRADE_LABEL) %>');
+				}					
+		<%		
+			}
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_BAND)){
+				if (ModuleSet.isMODULE_BUDGET() && BudgetUtils.isBudgetModuleActive()) { 
+					if(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_BUDGET_MODE).equals(BudgetConstants.BUDGET_MODE_ENFORCE)){
+						%>
+						isMandatory = true;
+						<%
+					}
+				}
+				%>
+				var bandId = selectBoxBand.getSelectedId();
+				if (isMandatory && bandId == '-1') {
+					errors = addError(errors, '- <%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_BUDGET_ITEM_BAND_LABEL) %>');
+				}						
+		
+		<%		
+			}
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_BUDGET_ITEM)){
+				if (ModuleSet.isMODULE_BUDGET() && BudgetUtils.isBudgetModuleActive()) { %>
+					var budgetItemId = selectBoxBudgetItems.getSelectedId();
+					if (budgetItemId == -1) {
+						errors = addError(errors, '- <bean:message key="position.description.budget_item" />');
+					}
+					<%
+				}
+			}		
+		%>	
+	}
+	<% }}}%>
+		
+	if (errors.length > 0) {
+		errors = addError('<bean:message key="common.data_required" />', errors);
+	}
+	
+	return errors;
+}
+function addError(errors, error) {
+	if (errors.length > 0) {
+		errors += '\n';
+	}
+	errors += error;
+	return errors;
+}
+
+function retrieveHireByDateAndBudgetItems(){
+	var gradeId = selectBoxGrade.getSelectedId();
+	var pars = "mode=getHireByDate&gradeId=" + gradeId;
+	var myAjax = ajaxCall("position.do",'get',pars,updateHireByDate, reportError);
+}
+
+function updateHireByDate(request){
+	xmlFile = request.responseXML;
+	if(!isValidSession(xmlFile,'<%=TPApplicationProperties.getProperty("redirect_on_session_expired")%>'))return;
+	if(!isErrorXml(xmlFile)){
+		var op = request.responseText;					
+		document.positionForm.hireByDate.value=op;		
+		loadBudgetItems();
+	}
+}
+
+function loadBudgetItems() {	
+	 <% if (ModuleSet.isMODULE_BUDGET() && BudgetUtils.isBudgetModuleActive()) { %>			
+		  var bandId = selectBoxBand.getSelectedId();
+		  if(bandId=='-1')
+			  bandId = '';	 
+		  var gradeId = selectBoxGrade.getSelectedId();
+		  if(gradeId == '-1')
+			  gradeId = '';
+		  var pars = "mode=getBudgetItemJS&gradeId=" + gradeId+"&bandId="+bandId;
+		  var myAjax = ajaxCall("position.do",'get',pars,updateBudgetItems, reportError);
+	  <%} %>	
+}
+
+function updateBudgetItems(request){
+ 	xmlFile = request.responseXML;
+	if(!isValidSession(xmlFile,'<%=TPApplicationProperties.getProperty("redirect_on_session_expired")%>'))return;
+	if(!isErrorXml(xmlFile)){
+		var op = request.responseText;
+		var opts = eval(op);
+		var m = [new SelectOption('-1', "<bean:message key='common.selectlist.select' />")];		
+		opts = m.concat(opts);
+		selectBoxBudgetItems.reInitialize(opts, document.positionForm.budgetItemId.value);
+	}	
+}
+
+function loadSubdepartments() {
+  var val = selectBoxDepartment.getSelectedId();
+  var pars = "mode=getSubDepartmentJS&departmentId=" + val;
+  var myAjax = ajaxCall("department.do",'get',pars,updateSubdepartments, reportError);
+}
+function updateSubdepartments(request){
+ 	xmlFile = request.responseXML;
+	if(!isValidSession(xmlFile,'<%=TPApplicationProperties.getProperty("redirect_on_session_expired")%>'))return;
+	if(!isErrorXml(xmlFile)){
+		var op = request.responseText;
+		var opts = eval(op);
+		var m = [new SelectOption('-1', '<bean:message key='common.selectlist.default' />')];
+		opts = m.concat(opts);
+		selectBoxSubDepartment.reInitialize(opts, '');
+		m = [new SelectOption('-1', '<bean:message key='common.selectlist.default' />')];
+	    selectBoxSubSubDepartment.reInitialize(m, '');
+	    selectBoxSub3Department.reInitialize(m, '');
+	    selectBoxSub4Department.reInitialize(m, '');
+	}	
+}
+
+function loadSubSubdepartments() {
+  var val = selectBoxSubDepartment.getSelectedId();
+  var pars = "mode=getSubDepartmentJS&departmentId=" + val;
+  var myAjax = ajaxCall("department.do",'get',pars,updateSubSubdepartments, reportError);
+}
+function updateSubSubdepartments(request){
+ 	xmlFile = request.responseXML;
+	if(!isValidSession(xmlFile,'<%=TPApplicationProperties.getProperty("redirect_on_session_expired")%>'))return;
+	if(!isErrorXml(xmlFile)){
+		var op = request.responseText;
+		var opts = eval(op);
+		var m = [new SelectOption('-1', '<bean:message key='common.selectlist.default' />')];
+		opts = m.concat(opts);
+		selectBoxSubSubDepartment.reInitialize(opts, '');
+		m = [new SelectOption('-1', '<bean:message key='common.selectlist.default' />')];
+	    selectBoxSub3Department.reInitialize(m, '');
+	    selectBoxSub4Department.reInitialize(m, '');
+	}	
+ 
+}
+
+function loadSub3departments() {
+  var val = selectBoxSubSubDepartment.getSelectedId();
+  var pars = "mode=getSubDepartmentJS&departmentId=" + val;
+  var myAjax = ajaxCall("department.do",'get',pars,updateSub3departments, reportError);
+}
+
+function updateSub3departments(request){
+ 	xmlFile = request.responseXML;
+	if(!isValidSession(xmlFile,'<%=TPApplicationProperties.getProperty("redirect_on_session_expired")%>'))return;
+	if(!isErrorXml(xmlFile)){
+		var op = request.responseText;
+		var opts = eval(op);
+		var m = [new SelectOption('-1', '<bean:message key='common.selectlist.default' />')];
+		opts = m.concat(opts);
+		selectBoxSub3Department.reInitialize(opts, '');
+		m = [new SelectOption('-1', '<bean:message key='common.selectlist.default' />')];
+	    selectBoxSub4Department.reInitialize(m, '');
+	}	 
+}
+
+function loadSub4departments() {
+  var val = selectBoxSub3Department.getSelectedId();
+  var pars = "mode=getSubDepartmentJS&departmentId=" + val;
+  var myAjax = ajaxCall("department.do",'get',pars,updateSub4departments, reportError);
+}
+
+function updateSub4departments(request){
+ 	xmlFile = request.responseXML;
+	if(!isValidSession(xmlFile,'<%=TPApplicationProperties.getProperty("redirect_on_session_expired")%>'))return;
+	if(!isErrorXml(xmlFile)){
+		var op = request.responseText;
+		var opts = eval(op);
+		var m = [new SelectOption('-1', '<bean:message key='common.selectlist.default' />')];
+		opts = m.concat(opts);
+		selectBoxSub4Department.reInitialize(opts, '');
+	}	 
+}
+
+
+function loadJobRoleCodes() {
+	  var val = selectBoxJobAreaCodes.getSelectedId();
+	  var pars = "mode=getJobFunctionRoleJS&jobFunctionCode=" + val;
+	  var myAjax = ajaxCall("position.do",'get',pars,updateRoleCodes, reportError);
+	}
+	function updateRoleCodes(request){
+	 	xmlFile = request.responseXML;
+		if(!isValidSession(xmlFile,'<%=TPApplicationProperties.getProperty("redirect_on_session_expired")%>'))return;
+		if(!isErrorXml(xmlFile)){
+			var op = request.responseText;
+			var opts = eval(op);
+			var m = [new SelectOption('-1', '<bean:message key='common.selectlist.default' />')];
+			opts = m.concat(opts);
+			selectBoxJobRoleCodes.reInitialize(opts, '');
+		}	
+	}
+
+// End: JS for Edit Position Description.
+
+
+function onClickAutoGeneratePositionCode() {
+	var errors = '';
+    var positionCodeFormat = '<%= GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_POSITION_CODE_TEMPLATE)%>'; 
+	
+	var position = '';
+	var department = '';
+	//var location = formatString(checkBoxLocations.getSelectedOptions());
+	var location = '';
+	if( <%=PositionUtils.existsInPositionCodeTemplate("p") %> &&  document.positionForm.positionName.value == ''){
+		errors = addError(errors, '- <bean:message key="common.position_name" />');
+	}else{
+		position = formatString(document.positionForm.positionName.value);
+	}
+	if(<%=PositionUtils.existsInPositionCodeTemplate("s") %> &&  selectBoxDepartment.getSelectedId() == -1){
+		errors = addError(errors, '- <%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_DEPARTMENT_LEVEL_1) %>');
+	}else{
+		department = formatString(selectBoxDepartment.getText(selectBoxDepartment.getSelectedIndex()));
+	}
+	if(<%=PositionUtils.existsInPositionCodeTemplate("s") %> &&  selectBoxLocation.getSelectedId() == -1){
+		errors = addError(errors, '- <%=GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_LOCATION_LEVEL_1) %>');
+	}else{
+		location = formatString(selectBoxLocation.getText(selectBoxLocation.getSelectedIndex()));
+	}
+	<%-- if( locationsGridSelected){
+		var locationIds = locationsGridSelected.getAllItemIds();
+		if(<%=PositionUtils.existsInPositionCodeTemplate("l") %> &&  locationIds==''){
+			errors = addError(errors, '- <bean:message key="position.description.location" />');
+		}else{
+			locationIds = locationIds.split(',')[0];
+			location = locationsGridSelected.getUserData(locationIds,"locationName")
+		}
+	} --%>
+	if(errors == ''){
+		var pars = "mode=autoGeneratePositionCode&positionName=" + encodeURIComponent(position)+"&department="+department+"&locationName="+location; 
+	    var myAjax = ajaxCall("position.do",'get',uncache(pars),setAutoGeneratedPositionCode, reportError);	
+	}else{
+		alert('Following fields are mandatory to generate position code: \n'+errors);
+	}
+}  
+
+function setAutoGeneratedPositionCode(request){
+	xmlFile = request.responseXML;
+	if(!isValidSession(xmlFile,'<%=TPApplicationProperties.getProperty("redirect_on_session_expired")%>'))return;
+	if(!isErrorXml(xmlFile)){
+		var content = xmlFile.getElementsByTagName("positionCode")[0].firstChild.nodeValue;
+		document.positionForm.positionCode.value = content;	
+	} else {
+		alert('<bean:message key="position.description.error.generate_position_code" /> <bean:message key="common.position" /> <bean:message key="common.code" />');	
+	}
+}
+function getFNumber(obj){
+	if(obj.value.trim()!=''){
+		if(isNaN(obj.value)){
+			alert('<bean:message key="common.please_enter_valid_number" />');
+			obj.focus();
+			return false;
+		}
+	}
+}
+
+<%--
+/******************* Locationd Grid Related Code ***************/
+var locationsGridId = 'LOCATIONS_GRD';
+var locationsGridSelectedId = 'LOCATIONS_GRD_SELECTED';
+var locationsGrid = null;
+var locationsGridSelected = null;
+
+function initLocationsGrid(){
+	locationsGrid = new dhtmlXGridObject(locationsGridId); 
+	locationsGrid.imgURL = "images/"; 
+	locationsGrid.setHeader('<bean:message key="position.requirements.primary_skills" />'); 
+	locationsGrid.setInitWidths("240");
+	locationsGrid.setColAlign("left");
+	locationsGrid.setColTypes("ro");
+	locationsGrid.setNoHeader(true);
+	locationsGrid.setColSorting("location_name_sort");
+	locationsGrid.enableMultiselect('false');	
+	locationsGrid.init();	
+	locationsGrid.sortRows(0,'str',"asc");
+	locationsGrid.attachEvent("onXLE",doOnLoadingEndLocation);
+	locationsGrid.attachEvent("onKeyPress",onLocationsGridKeyPressed);
+	locationsGrid.attachEvent("onRowSelect",doOnLocationsGridRowSelectHandler);
+	locationsGrid.attachEvent("onRowDblClicked",doOnLocationsGridRowDblClicked);
+	locationsGrid.gridToGrid = function(rowId,sgrid,tgrid){
+	    var z=new Array();
+		for(var i=0;i<sgrid.hdr.rows[0].cells.length;i++)
+		z[i]=sgrid.cells(rowId,i).getValue();
+		return z;
+	}
+	loadLocationsGrid();	
+}
+function loadLocationsGrid(){
+	locationsGrid.clearAll();
+	locationsGrid.parse('<bean:write name="positionForm" property="locationsXML" scope="request" filter="false" />');	
+}
+
+function doOnLoadingEndLocation() {
+	locationsGrid.sortRows(0,'str',"asc");
+	locationsGrid.setSortImgState(true,0,"ASC");
+}
+
+function location_name_sort(a,b,order,aId,bId) {
+	a0 = dataGridRequisitioner.getUserData(aId,"locationName");
+	b0 = dataGridRequisitioner.getUserData(bId,"locationName");	
+	return sort_data(a0,b0,order);
+}
+
+//Common Function
+function sort_data(a,b,order) {
+	if(order=="asc")
+		return a.toLowerCase()>b.toLowerCase()?1:-1;
+	else
+		return a.toLowerCase()<b.toLowerCase()?1:-1;
+}
+
+function initLocationsGridSelected(){
+	locationsGridSelected = new dhtmlXGridObject(locationsGridSelectedId); 
+	locationsGridSelected.imgURL = "images/"; 
+	locationsGridSelected.setHeader(""); 
+	locationsGridSelected.setInitWidths("220");
+	locationsGridSelected.setColAlign("left");
+	locationsGridSelected.setColTypes("ro"); 	
+	locationsGridSelected.enableMultiselect('true');
+	locationsGridSelected.setNoHeader(true);
+	locationsGridSelected.setColSorting("location_name_sort");
+	locationsGridSelected.init();
+	locationsGridSelected.sortRows(0,'str',"asc");
+	locationsGridSelected.setSortImgState(true,0,"ASC");	
+	locationsGridSelected.gridToGrid = function(rowId,sgrid,tgrid){
+	    var z=new Array();
+		for(var i=0;i<sgrid.hdr.rows[0].cells.length;i++)
+		z[i]=sgrid.cells(rowId,i).getValue();
+		return z;
+	}
+	locationsGridSelected.attachEvent("onKeyPress",onLocationsGridSelectedGridKeyPressed);
+	locationsGridSelected.attachEvent("onRowSelect",doOnLocationsGridSelectedRowSelectHandler);
+	locationsGridSelected.attachEvent("onRowDblClicked",doOnLocationsGridSelectedRowDblClicked);
+	loadLocationsGridSelected();
+}
+function loadLocationsGridSelected(){
+	var pLocations = '<bean:write name="positionForm" property="locationId" />';
+	selectItems(pLocations,locationsGrid,locationsGridSelected);
+}
+function onLocationsGridKeyPressed(keyCode,ctrl,shift) {
+	var text = (locationsGrid.cells(locationsGrid.getSelectedId(),0)).getValue();
+	locationsGridSelected.clearSelection();
+	onGridObjKeyPressed(locationsGrid,locationsGridSelected,5,keyCode,ctrl,shift);
+	if(keyCode=='13'){
+		removeIdFromBackUp(locationsGrid, text);
+	}
+}
+function onLocationsGridSelectedGridKeyPressed(keyCode,ctrl,shift) {
+	locationsGrid.clearSelection();
+	onGridObjKeyPressed(locationsGridSelected,locationsGrid,5,keyCode,ctrl,shift);
+	if(keyCode=='13'){
+		resetFilterBackUp(locationsGrid);
+	}
+}
+function doOnLocationsGridSelectedRowSelectHandler() {
+	locationsGrid.clearSelection();
+}
+function doOnLocationsGridRowSelectHandler() {
+	locationsGridSelected.clearSelection();
+}
+function doOnLocationsGridRowDblClicked() {
+	var text = (locationsGrid.cells(locationsGrid.getSelectedId(),0)).getValue();
+	selectItem(locationsGrid,locationsGridSelected);
+	removeIdFromBackUp(locationsGrid, text);
+}
+function doOnLocationsGridSelectedRowDblClicked() {	
+	selectItem(locationsGridSelected,locationsGrid);
+	resetFilterBackUp(locationsGrid);
+}--%>
+ 
+
+/**
+ * TO Filter Location Grid
+ */
+function onCriteriaChange(event){
+	var iKeyCode = event.keyCode;
+	switch(iKeyCode) {
+		case Event.KEY_UP:
+		case Event.KEY_DOWN: 
+		break;
+		case Event.KEY_PAGEUP:
+		case Event.KEY_PAGEDOWN:
+		break;
+		case Event.KEY_RETURN:
+		break;
+		default:
+		if((iKeyCode>=48 && iKeyCode<=90) || (iKeyCode>=96 && iKeyCode<=105) || iKeyCode==Event.KEY_BACKSPACE || iKeyCode==Event.KEY_DELETE){
+			locationsGrid.filterBy(0, $('locationFilter').value, false);		
+		}
+	}
+}
+
+function showPositionSelectBox(){
+	var status = <%=PositionConstants.POSITION_STATUS_OPENED%>+","+
+	<%=PositionConstants.POSITION_STATUS_CLOSED%>+","+
+	<%=PositionConstants.POSITION_STATUS_INPROCESS%>+","+
+	<%=PositionConstants.POSITION_STATUS_REJECTED%>+","+
+	<%=PositionConstants.POSITION_STATUS_HOLD%>;
+	var url="position.do?mode=showPositionSelectBox&subMode="+status;
+	showInPopUp(url,650,300,copyResponsibilities,true);
+}
+
+function showTemplateSelectBox(){
+	var url="position.do?mode=showPositionSelectBox&subMode=<%=PositionConstants.POSITION_STATUS_TEMPLATE%>";
+	showInPopUp(url,650,300,copyResponsibilities,true);
+}
+
+function hideDeptBlocks(){
+	var val = '<%= GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_MAX_DEPT_LEVEL)%>';	
+	if(val=='<%=MastersConstants.DEPARTMENT_LEVEL_4%>'){
+		$("dept_level_4").style.display = '';
+		if($("dept_level_5")){
+			$("dept_level_5").style.display = 'none';	
+		}
+	}else if(val=='<%=MastersConstants.DEPARTMENT_LEVEL_5%>'){
+		$("dept_level_4").style.display = '';
+		$("dept_level_5").style.display = '';
+	}else{
+		if($("dept_level_4")){
+			$("dept_level_4").style.display = 'none';	
+		}
+		if($("dept_level_5")){
+			$("dept_level_5").style.display = 'none';	
+		}
+	}
+}
+
+
+/******************* Business Unit Grid Related Code ***************/
+var buGrid = null;
+var buGridSelected = null;
+
+function initBUGrid(){
+	buGrid = new dhtmlXGridObject('BU_GRD'); 
+	buGrid.imgURL = "images/"; 
+	buGrid.setHeader('<bean:message key="position.requirements.primary_skills" />'); 
+	buGrid.setInitWidths("240");
+	buGrid.setColAlign("left");
+	buGrid.setColTypes("ro");
+	buGrid.setNoHeader(true);
+	buGrid.setColSorting("bu_name_sort");
+	buGrid.enableMultiselect('false');	
+	buGrid.init();	
+	buGrid.sortRows(0,'str',"asc");
+	buGrid.attachEvent("onXLE",doOnLoadingEndBU);
+	buGrid.attachEvent("onKeyPress",onBUGridKeyPressed);
+	buGrid.attachEvent("onRowSelect",doOnBUGridRowSelectHandler);
+	buGrid.attachEvent("onRowDblClicked",doOnBUGridRowDblClicked);
+	buGrid.gridToGrid = function(rowId,sgrid,tgrid){
+	    var z=new Array();
+		for(var i=0;i<sgrid.hdr.rows[0].cells.length;i++)
+		z[i]=sgrid.cells(rowId,i).getValue();
+		return z;
+	}
+	loadBUGrid();	
+}
+function loadBUGrid(){
+	buGrid.clearAll();
+	buGrid.parse('<bean:write name="positionForm" property="businessUnitXML" scope="request" filter="false" />');	
+}
+
+function doOnLoadingEndBU() {
+	buGrid.sortRows(0,'str',"asc");
+	buGrid.setSortImgState(true,0,"ASC");
+}
+
+function bu_name_sort(a,b,order,aId,bId) {
+	a0 = dataGridRequisitioner.getUserData(aId,"buName");
+	b0 = dataGridRequisitioner.getUserData(bId,"buName");	
+	return sort_data(a0,b0,order);
+}
+
+function initBUGridSelected(){
+	buGridSelected = new dhtmlXGridObject('BU_GRD_SELECTED'); 
+	buGridSelected.imgURL = "images/"; 
+	buGridSelected.setHeader(""); 
+	buGridSelected.setInitWidths("200");
+	buGridSelected.setColAlign("left");
+	buGridSelected.setColTypes("ro"); 	
+	buGridSelected.enableMultiselect('true');
+	buGridSelected.setNoHeader(true);
+	buGridSelected.setColSorting("bu_name_sort");
+	buGridSelected.init();
+	buGridSelected.sortRows(0,'str',"asc");
+	buGridSelected.setSortImgState(true,0,"ASC");	
+	buGridSelected.gridToGrid = function(rowId,sgrid,tgrid){
+	    var z=new Array();
+		for(var i=0;i<sgrid.hdr.rows[0].cells.length;i++)
+		z[i]=sgrid.cells(rowId,i).getValue();
+		return z;
+	}
+	buGridSelected.attachEvent("onKeyPress",onBUGridSelectedGridKeyPressed);
+	buGridSelected.attachEvent("onRowSelect",doOnBUGridSelectedRowSelectHandler);
+	buGridSelected.attachEvent("onRowDblClicked",doOnBUGridSelectedRowDblClicked);
+	loadBUGridSelected();
+}
+function loadBUGridSelected(){
+	var pbu = '<bean:write name="positionForm" property="buId" />';
+	selectItems(pbu,buGrid,buGridSelected);
+}
+function onBUGridKeyPressed(keyCode,ctrl,shift) {
+	var text = (buGrid.cells(buGrid.getSelectedId(),0)).getValue();
+	buGridSelected.clearSelection();
+	onGridObjKeyPressed(buGrid,buGridSelected,5,keyCode,ctrl,shift);
+	if(keyCode=='13'){
+		removeIdFromBackUp(buGrid, text);
+	}
+}
+function onBUGridSelectedGridKeyPressed(keyCode,ctrl,shift) {
+	buGrid.clearSelection();
+	onGridObjKeyPressed(buGridSelected,buGrid,5,keyCode,ctrl,shift);
+	if(keyCode=='13'){
+		resetFilterBackUp(buGrid);
+	}
+}
+function doOnBUGridSelectedRowSelectHandler() {
+	buGrid.clearSelection();
+}
+function doOnBUGridRowSelectHandler() {
+	buGridSelected.clearSelection();
+}
+function doOnBUGridRowDblClicked() {
+	var text = (buGrid.cells(buGrid.getSelectedId(),0)).getValue();
+	selectItem(buGrid,buGridSelected);
+	removeIdFromBackUp(buGrid, text);
+}
+function doOnBUGridSelectedRowDblClicked() {	
+	selectItem(buGridSelected,buGrid);
+	resetFilterBackUp(buGrid);
+}
+
+function onBUCriteriaChange(event){
+	var iKeyCode = event.keyCode;
+	switch(iKeyCode) {
+		case Event.KEY_UP:
+		case Event.KEY_DOWN: 
+		break;
+		case Event.KEY_PAGEUP:
+		case Event.KEY_PAGEDOWN:
+		break;
+		case Event.KEY_RETURN:
+		break;
+		default:
+		if((iKeyCode>=48 && iKeyCode<=90) || (iKeyCode>=96 && iKeyCode<=105) || iKeyCode==Event.KEY_BACKSPACE || iKeyCode==Event.KEY_DELETE){
+			buGrid.filterBy(0, $('buFilter').value, false);		
+		}
+	}
+}
+
+
+
+/******************* Cost Center Grid Related Code ***************/
+var costCenterGrid = null;
+var costCenterGridSelected = null;
+
+function initCostCenterGrid(){
+	costCenterGrid = new dhtmlXGridObject('COST_CENTER_GRD'); 
+	costCenterGrid.imgURL = "images/"; 
+	costCenterGrid.setHeader('<bean:message key="position.requirements.primary_skills" />'); 
+	costCenterGrid.setInitWidths("240");
+	costCenterGrid.setColAlign("left");
+	costCenterGrid.setColTypes("ro");
+	costCenterGrid.setNoHeader(true);
+	costCenterGrid.setColSorting("cost_center_name_sort");
+	costCenterGrid.enableMultiselect('false');	
+	costCenterGrid.init();	
+	costCenterGrid.sortRows(0,'str',"asc");
+	costCenterGrid.attachEvent("onXLE",doOnLoadingEndCostCenter);
+	costCenterGrid.attachEvent("onKeyPress",onCostCenterGridKeyPressed);
+	costCenterGrid.attachEvent("onRowSelect",doOnCostCenterGridRowSelectHandler);
+	costCenterGrid.attachEvent("onRowDblClicked",doOnCostCenterGridRowDblClicked);
+	costCenterGrid.gridToGrid = function(rowId,sgrid,tgrid){
+	    var z=new Array();
+		for(var i=0;i<sgrid.hdr.rows[0].cells.length;i++)
+		z[i]=sgrid.cells(rowId,i).getValue();
+		return z;
+	}
+	loadCostCenterGrid();	
+}
+function loadCostCenterGrid(){
+	costCenterGrid.clearAll();
+	costCenterGrid.parse('<bean:write name="positionForm" property="costCenterXML" scope="request" filter="false" />');	
+}
+
+function doOnLoadingEndCostCenter() {
+	costCenterGrid.sortRows(0,'str',"asc");
+	costCenterGrid.setSortImgState(true,0,"ASC");
+}
+
+function cost_center_name_sort(a,b,order,aId,bId) {
+	a0 = dataGridRequisitioner.getUserData(aId,"costCenterName");
+	b0 = dataGridRequisitioner.getUserData(bId,"costCenterName");	
+	return sort_data(a0,b0,order);
+}
+
+function initCostCenterGridSelected(){
+	costCenterGridSelected = new dhtmlXGridObject('COST_CENTER_GRD_SELECTED'); 
+	costCenterGridSelected.imgURL = "images/"; 
+	costCenterGridSelected.setHeader(""); 
+	costCenterGridSelected.setInitWidths("220");
+	costCenterGridSelected.setColAlign("left");
+	costCenterGridSelected.setColTypes("ro"); 	
+	costCenterGridSelected.enableMultiselect('true');
+	costCenterGridSelected.setNoHeader(true);
+	costCenterGridSelected.setColSorting("cost_center_name_sort");
+	costCenterGridSelected.init();
+	costCenterGridSelected.sortRows(0,'str',"asc");
+	costCenterGridSelected.setSortImgState(true,0,"ASC");	
+	costCenterGridSelected.gridToGrid = function(rowId,sgrid,tgrid){
+	    var z=new Array();
+		for(var i=0;i<sgrid.hdr.rows[0].cells.length;i++)
+		z[i]=sgrid.cells(rowId,i).getValue();
+		return z;
+	}
+	costCenterGridSelected.attachEvent("onKeyPress",onCostCenterGridSelectedGridKeyPressed);
+	costCenterGridSelected.attachEvent("onRowSelect",doOnCostCenterGridSelectedRowSelectHandler);
+	costCenterGridSelected.attachEvent("onRowDblClicked",doOnCostCenterGridSelectedRowDblClicked);
+	loadCostCenterGridSelected();
+}
+function loadCostCenterGridSelected(){
+	var pCostCenter = '<bean:write name="positionForm" property="costCenterId" />';
+	selectItems(pCostCenter,costCenterGrid,costCenterGridSelected);
+}
+function onCostCenterGridKeyPressed(keyCode,ctrl,shift) {
+	var text = (costCenterGrid.cells(costCenterGrid.getSelectedId(),0)).getValue();
+	costCenterGridSelected.clearSelection();
+	onGridObjKeyPressed(costCenterGrid,costCenterGridSelected,5,keyCode,ctrl,shift);
+	if(keyCode=='13'){
+		removeIdFromBackUp(costCenterGrid, text);
+	}
+}
+function onCostCenterGridSelectedGridKeyPressed(keyCode,ctrl,shift) {
+	costCenterGrid.clearSelection();
+	onGridObjKeyPressed(costCenterGridSelected,costCenterGrid,5,keyCode,ctrl,shift);
+	if(keyCode=='13'){
+		resetFilterBackUp(costCenterGrid);
+	}
+}
+function doOnCostCenterGridSelectedRowSelectHandler() {
+	costCenterGrid.clearSelection();
+}
+function doOnCostCenterGridRowSelectHandler() {
+	costCenterGridSelected.clearSelection();
+}
+function doOnCostCenterGridRowDblClicked() {
+	var text = (costCenterGrid.cells(costCenterGrid.getSelectedId(),0)).getValue();
+	selectItem(costCenterGrid,costCenterGridSelected);
+	removeIdFromBackUp(costCenterGrid, text);
+}
+function doOnCostCenterGridSelectedRowDblClicked() {	
+	selectItem(costCenterGridSelected,costCenterGrid);
+	resetFilterBackUp(costCenterGrid);
+}
+
+function onCostCenterCriteriaChange(event){	
+	var iKeyCode = event.keyCode;
+	switch(iKeyCode) {
+		case Event.KEY_UP:
+		case Event.KEY_DOWN: 
+		break;
+		case Event.KEY_PAGEUP:
+		case Event.KEY_PAGEDOWN:
+		break;
+		case Event.KEY_RETURN:
+		break;
+		default:
+		if((iKeyCode>=48 && iKeyCode<=90) || (iKeyCode>=96 && iKeyCode<=105) || iKeyCode==Event.KEY_BACKSPACE || iKeyCode==Event.KEY_DELETE){
+			costCenterGrid.filterBy(0, $('costCenterFilter').value, false);		
+		}
+	}
+}
+
+function onRadioChange(obj,isVacancy){
+	var imgs = document.getElementsByName(obj.name);
+	var typeOfVacancy = document.positionForm.typeOfVacancy.value;
+	for (i = 0; i < imgs.length; i++) {
+		var theImage = imgs[i];
+		if (theImage.id.indexOf("img_TypeOfVacancy") > -1) {
+			if( theImage.id == 'img_TypeOfVacancy_'+isVacancy){
+				document.positionForm.typeOfVacancy.value=isVacancy;
+				theImage.src = "images/checkedradiobutton.gif";				
+			}else{
+				theImage.src = "images/radiobutton.gif";
+			}
+		}
+	}	
+	var alertBudget  = "";
+	if(isVacancy==<%=PositionConstants.POSITIONS_TYPE_OF_VACANCY_REPLACEMENT%>){
+		$("repEmpCodeAdd").style.display="";		
+		<%if (ModuleSet.isMODULE_BUDGET() && BudgetUtils.isBudgetModuleActive()) { 
+			if(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_BUDGET_FOR_REPLACEMENT).equals("1")) {				
+			}else{%>
+				if($("budgetItemShow"))
+					$("budgetItemShow").style.display="none";		
+				selectBoxBudgetItems.reInitialize(opts, document.positionForm.budgetItemId.value);
+				alertBudget  = "Replacements are not adjusted against any budget. Enter employee code of person being replaced.";
+				alert(alertBudget);
+			<% }	}	%>
+		
+	}else{
+		if($("repEmpCodeAdd"))
+			$("repEmpCodeAdd").style.display="none";
+		if($("budgetItemShow"))
+			$("budgetItemShow").style.display="";
+		loadBudgetItems();
+	}	
+}
+
+function getApplicantAutocompleteQry(){
+	return uncache("replacementEmpCode="+document.getElementById('replacementEmpCode').value);
+}
+
+function getPositionCodeAutocompleteQry(){
+	return uncache("positionCodeForAP="+document.positionForm.positionCodeForAP.value);
+}
+
+
+function doOnLoad() {
+	var disableRequisitionerFlag = '<%=(String) request.getAttribute("disableRequisitionerFlag")%>';
+	if(disableRequisitionerFlag != null && disableRequisitionerFlag == '1'){
+		document.getElementById("requisitionerFlag").style.pointerEvents = 'none';
+		document.getElementById("requisitionerFlag").style.cursor = 'default';
+		document.getElementById("requisitionerFlag").style.opacity= 0.75;
+	}
+	initPopUp();
+	new Ajax.Autocompleter("replacementEmpCode", "autocomplete", "position.do?mode=getAutoCompleteList&autocompleteFieldType=<%=PositionConstants.AUTOCOMPLETE_REPLACE_CODE%>", {frequency: 0.001, callback: getApplicantAutocompleteQry});
+	new Ajax.Autocompleter("positionCodeForAP", "autocomplete", "position.do?mode=getAutoCompletePositionCodeListForAP", {frequency: 0.001, callback: getPositionCodeAutocompleteQry});
+	
+	
+	<logic:notEqual name="positionForm" property="dir" value="<%=PositionConstants.DIR_VIEW_POSITION%>">
+	<%
+		for(int j=0; j<positionFields.size();j++){
+			PositionFieldData fieldData = (PositionFieldData)positionFields.get(j); 
+			String fieldId = fieldData.getFieldId();
+			String fieldType = fieldData.getFieldType();
+			String showValue = fieldData.getFieldPositionShow();
+			if(showValue.equals(PositionConfigurationConstants.FIELD_SHOW) ){				
+				if(fieldType.equals(PositionConfigurationConstants.FIELD_TYPE_NORMAL)){														
+					if(fieldId.equals(PositionConfigurationConstants.FIELD_DEPARTMENT_LEVELS)){
+					%>
+		
+		hideDeptBlocks();
+		<%}%>
+					<%-- if(fieldId.equals(PositionConfigurationConstants.FIELD_LOCATION)){%>
+			initLocationsGrid();
+			initLocationsGridSelected();
+			Event.observe($('locationFilter'), "keyup", onCriteriaChange.bindAsEventListener(this));		
+		<%}%>
+		 --%>
+		<%if(fieldId.equals(PositionConfigurationConstants.FIELD_TYPE_OF_VACANCY)){%>
+		<logic:equal name="positionForm" property="typeOfVacancy" value="<%=PositionConstants.POSITIONS_TYPE_OF_VACANCY_FRESH%>">
+			document.getElementById("img_TypeOfVacancy_"+<%=PositionConstants.POSITIONS_TYPE_OF_VACANCY_FRESH%>).src = 'images/checkedradiobutton.gif';
+			document.getElementById("img_TypeOfVacancy_"+<%=PositionConstants.POSITIONS_TYPE_OF_VACANCY_REPLACEMENT%>).src = 'images/radiobutton.gif';
+			$("repEmpCodeAdd").style.display="none";
+			</logic:equal>
+			<logic:equal name="positionForm" property="typeOfVacancy" value="<%=PositionConstants.POSITIONS_TYPE_OF_VACANCY_REPLACEMENT%>">
+				document.getElementById("img_TypeOfVacancy_"+<%=PositionConstants.POSITIONS_TYPE_OF_VACANCY_FRESH%>).src = 'images/radiobutton.gif';
+				document.getElementById("img_TypeOfVacancy_"+<%=PositionConstants.POSITIONS_TYPE_OF_VACANCY_REPLACEMENT%>).src = 'images/checkedradiobutton.gif';
+				$("repEmpCodeAdd").style.display="";
+				if($("budgetItemShow"))
+					$("budgetItemShow").style.display="none";				
+			</logic:equal>
+		<% } %>
+		
+		<% if("1".equals(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_BUSINESS_UNIT_PROPERTY))){
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_BUSINESS_UNIT)){%>
+				initBUGrid();
+				initBUGridSelected();
+				Event.observe($('buFilter'), "keyup", onBUCriteriaChange.bindAsEventListener(this));		
+		<%}}
+		if("1".equals(GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_COST_CENTER_PROPERTY))){	
+			if(fieldId.equals(PositionConfigurationConstants.FIELD_COST_CENTER)){%>
+				initCostCenterGrid();
+				initCostCenterGridSelected();
+				Event.observe($('costCenterFilter'), "keyup", onCostCenterCriteriaChange.bindAsEventListener(this));		
+		<%}}}}}%>
+	</logic:notEqual>
+	<logic:equal name="positionForm" property="dir" value="<%=PositionConstants.DIR_EDIT_POSITION%>">
+	document.getElementById('positionCodeForAP').style.display="none";
+	document.getElementById('positionCodeForAP_disabled').style.display="";
+	/* document.getElementById('pos_payGrade').readOnly=true;
+	document.getElementById('pos_jobCode').readOnly=true;
+	document.getElementById('pos_jobFunction').readOnly=true; */
+	</logic:equal>
+	
+}
+
+window.onload=doOnLoad;
+</script>

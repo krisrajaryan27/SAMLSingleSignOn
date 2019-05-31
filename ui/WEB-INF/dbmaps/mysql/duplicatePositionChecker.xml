@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>	
+       <!-- Start : Duplicate CHECKER  -->
+       <dbquery name="qDuplicateChecker_GetApproxSimilarPositionNames">
+       		SELECT position_id, position_code ,1 as priority, position_title FROM tp_positions @@
+       </dbquery>
+      
+       <dbquery name="qDuplicateChecker_GetDuplicateCustomFieldPositions">
+			SELECT tp.position_id, tp.position_code ,1 as priority, tp.position_title FROM tp_positions AS tp,
+			tp_custom_field_values_position tcfv
+			WHERE 
+			tp.position_id=tcfv.entity_id 
+			AND tcfv.custom_field_id=?
+			@@
+       </dbquery>
+      
+       
+	   <!-- End : Duplicate CHECKER -->
+	</dbqueries>
+	<dataqueries>
+       <!-- Start : Duplicate Detection Settings -->
+       <dataquery name="dDuplicateChecker_GetApproxSimilarPositionNames" dbquery="qDuplicateChecker_GetApproxSimilarPositionNames" object="com.talentPool.positions.dataobject.PositionDuplicateSearchData">
+       		<attribute name="positionId"  column="position_id" type="STRING" />
+       		<attribute name="positionTitle"  column="position_title" type="STRING" />
+       		<attribute name="priority"  column="priority" type="INT" />
+       		<attribute name="positionCode"  column="position_code" type="STRING" />
+       </dataquery>
+     
+       <dataquery name="dDuplicateChecker_GetDuplicateCustomFieldPositions" dbquery="qDuplicateChecker_GetDuplicateCustomFieldPositions" object="com.talentPool.positions.dataobject.PositionDuplicateSearchData">
+       	<attribute name="positionId"  column="position_id" type="STRING" />
+       		<attribute name="positionTitle"  column="position_title" type="STRING" />
+       		<attribute name="priority"  column="priority" type="INT" />
+       		<attribute name="positionCode"  column="position_code" type="STRING" />
+       </dataquery>
+     
+       <!-- End : Duplicate Detection Settings -->
+	</dataqueries>   
+</dbmap>

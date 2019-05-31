@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+
+<dbmap> 
+	<dbqueries>
+		<dbquery name="qResumeTypeMasters_AddResumeType">
+			INSERT INTO tp_resume_types (resume_type) VALUES (?)
+		</dbquery>
+		<dbquery name="qResumeTypeMasters_GetAllResumeTypes">
+			SELECT  resume_type_id, resume_type FROM tp_resume_types
+		</dbquery>
+		<dbquery name="qResumeTypeMasters_DeleteResumeType">
+			DELETE FROM tp_resume_types WHERE resume_type_id=?
+		</dbquery>
+		<dbquery name="qResumeTypeMasters_GetResumeType">
+			SELECT  resume_type_id, resume_type FROM tp_resume_types WHERE resume_type_id=?
+		</dbquery>
+		<dbquery name="qResumeTypeMasters_UpdateResumeType">
+			UPDATE tp_resume_types SET resume_type=? WHERE resume_type_id=?
+		</dbquery>
+	</dbqueries>
+	<dataqueries>
+	    <dataquery name="dResumeTypeMasters_AddResumeType" dbquery="qResumeTypeMasters_AddResumeType"/>
+	    <dataquery name="dResumeTypeMasters_GetAllResumeTypes" dbquery="qResumeTypeMasters_GetAllResumeTypes" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "resumeTypeId" column="resume_type_id" type ="STRING" />
+	    	<attribute name= "resumeType" column="resume_type" type ="STRING" />
+	    </dataquery>
+	    <dataquery name="dResumeTypeMasters_DeleteResumeType" dbquery="qResumeTypeMasters_DeleteResumeType"/>
+	    <dataquery name="dResumeTypeMasters_GetResumeType" dbquery="qResumeTypeMasters_GetResumeType" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "resumeTypeId" column="resume_type_id" type ="STRING" />
+	    	<attribute name= "resumeType" column="resume_type" type ="STRING" />
+	    </dataquery>
+	    <dataquery name="dResumeTypeMasters_UpdateResumeType" dbquery="qResumeTypeMasters_UpdateResumeType"/>
+	</dataqueries>   
+</dbmap>

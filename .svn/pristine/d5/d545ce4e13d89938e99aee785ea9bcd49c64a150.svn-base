@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+<dbqueries>
+	<dbquery name="qRecentlyUsedSource_GetRecentlyUsedSources">
+			SELECT source_id, source_title,
+			CAST(CASE WHEN time_used is null then DATE_SUB(now(), INTERVAL 12 MONTH) else time_used END AS DATETIME) AS time_used 
+			FROM 
+			(
+				SELECT ts.source_id, ts.source_title, trus.time_used
+				FROM tp_sources ts LEFT JOIN tp_recently_used_sources trus ON (ts.source_id=trus.source_id)
+				,tp_source_types tpsy
+				WHERE 
+				ts.source_status ='1' 
+				AND ts.source_type_id=tpsy.source_type_id
+				AND tpsy.source_type_category!=?
+				AND ts.source_blacklisted=?
+				ORDER BY trus.time_used DESC, ts.source_title
+				LIMIT 0, ?
+			) AS ts
+			ORDER BY source_title
+	</dbquery>
+	<dbquery name="qRecentlyUsedSource_InsertOrUpdate">
+		REPLACE INTO tp_recently_used_sources SET source_id=?, time_used=now()
+	</dbquery>
+	
+</dbqueries>
+<dataqueries>   
+    <dataquery name="dRecentlyUsedSource_GetRecentlyUsedSources" dbquery="qRecentlyUsedSource_GetRecentlyUsedSources" object="com.talentPool.masters.dataobject.RecentlyUsedSourceData">
+        <attribute name="sourceId" column="source_id" type ="STRING" />
+        <attribute name="sourceTitle" column="source_title" type ="STRING" />
+        <attribute name="lastUsedDate" column="time_used" type ="DATE" />
+    </dataquery>
+    <dataquery name="dRecentlyUsedSource_InsertOrUpdate" dbquery="qRecentlyUsedSource_InsertOrUpdate" />
+    
+</dataqueries>   
+</dbmap>

@@ -1,0 +1,66 @@
+/*
+*  education_branch.jape
+*  Prefixes are stored in custom_education_degree_prefix.list
+*/
+
+Phase: education_branch
+Input: Token TempEduToken CustomSpaceToken Lookup AcronymToken Date TempEduWrongToken
+Options: control = appelt
+
+Rule: education_branch_in
+(
+	(FromToken)({Token})[0,4]{Date}
+)
+--> {}
+
+Rule: education_college_comma_location
+(
+	({TempEduToken.kind == college}):old_college({Token.string == ","}{Token})?{Token.string == ","}{Lookup.majorType == location, !TempEduToken}
+):college
+--> 
+:college.TempEduToken = {kind = "college", rule = "education_college_comma_location"},
+{
+gate.AnnotationSet oldCollege = (gate.AnnotationSet)bindings.get("old_college");
+outputAS.removeAll(oldCollege);
+}
+
+Rule: education_university_comma_location
+(
+	({TempEduToken.kind == university}):old_college({Token.string == ","}{Token})?{Token.string == ","}{Lookup.majorType == location, !TempEduToken}
+):college
+--> 
+:college.TempEduToken = {kind = "university", rule = "education_college_comma_location"},
+{
+gate.AnnotationSet oldCollege = (gate.AnnotationSet)bindings.get("old_college");
+outputAS.removeAll(oldCollege);
+}
+
+
+Rule: education_from_acronym_location
+(
+	(FromToken)({AcronymToken}({Token.string == ","}{Token})?{Token.string == ","}{Lookup.majorType == location, !TempEduToken}):college
+)
+--> 
+:college.TempEduToken = {kind = "college", rule = "education_college_comma_location"}
+
+Rule: education_acronym_location
+(
+	({AcronymToken}({Token.string == ","}{Token})?{Token.string == ","}{Lookup.majorType == location, !TempEduToken}):college
+)
+--> 
+:college.TempEduToken = {kind = "college", rule = "education_acronym_location"}
+
+Rule: education_from_acronym
+(
+	(FromToken)({AcronymToken, !Date}):college
+)
+--> 
+:college.TempEduToken = {kind = "college", rule = "education_from_acronym"}
+
+Rule: education_from_token_location
+(
+	(FromToken)((EDUTokenStart)(EDUToken)[1,20]{Token.string == ","}{Lookup.majorType == location, !TempEduToken}):college
+)
+--> 
+:college.TempEduToken = {kind = "college", rule = "education_from_token_location"}
+

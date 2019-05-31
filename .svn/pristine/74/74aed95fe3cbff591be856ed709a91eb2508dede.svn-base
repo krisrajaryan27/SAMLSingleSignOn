@@ -1,0 +1,79 @@
+/*
+*  basicinfo_email.jape
+*
+*/
+
+Phase: education_university_college_tokens
+Input: Token Lookup CustomSpaceToken TempEduWrongToken TempEduToken
+Options: control = appelt
+
+//Using Gazetter -- Institute Gazetteer
+Rule: education_institute
+(
+	{Lookup.majorType == institute}
+):institute
+--> 
+:institute.TempEduToken = {kind = "university", rule = "education_institute"}
+
+Rule: education_token_exam1
+(
+	(EDUTokenStart){Lookup.majorType == education, Lookup.minorType == exam}(EDUToken)[0,10]
+):exam
+--> 
+:exam.TempEduToken = {kind = "degree", rule = "education_token_exam1"}
+
+Rule: education_token_exam2
+(
+	(EDUTokenStart)(EDUToken)[0,10]{Lookup.majorType == education, Lookup.minorType == exam}(EDUToken)[0,10]
+):exam
+--> 
+:exam.TempEduToken = {kind = "degree", rule = "education_token_exam2"}
+
+Rule: education_token_exam3
+(
+	{Lookup.majorType == education, Lookup.minorType == exam}(EDUToken)[1,10]
+):exam
+--> 
+:exam.TempEduToken = {kind = "degree", rule = "education_token_exam3"}
+
+Rule: education_token_college1
+(
+	(EDUTokenStart){Lookup.majorType == education, Lookup.minorType == college}(EDUToken)[0,10]
+):university
+--> 
+:university.TempEduToken = {kind = "college", rule = "education_token_college1"}
+
+Rule: education_token_college2
+(
+	(EDUTokenStart)(EDUToken)[0,10]{Lookup.majorType == education, Lookup.minorType == college}(EDUToken)[0,10]
+):university
+--> 
+:university.TempEduToken = {kind = "college", rule = "education_token_college2"}
+
+Rule: education_token_college3
+(
+	{Lookup.majorType == education, Lookup.minorType == college}(EDUToken)[1,10]
+):university
+--> 
+:university.TempEduToken = {kind = "college", rule = "education_token_college3"}
+
+Rule: education_token_university1
+(
+	(EDUTokenStart){Lookup.majorType == education, Lookup.minorType == university}(EDUToken)[0,10]
+):university
+--> 
+:university.TempEduToken = {kind = "university", rule = "education_token_university1"}
+
+Rule: education_token_university2
+(
+	(EDUTokenStart)(EDUToken)[0,10]{Lookup.majorType == education, Lookup.minorType == university}(EDUToken)[0,10]
+):university
+--> 
+:university.TempEduToken = {kind = "university", rule = "education_token_university2"}
+
+Rule: education_token_university3
+(
+	{Lookup.majorType == education, Lookup.minorType == university}(EDUToken)[1,10]
+):university
+--> 
+:university.TempEduToken = {kind = "university", rule = "education_token_university3"}

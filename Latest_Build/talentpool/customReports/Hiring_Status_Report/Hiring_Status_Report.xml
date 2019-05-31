@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<report share="false" reportId="1">
+	<ReportName>HSR</ReportName>
+	<ReportCategory>1</ReportCategory>
+	<ReportSubCategory>5</ReportSubCategory>
+	<Type>Detail</Type>
+	<Description>Description</Description>
+	<ReportTemplate />
+	<Columns>
+		<column>
+			<key>P82</key>
+			<displayName>Position Department</displayName>
+			<dbName>trpm.dept_name</dbName>
+			<dataType>java.lang.String</dataType>
+			<groupBy>1</groupBy>
+			<sortBy>1</sortBy>
+			<type>bound</type>
+			<CellContent>simplecount</CellContent>
+			<CellContentFormat>inline</CellContentFormat>
+		</column>
+		<column>
+			<key>P67</key>
+			<displayName>Position Title</displayName>
+			<dbName>trpm.position_title</dbName>
+			<dataType>java.lang.String</dataType>
+			<groupBy>0</groupBy>
+			<sortBy>0</sortBy>
+			<type>bound</type>
+			<CellContent>simplecount</CellContent>
+			<CellContentFormat>inline</CellContentFormat>
+		</column>
+		<column>
+			<key>P66</key>
+			<displayName>Position Code</displayName>
+			<dbName>trpm.position_code</dbName>
+			<dataType>java.lang.String</dataType>
+			<groupBy>0</groupBy>
+			<sortBy>0</sortBy>
+			<type>bound</type>
+			<CellContent>simplecount</CellContent>
+			<CellContentFormat>inline</CellContentFormat>
+		</column>
+		<column>
+			<key>P80</key>
+			<displayName>Owner</displayName>
+			<dbName>trpm.position_owner</dbName>
+			<dataType>java.lang.String</dataType>
+			<groupBy>0</groupBy>
+			<sortBy>0</sortBy>
+			<type>bound</type>
+			<CellContent>simplecount</CellContent>
+			<CellContentFormat>inline</CellContentFormat>
+		</column>
+		<column>
+			<key>P71</key>
+			<displayName>Date Created</displayName>
+			<dbName>trpm.position_date_created</dbName>
+			<dataType>java.lang.String</dataType>
+			<groupBy>0</groupBy>
+			<sortBy>0</sortBy>
+			<type>bound</type>
+			<CellContent>simplecount</CellContent>
+			<CellContentFormat>inline</CellContentFormat>
+		</column>
+		<column>
+			<key>P70</key>
+			<displayName>Hire By Date</displayName>
+			<dbName>trpm.position_date_expiry</dbName>
+			<dataType>java.lang.String</dataType>
+			<groupBy>0</groupBy>
+			<sortBy>0</sortBy>
+			<type>bound</type>
+			<CellContent>simplecount</CellContent>
+			<CellContentFormat>inline</CellContentFormat>
+		</column>
+	</Columns>
+	<ReportFormat>Html</ReportFormat>
+	<Filters>
+		<filter>
+			<columnname>Date</columnname>
+			<value></value>
+			<visibility>true</visibility>
+		</filter>
+	</Filters>
+</report>

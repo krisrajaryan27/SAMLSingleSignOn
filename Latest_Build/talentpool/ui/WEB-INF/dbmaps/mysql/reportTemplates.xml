@@ -1,0 +1,83 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>
+		<dbquery name="qReportTemplateManager_InsertReportTemplateData">
+		    INSERT INTO tp_report_templates
+			(report_id, template_name, report_file_path, original_file_name, date_created, user_id, sheet_index, row_index)
+			VALUES (?,?,?,?,now(),?,?,?)		
+		</dbquery>
+		<dbquery name="qReportTemplateManager_InsertReportTemplateColumns">
+			INSERT INTO tp_report_template_columns(report_template_id, column_name, column_type, column_rank)
+			VALUES (?,?,?,?)		
+		</dbquery>
+		<dbquery name="qReportDesignManager_updateReportTemplateData">
+		    UPDATE tp_report_templates SET
+		    report_id =?, 
+		    template_name=?,
+		    report_file_path=?,
+		    original_file_name=?,
+		    sheet_index=?,
+		    row_index=?
+		    WHERE 
+		    report_template_id=?
+		</dbquery>  
+		<dbquery name="qReportTemplateManager_GetReportTemplates">
+			SELECT report_template_id, report_id,template_name FROM tp_report_templates
+		</dbquery>
+		<dbquery name="qReportTemplateManager_GetReportTemplatesForaTemplateType">
+			SELECT report_template_id, report_id, template_name, report_file_path, original_file_name, user_id, sheet_index, row_index FROM tp_report_templates where report_id=?
+		</dbquery>
+		<dbquery name="qReportTemplateManager_DeleteReportTemplate">
+			DELETE FROM tp_report_templates WHERE report_template_id=?
+		</dbquery>
+		<dbquery name="qReportTemplateManager_DeleteReportTemplateColumns">
+			DELETE FROM tp_report_template_columns WHERE report_template_id=?
+		</dbquery>         
+		<dbquery name="qReportTemplateManager_GetReportTemplateColumnData">
+			SELECT column_name, column_type, column_rank FROM tp_report_template_columns WHERE report_template_id=?
+		</dbquery>
+		<dbquery name="qReportTemplateManager_GetReportTemplateData">
+			SELECT report_template_id, report_id, template_name, report_file_path, original_file_name, user_id, sheet_index, row_index FROM tp_report_templates where report_template_id=?
+		</dbquery>
+	</dbqueries>
+	<dataqueries>
+       <dataquery name="dReportTemplateManager_InsertReportTemplateData" dbquery="qReportTemplateManager_InsertReportTemplateData"/>
+       <dataquery name="dReportTemplateManager_InsertReportTemplateColumns" dbquery="qReportTemplateManager_InsertReportTemplateColumns"/>
+       <dataquery name="dReportDesignManager_updateReportTemplateData" dbquery="qReportDesignManager_updateReportTemplateData"/>
+       <dataquery name="dReportTemplateManager_GetReportTemplates" dbquery="qReportTemplateManager_GetReportTemplates" object="com.talentPool.masters.dataobject.ReportTemplateData">
+			<attribute name="reportTemplateId" column="report_template_id" type="STRING"/>
+			<attribute name="reportId" column="report_id" type="STRING"/>
+			<attribute name="templateName" column="template_name" type="STRING"/>
+       </dataquery>
+       <dataquery name="dReportTemplateManager_GetReportTemplatesForaTemplateType" dbquery="qReportTemplateManager_GetReportTemplatesForaTemplateType" object="com.talentPool.masters.dataobject.ReportTemplateData">
+			<attribute name="reportTemplateId" column="report_template_id" type="STRING"/>
+			<attribute name="reportId" column="report_id" type="STRING"/>
+			<attribute name="templateName" column="template_name" type="STRING"/>
+			<attribute name="reportFilePath" column="report_file_path" type="STRING"/>
+			<attribute name="originalFileName" column="original_file_name" type="STRING"/>
+			<attribute name="userId" column="user_id" type="STRING"/>
+			<attribute name="sheetIndex" column="sheet_index" type="STRING"/>
+			<attribute name="rowIndex" column="row_index" type="STRING"/>
+       </dataquery>
+       <dataquery name="dReportTemplateManager_DeleteReportTemplate" dbquery="qReportTemplateManager_DeleteReportTemplate"/>
+       <dataquery name="dReportTemplateManager_DeleteReportTemplateColumns" dbquery="qReportTemplateManager_DeleteReportTemplateColumns"/>
+       <dataquery name="dReportTemplateManager_GetReportTemplateColumnData" dbquery="qReportTemplateManager_GetReportTemplateColumnData" object="com.talentPool.reportDesign.dataobject.ColumnData">
+	    	<attribute name= "columnName" column="column_name" type ="STRING" />
+	    	<attribute name= "columnType" column="column_type" type ="STRING" />
+	    	<attribute name= "columnRank" column="column_rank" type ="STRING" />
+	    </dataquery>
+       <dataquery name="dReportTemplateManager_GetReportTemplateData" dbquery="qReportTemplateManager_GetReportTemplateData" object="com.talentPool.masters.dataobject.ReportTemplateData">
+			<attribute name="reportTemplateId" column="report_template_id" type="STRING"/>
+			<attribute name="reportId" column="report_id" type="STRING"/>
+			<attribute name="templateName" column="template_name" type="STRING"/>
+			<attribute name="reportFilePath" column="report_file_path" type="STRING"/>
+			<attribute name="originalFileName" column="original_file_name" type="STRING"/>
+			<attribute name="userId" column="user_id" type="STRING"/>
+			<attribute name="sheetIndex" column="sheet_index" type="STRING"/>
+			<attribute name="rowIndex" column="row_index" type="STRING"/>
+       </dataquery>
+	</dataqueries>
+</dbmap>	

@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">
+<beans>
+	
+	<!--All actions and their dependencies are defined in this section. Note Action cannot be singleton-->
+	<bean id="customReportAction" class="com.talentPool.customReports.action.CustomReportAction" singleton="false" >
+		<property name="customReportService" ref="customReportService" />
+		<property name="crXMLService" ref="jaxbXMLService" />
+		<property name="crTemplateService" ref="crJasperTemplateService" />
+		<property name="crQueryBuilderService" ref="sqlQueryBuilderService" />
+	</bean>
+	
+	<bean id="runCustomReportAction" class="com.talentPool.customReports.action.RunCustomReportAction" singleton="false" >
+		<property name="customReportService" ref="customReportService" />
+		<property name="crXMLService" ref="jaxbXMLService" />
+		<property name="crExporter" ref="jasperHTMLExporter" />
+	</bean>
+	
+	<bean id="exportToXLSCRAction" class="com.talentPool.customReports.action.RunCustomReportAction" singleton="false" >
+		<property name="customReportService" ref="customReportService" />
+		<property name="crXMLService" ref="jaxbXMLService" />
+		<property name="crExporter" ref="jasperXLSExporter" />
+	</bean>
+	
+	<bean id="exportToXLSXCRAction" class="com.talentPool.customReports.action.RunCustomReportAction" singleton="false" >
+		<property name="customReportService" ref="customReportService" />
+		<property name="crXMLService" ref="jaxbXMLService" />
+		<property name="crExporter" ref="jasperXLSXExporter" />
+	</bean>
+	
+	<bean id="exportToPlainXLSCRAction" class="com.talentPool.customReports.action.RunCustomReportAction" singleton="false" >
+		<property name="customReportService" ref="customReportService" />
+		<property name="crXMLService" ref="jaxbXMLService" />
+		<property name="crExporter" ref="jasperPlainXLSExporter" />
+	</bean>
+	
+	<bean id="exportToCSVCRAction" class="com.talentPool.customReports.action.RunCustomReportAction" singleton="false" >
+		<property name="customReportService" ref="customReportService" />
+		<property name="crXMLService" ref="jaxbXMLService" />
+		<property name="crExporter" ref="jasperCSVExporter" />
+	</bean>
+	
+	<bean id="exportToPDFCRAction" class="com.talentPool.customReports.action.RunCustomReportAction" singleton="false" >
+		<property name="customReportService" ref="customReportService" />
+		<property name="crXMLService" ref="jaxbXMLService" />
+		<property name="crExporter" ref="jasperPDFExporter" />
+	</bean>
+	
+	<bean id="stepsMigrationWizardAction" class="com.talentPool.stepsMigration.action.StepsMigrationWizardAction" singleton="false" >
+		<property name="stepsMigrationWizardService" ref="stepsMigrationWizardService" />
+	</bean>
+	
+	<bean id="exceptionPositionMigrationAction" class="com.talentPool.stepsMigration.action.ExceptionPositionMigrationAction" singleton="false" >
+		<property name="stepsMigrationWizardService" ref="stepsMigrationWizardService" />
+	</bean>
+	 
+	<bean id="salCompCategoryMaster" class="com.talentPool.masters.action.SalCompCategoryMasterAction" singleton="false" >
+		<property name="salCompCategoryService" ref="salCompCategoryService" />
+	</bean>	
+	
+	<bean id="offerProposal" class="com.talentPool.salaryStructure.action.OfferProposalAction" singleton="false" >
+		<property name="offerProposalService" ref="offerProposalService" />
+	</bean>
+	
+	<bean id="employerMasterAction" class="com.talentPool.masters.action.EmployerMasterAction" singleton="false" >
+		<property name="masterService" ref="masterService" />		
+	</bean>
+	
+	<bean id="designationMasterAction" class="com.talentPool.masters.action.DesignationMasterAction" singleton="false" >
+		<property name="masterService" ref="masterService" />
+	</bean>
+	
+	<!--Service layer Beans-->
+	<bean id="jasperHTMLExporter" class="com.talentPool.customReports.service.impl.JasperHTMLExporter" >
+		<property name="crDataSourceService" ref="queryBuilderDataSourceService" />
+	</bean>
+	<bean id="jasperXLSExporter" class="com.talentPool.customReports.service.impl.JasperXLSExporter" >
+		<property name="crDataSourceService" ref="queryBuilderDataSourceService" />
+	</bean>
+	<bean id="jasperXLSXExporter" class="com.talentPool.customReports.service.impl.JasperXLSXExporter" >
+		<property name="crDataSourceService" ref="queryBuilderDataSourceService" />
+	</bean>
+	<bean id="jasperPlainXLSExporter" class="com.talentPool.customReports.service.impl.JasperPlainXLSExporter" >
+		<property name="crDataSourceService" ref="queryBuilderDataSourceService" />
+	</bean>
+	<bean id="jasperCSVExporter" class="com.talentPool.customReports.service.impl.JasperCSVExporter" >
+		<property name="crDataSourceService" ref="queryBuilderDataSourceService" />
+	</bean>
+	<bean id="jasperPDFExporter" class="com.talentPool.customReports.service.impl.JasperPDFExporter" >
+		<property name="crDataSourceService" ref="queryBuilderDataSourceService" />
+	</bean>
+	<bean id="jaxbXMLService" class="com.talentPool.customReports.service.impl.JaxbXMLService" />
+	<bean id="crJasperTemplateService" class="com.talentPool.customReports.service.impl.CRJasperTemplateService" />
+	<bean id="sqlQueryBuilderService" class="com.talentPool.customReports.service.impl.SQLQueryBuilderService" >
+		<property name="customReportService" ref="customReportService" />
+	</bean>
+	
+	<bean id="customReportService" class="com.talentPool.customReports.service.impl.CustomReportService" >
+		<property name="customReportDAO" ref="customReportDAO" />
+	</bean>
+	
+	<bean id="stepsMigrationWizardService" class="com.talentPool.stepsMigration.services.impl.StepsMigrationWizardService" >
+		<property name="stepsMigrationWizardDao" ref="stepsMigrationWizardDao" />
+	</bean>
+	
+	<bean id="queryBuilderDataSourceService" class="com.talentPool.customReports.service.impl.QueryBuilderDataSourceService" />
+	
+	<bean id="salCompCategoryService" class="com.talentPool.masters.service.impl.SalCompCategoryService" >
+		<property name="salCompCategoryDao" ref="salCompCategoryDao" />
+	</bean>
+	
+	<bean id="offerProposalService" class="com.talentPool.salaryStructure.service.impl.OfferProposalService" >
+		<property name="appCurrentDetailsDao" ref="applicantCurrentDetailsDao" />
+	</bean>
+	
+	<bean id="masterService" class="com.talentPool.masters.service.MasterService">
+		<property name="masterDAO" ref="masterDAO" />
+	</bean>
+	
+	<!--DAO layer Beans-->	
+	<bean id="customReportDAO" class="com.talentPool.customReports.dao.impl.CustomReportDAO" />
+	
+	<bean id="stepsMigrationWizardDao" class="com.talentPool.stepsMigration.dao.impl.StepsMigrationWizardDao" />
+	
+	<bean id="applicantCurrentDetailsDao" class="com.talentPool.applicant.dao.impl.ApplicantCurrentDetailsDao" />
+	
+	<bean id="salCompCategoryDao" class="com.talentPool.masters.dao.impl.SalaryComponentCategoryDAOImpl" />
+	
+	<bean id="masterDAO" class="com.talentPool.masters.dao.MasterDAO" />
+	
+</beans>
+

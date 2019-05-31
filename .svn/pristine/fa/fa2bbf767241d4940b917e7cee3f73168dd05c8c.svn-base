@@ -1,0 +1,150 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+   <dbqueries>
+        <dbquery name="qMastersManagerForAP_AddDepToDBForAP">
+         INSERT into tp_departments(dept_name,dept_parent_id,dept_externalCode,dept_level) values(?,?,?,?)
+       </dbquery>
+       <dbquery name="qMastersManagerForAP_AddJobFunctionToDBForAP">
+         INSERT into tp_jobfunction_ap(jobfunction_name,jobfunction_parent_id,jobfunction_externalCode) values(?,?,?)
+       </dbquery>
+        <dbquery name="qMastersManagerForAP_AddJobCodeToDBForAP">
+         INSERT into tp_jobcode_ap(job_name,job_parent_id,job_externalCode) values(?,?,?)
+       </dbquery>
+        <dbquery name="qMastersManagerForAP_AddPayGradeToDBForAP">
+         INSERT into tp_paygrade_ap(paygrade_name,paygrade_parent_id,paygrade_externalCode) values(?,?,?)
+       </dbquery>
+        <dbquery name="qMastersManagerForAP_AddLocToDBForAP">
+         INSERT into tp_location_ap(location_name,location_parent_id,location_externalCode, location_isRegion, location_level) values(?,?,?,?,?)
+       </dbquery>
+	   <dbquery name="qMastersManagerForAP_AddLocToDB">
+         INSERT into tp_location_ap(location_name,location_parent_id) values(?,?)
+       </dbquery>
+      
+		<dbquery name="qMastersManagerForAP_GetLocFromDBForNullParent">
+		 SELECT  location_name FROM tp_location_ap where location_name=? and location_parent_id is NULL
+		</dbquery>
+		 <dbquery name="qMastersManagerForAP_GetLocFromDB">
+         SELECT  location_name FROM tp_location_ap where location_name=? and location_parent_id=?
+       </dbquery>	
+		<dbquery name="qMastersManagerForAP_GetLocData">
+         SELECT location_id, location_name FROM tp_location_ap where location_id=? 
+       </dbquery>
+        <dbquery name="qMastersManagerForAP_GetDepParentIdFromDBByExternalCode">
+         SELECT  dept_id FROM tp_departments where dept_externalCode=?
+       </dbquery>
+        <dbquery name="qMastersManagerForAP_GetJobCodeParentIdFromDBByExternalCode">
+         SELECT  dept_id FROM tp_departments where dept_externalCode=?
+       </dbquery>
+        <dbquery name="qMastersManagerForAP_GetPayGradeParentIdFromDBByExternalCode">
+         SELECT  job_id FROM tp_jobcode_ap where job_externalCode=?
+       </dbquery>
+       <dbquery name="qMastersManagerForAP_GetLocParentIdFromDBByExternalCode">
+         SELECT  location_id FROM tp_location_ap where location_externalCode=?
+       </dbquery>
+       <dbquery name="qMastersManagerForAP_GetDepExternalCodeFromDBForAP">
+         SELECT  dept_externalCode FROM tp_departments where dept_externalCode=? AND dept_level=?
+       </dbquery>
+       <dbquery name="qMastersManagerForAP_GetJobFunctionExternalCodeFromDBForAP">
+         SELECT  jobFunction_externalCode FROM tp_jobfunction_ap where jobfunction_externalCode=?
+       </dbquery>
+       <dbquery name="qMastersManagerForAP_GetJobExternalCodeFromDBForAP">
+         SELECT  job_externalCode FROM tp_jobcode_ap where job_externalCode=?
+       </dbquery>
+       <dbquery name="qMastersManagerForAP_GetPayGradeExternalCodeFromDBForAP">
+         SELECT  paygrade_externalCode FROM tp_paygrade_ap where paygrade_externalCode=?
+       </dbquery>
+       <dbquery name="qMastersManagerForAP_GetLocExternalCodeFromDBForAP">
+         SELECT  location_externalCode FROM tp_location_ap where location_externalCode=? AND location_level=?
+       </dbquery>
+       <dbquery name="qMastersManagerForAP_UpdateDeptByExternalCodeForAP">
+         UPDATE tp_departments set dept_name=?,dept_parent_id=? where dept_externalCode=? AND dept_level=?
+       </dbquery>
+        <dbquery name="qMastersManagerForAP_UpdateJobFunctionByExternalCodeForAP">
+         UPDATE tp_jobfunction_ap set jobfunction_name=?, jobfunction_parent_id=? where jobfunction_externalCode=? 
+       </dbquery>
+       <dbquery name="qMastersManagerForAP_UpdateJobCodeByExternalCodeForAP">
+         UPDATE tp_jobcode_ap set job_name=?, job_parent_id=? where job_externalCode=? 
+       </dbquery>
+       <dbquery name="qMastersManagerForAP_UpdatePayGradeByExternalCodeForAP">
+         UPDATE tp_paygrade_ap set paygrade_name=?, paygrade_parent_id=? where paygrade_externalCode=? 
+       </dbquery>
+         <dbquery name="qMastersManagerForAP_UpdateLocByExternalCodeForAP">
+         UPDATE tp_location_ap set location_name=?, location_parent_id=?, location_isRegion=? where location_externalCode=? AND location_level=?
+       </dbquery>
+	    <dbquery name="qMastersManagerForAP_UpdateLoc">
+         UPDATE tp_location_ap set location_name=? where location_id=? 
+       </dbquery>
+   </dbqueries>
+   
+   
+   <dataqueries>
+      <dataquery name="dMastersManagerForAP_AddDepToDBForAP" dbquery="qMastersManagerForAP_AddDepToDBForAP"/>
+      <dataquery name="dMastersManagerForAP_AddJobFunctionToDBForAP" dbquery="qMastersManagerForAP_AddJobFunctionToDBForAP"/>
+      <dataquery name="dMastersManagerForAP_AddJobCodeToDBForAP" dbquery="qMastersManagerForAP_AddJobCodeToDBForAP"/>
+      <dataquery name="dMastersManagerForAP_AddPayGradeToDBForAP" dbquery="qMastersManagerForAP_AddPayGradeToDBForAP"/>
+      <dataquery name="dMastersManagerForAP_AddLocToDBForAP" dbquery="qMastersManagerForAP_AddLocToDBForAP"/>
+	   <dataquery name="dMastersManagerForAP_AddLocToDB" dbquery="qMastersManagerForAP_AddLocToDB"/>
+	   
+	   <dataquery name="dMastersManagerForAP_GetLocFromDBForNullParent" dbquery="qMastersManagerForAP_GetLocFromDBForNullParent" object="com.talentPool.masters.dataobject.LocationData">
+         <attribute name="itemName"  column="location_name" type="STRING" />
+      </dataquery>
+	  
+	  <dataquery name="dMastersManagerForAP_GetLocFromDB" dbquery="qMastersManagerForAP_GetLocFromDB" object="com.talentPool.masters.dataobject.LocationData">
+         <attribute name="itemName"  column="dept_name" type="STRING" />
+      </dataquery>
+	  
+	  <dataquery name="dMastersManagerForAP_GetLocData" dbquery="qMastersManagerForAP_GetLocData" object="com.talentPool.masters.dataobject.LocationData">
+         <attribute name="itemId"  column="location_id" type="INT" />
+         <attribute name="itemName"  column="location_name" type="STRING" />
+      </dataquery>
+	  
+	  
+	  
+      
+      <dataquery name="dMastersManagerForAP_GetDepParentIdFromDBByExternalCode" dbquery="qMastersManagerForAP_GetDepParentIdFromDBByExternalCode" object="com.talentPool.masters.dataobject.MasterDataForAP">
+         <attribute name="itemId"  column="dept_id" type="INT" />
+      </dataquery>
+      
+      <dataquery name="dMastersManagerForAP_GetJobCodeParentIdFromDBByExternalCode" dbquery="qMastersManagerForAP_GetJobCodeParentIdFromDBByExternalCode" object="com.talentPool.masters.dataobject.MasterDataForAP">
+         <attribute name="itemId"  column="dept_id" type="INT" />
+      </dataquery>
+      
+       <dataquery name="dMastersManagerForAP_GetPayGradeParentIdFromDBByExternalCode" dbquery="qMastersManagerForAP_GetPayGradeParentIdFromDBByExternalCode" object="com.talentPool.masters.dataobject.MasterDataForAP">
+         <attribute name="itemId"  column="job_id" type="INT" />
+      </dataquery>
+      
+       <dataquery name="dMastersManagerForAP_GetLocParentIdFromDBByExternalCode" dbquery="qMastersManagerForAP_GetLocParentIdFromDBByExternalCode" object="com.talentPool.masters.dataobject.MasterDataForAP">
+         <attribute name="itemId"  column="location_id" type="INT" />
+      </dataquery>
+      
+      <dataquery name="dMastersManagerForAP_GetDepExternalCodeFromDBForAP" dbquery="qMastersManagerForAP_GetDepExternalCodeFromDBForAP" object="com.talentPool.masters.dataobject.MasterDataForAP">
+         <attribute name="itemName"  column="dept_externalCode" type="STRING" />
+      </dataquery>
+      
+      <dataquery name="dMastersManagerForAP_GetJobFunctionExternalCodeFromDBForAP" dbquery="qMastersManagerForAP_GetJobFunctionExternalCodeFromDBForAP" object="com.talentPool.masters.dataobject.MasterDataForAP">
+         <attribute name="itemName"  column="jobfunction_externalCode" type="STRING" />
+      </dataquery>
+      
+      <dataquery name="dMastersManagerForAP_GetJobExternalCodeFromDBForAP" dbquery="qMastersManagerForAP_GetJobExternalCodeFromDBForAP" object="com.talentPool.masters.dataobject.MasterDataForAP">
+         <attribute name="itemName"  column="job_externalCode" type="STRING" />
+      </dataquery>
+      
+      <dataquery name="dMastersManagerForAP_GetPayGradeExternalCodeFromDBForAP" dbquery="qMastersManagerForAP_GetPayGradeExternalCodeFromDBForAP" object="com.talentPool.masters.dataobject.MasterDataForAP">
+         <attribute name="itemName"  column="paygrade_externalCode" type="STRING" />
+      </dataquery>
+      
+      <dataquery name="dMastersManagerForAP_GetLocExternalCodeFromDBForAP" dbquery="qMastersManagerForAP_GetLocExternalCodeFromDBForAP" object="com.talentPool.masters.dataobject.MasterDataForAP">
+         <attribute name="itemName"  column="location_externalCode" type="STRING" />
+      </dataquery>
+            
+      <dataquery name="dMastersManagerForAP_UpdateDeptByExternalCodeForAP" dbquery="qMastersManagerForAP_UpdateDeptByExternalCodeForAP"/>
+      <dataquery name="dMastersManagerForAP_UpdateJobFunctionByExternalCodeForAP" dbquery="qMastersManagerForAP_UpdateJobFunctionByExternalCodeForAP"/>
+      <dataquery name="dMastersManagerForAP_UpdateJobCodeByExternalCodeForAP" dbquery="qMastersManagerForAP_UpdateJobCodeByExternalCodeForAP"/>
+      <dataquery name="dMastersManagerForAP_UpdatePayGradeByExternalCodeForAP" dbquery="qMastersManagerForAP_UpdatePayGradeByExternalCodeForAP"/>
+       <dataquery name="dMastersManagerForAP_UpdateLocByExternalCodeForAP" dbquery="qMastersManagerForAP_UpdateLocByExternalCodeForAP"/>
+	   <dataquery name="dMastersManagerForAP_UpdateLoc" dbquery="qMastersManagerForAP_UpdateLoc"/>
+   </dataqueries>   
+</dbmap>

@@ -1,0 +1,68 @@
+/*
+*  education_degree.jape
+*  Lookups are stored in custom_education_degree.list
+*/
+
+Phase: education_year
+Input: Token Lookup Percent TempDateToken
+Options: control = appelt
+
+Macro: NUMBER_2
+(
+	{Token.string ==~ "[0-9][0-9]", !Percent}
+)
+Macro: NUMBER_4
+(
+	{Token.string ==~ "[0-9][0-9][0-9][0-9]", !Percent}
+)
+
+Macro: TO_TILL_DASH
+(
+	{Token.string ==~ "[Tt][Oo]"}|
+	{Token.string ==~ "[Tt][Ii][Ll][Ll]"}|
+	{Token.kind == punctuation, Token.subkind == dashpunct}
+)
+Macro: DASH_SLASH
+(
+	{Token.string == "."}|
+	{Token.string == "-"}|
+	{Token.string == "/"}
+)
+
+Rule: date_tempDate_yyyy
+(
+	{TempDateToken}(TO_TILL_DASH)
+	((NUMBER_2)|(NUMBER_4)):year2
+):date
+-->
+{
+   try {
+		gate.AnnotationSet year2Set = (gate.AnnotationSet)bindings.get("year2");
+	 	Long year2Start = year2Set.firstNode().getOffset();
+	 	Long year2End = year2Set.lastNode().getOffset(); 
+		String year2String = doc.getContent().getContent(year2Start,year2End).toString();
+		String date2Str = "01-01-"+year2String;
+
+		java.text.SimpleDateFormat sdFormat1 = new java.text.SimpleDateFormat("dd-MM-yyyy");
+		java.text.SimpleDateFormat sdFormat2 = new java.text.SimpleDateFormat("dd-MM-yy");		
+		java.util.Date parsedDate2;
+		if(year2String.length() == 4){
+			parsedDate2 = sdFormat1.parse(date2Str);
+		}
+		else{
+			parsedDate2 = sdFormat2.parse(date2Str);				
+		}
+		Calendar cal = Calendar.getInstance();
+		java.util.Date currentDate = cal.getTime();
+		if(parsedDate2.compareTo(currentDate) <= 0){			
+			gate.FeatureMap features1 = Factory.newFeatureMap();
+  			features1.put("kind", "date");
+    		features1.put("date", sdFormat1.format(parsedDate2));
+    		features1.put("rule", "date_tempDate_yyyy");
+    		outputAS.add(year2Set.firstNode(), year2Set.lastNode(), "TempDateToken", features1);
+        }
+   }
+   catch(Exception e) {
+	   e.printStackTrace();
+   }
+}

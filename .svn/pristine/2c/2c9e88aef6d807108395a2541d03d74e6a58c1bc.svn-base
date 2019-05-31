@@ -1,0 +1,1198 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+   <dbqueries>
+	   <dbquery name="qMastersManager_CheckSkillAlias">
+			select count(*) from tp_skills_aliases where skill_alias=?
+       </dbquery>
+	   <dbquery name="qMastersManager_CheckBranchAlias">
+			select count(*) from tp_branch_aliases where alias=?
+       </dbquery>
+	   <dbquery name="qMastersManager_CheckDegreeAlias">
+			select count(*) from tp_degree_aliases where alias=?
+       </dbquery>
+	   <dbquery name="qMastersManager_CheckInstituteAlias">
+			select count(*) from tp_institute_aliases where alias=?
+       </dbquery>
+   
+   
+       <dbquery name="qMastersManager_AddSkillAlias">
+         INSERT into tp_skills_aliases (skill_id,skill_alias) values(?,?)
+       </dbquery>
+	   <dbquery name="qMastersManager_DeleteSkillAlias">
+         DELETE from tp_skills_aliases where skill_id=?
+       </dbquery>
+
+       <dbquery name="qMastersManager_AddDegreeAlias">
+         INSERT into tp_degree_aliases  (degree_id,alias) values(?,?)
+       </dbquery>
+	   <dbquery name="qMastersManager_DeleteDegreeAlias">
+         DELETE from tp_degree_aliases  where degree_id=?
+       </dbquery>
+
+       <dbquery name="qMastersManager_AddBranchAlias">
+         INSERT into tp_branch_aliases  (branch_id ,alias ) values(?,?)
+       </dbquery>
+	   <dbquery name="qMastersManager_DeleteBranchAlias">
+         DELETE from tp_branch_aliases  where branch_id =?
+       </dbquery>
+
+       <dbquery name="qMastersManager_AddInstituteAlias">
+         INSERT into tp_institute_aliases  (institute_id,alias) values(?,?)
+       </dbquery>
+	   <dbquery name="qMastersManager_DeleteInstituteAlias">
+         DELETE from tp_institute_aliases  where institute_id=?
+       </dbquery>
+	   <dbquery name="qMastersManager_CheckSkill">
+			select count(*) from tp_skills where skill=?
+       </dbquery>
+	   <dbquery name="qMastersManager_CheckBranch">
+			select count(*) from tp_branches where branch_name=?
+       </dbquery>
+	   <dbquery name="qMastersManager_CheckDegree">
+			select count(*) from tp_degrees where degree_title=?
+       </dbquery>
+	   <dbquery name="qMastersManager_CheckInstitute">
+			select count(*) from tp_institutes where institute_name=?
+       </dbquery>
+   
+       <dbquery name="qMastersManager_AddBranchToDB">
+         INSERT into tp_branches (branch_name) values(?)
+       </dbquery>
+        <dbquery name="qMastersManager_UpdateBranch">
+         UPDATE tp_branches  set branch_name=? where branch_id=? 
+       </dbquery>
+        <dbquery name="qMastersManager_DeleteBranchFromDB">
+         DELETE from tp_branches where branch_id=?
+       </dbquery>
+       <dbquery name="qMastersManager_GetBranchesWithAliases">
+         SELECT tb.branch_id,tb.branch_name,tba.alias 
+         FROM tp_branches tb LEFT JOIN tp_branch_aliases tba ON(tb.branch_id=tba.branch_id) @@ 
+		 ORDER BY tb.branch_name
+       </dbquery>
+       <dbquery name="qMastersManager_AddInstitute">
+			INSERT INTO  tp_institutes (institute_name) VALUES (?)
+       </dbquery>
+       <dbquery name="qMastersManager_UpdateInstitute">
+			UPDATE tp_institutes SET institute_name=? WHERE institute_id =?
+       </dbquery>
+       <dbquery name="qMastersManager_DeleteInstitute">
+			DELETE FROM tp_institutes WHERE institute_id =?
+       </dbquery>
+       <dbquery name="qMastersManager_GetInstitutesWithAliases">
+	    SELECT ti.institute_id, ti.institute_name, tia.alias
+		FROM tp_institutes ti LEFT JOIN tp_institute_aliases tia ON ( ti.institute_id = tia.institute_id ) @@
+		ORDER BY ti.institute_name 
+       </dbquery>
+        <dbquery name="qMastersManager_GetInstitutesWithAliasesByName">
+		    (
+			SELECT institute_id
+			FROM tp_institutes
+			WHERE institute_name = ?
+			)
+			UNION
+			(
+			SELECT institute_id
+			FROM tp_institute_aliases
+			WHERE alias = ?
+			)
+			LIMIT 0, 1	
+        </dbquery>
+        <dbquery name="qMastersManager_GetInstituteData">
+		    SELECT institute_id,institute_name
+			FROM tp_institutes WHERE institute_id = ?	
+        </dbquery>
+
+       <dbquery name="qMastersManager_AddDegreeToDB">
+          INSERT into tp_degrees (degree_title,degree_type) values (?,?)
+       </dbquery>
+       <dbquery name="qMastersManager_DeleteDegreeTitleFromDB">
+         DELETE from  tp_degrees  where degree_id=?
+       </dbquery>
+       <dbquery name="qMastersManager_UpdateDegreeTitle">
+         UPDATE tp_degrees set degree_title=?, degree_type=? where degree_id=? 
+       </dbquery>
+       <dbquery name="qMastersManager_GetDegreesWithAliases">
+       	SELECT td.degree_id, td.degree_title, tda.alias, td.degree_type
+		FROM tp_degrees td LEFT JOIN tp_degree_aliases tda ON ( td.degree_id = tda.degree_id ) @@
+		ORDER BY td.degree_title
+       </dbquery>
+       <dbquery name="qMastersManager_GetDegreeFromMaster">
+       	SELECT degree_id,degree_title FROM tp_degrees WHERE degree_id =?
+       </dbquery>
+       <dbquery name="qMastersManager_GetBranchFromMaster">
+       	SELECT branch_id, branch_name FROM tp_branches WHERE branch_id =?
+       </dbquery>
+
+       <dbquery name="qMastersManager_GetSourceTypes">
+         SELECT st.source_type_id, st.source_type, s.source_title, st.system_generated From tp_source_types st 
+         LEFT JOIN tp_sources s ON (st.source_type_id=s.source_type_id) 
+         ORDER BY source_type 
+       </dbquery>
+       <dbquery name="qMastersManager_AddSourceCatToDB">
+         INSERT into tp_source_types (source_type) values(?)
+       </dbquery>
+        <dbquery name="qMastersManager_AddSourceCatCvLimitToDB">
+         INSERT into tp_source_types (source_type,source_cv_limit) values(?,?)
+       </dbquery>
+       <dbquery name="qMastersManager_GetSourceType">
+          SELECT st.source_type_id,st.source_type,s.source_title,s.source_id , s.system_generated, st.source_type_category, s.source_blacklisted,s.source_cv_limit
+          FROM tp_source_types st 
+          LEFT JOIN tp_sources s ON(st.source_type_id=s.source_type_id)
+          WHERE st.source_type_id=?
+          ORDER BY s.source_title
+       </dbquery>
+       <dbquery name="qMastersManager_AddSource">
+         	INSERT into tp_sources 
+			(source_type_id, source_title, source_email, source_phone, 
+			source_mobile, is_send_email_to_source, is_send_sms_to_source, 
+			lock_in_period_on_import, employee_code,source_blacklisted,source_cv_limit) 
+			values
+			(?,?,?,?,?,?,?,?,?,?,?) 
+       </dbquery>
+        <dbquery name="qMastersManager_DeleteSourceFromDB">
+         DELETE from  tp_sources where source_id =?
+       </dbquery>
+        <dbquery name="qMastersManager_DeleteSourceTypeFromDB">
+         DELETE from  tp_source_types  where source_type_id=?
+       </dbquery>
+       <dbquery name="qMastersManager_UpdateSource">
+         UPDATE tp_sources set source_title=?, source_email=?, 
+         						source_phone=?, source_mobile=?,
+         						is_send_email_to_source=?, is_send_sms_to_source=?,
+         						lock_in_period_on_import=?, employee_code=?, source_blacklisted=?,source_cv_limit=? where source_id=? 
+       </dbquery>
+       <dbquery name="qMastersManager_GetSource">
+ 	        select source_id, source_title, source_email, 
+			source_phone, source_mobile, is_send_email_to_source,
+			is_send_sms_to_source, employee_code, source_blacklisted,
+			lock_in_period_on_import, source_type_id,source_cv_limit
+			from tp_sources
+			where source_id=?
+       </dbquery>
+       <dbquery name="qMastersManager_UpdateSourceTypeCvLimit">
+         UPDATE tp_source_types   set source_type=?,source_cv_limit=? where source_type_id=? 
+       </dbquery>
+       <dbquery name="qMastersManager_UpdateSourceType">
+         UPDATE tp_source_types   set source_type=? where source_type_id=? 
+       </dbquery>
+        <dbquery name="qMastersManager_GetSourceCategory">
+         SELECT source_type_id, source_type FROM tp_source_types where source_type_id=? 
+       </dbquery>
+   		<dbquery name="qMastersManager_GetSourceCategoryByName">
+         	SELECT source_type_id, source_type FROM tp_source_types where source_type=? 
+       </dbquery>
+       <dbquery name="qMastersManager_GetSkillCategories">
+		   SELECT st.skill_category_id, st.skill_category_description, s.skill  from tp_skill_category  st 
+		   LEFT JOIN tp_skills s ON (st.skill_category_id=s.skill_category_id) 
+		   ORDER BY skill_category_description 
+	   </dbquery>
+	   <dbquery name="qMastersManager_AddSkillCatToDB">
+         INSERT into tp_skill_category  (skill_category_description ) values(?)
+       </dbquery>
+       <dbquery name="qMastersManager_DeleteSkillCategoryFromDB">
+         DELETE from tp_skill_category where skill_category_id=?
+       </dbquery>
+       <dbquery name="qMastersManager_UpdateSkillCategory">
+         UPDATE tp_skill_category set skill_category_description=? where skill_category_id=? 
+       </dbquery>
+       <dbquery name="qMastersManager_GetSkillCategory">
+         SELECT skill_category_id,skill_category_description  FROM tp_skill_category  where skill_category_id=? 
+       </dbquery>
+       <dbquery name="qMastersManager_GetSkillCategoryByName">
+         SELECT skill_category_id,skill_category_description  FROM tp_skill_category  where skill_category_description=? 
+       </dbquery>
+       <dbquery name="qMastersManager_GetSkillCat">
+	      SELECT st.skill_category_id,st.skill_category_description,s.skill,s.skill_id,a.skill_alias
+          FROM tp_skill_category  st 
+          LEFT JOIN tp_skills s ON(st.skill_category_id=s.skill_category_id)
+          LEFT JOIN tp_skills_aliases a ON(s.skill_id = a.skill_id)
+	      WHERE st.skill_category_id=?
+       </dbquery>
+       <dbquery name="qMastersManager_AddSkill">
+         INSERT into tp_skills (skill,skill_category_id) values(?,?) 
+       </dbquery>
+       <dbquery name="qMastersManager_DeleteSkillFromDB">
+         DELETE from tp_skills where skill_id=?
+       </dbquery>
+       <dbquery name="qMastersManager_UpdateSkill">
+         UPDATE tp_skills set skill=? where skill_id=? 
+       </dbquery>
+       <dbquery name="qMastersManager_GetSkill">
+         Select s.skill_id,s.skill,a.skill_alias 
+         FROM tp_skills s 
+         LEFT JOIN tp_skills_aliases a ON( a.skill_id=s.skill_id)
+         WHERE s.skill_id=?
+       </dbquery>
+   	   <dbquery name="qMastersManager_GetSkillsByCategoryIds">
+			SELECT st.skill_category_id, st.skill_category_description, s.skill,s.skill_id, a.skill_alias
+			FROM tp_skill_category  st 
+			LEFT JOIN tp_skills s ON(st.skill_category_id=s.skill_category_id)
+			LEFT JOIN tp_skills_aliases a ON(s.skill_id = a.skill_id)
+			WHERE st.skill_category_id IN (@@)
+       </dbquery>
+       <dbquery name="qMastersManager_GetDeptNames">
+         SELECT dept_id ,dept_name, ? as dept_level FROM tp_departments WHERE @@ ORDER BY dept_name
+       </dbquery>
+       <dbquery name="qMastersManager_AddDepToDB">
+         INSERT into tp_departments(dept_name,dept_parent_id) values(?,?)
+       </dbquery>
+       <dbquery name="qMastersManager_DeleteDepFromDB">
+         DELETE from  tp_departments where dept_id=?
+       </dbquery>
+       <dbquery name="qMastersManager_GetDeptData">
+         SELECT dept_id, dept_name FROM tp_departments where dept_id=? 
+       </dbquery>
+        <dbquery name="qMastersManager_GetDeptDataByTitle">
+         SELECT dept_id, dept_name FROM tp_departments where dept_name=? 
+       </dbquery>
+       <dbquery name="qMastersManager_GetDepFromDB">
+         SELECT  dept_name FROM tp_departments where dept_name=? and dept_parent_id=?
+       </dbquery>
+        <dbquery name="qMastersManager_GetDepFromDBForNullParent">
+         SELECT  dept_name FROM tp_departments where dept_name=? and dept_parent_id is NULL
+       </dbquery>
+       <dbquery name="qMastersManager_UpdateDept">
+         UPDATE tp_departments set dept_name=? where dept_id=? 
+       </dbquery>
+       
+       <!-- Start: Template -->
+       <dbquery name="qMastersManager_GetTemplates">
+       		select tt.template_id, tt.template_code, tt.template_name, tt.template_type_id,
+       		tt.template_private, tt.user_id, concat(tu.user_fname, ' ', tu.user_lname) as name
+					from tp_templates tt left join tp_users tu on (tu.user_id = tt.user_id)
+					where tt.template_auto = ?
+					and tt.template_private in (@@)
+					@@
+       </dbquery>
+       <dbquery name="qMastersManager_GetGenericVariables">
+       		select t1.template_variable
+			from tp_template_generic_vars t1
+			where t1.template_variable_type in (select t2.template_variable_type 
+								from tp_template_vars t2 
+								where t2.template_type_id = ?)
+       </dbquery>
+       <!-- End: Template -->
+
+       <dbquery name="qMastersManager_GetFlag">
+       		select flag_id, flag_text, flag_image, flag_type
+			from tp_flags
+			where flag_id = ?
+       </dbquery>
+       <dbquery name="qMastersManager_GetFlagImages">
+       		select distinct flag_image from tp_flags
+       		where flag_type = ? or user_id = ?
+       </dbquery>       
+       <dbquery name="qMastersManager_UpdateFlag">
+       		update tp_flags
+			set flag_text = ?, flag_image = ?, flag_type = ?
+			where flag_id = ?
+       </dbquery>
+       <dbquery name="qMastersManager_InsertFlag">
+       		insert into tp_flags 
+			(flag_image,flag_text,flag_type,user_id,date_created)
+			values 
+			(?,?,?,?,now())
+       </dbquery>
+	   <dbquery name="qMastersManager_GetAllLocations">
+       		SELECT location_id, location_name
+			FROM tp_location_ap 
+			ORDER BY location_name
+       </dbquery>
+       <dbquery name="qMastersManager_GetLocationById">
+       		select location_id, location_name
+			from tp_location_ap
+			where location_id = ?
+       </dbquery>
+       <dbquery name="qMastersManager_GetLocationsById">
+       		select location_id, location_name
+			from tp_location_ap
+			where location_id in (@@)
+       </dbquery>
+       <dbquery name="qMastersManager_GetLocationByName">
+       		select location_id, location_name
+			from tp_location_ap
+			where upper(location_name) = upper(?)
+       </dbquery> 
+       <dbquery name="qMastersManager_GetLocationsByName">
+       		select location_id, location_name
+			from tp_location_ap
+			where location_name in (@@)
+       </dbquery>    
+       <dbquery name="qMastersManager_AddLocation">
+       		insert into `tp_location_ap` (`location_name`) values (?)   
+       </dbquery>       
+       <dbquery name="qMastersManager_UpdateLocation">
+       		update `tp_location_ap` set `location_name` = ? where `location_id` = ?
+       </dbquery>   
+       <dbquery name="qMastersManager_DeleteLocation">
+       		delete from `tp_location_ap` where `location_id` = ?
+       </dbquery> 
+       <dbquery name="qMastersManager_GetAllSourceTypes">
+			SELECT source_type_id, source_type 
+			FROM tp_source_types
+			ORDER BY source_type
+		</dbquery>		
+		<dbquery name="qMastersManager_GetSourcesOfSourceType">
+			SELECT source_id, source_title
+			FROM tp_sources
+			WHERE source_type_id IN (@@)
+			ORDER BY source_title
+		</dbquery>
+		<dbquery name="qMastersManager_GetAllInboxFolders">
+       		select folder_id, folder_name, is_system_defined
+			from tp_inbox_folders
+			order by is_system_defined desc, folder_name
+       </dbquery>
+       <dbquery name="qMastersManager_GetInboxFolderById">
+       		select folder_id, folder_name, is_system_defined
+			from tp_inbox_folders
+			where folder_id = ?
+       </dbquery>
+       <dbquery name="qMastersManager_GetFolderByName">
+       		select folder_id, folder_name
+			from tp_inbox_folders
+			where folder_name = ?
+       </dbquery>
+       <dbquery name="qMastersManager_AddInboxFolder">
+       		insert into tp_inbox_folders (folder_name,is_system_defined,inbox_id,date_created,user_id,folder_created_by) values (?,?,?,now(),?,?)   
+       </dbquery>   
+        <dbquery name="qMastersManager_UpdateInboxFolder">
+       		update tp_inbox_folders set folder_name = ? where folder_id = ?
+       </dbquery>   
+       <dbquery name="qMastersManager_DeleteInboxFolder">
+       		delete from tp_inbox_folders where folder_id = ?
+       </dbquery> 
+       <dbquery name="qMastersManager_DeleteFlag">
+       		delete from tp_flags where flag_id=?
+       </dbquery> 
+       <dbquery name="qMastersManager_GetFlagCount">
+       		select count(*) 
+			from tp_flags
+			where case when flag_type = ? then user_id = ?
+			else 1 end
+			and flag_type = ?
+       </dbquery> 
+       <dbquery name="qMastersManager_GetSourceIdForEmployeeCode">
+       		SELECT source_id FROM tp_sources WHERE employee_code=?
+       </dbquery>
+       <dbquery name="qMastersManager_GetNumberOfEmailsInFolder">
+       		SELECT COUNT(*) AS email_count
+			FROM tp_inbox_emails
+			WHERE folder_id = ?
+       </dbquery>
+       <dbquery name="qMastersManager_GetDegreeId">			
+			SELECT degree_id 
+			FROM
+			(
+			(SELECT degree_id FROM tp_degrees WHERE degree_title = ?)
+			UNION
+			(SELECT degree_id FROM tp_degree_aliases WHERE alias = ?)
+			) AS TBL
+			LIMIT 0,1			
+		</dbquery>
+		<dbquery name="qMastersManager_GetDegreeIdsFromName">			
+			SELECT group_concat(degree_id) 
+			FROM
+			tp_degrees where degree_title in (@@)
+		</dbquery>
+		
+		<dbquery name="qMastersManager_GetBranchId">
+			(
+			SELECT branch_id
+			FROM tp_branches
+			WHERE branch_name = ?
+			)
+			UNION
+			(
+			SELECT branch_id
+			FROM tp_branch_aliases
+			WHERE alias = ?
+			)
+			LIMIT 0, 1
+		</dbquery>
+		<dbquery name="qMastersManager_GetBranchIdsFromName">
+			SELECT group_concat(branch_id) 
+			FROM
+			tp_branches where branch_name in (@@)
+		</dbquery>		
+		
+		<dbquery name="qMastersManager_GetSkillId">			
+			SELECT skill_id 
+			FROM
+			(
+			(SELECT skill_id FROM tp_skills WHERE skill = ?)
+			UNION
+			(SELECT skill_id FROM tp_skills_aliases WHERE skill_alias = ?)
+			) AS TBL
+			LIMIT 0,1
+		</dbquery>
+		<dbquery name="qMastersManager_GetNonParentDeptId">			
+			SELECT dept_id
+			FROM tp_departments
+			WHERE dept_status=?
+			AND dept_name=?
+			AND dept_parent_id=?
+		</dbquery>
+		<dbquery name="qMastersManager_GetNonParentDeptName">			
+			SELECT dept_name
+			FROM tp_departments
+			WHERE dept_status=?
+			AND dept_id=?
+			AND dept_parent_id=?
+		</dbquery>	
+		 <dbquery name="qMastersManager_getBudgetGrade">
+        	SELECT grade_id, grade_name, grade_desc, hire_by_duration 
+        	FROM tp_budget_grades
+        	WHERE grade_id=?
+       	 </dbquery>
+       	  <dbquery name="qMastersManager_getBudgetGrade_name">
+        	SELECT grade_id, grade_name, grade_desc, hire_by_duration 
+        	FROM tp_budget_grades
+        	WHERE grade_name=?
+       	 </dbquery>
+		 <dbquery name="qMastersManager_AddBudgetGradeToDB">
+        	INSERT into tp_budget_grades (grade_name,grade_desc, hire_by_duration) values(?,?,?)
+       </dbquery>
+        <dbquery name="qMastersManager_UpdateBudgetGrade">
+         	UPDATE tp_budget_grades  set grade_name=?,grade_desc=?, hire_by_duration=?  where grade_id=? 
+       </dbquery>
+        <dbquery name="qMastersManager_DeleteBudgetGradeFromDB">
+         	DELETE from tp_budget_grades where grade_id=?
+       </dbquery>       
+        <dbquery name="qMastersManager_GetAllBudgetGrades">
+         	SELECT grade_id, grade_name, grade_desc, grade_rank, hire_by_duration
+         	FROM tp_budget_grades ORDER BY grade_rank
+       </dbquery>
+       <dbquery name="qMastersManager_getBudgetBand">
+        	SELECT band_id, band_name, band_desc 
+        	FROM tp_budget_bands
+        	WHERE band_id=?
+       	 </dbquery>
+       	  <dbquery name="qMastersManager_getBudgetBand_name">
+        	SELECT band_id, band_name, band_desc 
+        	FROM tp_budget_bands
+        	WHERE band_name=?
+       	 </dbquery>
+        <dbquery name="qMastersManager_AddBudgetBandToDB">
+          	INSERT into tp_budget_bands (band_name,band_desc) values(?,?)
+       </dbquery>
+        <dbquery name="qMastersManager_UpdateBudgetBand">
+         	UPDATE tp_budget_bands  set band_name=?,band_desc=? where band_id=? 
+       </dbquery>
+        <dbquery name="qMastersManager_DeleteBudgetBandFromDB">
+         	DELETE from tp_budget_bands where band_id=?
+       </dbquery>
+        <dbquery name="qMastersManager_GetAllBudgetBands">
+         	SELECT band_id, band_name, band_desc
+         	FROM tp_budget_bands
+       </dbquery>     
+       <dbquery name="qMastersManager_GetGradeId">
+         	SELECT grade_id
+			FROM tp_budget_grades
+			WHERE grade_name = ?
+			LIMIT 1
+       </dbquery>     
+       <dbquery name="qMastersManager_GetBandId">
+         	SELECT band_id
+			FROM tp_budget_bands
+			WHERE band_name = ?
+			Limit 1
+       </dbquery>
+       <dbquery name="qMastersManager_GetOfficesForLocation">
+       		SELECT office_id, office_name, office_address, office_desc
+			FROM tp_location_ap_office WHERE location_id = ? ORDER BY office_name
+       </dbquery>
+       <dbquery name="qMastersManager_GetOfficeData">
+       		SELECT office_id, office_name, office_address, office_desc
+			FROM tp_location_ap_office WHERE office_id = ?
+       </dbquery>
+       <dbquery name="qMastersManager_AddOffice">
+       		INSERT INTO tp_location_ap_office(office_name, office_address, office_desc, location_id)
+			VALUES (?,?,?,?)
+       </dbquery>
+       <dbquery name="qMastersManager_UpdateOffice">
+	        UPDATE tp_location_ap_office
+			SET office_name=?, office_address=?, office_desc=?
+			WHERE office_id=?
+       </dbquery>
+       <dbquery name="qMastersManager_DeleteOffice">
+       		DELETE FROM tp_location_ap_office WHERE office_id=?
+       </dbquery>
+       <dbquery name="qMastersManager_GetGradeDetails">
+       		SELECT grade_id, grade_rank from tp_budget_grades where grade_rank @@ ? 
+			ORDER BY grade_rank @@ LIMIT 0,1
+       </dbquery>
+       <dbquery name="qMastersManager_UpdateGradeRank">
+       		update tp_budget_grades set grade_rank=? WHERE grade_id=?;
+       </dbquery>
+       
+		<dbquery name="qMastersManager_AddBUToDB">
+			INSERT INTO tp_business_unit(bu_name,bu_desc) VALUES(?,?)
+		</dbquery>
+		<dbquery name="qMastersManager_DeleteBUFromDB">
+			DELETE FROM tp_business_unit WHERE bu_id=?
+		</dbquery>
+		<dbquery name="qMastersManager_UpdateBU">
+			UPDATE tp_business_unit SET bu_name=?,bu_desc=? WHERE bu_id=? 
+		</dbquery>
+		<dbquery name="qMastersManager_GetBUData">
+			SELECT bu_id, bu_name, bu_desc FROM tp_business_unit WHERE bu_id=? 
+		</dbquery>
+		<dbquery name="qMastersManager_GetAllBUData">
+			SELECT bu_id, bu_name, bu_desc, bu_status, bu_parent_id FROM tp_business_unit ORDER BY bu_name
+		</dbquery>
+		<dbquery name="qMastersManager_GetBUByIds">
+       		SELECT bu_id, bu_name	FROM tp_business_unit WHERE bu_id IN (@@)
+       	</dbquery>
+       	<dbquery name="qMastersManager_GetBUByName">
+       		SELECT bu_id, bu_name FROM tp_business_unit WHERE bu_name IN (@@)
+        </dbquery>
+		
+		<dbquery name="qMastersManager_AddCostCenterToDB">
+			INSERT INTO tp_cost_center(cost_center_name,cost_center_desc) VALUES(?,?)
+		</dbquery>
+		<dbquery name="qMastersManager_DeleteCostCenterFromDB">
+			DELETE FROM tp_cost_center WHERE cost_center_id=?
+		</dbquery>
+		<dbquery name="qMastersManager_UpdateCostCenter">
+			UPDATE tp_cost_center SET cost_center_name=?,cost_center_desc=? WHERE cost_center_id=? 
+		</dbquery>
+		<dbquery name="qMastersManager_GetCostCenterData">
+			SELECT cost_center_id, cost_center_name, cost_center_desc FROM tp_cost_center WHERE cost_center_id=? 
+		</dbquery>
+       <dbquery name="qMastersManager_GetAllCostCenterData">
+			SELECT cost_center_id, cost_center_name, cost_center_desc, cost_center_status, cost_center_parent_id FROM tp_cost_center ORDER BY cost_center_name
+		</dbquery>
+		<dbquery name="qMastersManager_GetCostCenterByIds">
+       		SELECT cost_center_id, cost_center_name	FROM tp_cost_center WHERE cost_center_id IN (@@)
+       	</dbquery>
+		<dbquery name="qMastersManager_GetCostCenterByName">
+       		SELECT cost_center_id, cost_center_name	FROM tp_cost_center WHERE cost_center_name IN (@@)
+        </dbquery>
+        <dbquery name="qMastersManager_GetAllStages">
+       		SELECT tsl.step_level, tsl.step_level_name
+			FROM tp_step_level tsl 
+       </dbquery>       		
+       <dbquery name="qMastersManager_GetStepsInAStage">
+       		SELECT tsm.step_id, tsm.step_name, tsm.step_rank, tsm.system_step, tsm.step_disabled, 
+       			tsm.step_schedulable
+			FROM tp_step_master tsm WHERE tsm.step_level=? AND step_deleted=? 
+			@@
+			ORDER BY tsm.step_rank 
+       </dbquery>       		
+       <dbquery name="qMastersManager_GetAllSteps">
+       		SELECT tsm.step_id, tsm.step_name, tsm.step_desc, tsm.step_rank, tsm.system_step, 
+       			tsm.step_level, tsl.step_level_name, tsm.step_schedulable, tsm.step_disabled
+			FROM tp_step_master tsm, tp_step_level tsl WHERE tsm.step_level = tsl.step_level 
+				AND step_deleted=? @@
+			ORDER BY tsl.step_level, tsm.step_rank
+       </dbquery>
+       <dbquery name="qMastersManager_DeleteStep">
+       		UPDATE tp_step_master SET step_deleted=?, user_id=?, date_modified=now() WHERE step_id=?
+       </dbquery>
+       <dbquery name="qMastersManager_AddStep">
+	       	INSERT INTO tp_step_master (step_id, step_name, step_desc, step_rank, step_level, 
+	       		step_schedulable, user_id, date_modified, date_created)
+	       	VALUES (?,?,?,?,?,?,?,now(),now())	 			
+       </dbquery>
+       <dbquery name="qMastersManager_UpdateStep">
+	       	UPDATE tp_step_master SET step_name=?, step_desc=?, step_schedulable=?, step_disabled=?,
+	       	user_id=?, date_modified=now() WHERE step_id=?
+       </dbquery>
+       <dbquery name="qMastersManager_UpdatePositionStepTitles">
+	       	UPDATE tp_position_steps SET position_step_title=?, position_step_description=? WHERE step_id=?
+       </dbquery>
+       <dbquery name="qMastersManager_UpdateStage">
+	       	UPDATE tp_step_level SET step_level_name=?, modified_date=now(), modified_by=? WHERE step_level=?
+       </dbquery>
+       <dbquery name="qMastersManager_GetMasterStepData">
+       		SELECT tsm.step_id, tsm.step_name, tsm.step_desc, tsm.step_rank, tsm.step_level, 
+       			tsl.step_level_name, tsm.step_schedulable, tsm.step_disabled
+			FROM tp_step_master tsm, tp_step_level tsl WHERE tsm.step_level = tsl.step_level 
+				AND step_id=?
+       </dbquery>
+       <dbquery name="qMastersManager_GetMasterStepDataFromPositionStep">
+       		SELECT tsm.step_id, tsm.step_name, tsm.step_desc, tsm.step_rank, tsm.step_level, 
+       			tsl.step_level_name, tsm.step_schedulable, tsm.step_disabled
+			FROM tp_step_master tsm, tp_step_level tsl, tp_position_steps tps 
+			WHERE tsm.step_level = tsl.step_level 
+			AND tps.step_id = tsm.step_id
+				AND tps.position_step_id=?
+       </dbquery>
+       <dbquery name="qMastersManager_GetStageData">
+       		SELECT step_level, step_level_name FROM tp_step_level WHERE step_level = ?
+       </dbquery>
+       <dbquery name="qMastersManager_UpdateStepRank">
+       		UPDATE tp_step_master SET step_rank=? WHERE step_id=?
+       </dbquery>
+        <dbquery name="qMastersManager_GetRankForStep">
+       		SELECT 
+				CASE WHEN count &gt; 0 THEN min_rank ELSE 
+					(SELECT MAX(step_rank)+1 FROM tp_step_master WHERE step_level &lt; ?)
+				END AS rank
+			FROM (SELECT COUNT(*) AS count, MIN(step_rank) AS min_rank 
+				FROM tp_step_master WHERE step_level = ? @@) X
+       </dbquery>
+       <dbquery name="qMastersManager_IncrementRankForOtherSteps">
+       		UPDATE tp_step_master SET step_rank = step_rank+1 WHERE step_rank >= ? and step_deleted = ?
+       </dbquery>
+       <dbquery name="qMastersManager_GetStepIdTo">
+       		SELECT step_id, step_rank, system_step FROM tp_step_master where step_rank @@ ? order by step_rank @@ limit 0,1
+       </dbquery>
+       <dbquery name="qMastersManager_GetStepIdToCreate">
+       		SELECT step_id FROM tp_step_master order by step_id desc limit 0,1
+       </dbquery>
+       <dbquery name="qMastersManager_GetStepIdForStepName">
+       		SELECT position_step_id FROM tp_position_steps WHERE position_step_title = ? and position_id=(select tp.position_id from tp_positions tp where tp.position_code=?)
+       </dbquery>
+       <dbquery name="qPositionManager_GetNoOfCandidatesInProcessForStepCustom">
+			  SELECT count(*) 
+			  FROM tp_applicants 
+			  WHERE applicant_step_id = ?
+			</dbquery>
+       <dbquery name="qMastersManager_GetStepNameForStepId">
+       		SELECT step_name FROM tp_step_master WHERE step_id = ?
+       </dbquery>
+       <dbquery name="qMastersManager_GetPositionsUsingStep">
+       		SELECT COUNT(DISTINCT position_id) FROM tp_position_steps WHERE step_id = ?
+       </dbquery>
+       <dbquery name="qMastersManager_CheckDuplicateSteps">
+       		SELECT COUNT(*) FROM tp_step_master 
+			WHERE step_name = ? AND step_deleted = ? AND step_id NOT IN (?)
+       </dbquery>
+       <dbquery name="qMastersManager_GetSourcesBySorceCategory">
+       		select source_id, source_type_id, source_title from tp_sources where source_type_id = (select source_type_id
+			from tp_source_types where source_type = ? and source_status = '1')
+       </dbquery>
+       <dbquery name="qMastersManager_GetJobIndustryCodes">
+       		select industry_id, industry from tp_naukri_industry_codes
+       </dbquery>
+       <dbquery name="qMastersManager_GetJobFunctionCodes">
+       		select farea_id, farea from tp_naukri_functional_area_codes
+       </dbquery>
+       <dbquery name="qMastersManager_GetJobRoleCodes">
+       		select role_id, role_name from tp_naukri_role_codes where role_id like ?
+       </dbquery>
+        <dbquery name="qMastersManager_GetCountries">
+       		select country_id, country from tp_naukri_country_codes
+       </dbquery>
+       <dbquery name="qMastersManager_GetDeptIdByTitle">
+       		select dept_id from tp_departments where dept_name= ? and dept_parent_id= ?
+       </dbquery>
+		<dbquery name="qMastersManager_GetDeptIdByTitleParentNull">
+       		select dept_id from tp_departments where dept_name= ? and dept_parent_id is NULL
+       </dbquery>
+       <dbquery name="qMastersManager_GetSkillIdsFromName">
+       		select group_concat(skill_id) from tp_skills where skill in (@@)
+       </dbquery>
+       <dbquery name="qMastersManager_GetCostCenterDataId">
+			SELECT cost_center_id FROM tp_cost_center WHERE cost_center_name=? 
+		</dbquery>
+		<dbquery name="qMastersManager_GetBuId">
+			SELECT bu_id FROM tp_business_unit WHERE bu_name=? 
+		</dbquery>
+		  <dbquery name="qMastersManager_GetDegreeTypeFromMaster">
+       	SELECT degree_id,degree_type FROM tp_degrees WHERE degree_id =?
+       </dbquery>
+       	<dbquery name="qApplicantManager_getSourceTitleExisting_ID">
+			SELECT  ts.source_id
+			FROM tp_sources ts
+			WHERE ts.source_title=?
+		</dbquery>
+		<dbquery name="qMasterManager_getDegreeId">
+			SELECT degree_id FROM tp_degrees WHERE degree_title=? 
+		</dbquery>
+		 <dbquery name="qMastersManager_GetDegreeTypes">
+       	SELECT degree_id, degree_type FROM tp_degrees WHERE degree_status='1' ORDER BY degree_id
+       </dbquery>
+       <dbquery name="qMastersManager_GetEmployers">
+       		select employer_id, employer_name from tp_employers
+       </dbquery>
+   </dbqueries>
+   <dataqueries>
+         <dataquery name="dPositionManager_GetNoOfCandidatesInProcessForStepCustom" dbquery="qPositionManager_GetNoOfCandidatesInProcessForStepCustom" />	
+   	  <dataquery name="dMastersManager_CheckDuplicateSteps" dbquery="qMastersManager_CheckDuplicateSteps"/>
+   	  
+      <dataquery name="dMastersManager_CheckSkillAlias" dbquery="qMastersManager_CheckSkillAlias"/>
+      <dataquery name="dMastersManager_CheckBranchAlias" dbquery="qMastersManager_CheckBranchAlias"/>
+      <dataquery name="dMastersManager_CheckDegreeAlias" dbquery="qMastersManager_CheckDegreeAlias"/>
+      <dataquery name="dMastersManager_CheckInstituteAlias" dbquery="qMastersManager_CheckInstituteAlias"/>
+      
+      <dataquery name="dMastersManager_AddSkillAlias" dbquery="qMastersManager_AddSkillAlias"/>
+      <dataquery name="dMastersManager_DeleteSkillAlias" dbquery="qMastersManager_DeleteSkillAlias"/>
+
+      <dataquery name="dMastersManager_AddDegreeAlias" dbquery="qMastersManager_AddDegreeAlias"/>
+      <dataquery name="dMastersManager_DeleteDegreeAlias" dbquery="qMastersManager_DeleteDegreeAlias"/>
+
+      <dataquery name="dMastersManager_AddBranchAlias" dbquery="qMastersManager_AddBranchAlias"/>
+      <dataquery name="dMastersManager_DeleteBranchAlias" dbquery="qMastersManager_DeleteBranchAlias"/>
+
+      <dataquery name="dMastersManager_AddInstituteAlias" dbquery="qMastersManager_AddInstituteAlias"/>
+      <dataquery name="dMastersManager_DeleteInstituteAlias" dbquery="qMastersManager_DeleteInstituteAlias"/>
+
+      <dataquery name="dMastersManager_CheckSkill" dbquery="qMastersManager_CheckSkill"/>
+      <dataquery name="dMastersManager_CheckBranch" dbquery="qMastersManager_CheckBranch"/>
+      <dataquery name="dMastersManager_CheckDegree" dbquery="qMastersManager_CheckDegree"/>
+      <dataquery name="dMastersManager_CheckInstitute" dbquery="qMastersManager_CheckInstitute"/>
+       
+      <dataquery name="dMastersManager_AddBranchToDB" dbquery="qMastersManager_AddBranchToDB"/>
+      <dataquery name="dMastersManager_UpdateBranch" dbquery="qMastersManager_UpdateBranch"/>
+      <dataquery name="dMastersManager_DeleteBranchFromDB" dbquery="qMastersManager_DeleteBranchFromDB"/>
+      <dataquery name="dMastersManager_GetBranchesWithAliases" dbquery="qMastersManager_GetBranchesWithAliases" object="com.talentPool.masters.dataobject.BranchesData">
+         <attribute name="itemId"  column="branch_id" type="INT" />
+         <attribute name="itemName"  column="branch_name" type="STRING" />
+         <attribute name="alias"  column="alias" type="STRING" />
+      </dataquery>
+      <dataquery name="dMastersManager_AddInstitute" dbquery="qMastersManager_AddInstitute"/>
+      <dataquery name="dMastersManager_UpdateInstitute" dbquery="qMastersManager_UpdateInstitute"/>
+      <dataquery name="dMastersManager_DeleteInstitute" dbquery="qMastersManager_DeleteInstitute"/>
+      <dataquery name="dMastersManager_GetInstitutesWithAliases" dbquery="qMastersManager_GetInstitutesWithAliases" object="com.talentPool.masters.dataobject.InstituteData">
+         <attribute name="itemId"  column="institute_id" type="INT" />
+         <attribute name="itemName"  column="institute_name" type="STRING" />
+         <attribute name="alias"  column="alias" type="STRING" />
+      </dataquery>
+      <dataquery name="dMastersManager_GetInstitutesWithAliasesByName" dbquery="qMastersManager_GetInstitutesWithAliasesByName" object="com.talentPool.masters.dataobject.InstituteData">
+         <attribute name="itemId"  column="institute_id" type="INT" />
+         <attribute name="itemName"  column="institute_name" type="STRING" />
+         <attribute name="alias"  column="alias" type="STRING" />
+      </dataquery>
+      <dataquery name="dMastersManager_GetInstituteData" dbquery="qMastersManager_GetInstituteData" object="com.talentPool.masters.dataobject.InstituteData">
+         <attribute name="itemId"  column="institute_id" type="INT" />
+         <attribute name="itemName"  column="institute_name" type="STRING" />
+      </dataquery>
+      
+      <dataquery name="dMastersManager_AddDegreeToDB" dbquery="qMastersManager_AddDegreeToDB"/>
+	  <dataquery name="dMastersManager_DeleteDegreeTitleFromDB" dbquery="qMastersManager_DeleteDegreeTitleFromDB"/>
+	  <dataquery name="dMastersManager_UpdateDegreeTitle" dbquery="qMastersManager_UpdateDegreeTitle"/>
+      <dataquery name="dMastersManager_GetDegreesWithAliases" dbquery="qMastersManager_GetDegreesWithAliases" object="com.talentPool.masters.dataobject.DegreeData">
+         <attribute name="itemId"  column="degree_id" type="INT" />
+         <attribute name="itemName"  column="degree_title" type="STRING" />
+         <attribute name="alias"  column="alias" type="STRING" />
+         <attribute name="degreeType"  column="degree_type" type="STRING" />
+      </dataquery>
+      <dataquery name="dMastersManager_GetDegreeFromMaster" dbquery="qMastersManager_GetDegreeFromMaster" object="com.talentPool.masters.dataobject.DegreeData">
+      	<attribute name="itemId"  column="degree_id" type="INT" />
+      	<attribute name="itemName"  column="degree_title" type="STRING" />
+      </dataquery>
+      <dataquery name="dMastersManager_GetBranchFromMaster" dbquery="qMastersManager_GetBranchFromMaster" object="com.talentPool.masters.dataobject.BranchesData">
+         <attribute name="itemId"  column="branch_id" type="INT" />
+         <attribute name="itemName"  column="branch_name" type="STRING" />
+      </dataquery>
+      
+      <dataquery name="dMastersManager_GetSourceTypes" dbquery="qMastersManager_GetSourceTypes" object="com.talentPool.common.db.SimpleDataObject">
+         <attribute name="sourceTypeId"  column="source_type_id" type="INT" />
+         <attribute name="sourceTypeName"  column="source_type" type="STRING" />
+         <attribute name="sourceTitle"  column="source_title" type="STRING" />
+         <attribute name="systemGenerated"  column="system_generated" type="STRING" />
+        
+      </dataquery>
+     
+       <dataquery name="dMastersManager_AddSourceCatCvLimitToDB" dbquery="qMastersManager_AddSourceCatCvLimitToDB"/>
+      <dataquery name="dMastersManager_AddSourceCatToDB" dbquery="qMastersManager_AddSourceCatToDB"/>
+      <dataquery name="dMastersManager_GetSourceType" dbquery="qMastersManager_GetSourceType" object="com.talentPool.common.db.SimpleDataObject">
+         <attribute name="sourceTypeId"  column="source_type_id" type="INT" />
+         <attribute name="sourceId"  column="source_id" type="INT" />
+         <attribute name="sourceTypeName"  column="source_type" type="STRING" />
+         <attribute name="sourceTitle"  column="source_title" type="STRING" />
+         <attribute name="systemGenerated"  column="system_generated" type="STRING" />
+         <attribute name="sourceTypeCategory"  column="source_type_category" type="STRING" />
+         <attribute name="sourceBlacklisted"  column="source_blacklisted" type="STRING" />
+           <attribute name="sourceCvLimit"  column="source_cv_limit" type="STRING" />
+      </dataquery>
+      <dataquery name="dMastersManager_AddSource" dbquery="qMastersManager_AddSource"/>
+      <dataquery name="dMastersManager_DeleteSourceFromDB" dbquery="qMastersManager_DeleteSourceFromDB"/>
+      <dataquery name="dMastersManager_DeleteSourceTypeFromDB" dbquery="qMastersManager_DeleteSourceTypeFromDB"/>
+      <dataquery name="dMastersManager_UpdateSource" dbquery="qMastersManager_UpdateSource"/>
+      <dataquery name="dMastersManager_GetSource" dbquery="qMastersManager_GetSource" object="com.talentPool.masters.dataobject.SourceData">
+          <attribute name="sourceId" column="source_id" type="STRING" />
+          <attribute name="sourceTitle" column="source_title" type="STRING" />
+          <attribute name="sourceEmail" column="source_email" type="STRING" />
+          <attribute name="sourcePhone" column="source_phone" type="STRING" />
+          <attribute name="sourceMobile" column="source_mobile" type="STRING" />
+          <attribute name="sendEmailToSource" column="is_send_email_to_source" type="STRING" />
+          <attribute name="sendSMSToSource" column="is_send_sms_to_source" type="STRING" />
+          <attribute name="lockInPeriodOnImport" column="lock_in_period_on_import" type="STRING" />
+          <attribute name="employeeCode" column="employee_code" type="STRING" />
+          <attribute name="sourceBlacklisted" column="source_blacklisted" type="STRING" />
+          <attribute name="sourceTypeId" column="source_type_id" type="STRING" />
+           <attribute name="sourceCvLimit"  column="source_cv_limit" type="STRING" />
+      </dataquery>
+      <dataquery name="dMastersManager_UpdateSourceTypeCvLimit" dbquery="qMastersManager_UpdateSourceTypeCvLimit"/>
+       <dataquery name="dMastersManager_UpdateSourceType" dbquery="qMastersManager_UpdateSourceType"/>
+       <dataquery name="dMastersManager_GetSourceCategory" dbquery="qMastersManager_GetSourceCategory" object="com.talentPool.masters.dataobject.SourceTypeData">
+          <attribute name="itemId" column="source_type_id" type="STRING" />
+          <attribute name="itemName"  column="source_type" type="STRING" />
+      </dataquery>
+      <dataquery name="dMastersManager_GetSourceCategoryByName" dbquery="qMastersManager_GetSourceCategoryByName" object="com.talentPool.masters.dataobject.SourceTypeData">
+          <attribute name="itemId" column="source_type_id" type="STRING" />
+          <attribute name="itemName"  column="source_type" type="STRING" />
+      </dataquery>
+      <dataquery name="dMastersManager_GetSkillCategories" dbquery="qMastersManager_GetSkillCategories" object="com.talentPool.common.db.SimpleDataObject">
+		  <attribute name="skillCategoryId"  column="skill_category_id" type="INT" />
+		  <attribute name="skillCatDesc"  column="skill_category_description" type="STRING" />
+		  <attribute name="skill"  column="skill" type="STRING" />
+      </dataquery>
+      <dataquery name="dMastersManager_AddSkillCatToDB" dbquery="qMastersManager_AddSkillCatToDB"/>
+      <dataquery name="dMastersManager_DeleteSkillCategoryFromDB" dbquery="qMastersManager_DeleteSkillCategoryFromDB"/>
+      <dataquery name="dMastersManager_UpdateSkillCategory" dbquery="qMastersManager_UpdateSkillCategory"/>
+      <dataquery name="dMastersManager_GetSkillCategory" dbquery="qMastersManager_GetSkillCategory" object="com.talentPool.masters.dataobject.SkillCategoryData">
+      		<attribute name="itemId"  column="skill_category_id" type="INT" />
+          	<attribute name="itemName"  column="skill_category_description" type="STRING" />
+      </dataquery>
+      <dataquery name="dMastersManager_GetSkillCategoryByName" dbquery="qMastersManager_GetSkillCategoryByName" object="com.talentPool.masters.dataobject.SkillCategoryData">
+      		<attribute name="itemId"  column="skill_category_id" type="INT" />
+          	<attribute name="itemName"  column="skill_category_description" type="STRING" />
+      </dataquery>
+      <dataquery name="dMastersManager_GetSkillCat" dbquery="qMastersManager_GetSkillCat" object="com.talentPool.common.db.SimpleDataObject">
+	      <attribute name="skillCatId"  column="skill_category_id" type="INT" />
+	      <attribute name="skillId"  column="skill_id" type="INT" />
+	      <attribute name="skillCatDesc"  column="skill_category_description" type="STRING" />
+	      <attribute name="skill"  column="skill" type="STRING" />
+	      <attribute name="skillAlias"  column="skill_alias" type="STRING" />
+      </dataquery>
+      <dataquery name="dMastersManager_AddSkill" dbquery="qMastersManager_AddSkill"/>
+      <dataquery name="dMastersManager_DeleteSkillFromDB" dbquery="qMastersManager_DeleteSkillFromDB"/>
+      <dataquery name="dMastersManager_UpdateSkill" dbquery="qMastersManager_UpdateSkill"/>
+      <dataquery name="dMastersManager_GetSkill" dbquery="qMastersManager_GetSkill" object="com.talentPool.masters.dataobject.SkillData">
+          <attribute name="skillId"  column="skill_id" type="INT" />
+          <attribute name="skillName"  column="skill" type="STRING" />
+          <attribute name="skillAlias"  column="skill_alias" type="STRING" />
+      </dataquery>      
+      <dataquery name="dMastersManager_GetSkillsByCategoryIds" dbquery="qMastersManager_GetSkillsByCategoryIds" object="com.talentPool.masters.dataobject.SkillData">
+	      <attribute name="skillCategoryId"  column="skill_category_id" type="INT" />
+	      <attribute name="skillId"  column="skill_id" type="INT" />
+	      <attribute name="skillCategoryName"  column="skill_category_description" type="STRING" />
+	      <attribute name="skillName"  column="skill" type="STRING" />
+	      <attribute name="skillAlias"  column="skill_alias" type="STRING" />
+      </dataquery>
+      
+      <dataquery name="dMastersManager_GetDeptNames" dbquery="qMastersManager_GetDeptNames" object="com.talentPool.masters.dataobject.DepartmentData">
+         <attribute name="itemId"  column="dept_id" type="INT" />
+         <attribute name="itemName"  column="dept_name" type="STRING" />
+         <attribute name="departmentLevel"  column="dept_level" type="STRING" />
+      </dataquery>
+      <dataquery name="dMastersManager_AddDepToDB" dbquery="qMastersManager_AddDepToDB"/>
+      <dataquery name="dMastersManager_DeleteDepFromDB" dbquery="qMastersManager_DeleteDepFromDB"/>
+      <dataquery name="dMastersManager_GetDeptData" dbquery="qMastersManager_GetDeptData" object="com.talentPool.masters.dataobject.DepartmentData">
+         <attribute name="itemId"  column="dept_id" type="INT" />
+         <attribute name="itemName"  column="dept_name" type="STRING" />
+      </dataquery>
+      <dataquery name="dMastersManager_GetDeptDataByTitle" dbquery="qMastersManager_GetDeptDataByTitle" object="com.talentPool.masters.dataobject.DepartmentData">
+         <attribute name="itemId"  column="dept_id" type="INT" />
+         <attribute name="itemName"  column="dept_name" type="STRING" />
+      </dataquery>
+      <dataquery name="dMastersManager_GetDepFromDB" dbquery="qMastersManager_GetDepFromDB" object="com.talentPool.masters.dataobject.DepartmentData">
+         <attribute name="itemName"  column="dept_name" type="STRING" />
+      </dataquery>
+       <dataquery name="dMastersManager_GetDepFromDBForNullParent" dbquery="qMastersManager_GetDepFromDBForNullParent" object="com.talentPool.masters.dataobject.DepartmentData">
+         <attribute name="itemName"  column="dept_name" type="STRING" />
+      </dataquery>
+      <dataquery name="dMastersManager_UpdateDept" dbquery="qMastersManager_UpdateDept"/>
+
+       <!-- Start: Template -->       
+       <dataquery name="dMastersManager_GetTemplates" dbquery="qMastersManager_GetTemplates" object="com.talentPool.common.db.SimpleDataObject">
+       		<attribute name="templateId"  column="template_id" type="STRING" />
+       		<attribute name="templateCode"  column="template_code" type="STRING" />
+       		<attribute name="templateName"  column="template_name" type="STRING" />
+       		<attribute name="templateTypeId"  column="template_type_id" type="STRING" />
+       		<attribute name="templatePrivate"  column="template_private" type="STRING" />       		
+       		<attribute name="userId"  column="user_id" type="STRING" />   
+       		<attribute name="name"  column="name" type="STRING" /> 
+       </dataquery>
+       <dataquery name="dMastersManager_GetGenericVariables" dbquery="qMastersManager_GetGenericVariables" object="com.talentPool.common.db.SimpleDataObject">
+       		<attribute name="templateVar"  column="template_variable" type="STRING" /> 		
+       </dataquery>       
+       <!-- End: Template -->
+       <dataquery name="dMastersManager_GetFlag" dbquery="qMastersManager_GetFlag" object="com.talentPool.common.db.SimpleDataObject">
+       		<attribute name="flagId"  column="flag_id" type="STRING" />
+       		<attribute name="flagText"  column="flag_text" type="STRING" />
+       		<attribute name="flagImage"  column="flag_image" type="STRING" />
+       		<attribute name="flagType"  column="flag_type" type="STRING" />
+       </dataquery>
+       <dataquery name="dMastersManager_GetFlagImages" dbquery="qMastersManager_GetFlagImages" object="com.talentPool.common.db.SimpleDataObject">
+       		<attribute name="flagImage"  column="flag_image" type="STRING" />
+       </dataquery>
+       <dataquery name="dMastersManager_UpdateFlag" dbquery="qMastersManager_UpdateFlag"/>
+       <dataquery name="dMastersManager_InsertFlag" dbquery="qMastersManager_InsertFlag"/>       
+       <dataquery name="dMastersManager_GetAllLocations" dbquery="qMastersManager_GetAllLocations" object="com.talentPool.masters.dataobject.LocationData">
+       		<attribute name="locationId"  column="location_id" type="STRING" />
+       		<attribute name="locationName"  column="location_name" type="STRING" />
+       </dataquery>
+       <dataquery name="dMastersManager_GetLocationById" dbquery="qMastersManager_GetLocationById" object="com.talentPool.masters.dataobject.LocationData">
+       		<attribute name="locationId"  column="location_id" type="STRING" />
+       		<attribute name="locationName"  column="location_name" type="STRING" />
+       </dataquery>
+       <dataquery name="dMastersManager_GetLocationsById" dbquery="qMastersManager_GetLocationsById" object="com.talentPool.masters.dataobject.LocationData">
+       		<attribute name="locationId"  column="location_id" type="STRING" />
+       		<attribute name="locationName"  column="location_name" type="STRING" />
+       </dataquery>
+       <dataquery name="dMastersManager_GetLocationByName" dbquery="qMastersManager_GetLocationByName" object="com.talentPool.masters.dataobject.LocationData">
+       		<attribute name="locationId"  column="location_id" type="STRING" />
+       		<attribute name="locationName"  column="location_name" type="STRING" />
+       </dataquery>   
+       <dataquery name="dMastersManager_GetLocationsByName" dbquery="qMastersManager_GetLocationsByName" object="com.talentPool.masters.dataobject.LocationData">
+       		<attribute name="locationId"  column="location_id" type="STRING" />
+       		<attribute name="locationName"  column="location_name" type="STRING" />
+       </dataquery>   
+       <dataquery name="dMastersManager_AddLocation" dbquery="qMastersManager_AddLocation"/>               
+       <dataquery name="dMastersManager_UpdateLocation" dbquery="qMastersManager_UpdateLocation"/>                         
+       <dataquery name="dMastersManager_DeleteLocation" dbquery="qMastersManager_DeleteLocation"/>    
+       <dataquery name="dMastersManager_GetAllSourceTypes" dbquery="qMastersManager_GetAllSourceTypes" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name="sourceTypeId" column="source_type_id" type="STRING"/>
+			<attribute name="sourceType" column="source_type" type="STRING"/>
+		</dataquery>
+		<dataquery name="dMastersManager_GetSourcesOfSourceType" dbquery="qMastersManager_GetSourcesOfSourceType" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name="sourceId" column="source_id" type="STRING"/>
+			<attribute name="sourceTitle" column="source_title" type="STRING"/>
+		</dataquery>       
+		<dataquery name="dMastersManager_GetAllInboxFolders" dbquery="qMastersManager_GetAllInboxFolders" object="com.talentPool.masters.dataobject.InboxFolderData">
+       		<attribute name="folderId"  column="folder_id" type="STRING" />
+       		<attribute name="folderName"  column="folder_name" type="STRING" />
+       		<attribute name="systemDefined"  column="is_system_defined" type="STRING" />
+       </dataquery>
+       <dataquery name="dMastersManager_GetInboxFolderById" dbquery="qMastersManager_GetInboxFolderById" object="com.talentPool.masters.dataobject.InboxFolderData">
+       		<attribute name="folderId"  column="folder_id" type="STRING" />
+       		<attribute name="folderName"  column="folder_name" type="STRING" />
+       		<attribute name="systemDefined"  column="is_system_defined" type="STRING" />
+       </dataquery>                    
+       <dataquery name="dMastersManager_GetFolderByName" dbquery="qMastersManager_GetFolderByName" object="com.talentPool.masters.dataobject.InboxFolderData">
+       		<attribute name="folderId"  column="folder_id" type="STRING" />
+       		<attribute name="folderName"  column="folder_name" type="STRING" />
+       </dataquery>   
+       <dataquery name="dMastersManager_AddInboxFolder" dbquery="qMastersManager_AddInboxFolder"/>   
+       <dataquery name="dMastersManager_UpdateInboxFolder" dbquery="qMastersManager_UpdateInboxFolder"/>                      
+       <dataquery name="dMastersManager_DeleteInboxFolder" dbquery="qMastersManager_DeleteInboxFolder"/>          
+       <dataquery name="dMastersManager_DeleteFlag" dbquery="qMastersManager_DeleteFlag"/>                          
+       <dataquery name="dMastersManager_GetFlagCount" dbquery="qMastersManager_GetFlagCount" />
+       <dataquery name="dMastersManager_GetSourceIdForEmployeeCode" dbquery="qMastersManager_GetSourceIdForEmployeeCode" />
+       <dataquery name="dMastersManager_GetNumberOfEmailsInFolder" dbquery="qMastersManager_GetNumberOfEmailsInFolder" />       
+       <dataquery name="dMastersManager_GetDegreeId" dbquery="qMastersManager_GetDegreeId" />
+       <dataquery name="dMastersManager_GetDegreeIdsFromName" dbquery="qMastersManager_GetDegreeIdsFromName" />
+       <dataquery name="dMastersManager_GetBranchId" dbquery="qMastersManager_GetBranchId" />
+       <dataquery name="dMastersManager_GetBranchIdsFromName" dbquery="qMastersManager_GetBranchIdsFromName" />
+       <dataquery name="dMastersManager_GetSkillId" dbquery="qMastersManager_GetSkillId" />
+       <dataquery name="dMastersManager_GetNonParentDeptId" dbquery="qMastersManager_GetNonParentDeptId" />     
+       <dataquery name="dMastersManager_GetNonParentDeptName" dbquery="qMastersManager_GetNonParentDeptName" />    
+       
+       <dataquery name="dMastersManager_getBudgetGrade" dbquery="qMastersManager_getBudgetGrade" object="com.talentPool.common.db.SimpleDataObject">
+	         <attribute name="itemId"  column="grade_id" type="INT" />
+	         <attribute name="itemName"  column="grade_name" type="STRING" />
+	         <attribute name="description"  column="grade_desc" type="STRING" />
+	         <attribute name="hireByDuration"  column="hire_by_duration" type="STRING" />
+	     </dataquery>    
+	     <dataquery name="dMastersManager_getBudgetGrade_name" dbquery="qMastersManager_getBudgetGrade_name" object="com.talentPool.common.db.SimpleDataObject">
+	         <attribute name="itemId"  column="grade_id" type="INT" />
+	         <attribute name="itemName"  column="grade_name" type="STRING" />
+	         <attribute name="description"  column="grade_desc" type="STRING" />
+	         <attribute name="hireByDuration"  column="hire_by_duration" type="STRING" />
+	     </dataquery> 
+	        
+		<dataquery name="dMastersManager_AddBudgetGradeToDB" dbquery="qMastersManager_AddBudgetGradeToDB"/>
+		<dataquery name="dMastersManager_UpdateBudgetGrade" dbquery="qMastersManager_UpdateBudgetGrade"/>
+		<dataquery name="dMastersManager_DeleteBudgetGradeFromDB" dbquery="qMastersManager_DeleteBudgetGradeFromDB"/>
+		<dataquery name="dMastersManager_GetAllBudgetGrades" dbquery="qMastersManager_GetAllBudgetGrades" object="com.talentPool.common.db.SimpleDataObject">
+	         <attribute name="itemId"  column="grade_id" type="INT" />
+	         <attribute name="itemName"  column="grade_name" type="STRING" />
+	         <attribute name="description"  column="grade_desc" type="STRING" />
+	         <attribute name="rank"  column="grade_rank" type="STRING" />
+	         <attribute name="hireByDuration"  column="hire_by_duration" type="STRING" />
+	     </dataquery>
+      
+      	 <dataquery name="dMastersManager_getBudgetBand" dbquery="qMastersManager_getBudgetBand" object="com.talentPool.common.db.SimpleDataObject">
+	         <attribute name="itemId"  column="band_id" type="INT" />
+	         <attribute name="itemName"  column="band_name" type="STRING" />
+	         <attribute name="description"  column="band_desc" type="STRING" />
+        </dataquery>
+        <dataquery name="dMastersManager_getBudgetBand_name" dbquery="qMastersManager_getBudgetBand_name" object="com.talentPool.common.db.SimpleDataObject">
+	         <attribute name="itemId"  column="band_id" type="INT" />
+	         <attribute name="itemName"  column="band_name" type="STRING" />
+	         <attribute name="description"  column="band_desc" type="STRING" />
+        </dataquery>
+		<dataquery name="dMastersManager_AddBudgetBandToDB" dbquery="qMastersManager_AddBudgetBandToDB"/>
+		<dataquery name="dMastersManager_UpdateBudgetBand" dbquery="qMastersManager_UpdateBudgetBand"/>
+		<dataquery name="dMastersManager_DeleteBudgetBandFromDB" dbquery="qMastersManager_DeleteBudgetBandFromDB"/> 
+		<dataquery name="dMastersManager_GetAllBudgetBands" dbquery="qMastersManager_GetAllBudgetBands" object="com.talentPool.common.db.SimpleDataObject">
+	         <attribute name="itemId"  column="band_id" type="INT" />
+	         <attribute name="itemName"  column="band_name" type="STRING" />
+	         <attribute name="description"  column="band_desc" type="STRING" />
+      </dataquery>   
+      <dataquery name="dMastersManager_GetGradeId" dbquery="qMastersManager_GetGradeId" />
+      <dataquery name="dMastersManager_GetBandId" dbquery="qMastersManager_GetBandId" />
+      <dataquery name="dMastersManager_GetOfficesForLocation" dbquery="qMastersManager_GetOfficesForLocation" object="com.talentPool.masters.dataobject.LocationData">
+      		<attribute name="officeId"  column="office_id" type="STRING" />
+      		<attribute name="officeName"  column="office_name" type="STRING" />
+      		<attribute name="officeAddress"  column="office_address" type="STRING" />
+      		<attribute name="officeDesc"  column="office_desc" type="STRING" />
+      </dataquery>
+      <dataquery name="dMastersManager_GetOfficeData" dbquery="qMastersManager_GetOfficeData" object="com.talentPool.masters.dataobject.LocationData">
+      		<attribute name="officeId"  column="office_id" type="STRING" />
+      		<attribute name="officeName"  column="office_name" type="STRING" />
+      		<attribute name="officeAddress"  column="office_address" type="STRING" />
+      		<attribute name="officeDesc"  column="office_desc" type="STRING" />
+      </dataquery>
+      <dataquery name="dMastersManager_AddOffice" dbquery="qMastersManager_AddOffice"/>
+      <dataquery name="dMastersManager_UpdateOffice" dbquery="qMastersManager_UpdateOffice"/>
+      <dataquery name="dMastersManager_DeleteOffice" dbquery="qMastersManager_DeleteOffice"/>
+      <dataquery name="dMastersManager_GetGradeDetails" dbquery="qMastersManager_GetGradeDetails" object="com.talentPool.common.db.SimpleDataObject">
+      		<attribute name="gradeId"  column="grade_id" type="INT" />
+	        <attribute name="gradeRank"  column="grade_rank" type="STRING" />
+      </dataquery>
+      <dataquery name="dMastersManager_UpdateGradeRank" dbquery="qMastersManager_UpdateGradeRank"/>   
+      <dataquery name="dMastersManager_AddBUToDB" dbquery="qMastersManager_AddBUToDB"/>
+      <dataquery name="dMastersManager_DeleteBUFromDB" dbquery="qMastersManager_DeleteBUFromDB"/>
+      <dataquery name="dMastersManager_UpdateBU" dbquery="qMastersManager_UpdateBU"/>
+      <dataquery name="dMastersManager_GetBUData" dbquery="qMastersManager_GetBUData" object="com.talentPool.common.db.SimpleDataObject">
+	  		<attribute name="buId"  column="bu_id" type="INT" />
+			<attribute name="buName"  column="bu_name" type="STRING" />
+			<attribute name="buDescription"  column="bu_desc" type="STRING" />
+	  </dataquery>	  
+	  <dataquery name="dMastersManager_GetAllBUData" dbquery="qMastersManager_GetAllBUData" object="com.talentPool.common.db.SimpleDataObject">
+	  		<attribute name="buId"  column="bu_id" type="INT" />
+			<attribute name="buName"  column="bu_name" type="STRING" />
+			<attribute name="buDescription"  column="bu_desc" type="STRING" />
+			<attribute name="buStatus"  column="bu_status" type="STRING" />
+			<attribute name="buParentId"  column="bu_parent_id" type="STRING" />
+	  </dataquery>
+	  <dataquery name="dMastersManager_GetBUByIds" dbquery="qMastersManager_GetBUByIds" object="com.talentPool.common.db.SimpleDataObject">
+       		<attribute name="buId"  column="bu_id" type="STRING" />
+       		<attribute name="buName"  column="bu_name" type="STRING" />
+       </dataquery>
+       <dataquery name="dMastersManager_GetBUByName" dbquery="qMastersManager_GetBUByName" object="com.talentPool.common.db.SimpleDataObject">
+       		<attribute name="buId"  column="bu_id" type="STRING" />
+       		<attribute name="buName"  column="bu_name" type="STRING" />
+       </dataquery>
+	  <dataquery name="dMastersManager_AddCostCenterToDB" dbquery="qMastersManager_AddCostCenterToDB"/>
+	  <dataquery name="dMastersManager_DeleteCostCenterFromDB" dbquery="qMastersManager_DeleteCostCenterFromDB"/>
+	  <dataquery name="dMastersManager_UpdateCostCenter" dbquery="qMastersManager_UpdateCostCenter"/>
+	  <dataquery name="dMastersManager_GetCostCenterData" dbquery="qMastersManager_GetCostCenterData" object="com.talentPool.common.db.SimpleDataObject">
+	  		<attribute name="costCenterId"  column="cost_center_id" type="INT" />
+			<attribute name="costCenterName"  column="cost_center_name" type="STRING" />
+			<attribute name="costCenterDescription"  column="cost_center_desc" type="STRING" />			
+	  </dataquery>	  
+	  <dataquery name="dMastersManager_GetAllCostCenterData" dbquery="qMastersManager_GetAllCostCenterData" object="com.talentPool.common.db.SimpleDataObject">
+	  		<attribute name="costCenterId"  column="cost_center_id" type="INT" />
+			<attribute name="costCenterName"  column="cost_center_name" type="STRING" />
+			<attribute name="costCenterDescription"  column="cost_center_desc" type="STRING" />
+			<attribute name="costCenterStatus"  column="cost_center_status" type="STRING" />
+			<attribute name="costCenterParentId"  column="cost_center_parent_id" type="STRING" />
+	  </dataquery>
+	  <dataquery name="dMastersManager_GetCostCenterByIds" dbquery="qMastersManager_GetCostCenterByIds" object="com.talentPool.common.db.SimpleDataObject">
+       		<attribute name="costCenterId"  column="cost_center_id" type="STRING" />
+       		<attribute name="costCenterName"  column="cost_center_name" type="STRING" />
+       </dataquery>	      
+	   <dataquery name="dMastersManager_GetCostCenterByName" dbquery="qMastersManager_GetCostCenterByName" object="com.talentPool.common.db.SimpleDataObject">
+       		<attribute name="costCenterId"  column="cost_center_id" type="STRING" />
+       		<attribute name="costCenterName"  column="cost_center_name" type="STRING" />
+       </dataquery>   
+      <dataquery name="dMastersManager_GetAllSteps" dbquery="qMastersManager_GetAllSteps" object="com.talentPool.masters.dataobject.MasterStepData">
+      		<attribute name="stepId"  column="step_id" type="STRING" />
+      		<attribute name="stepName"  column="step_name" type="STRING" />
+      		<attribute name="stepRank"  column="step_rank" type="STRING" />
+      		<attribute name="systemStep"  column="system_step" type="STRING" />
+      		<attribute name="stepDesc"  column="step_desc" type="STRING" />
+      		<attribute name="stepLevel"  column="step_level" type="STRING" />
+      		<attribute name="stage"  column="step_level_name" type="STRING" />
+      		<attribute name="stepSchedulable"  column="step_schedulable" type="STRING" />
+      		<attribute name="stepDisabled"  column="step_disabled" type="STRING" />
+      </dataquery>
+      <dataquery name="dMastersManager_GetAllStages" dbquery="qMastersManager_GetAllStages" object="com.talentPool.masters.dataobject.MasterStepData">
+      		<attribute name="stepLevel"  column="step_level" type="STRING" />
+      		<attribute name="stage"  column="step_level_name" type="STRING" />
+      </dataquery>
+      <dataquery name="dMastersManager_GetStepsInAStage" dbquery="qMastersManager_GetStepsInAStage" object="com.talentPool.masters.dataobject.MasterStepData">
+      		<attribute name="stepId"  column="step_id" type="STRING" />
+      		<attribute name="stepName"  column="step_name" type="STRING" />
+      		<attribute name="stepRank"  column="step_rank" type="STRING" />
+      		<attribute name="systemStep"  column="system_step" type="STRING" />
+      		<attribute name="stepDisabled"  column="step_disabled" type="STRING" />
+      		<attribute name="stepSchedulable"  column="step_schedulable" type="STRING" />
+      </dataquery>      
+      <dataquery name="dMastersManager_DeleteStep" dbquery="qMastersManager_DeleteStep"/>
+      <dataquery name="dMastersManager_AddStep" dbquery="qMastersManager_AddStep"/>
+      <dataquery name="dMastersManager_UpdateStep" dbquery="qMastersManager_UpdateStep"/>
+      <dataquery name="dMastersManager_UpdatePositionStepTitles" dbquery="qMastersManager_UpdatePositionStepTitles"/>
+      <dataquery name="dMastersManager_UpdateStage" dbquery="qMastersManager_UpdateStage"/>
+      <dataquery name="dMastersManager_GetMasterStepData" dbquery="qMastersManager_GetMasterStepData" object="com.talentPool.masters.dataobject.MasterStepData">
+      		<attribute name="stepId"  column="step_id" type="STRING" />
+      		<attribute name="stepName"  column="step_name" type="STRING" />
+      		<attribute name="stepDesc"  column="step_desc" type="STRING" />
+      		<attribute name="stepRank"  column="step_rank" type="STRING" />
+      		<attribute name="stepLevel"  column="step_level" type="STRING" />
+      		<attribute name="stage"  column="step_level_name" type="STRING" />
+      		<attribute name="stepSchedulable"  column="step_schedulable" type="STRING" />
+      		<attribute name="stepDisabled"  column="step_disabled" type="STRING" />      		
+      </dataquery>
+      <dataquery name="dMastersManager_GetMasterStepDataFromPositionStep" dbquery="qMastersManager_GetMasterStepDataFromPositionStep" object="com.talentPool.masters.dataobject.MasterStepData">
+      		<attribute name="stepId"  column="step_id" type="STRING" />
+      		<attribute name="stepName"  column="step_name" type="STRING" />
+      		<attribute name="stepDesc"  column="step_desc" type="STRING" />
+      		<attribute name="stepRank"  column="step_rank" type="STRING" />
+      		<attribute name="stepLevel"  column="step_level" type="STRING" />
+      		<attribute name="stage"  column="step_level_name" type="STRING" />
+      		<attribute name="stepSchedulable"  column="step_schedulable" type="STRING" />
+      		<attribute name="stepDisabled"  column="step_disabled" type="STRING" />      		
+      </dataquery>
+      <dataquery name="dMastersManager_GetStageData" dbquery="qMastersManager_GetStageData" object="com.talentPool.masters.dataobject.MasterStepData">
+      		<attribute name="stepLevel"  column="step_level" type="STRING" />
+      		<attribute name="stage"  column="step_level_name" type="STRING" />
+      </dataquery>
+      <dataquery name="dMastersManager_UpdateStepRank" dbquery="qMastersManager_UpdateStepRank"/>
+      <dataquery name="dMastersManager_GetRankForStep" dbquery="qMastersManager_GetRankForStep"/>
+      <dataquery name="dMastersManager_IncrementRankForOtherSteps" dbquery="qMastersManager_IncrementRankForOtherSteps"/>
+      <dataquery name="dMastersManager_GetStepIdTo" dbquery="qMastersManager_GetStepIdTo" object="com.talentPool.masters.dataobject.MasterStepData">
+      		<attribute name="stepId"  column="step_id" type="STRING" />
+      		<attribute name="stepRank"  column="step_rank" type="STRING" />
+      		<attribute name="systemStep"  column="system_step" type="STRING" />
+      </dataquery>
+      <dataquery name="dMastersManager_GetStepIdToCreate" dbquery="qMastersManager_GetStepIdToCreate"/>
+      <dataquery name="dMastersManager_GetStepNameForStepId" dbquery="qMastersManager_GetStepNameForStepId"/>
+      <dataquery name="dMastersManager_GetStepIdForStepName" dbquery="qMastersManager_GetStepIdForStepName"/>
+      <dataquery name="dMastersManager_GetPositionsUsingStep" dbquery="qMastersManager_GetPositionsUsingStep"/>
+      <dataquery name="dMastersManager_GetSourcesBySorceCategory" dbquery="qMastersManager_GetSourcesBySorceCategory" object="com.talentPool.masters.dataobject.SourceData">
+      		<attribute name="sourceId"  column="source_id" type="STRING" />
+      		<attribute name="sourceTypeId"  column="source_type_id" type="STRING" />
+      		<attribute name="sourceTitle"  column="source_title" type="STRING" />
+      </dataquery>
+      <dataquery name="dMastersManager_GetJobIndustryCodes" dbquery="qMastersManager_GetJobIndustryCodes" object="com.talentPool.common.db.SimpleDataObject">
+	         <attribute name="itemId"  column="industry_id" type="INT" />
+	         <attribute name="itemName"  column="industry" type="STRING" />
+      </dataquery>   
+      <dataquery name="dMastersManager_GetJobFunctionCodes" dbquery="qMastersManager_GetJobFunctionCodes" object="com.talentPool.common.db.SimpleDataObject">
+	         <attribute name="itemId"  column="farea_id" type="INT" />
+	         <attribute name="itemName"  column="farea" type="STRING" />
+      </dataquery>   
+      <dataquery name="dMastersManager_GetJobRoleCodes" dbquery="qMastersManager_GetJobRoleCodes" object="com.talentPool.common.db.SimpleDataObject">
+	         <attribute name="itemId"  column="role_id" type="INT" />
+	         <attribute name="itemName"  column="role_name" type="STRING" />
+      </dataquery>   
+      <dataquery name="dMastersManager_GetCountries" dbquery="qMastersManager_GetCountries" object="com.talentPool.common.db.SimpleDataObject">
+	         <attribute name="itemId"  column="country_id" type="INT" />
+	         <attribute name="itemName"  column="country" type="STRING" />
+      </dataquery>  
+      <dataquery name="dMastersManager_GetDeptIdByTitle" dbquery="qMastersManager_GetDeptIdByTitle"></dataquery>
+      <dataquery name="dMastersManager_GetDeptIdByTitleParentNull" dbquery="qMastersManager_GetDeptIdByTitleParentNull"></dataquery>
+      <dataquery name="dMastersManager_GetSkillIdsFromName" dbquery="qMastersManager_GetSkillIdsFromName"></dataquery>
+      <dataquery name="dMastersManager_GetCostCenterDataId" dbquery="qMastersManager_GetCostCenterDataId"></dataquery>
+      <dataquery name="dMastersManager_GetBuId" dbquery="qMastersManager_GetBuId"></dataquery>
+      <dataquery name="dMastersManager_GetDegreeTypeFromMaster" dbquery="qMastersManager_GetDegreeTypeFromMaster" object="com.talentPool.masters.dataobject.DegreeData">
+      	<attribute name="itemId"  column="degree_id" type="INT" />
+      	<attribute name="itemName"  column="degree_type" type="STRING" />
+      </dataquery>
+        <dataquery name="dApplicantManager_getSourceTitleExisting_ID" dbquery="qApplicantManager_getSourceTitleExisting_ID" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name= "source_id" column="source_id" type ="int" />
+	   </dataquery>	 
+	   <dataquery name="dMasterManager_getDegreeId" dbquery="qMasterManager_getDegreeId"></dataquery>
+	     <dataquery name="dMastersManager_GetDegreeTypes" dbquery="qMastersManager_GetDegreeTypes" object="com.talentPool.common.db.SimpleDataObject">
+	         <attribute name="itemId"  column="degree_id" type="INT" />
+	         <attribute name="itemName"  column="degree_type" type="STRING" />
+      </dataquery> 
+      
+         <dataquery name="dMastersManager_GetEmployers" dbquery="qMastersManager_GetEmployers" object="com.talentPool.common.db.SimpleDataObject">
+	         <attribute name="itemId"  column="employer_id" type="INT" />
+	         <attribute name="itemName"  column="employer_name" type="STRING" />
+      </dataquery>  
+   </dataqueries>   
+</dbmap>

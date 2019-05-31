@@ -1,0 +1,15 @@
+/*
+*  basicinfo_email.jape
+*
+*/
+
+Phase: spacetokencontrol
+Input: SpaceToken Token
+Options: control = appelt
+
+Rule: spacetokencontrol
+(
+ {SpaceToken.kind == control}
+):spacetoken 
+-->
+:spacetoken.SpaceTokenControl = {kind = "control", rule = "spacetokencontrol"}

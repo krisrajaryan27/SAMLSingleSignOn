@@ -1,0 +1,20 @@
+Lookup.Talentpool.Organization=@Lookup Talentpool@
+Lookup.Talentpool.Url=http://LookupTalentpool:9090/TalentPool
+
+#Frequency will be in minutes
+Scheduler.Frequency.Minutes=30
+
+#Mail send to other than User
+# Comma Separated Send to mail ids
+Lookup.Duplicate.Send.To=
+
+#Emails will be sent only to shortlisting users
+Lookup.Notify.Default.User=0
+Lookup.Notify.Shortlisting.User=1
+Lookup.Notify.Current.User=0
+
+#Mail Notification Body
+Lookup.Duplicate.Mail.Subject = Probable duplicate found on Talentpool
+Duplicate.Mail.Body.Line1 = Candidate Name :
+Duplicate.Mail.Body.Line2 = Uploaded for Position : 
+Duplicate.Mail.Body.Line3 = At Level :

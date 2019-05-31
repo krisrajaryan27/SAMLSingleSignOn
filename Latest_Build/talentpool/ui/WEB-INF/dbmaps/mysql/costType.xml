@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>	
+	    <dbquery name="qCostTypeManager_AddCostType">
+	    	INSERT INTO tp_cost_types(cost_type) values(?)
+	    </dbquery>  
+	    <dbquery name="qCostTypeManager_UpdateCostType">
+	    	UPDATE tp_cost_types SET cost_type=? WHERE cost_type_id=?
+	    </dbquery>  
+	    <dbquery name="qCostTypeManager_DeleteCostType">
+	    	DELETE FROM tp_cost_types WHERE cost_type_id=?
+	    </dbquery>  
+	    <dbquery name="qCostTypeManager_GetCostTypeData">
+	    	SELECT cost_type_id, cost_type FROM tp_cost_types WHERE cost_type_id=?
+	    </dbquery>  
+	    <dbquery name="qCostTypeManager_GetAllCostTypes">
+	    	SELECT cost_type_id, cost_type FROM tp_cost_types ORDER BY cost_type
+	    </dbquery>  
+	</dbqueries>
+	<dataqueries>
+	
+	    <dataquery name="dCostTypeManager_AddCostType" dbquery="qCostTypeManager_AddCostType" />
+	    <dataquery name="dCostTypeManager_UpdateCostType" dbquery="qCostTypeManager_UpdateCostType" />
+	    <dataquery name="dCostTypeManager_DeleteCostType" dbquery="qCostTypeManager_DeleteCostType" />
+	    
+	    <dataquery name="dCostTypeManager_GetCostTypeData" dbquery="qCostTypeManager_GetCostTypeData" object="com.talentPool.costs.dataobject.CostTypeData">
+	    	<attribute name= "itemId" column="cost_type_id" type ="STRING" />
+	    	<attribute name= "itemName" column="cost_type" type ="STRING" />
+	    </dataquery>
+	    <dataquery name="dCostTypeManager_GetAllCostTypes" dbquery="qCostTypeManager_GetAllCostTypes" object="com.talentPool.costs.dataobject.CostTypeData">
+	    	<attribute name= "itemId" column="cost_type_id" type ="STRING" />
+	    	<attribute name= "itemName" column="cost_type" type ="STRING" />
+	    </dataquery>
+	</dataqueries>   
+</dbmap>

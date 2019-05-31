@@ -1,0 +1,25 @@
+/*
+*  basicinfo_city.jape
+*
+*/
+
+
+Phase:	name_tokens
+Input:  Lookup Token
+Options: control = appelt
+
+Rule: common_english
+(
+{Lookup.majorType == common_word}
+):commonword
+-->
+:commonword.KnownWord = {category = "basicInfo", kind = "name", rule = "name_tokens", priority="100"}
+
+Rule: common_english
+(
+{Token.kind == word}
+):commonword
+-->
+:commonword.UnknownWord = {category = "basicInfo", kind = "name", rule = "name_tokens", priority="100"}
+ 
+ 

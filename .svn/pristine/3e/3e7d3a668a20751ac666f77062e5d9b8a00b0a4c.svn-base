@@ -1,0 +1,2696 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>	
+		<!-- Start: Applicant Home Section -->
+		<dbquery name="qGetApplicantsInProcess">
+			select ta.applicant_id, ta.applicant_name, tp.position_title, tps.position_step_title, 
+			ta.applicant_home_phone, ta.applicant_work_phone, ta.applicant_cell_phone, 
+			(select DATE_FORMAT(tpa.appointment_from_date, '%b %d, %Y %h:%i %p')
+			from tp_appointment_status as tpas, tp_appointments tpa
+			where tpa.applicant_id = ta.applicant_id 
+			and tpa.appointment_status_id = tpas.appointment_status_id
+			and tpa.position_id =  ta.applicant_position_id
+			and tpa.position_step_id = ta.applicant_step_id
+			and appointment_from_date &gt; (select tpasp.process_moved_date 
+						   from tp_applicant_selection_process tpasp 
+						   where tpasp.applicant_id = tpa.applicant_id
+						   and tpasp.position_step_id_to = ta.applicant_step_id 
+						   order by tpasp.process_id desc limit 0, 1
+				)				
+			order by appointment_from_date desc limit 0, 1) as appointment_from_date,
+			(select tasm.status_message 
+				from tp_applicant_status_messages tasm
+				where tasm.applicant_id = ta.applicant_id
+				and tasm.position_step_id = ta.applicant_step_id
+				and tasm.date_created &gt; (select tasp.process_moved_date 
+										from tp_applicant_selection_process tasp
+										where tasp.applicant_id = ta.applicant_id
+										and tasp.position_step_id_to = ta.applicant_step_id
+										order by tasp.process_moved_date desc
+										limit 0,1) 
+				order by tasm.date_created desc 
+				limit 0,1) as selected_message, 
+			ta.applicant_original_resume_path
+			from tp_applicants as ta, tp_positions as tp, tp_position_steps as tps where 
+			ta.applicant_position_id = tp.position_id and ta.applicant_step_id = tps.position_step_id and 
+			ta.applicant_position_id is not null and ta.applicant_step_id is not null and 
+			ta.applicant_position_id in (select position_id from tp_positions where position_status = ?) @@ and 
+			ta.applicant_step_id in (select position_step_id from tp_position_steps where position_id = ta.applicant_position_id) @@ @@ @@
+		</dbquery>	
+		<dbquery name ="qGetAllOpenPositions">
+		    select tp.dept_id, tp.position_id, tp.position_title, td.dept_name 
+		    from tp_positions tp, tp_departments td where tp.dept_id = td.dept_id and position_status = ? @@ 
+		    order by td.dept_name, tp.position_title
+		</dbquery> 
+		<dbquery name ="qGetStepTypes">
+		    select step_type_id, step_type_title from tp_step_types
+		</dbquery>
+		<dbquery name="qSelectionProcessManager_GetStatusMessagesForStep">
+			select tpssm.status_message_id, tpssm.status_message, 
+			(select tasm.status_message 
+			from tp_applicant_status_messages tasm
+			where tasm.applicant_id = ta.applicant_id
+			and tasm.position_step_id = ta.applicant_step_id
+			and tasm.date_created &gt; (select tasp.process_moved_date 
+									from tp_applicant_selection_process tasp
+									where tasp.applicant_id = ta.applicant_id
+									and tasp.position_step_id_to = ta.applicant_step_id
+									order by tasp.process_moved_date desc
+									limit 0,1) 
+			order by tasm.date_created desc 
+			limit 0,1) as selected_message
+			from tp_position_step_status_messages tpssm, tp_applicants ta 
+			where tpssm.position_step_id = ta.applicant_step_id 
+			and ta.applicant_id = ?
+		</dbquery>
+		<dbquery name="qSelectionProcessManager_SaveApplicantStatusMessage">
+			insert into tp_applicant_status_messages 
+			(applicant_id, position_step_id, status_message, user_id, date_created)
+			values (?, (select applicant_step_id from tp_applicants where applicant_id = ?), ?, ?, now())
+		</dbquery>
+		<!-- End: Applicant Home Section -->
+		
+		<!-- Start: Move Up/Down Section -->
+		<dbquery name="qSelectionProcess_GetApplicantCurrentStepData">
+			SELECT 
+				ta.applicant_id, ta.applicant_name, ta.applicant_position_id, ta.applicant_step_id, 
+				ta.applicant_date_joined, tp.position_title, tps.position_step_title, 
+				ts.source_title, ta.applicant_original_resume_path,
+				ta.offered_ctc,ta.applicant_level_offered,ta.applicant_designation_offered,
+				ta.input_salary_variable, ta.employee_code,ta.offered_basic,
+				tfff.feedback_form_field_id, all_fields.feedback_field_title, 
+				tfff.feedback_form_field_desc, tfff.feedback_form_field_rank,
+				tfff.feedback_form_field_type, tfff.rating_id, tfff.select_id, tfff.feedback_form_field_comment_required,
+				tfff.feedback_form_field_display_type, tfff.feedback_form_field_is_mandatory,
+				tff.feedback_form_title, tff.feedback_form_id, 
+				tff.feedback_form_header, all_fields.feedback_field_type, all_fields.applicant_field_id, all_fields.system_generated,ta.joining_Bonus,ta.variable_Offered
+			FROM tp_applicants ta, tp_sources ts, tp_positions tp, tp_position_steps tps ,
+				tp_feedback_forms tff,tp_feedback_form_fields tfff,
+				(
+					SELECT category_id as feedback_field_id, category_name as feedback_field_title, 
+					? as feedback_form_field_type ,? AS feedback_field_type, NULL AS applicant_field_id, system_generated
+					FROM tp_feedback_field_categories
+					UNION
+					SELECT feedback_field_id, feedback_field_title, ? as feedback_form_field_type , 
+					feedback_field_type, applicant_field_id, system_generated
+					FROM tp_feedback_fields
+				) AS all_fields 
+			WHERE 
+				ta.source_id = ts.source_id AND
+				ta.applicant_position_id = tp.position_id AND
+				ta.applicant_step_id = tps.position_step_id AND
+				tps.feedback_form_id = tff.feedback_form_id AND
+				tff.feedback_form_id = tfff.feedback_form_id AND
+				all_fields.feedback_field_id = tfff.feedback_field_id AND 
+				all_fields.feedback_form_field_type = tfff.feedback_form_field_type AND
+				ta.applicant_id= ?
+			ORDER BY tfff.feedback_form_field_rank
+		</dbquery>
+		<dbquery name="qSelectionProcess_GetCandidateCurrentStepData">
+			SELECT 
+				ta.applicant_id, ta.applicant_name, ta.applicant_position_id, ta.applicant_step_id, 
+				ta.applicant_date_joined, tp.position_title, tps.position_step_title, 
+				ts.source_title, ta.applicant_original_resume_path,
+				ta.offered_ctc,ta.applicant_level_offered,ta.applicant_designation_offered,
+				ta.input_salary_variable, ta.employee_code,ta.offered_basic,
+				tfff.feedback_form_field_id, all_fields.feedback_field_title, 
+				tfff.feedback_form_field_desc, tfff.feedback_form_field_rank,
+				tfff.feedback_form_field_type, tfff.rating_id, tfff.select_id, tfff.feedback_form_field_comment_required,
+				tfff.feedback_form_field_display_type, tfff.feedback_form_field_is_mandatory,
+				tff.feedback_form_title, tff.feedback_form_id, 
+				tff.feedback_form_header, all_fields.feedback_field_type, all_fields.applicant_field_id, all_fields.system_generated,ta.joining_Bonus,ta.variable_Offered
+			FROM tp_applicants ta, tp_sources ts, tp_positions tp, tp_position_steps tps ,
+				tp_feedback_forms tff,tp_feedback_form_fields tfff,
+				(
+					SELECT category_id as feedback_field_id, category_name as feedback_field_title, 
+					? as feedback_form_field_type ,? AS feedback_field_type, NULL AS applicant_field_id, system_generated
+					FROM tp_feedback_field_categories
+					UNION
+					SELECT feedback_field_id, feedback_field_title, ? as feedback_form_field_type , 
+					feedback_field_type, applicant_field_id, system_generated
+					FROM tp_feedback_fields
+				) AS all_fields 
+			WHERE 
+				ta.source_id = ts.source_id AND
+				ta.applicant_position_id = tp.position_id AND
+				ta.applicant_step_id = tps.position_step_id AND
+				tps.applicant_feedback_form_id = tff.feedback_form_id AND
+				tff.feedback_form_id = tfff.feedback_form_id AND
+				all_fields.feedback_field_id = tfff.feedback_field_id AND 
+				all_fields.feedback_form_field_type = tfff.feedback_form_field_type AND
+				ta.applicant_id= ?
+			ORDER BY tfff.feedback_form_field_rank
+		</dbquery>
+		<dbquery name="qGetApplicantData">
+			SELECT ta.applicant_id, ta.applicant_name, ta.applicant_position_id, 
+			ta.applicant_step_id, tp.position_title, tps.position_step_title, 
+			ts.source_title, ta.employee_code
+			FROM tp_applicants ta LEFT JOIN tp_sources ts ON (ta.source_id = ts.source_id), 
+			tp_positions tp, tp_position_steps tps  
+			WHERE 
+			ta.applicant_position_id = tp.position_id AND
+			ta.applicant_step_id = tps.position_step_id AND
+			ta.applicant_id=?
+		</dbquery>
+		<dbquery name="qGetNextStepData">
+			SELECT  tps.position_step_id, tps.position_step_title, tps.position_step_isoptional,
+			tps.position_step_level
+			FROM tp_position_steps tps WHERE
+			tps.position_step_status=? AND
+			tps.position_step_rank &gt; (SELECT  position_step_rank FROM tp_position_steps 
+			WHERE position_id=? AND position_step_id=?)
+			AND tps.position_id=? order by position_step_rank
+		</dbquery>
+		<dbquery name="qSelectionProcess_GetApplicantDataWithProcessId">
+			SELECT 
+				ta.applicant_name, ta.applicant_id, ta.applicant_step_id, ta.applicant_original_resume_path, 
+				ta.applicant_date_joined, tp.position_title, tp.position_id, tasp.user_id,
+				concat(tu.user_fname, ' ', tu.user_lname) as user_name,
+				ta.offered_ctc,ta.applicant_level_offered,ta.applicant_designation_offered, ta.input_salary_variable, ta.employee_code,ta.offered_basic,
+				tasp.position_step_id_from as fromStepId, 
+				tasp.position_step_id_to as toStepId, 
+				(case when tasp.position_step_id_from=? then ? else (select tps.position_step_title 
+					from tp_position_steps tps 
+					where tps.position_step_id=position_step_id_from) end) as fromStepTitle, 
+				(select tps.position_step_title from tp_position_steps tps 
+					where tps.position_step_id=position_step_id_to) as toStepTitle,
+				tasp.process_moved_date,
+				tfff.feedback_form_field_id, all_fields.feedback_field_title, 
+				tfff.feedback_form_field_desc, tfff.feedback_form_field_rank,
+				tfff.feedback_form_field_type, tfff.rating_id, tfff.select_id, tfff.feedback_form_field_comment_required,
+				tfff.feedback_form_field_display_type, tfff.feedback_form_field_is_mandatory,
+				taspt.user_id as interviewer_id, taspt.trait_comment, 
+				ts.source_title, taspt.rating_field_id, trf.rating_field_desc,taspt.select_field_id,
+				tff.feedback_form_title, tff.feedback_form_id, tff.feedback_form_header, all_fields.feedback_field_type, 
+				all_fields.applicant_field_id, all_fields.system_generated
+			FROM tp_applicant_selection_process tasp
+				LEFT JOIN tp_users tu ON (tasp.user_id = tu.user_id)
+				LEFT JOIN tp_position_steps tps ON (tasp.position_step_id_from = tps.position_step_id)
+				LEFT JOIN tp_feedback_forms tff ON (tps.feedback_form_id = tff.feedback_form_id)
+				LEFT JOIN tp_feedback_form_fields tfff ON (tff.feedback_form_id = tfff.feedback_form_id)
+				LEFT JOIN (
+					SELECT category_id as feedback_field_id, category_name as feedback_field_title, 
+					? as feedback_form_field_type, system_generated, ? AS feedback_field_type, 
+					NULL AS applicant_field_id, summary_field 
+					FROM tp_feedback_field_categories 
+					UNION
+					SELECT aaa.feedback_field_id, aaa.feedback_field_title, ? as feedback_form_field_type, 
+					aaa.system_generated,aaa.feedback_field_type, aaa.applicant_field_id, bbb.summary_field
+					FROM tp_feedback_fields aaa,tp_feedback_field_categories bbb 
+					WHERE aaa.category_id = bbb.category_id  
+					) AS all_fields 
+				ON (all_fields.feedback_field_id = tfff.feedback_field_id AND all_fields.feedback_form_field_type = tfff.feedback_form_field_type)
+				LEFT JOIN tp_applicant_selection_process_traits taspt ON(taspt.feedback_form_field_id =tfff.feedback_form_field_id  AND taspt.process_id=tasp.process_id )
+				LEFT JOIN tp_rating_fields trf ON (taspt.rating_field_id=trf.rating_field_id),				
+				tp_applicants ta, tp_sources ts,
+				tp_positions tp
+			WHERE tasp.applicant_id = ta.applicant_id
+				AND ta.source_id = ts.source_id
+				AND tasp.position_id = tp.position_id
+				AND tasp.process_id =?
+				@@
+				order by tfff.feedback_form_field_rank
+		</dbquery>
+		<dbquery name ="qGetNoOfFeedbacksAfter">
+			SELECT count(*) FROM tp_applicant_selection_process  WHERE applicant_id=? AND process_id&gt;?
+		</dbquery>
+		<dbquery name ="qAddMoveUpOrDownResult">
+		    insert into tp_applicant_selection_process (applicant_id, position_step_id_from, position_step_id_to, 
+			user_id, process_date_created, process_moved_date, position_id) values (?, ?, ?, ?, now(), now(), ?)
+		</dbquery>
+		<dbquery name ="qAddCandidateResponse">
+		    insert into tp_applicant_questionnaire_response (applicant_id, position_step_id_from, position_step_id_to, 
+			user_id, process_date_created, process_moved_date, position_id) values (?, ?, ?, ?, now(), now(), ?)
+		</dbquery>
+		<dbquery name ="qAddMoveUpOrDownResult2">
+		    insert into tp_applicant_selection_process (applicant_id, position_step_id_from, position_step_id_to, 
+			user_id, process_date_created, process_moved_date, position_id) values (?, ?, ?, ?, now() + interval 1 second, now() + interval 1 second, ?)
+		</dbquery>
+		<dbquery name ="qUpdateMoveUpOrDownResult">
+		    update tp_applicant_selection_process set position_step_id_from = ?, position_step_id_to = ?, 
+			user_id = ?, process_moved_date=now() where process_id = ?
+		</dbquery>
+		<dbquery name ="qUpdateCandidateResponse">
+		    update tp_applicant_questionnaire_response set position_step_id_from = ?, position_step_id_to = ?, 
+			user_id = ?, process_moved_date=now() where process_id = ?
+		</dbquery>
+		<dbquery name ="qAddMoveUpOrDownTraits">
+		    INSERT INTO tp_applicant_selection_process_traits (process_id, feedback_form_field_id, 
+			trait_comment, user_id, rating_field_id, select_field_id, feedback_form_id) 
+			VALUES (?, ?, ?, ?, ?, ?, ?) ON duplicate key update trait_comment=?, rating_field_id=?,select_field_id=?
+		</dbquery>
+		<dbquery name ="qAddMoveUpOrDownCandidateTraits">
+		    INSERT INTO tp_applicant_questionnaire_traits (process_id, feedback_form_field_id, 
+			trait_comment, user_id, rating_field_id, select_field_id, feedback_form_id) 
+			VALUES (?, ?, ?, ?, ?, ?, ?) ON duplicate key update trait_comment=?, rating_field_id=?,select_field_id=?
+		</dbquery>
+		<dbquery name ="qUpdateApplicantStepId">
+		    update tp_applicants set applicant_step_id = ? @@ where applicant_id = ?
+		</dbquery>
+		<dbquery name ="qDeleteFeedbackEntry">
+		    DELETE FROM tp_applicant_selection_process WHERE process_id=?
+		</dbquery>
+		<dbquery name ="qDeleteFeedbackTrait">
+		    DELETE FROM tp_applicant_selection_process_traits  WHERE process_id=? and feedback_form_field_id = ? and user_id = ?
+		</dbquery>
+		<dbquery name ="qDeleteCandidateFeedbackTrait">
+		    DELETE FROM tp_applicant_questionnaire_traits  WHERE process_id=? and feedback_form_field_id = ? and user_id = ?
+		</dbquery>
+		<dbquery name ="qUpdateApplicantPositionStep">
+		    UPDATE tp_applicants SET applicant_position_id=?, applicant_step_id=? WHERE applicant_id=? 
+		</dbquery>
+		<dbquery name ="qGetCommunicationId">
+		    SELECT tpasp.process_id, tpasp.position_step_id_to from tp_applicants as ta
+			LEFT JOIN tp_applicant_selection_process as tpasp 
+			ON (tpasp.applicant_id = ta.applicant_id AND 
+				tpasp.position_step_id_from = ta.applicant_step_id AND 
+				tpasp.position_step_id_to in (@@))
+			WHERE ta.applicant_id = ?
+		</dbquery>
+		<dbquery name ="qGetCandidateCommunicationId">
+		    SELECT tpasp.process_id, tpasp.position_step_id_to from tp_applicants as ta
+			LEFT JOIN tp_applicant_questionnaire_response as tpasp 
+			ON (tpasp.applicant_id = ta.applicant_id AND 
+				tpasp.position_step_id_from = ta.applicant_step_id AND
+				tpasp.position_step_id_to in (@@))
+			WHERE ta.applicant_id = ?
+		</dbquery>
+		<dbquery name ="qGetFeedbackEntry">
+		    SELECT position_step_id_from FROM tp_applicant_selection_process WHERE process_id=?
+		</dbquery>
+		<dbquery name="qSelectionProcessManager_GetAppointmentsInFuture">
+			select tpa.appointment_id 
+			from tp_appointments tpa, tp_applicants ta 
+			where tpa.applicant_id = ? 
+			and ta.applicant_id = tpa.applicant_id
+			and tpa.position_id = ta.applicant_position_id
+			and tpa.position_step_id = ta.applicant_step_id
+			and tpa.appointment_from_date &gt; now()
+			and tpa.appointment_from_date &gt; (select tasp.process_moved_date 
+											from tp_applicant_selection_process tasp
+											where tasp.applicant_id = tpa.applicant_id 
+											and tasp.position_step_id_to = tpa.position_step_id
+											order by tasp.process_moved_date desc
+											limit 0,1)
+		</dbquery>
+		<dbquery name="qSelectionProcessManager_GetAllAtiveAppointmentsInPast">
+			select tpa.appointment_id 
+			from tp_appointments tpa, tp_applicants ta 
+			where tpa.applicant_id = ?
+			and ta.applicant_id = tpa.applicant_id
+			and tpa.position_id = ta.applicant_position_id
+			and tpa.position_step_id = ta.applicant_step_id
+			and tpa.appointment_status_id!=? 
+		</dbquery>
+		<dbquery name="qSelectionProcessManager_GetAppointmentsInPast">
+			select tpa.appointment_id, tpa.position_id, tpa.position_step_id, tpa.appointment_from_date, tpa.appointment_status_id  
+			from tp_appointments tpa, tp_applicants ta 
+			where tpa.applicant_id = ? 
+			and ta.applicant_id = tpa.applicant_id
+			and tpa.position_id = ta.applicant_position_id
+			and tpa.position_step_id = ta.applicant_step_id
+			and tpa.appointment_from_date &lt; now()
+			and tpa.appointment_from_date &gt; (select tasp.process_moved_date 
+											from tp_applicant_selection_process tasp
+											where tasp.applicant_id = tpa.applicant_id 
+											and tasp.position_step_id_to = tpa.position_step_id
+											order by tasp.process_moved_date desc
+											limit 0,1)
+			order by tpa.appointment_from_date desc 
+			limit 0, 1
+		</dbquery>
+		<dbquery name="qSelectionProcessManager_DeleteAppointments">
+			delete from tp_appointments 
+			where applicant_id = ? 
+			and appointment_from_date &gt; now()
+		</dbquery>
+		<dbquery name="qSelectionProcessManager_GetPositionInterviewers">
+			select distinct tu.user_id, CONCAT(user_fname,' ',user_lname) as name 
+			from tp_users as tu 
+			join tp_position_step_users as tpu on (tpu.user_id = tu.user_id) 
+			where tpu.position_step_id = ? and tu.user_status = ? and tpu.is_responsible_for_scheduling = ? @@			
+		</dbquery>
+		<dbquery name="qSelectionProcessManager_GetPositionInterviewersForSchedulable">
+			select distinct tu.user_id, CONCAT(user_fname,' ',user_lname) as name 
+			from tp_users as tu 
+			join tp_position_step_users as tpu on (tpu.user_id = tu.user_id) 
+			where tpu.position_step_id = ? and tu.user_status = ? and tpu.is_responsible_for_scheduling = ? and
+			(tpu.is_authorized_to_move=? OR tpu.user_id in (SELECT attendee_id FROM tp_appointment_attendees WHERE appointment_id=?))
+			@@
+		</dbquery>
+		<dbquery name="qSelectionProcessManager_GetPositionStepSchedulable">
+			select position_step_isscheduled 
+			from tp_position_steps tps, tp_applicants ta
+			where tps.position_step_id=ta.applicant_step_id
+			and ta.applicant_id=?
+		</dbquery>
+		<dbquery name ="qGetOtherOpenPositions">
+		    select position_id, position_title,position_code 
+		    from tp_positions 
+		    where position_status = ? 
+		    @@
+		    order by position_title
+		</dbquery>
+		<dbquery name ="qSelectionProcessManager_GetStepsForPosition">
+		    select position_step_id, position_step_title 
+		    from tp_position_steps 
+		    where position_id = ? 
+		    and position_step_isdefault = ? 
+		    and position_step_status=?
+		    order by position_step_rank
+		</dbquery>
+		<dbquery name="qUpdateAppointmentStatus">
+			update tp_appointments set appointment_status_id = ? where appointment_id = ?
+		</dbquery>
+		<dbquery name="qSelection_ChangeStatusToDefault">
+			insert into tp_applicant_status_messages 
+			(applicant_id, position_step_id, status_message, user_id, date_created, system_generated)
+			values 
+			(?, ?, (select status_message 
+				from tp_position_step_status_messages 
+				where position_step_id = ? and is_default = ?), 
+				?, now() + interval 1 second,?)
+		</dbquery>
+		<dbquery name="qSelectionProcessManager_GetStepStatusData">
+			select position_step_status from tp_position_steps where position_step_id in (@@)
+		</dbquery>
+		<dbquery name="qIsUserDecisionMakerOrResponsibleForScheduling">
+	    	SELECT count(su.position_step_id)  as count
+			FROM tp_applicants ta, tp_position_step_users su ,tp_position_steps tps
+			WHERE ta.applicant_id = ?
+			AND su.position_step_id=ta.applicant_step_id
+			AND su.position_step_id=tps.position_step_id
+			AND ((su.is_responsible_for_scheduling=? AND su.is_authorized_to_move=?) 
+			OR (su.is_responsible_for_scheduling=? AND su.is_authorized_to_move=?)
+			OR (su.is_responsible_for_scheduling=? AND su.is_authorized_to_move=? AND tps.is_interviewer_can_confirm=?))
+			AND su.user_id=?
+	    </dbquery>
+	    <dbquery name="qSelectionProcessManager_GetStepLevel">
+			SELECT position_step_level FROM tp_position_steps WHERE position_step_id IN (@@)
+		</dbquery>
+		
+		<dbquery name ="qSelectionProcessManager_UpdateApplicantAttribute">
+		    UPDATE tp_applicants SET @@ WHERE applicant_id = ?
+		</dbquery>
+		<!-- End: Move Up/Down Section -->
+		<!-- Start: Interactions Section -->
+		<dbquery name ="qGetInteractions">
+			SELECT CONCAT(tu.user_fname,' ',tu.user_lname) AS name, interaction_id, interaction_type, CAST(interaction_date AS DATETIME) AS interaction_date, 
+			CASE WHEN interaction_subject IS null THEN '' ELSE interaction_subject END AS interaction_subject, 
+			interaction_document, interaction_is_hidden
+			 FROM
+			(
+				(
+					SELECT email_id AS interaction_id, 
+					CASE WHEN folder_id =? THEN ? ELSE ? END AS interaction_type, 
+					CASE WHEN folder_id =? THEN email_date_send ELSE email_date_received END AS interaction_date, 
+					email_subject AS interaction_subject,
+					user_id AS user_id, '' AS interaction_document, email_is_hidden AS interaction_is_hidden
+					FROM tp_applicant_inbox_emails
+					WHERE applicant_id =?
+				)
+				UNION
+				(
+					SELECT appointment_id AS interaction_id, ? AS interaction_type,
+					appointment_date_created AS interaction_date, CONCAT(tp.position_title,' (',tps.position_step_title,')') AS subject,
+					appointment_created_by AS user_id, '' AS interaction_document, '0' interaction_is_hidden
+					FROM tp_appointments ta LEFT JOIN tp_positions tp ON(ta.position_id=tp.position_id) 
+					LEFT JOIN tp_position_steps tps ON(tps.position_step_id=ta.position_step_id)
+					WHERE ta.applicant_id =?
+				)
+				UNION
+				(
+					SELECT tasp.process_id AS interaction_id, ? AS interaction_type,
+					tasp.process_moved_date AS interaction_date, 
+					case when tasp.position_step_id_from=? then ?
+					else (select tps.position_step_title 
+					from tp_position_steps tps 
+					where tps.position_step_id=tasp.position_step_id_from) 
+					end AS interaction_subject, 
+					user_id AS user_id, '' AS interaction_document, selection_process_is_hidden AS interaction_is_hidden
+					FROM tp_applicant_selection_process tasp
+					WHERE tasp.applicant_id =?
+				)
+				UNION
+				(
+					SELECT concat(tasp.process_id) AS interaction_id, ? AS interaction_type,
+					tasp.process_moved_date AS interaction_date, 
+					(select tps.position_step_title 
+					from tp_position_steps tps 
+					where tps.position_step_id=tasp.position_step_id_from) AS interaction_subject, 
+					user_id AS user_id, '' AS interaction_document, selection_process_is_hidden AS interaction_is_hidden
+					FROM tp_applicant_questionnaire_response tasp
+					WHERE tasp.applicant_id =?
+				)
+				UNION
+				(
+					SELECT communication_id AS interaction_id, communication_type_id AS interaction_type, 
+					communication_date_created AS interaction_date, communication_text AS interaction_subject,
+					user_id AS user_id, document_id AS interaction_document, communication_is_hidden AS interaction_is_hidden
+					FROM tp_communications WHERE applicant_id =?
+				)
+				UNION
+				(
+					SELECT message_id AS interaction_id, ? AS interaction_type, 
+					message_date AS interaction_date,  message_text AS interaction_subject,
+					message_from AS user_id, '' AS interaction_document, message_is_hidden AS interaction_is_hidden 
+					FROM tp_messages WHERE applicant_id=?
+				)	
+				UNION
+				(
+					SELECT status_message_id AS interaction_id, ? AS interaction_type, 
+					date_created AS interaction_date,  status_message AS interaction_subject,
+					user_id AS user_id, '' AS interaction_document, status_message_is_hidden AS interaction_is_hidden 
+					FROM tp_applicant_status_messages WHERE applicant_id=?	AND system_generated=?
+				)
+				UNION
+				(
+					SELECT tabh.interaction_id AS interaction_id, tabh.type AS interaction_type, 
+					tabh.date_created AS interaction_date,
+					CASE WHEN tabh.type=? THEN ?
+					WHEN tabh.type=? THEN ?
+					ELSE ''
+					END AS interaction_subject,
+					tabh.user_id AS user_id, '' AS interaction_document, '0' AS interaction_is_hidden 
+					FROM tp_applicant_blacklist_history tabh WHERE tabh.applicant_id=?
+				)
+				UNION
+				(
+					SELECT todmi.interaction_id AS interaction_id, todmi.interaction_type AS interaction_type, 
+					todmi.date_created AS interaction_date,
+					CONCAT('Offer Proposal (',todmi.interaction_title,')') AS interaction_subject,
+					todmi.user_id AS user_id, '' AS interaction_document, interaction_hidden AS interaction_is_hidden 
+					FROM tp_offer_details_modified_interactions todmi WHERE  todmi.interaction_type=? AND todmi.applicant_id=?  
+				)
+				UNION
+				(
+					SELECT todmi.interaction_id AS interaction_id, todmi.interaction_type AS interaction_type, 
+					todmi.date_created AS interaction_date,
+					todmi.interaction_title AS interaction_subject,
+					todmi.user_id AS user_id, '' AS interaction_document, interaction_hidden AS interaction_is_hidden 
+					FROM tp_offer_details_modified_interactions todmi WHERE todmi.interaction_type=? AND todmi.applicant_id=?   
+				)				
+			)AS interactions, tp_users tu 
+			WHERE
+			tu.user_id = interactions.user_id
+			ORDER BY interaction_date DESC
+		</dbquery>
+		<dbquery name ="qGetCandidateInteractions">
+		    SELECT CONCAT(tu.user_fname,' ',tu.user_lname) AS name,
+			       interaction_id,
+			       interaction_type,
+			       CAST(interaction_date AS DATETIME) AS interaction_date,
+			       CASE
+			           WHEN interaction_subject IS NULL THEN ''
+			           ELSE interaction_subject
+			       END AS interaction_subject,
+			       interaction_document,
+			       interaction_is_hidden
+			FROM
+			  (SELECT concat(tasp.process_id) AS interaction_id,
+			          ? AS interaction_type,
+			          tasp.process_moved_date AS interaction_date,
+			
+			     (SELECT feedback_form_title
+			      FROM tp_feedback_forms tff
+			      WHERE tff.feedback_form_id =
+			          (SELECT tps.applicant_feedback_form_id
+			           FROM tp_position_steps tps
+			           WHERE tps.position_step_id=tasp.position_step_id_from)) AS interaction_subject,
+			          user_id AS user_id,
+			          '' AS interaction_document,
+			          selection_process_is_hidden AS interaction_is_hidden
+			   FROM tp_applicant_questionnaire_response tasp
+			   WHERE tasp.applicant_id =?)AS interactions,
+			     tp_users tu
+			WHERE tu.user_id = interactions.user_id
+			ORDER BY interaction_date DESC
+		</dbquery>
+		<!-- End: Interactions Section -->		
+		<!--Start: Interaction Log section -->
+		<dbquery name ="qUpdateApplicantPhones">
+		    UPDATE tp_applicants SET applicant_home_phone=?, applicant_work_phone=?, applicant_cell_phone=?,
+		    applicant_home_phone_is_invalid=?, applicant_work_phone_is_invalid=?, applicant_cell_phone_is_invalid=?
+		     WHERE applicant_id=?
+		</dbquery>
+		<dbquery name ="qAddInteraction">
+		    INSERT INTO tp_communications (communication_type_id, applicant_id, user_id, communication_date, 
+		    communication_text, phone_no, document_id, communication_date_created) VALUES (?,?,?,?,?,?,?, now())
+		</dbquery>
+		<dbquery name ="qUpdateInteraction">
+		    UPDATE tp_communications SET communication_text=? , phone_no=?, communication_date=?, communication_date_created=now() WHERE communication_id=?
+		</dbquery>
+		<dbquery name ="qGetCommunicationData">
+			SELECT  tc.applicant_id, tc.user_id, tc.communication_date, tc.communication_text, tc.phone_no, tc.document_id,
+			CONCAT(tu.user_fname,' ',tu.user_lname) as name
+			FROM tp_communications tc , tp_users tu 
+			WHERE tc.user_id = tu.user_id AND tc.communication_id=?
+		</dbquery>
+		<dbquery name ="qGetStatusMessageData">
+			SELECT  tasm.applicant_id, tasm.user_id, tasm.date_created, tasm.status_message, 
+			CONCAT(tu.user_fname,' ',tu.user_lname) as name
+			FROM tp_applicant_status_messages tasm , tp_users tu 
+			WHERE tasm.user_id = tu.user_id AND tasm.status_message_id=?
+		</dbquery>
+		<dbquery name ="qSelectionProcessManager_GetProcessId">
+			select tasp.process_id, tasp.applicant_id, tasp.position_step_id_from,
+			tasp.position_step_id_to, tasp.user_id, tasp.position_id,
+			ta.applicant_position_id, ta.applicant_step_id
+			from tp_applicant_selection_process tasp, tp_applicants ta
+			where tasp.applicant_id = ?
+			and ta.applicant_id = tasp.applicant_id
+			and tasp.position_step_id_from = ?
+			and tasp.user_id>0
+			and tasp.process_date_created >= (select tasp2.process_date_created 
+							from tp_applicant_selection_process tasp2
+							where tasp2.applicant_id = ?
+							and tasp2.position_step_id_from = ?
+							and tasp2.position_id = ?
+							and tasp2.user_id>0
+							order by tasp2.process_date_created desc limit 0,1)
+		</dbquery>
+		<dbquery name ="qSelectionProcessManager_GetAppointmentForFeedback">
+			SELECT tpa.appointment_id, tpa.appointment_subject, tpa.appointment_from_date FROM
+			tp_appointments tpa, tp_applicant_selection_process tasp
+			WHERE 
+			tasp.position_step_id_from = tpa.position_step_id
+			AND tasp.applicant_id=tpa.applicant_id
+			AND tpa.appointment_date_created &lt; tasp.process_date_created
+			AND tasp.process_id=?
+			AND tpa.appointment_status_id!=? AND tpa.appointment_status_id!=?
+			ORDER BY tpa.appointment_date_created DESC
+		</dbquery>
+		
+		<!--End: Interaction Log section -->
+		<!--Start: View Appointment Details-->
+		<dbquery name="qGetAppointmentDetails">
+			SELECT tpa.appointment_id, ta.applicant_id, ta.applicant_name, tpa.appointment_from_date, 
+			tu.user_id, CONCAT(tu.user_fname,' ',tu.user_lname) as name 
+			FROM tp_appointments AS tpa 
+			LEFT JOIN tp_applicants AS ta ON (tpa.applicant_id = ta.applicant_id) 
+			LEFT JOIN tp_users as tu ON (tpa.appointment_created_by = tu.user_id) 
+			WHERE tpa.appointment_id = ?
+		</dbquery>
+		<!--End: View Appointment Details-->
+		
+		<dbquery name="qGetApplicantsforCallList">
+		    SELECT ta.applicant_id,ta.applicant_name,ta.applicant_position_id, ta.applicant_city, ta.applicant_email1, ta.applicant_email2, 
+		    ta.applicant_home_phone, ta.applicant_cell_phone, ta.applicant_work_phone,ROUND(DATEDIFF(CURDATE(),ta.applicant_working_since)/365,1) 
+		    as yearsOfExp, 
+		    @@ as position_title, tps.position_step_title, @@, 
+		    ta.applicant_current_employer AS currentemployer 
+			FROM tp_applicants ta, tp_positions tpos, tp_sources ts ,tp_position_steps tps
+			WHERE ta.applicant_position_id = tpos.position_id
+			AND ta.source_id = ts.source_id
+			AND ta.applicant_joined=?
+			AND tpos.position_id = tps.position_id
+			AND ta.applicant_step_id = tps.position_step_id
+			and ta.applicant_id in (@@)
+			ORDER BY ta.applicant_name
+		</dbquery>
+		<dbquery name="qGetPositionSkillsInfo">	
+		    SELECT p.position_id,s.skill 
+			FROM tp_position_skills p
+			LEFT JOIN tp_skills s ON(p.skill_id=s.skill_id)
+			WHERE p.position_id=?
+		</dbquery>	
+		<dbquery name ="qSelection_GetStepsIfFirstStepOptional">
+	       SELECT position_step_id, position_step_title, position_step_isoptional 
+			FROM tp_position_steps 
+			WHERE position_step_rank &lt;= 
+			IFNULL((SELECT min(position_step_rank) FROM
+			tp_position_steps  WHERE position_id=? AND position_step_status=? AND 
+			position_step_isoptional !=? AND position_step_rank !=1),
+			(SELECT max(position_step_rank) FROM 
+			tp_position_steps WHERE position_id=? AND position_step_status=? AND
+			position_step_rank!=1))
+			AND  position_id=? AND position_step_status=? AND position_step_rank !=1
+			ORDER BY position_step_rank 
+	    </dbquery> 
+		<dbquery name ="qSelection_UpdateApplicantPositionStatus">
+			UPDATE tp_applicants SET  applicant_position_id =?,  applicant_step_id =?, 
+			applicant_joined =?, applicant_date_joined = ?, offered_ctc=?, offered_basic=?,
+			applicant_level_offered=?, applicant_designation_offered=?, input_salary_variable=?,joining_Bonus=?,variable_Offered=?  @@
+			WHERE  applicant_id =?
+	    </dbquery> 
+	    <dbquery  name ="qSelection_InsertApplicantJoiningHistory">
+		    INSERT INTO tp_applicant_joining_history
+			(applicant_id, position_id, offered_ctc, level_offered, designation_offered,joining_Bonus,variable_Offered,input_salary_variable, joining_date, date_created @@)
+			VALUES
+			(?, ?, ?, ?, ?, ?, ?,?,?, NOW() @@)
+	    </dbquery>
+		<dbquery name ="qSelection_AddStepMoveRecord">
+	    	INSERT INTO  tp_applicant_selection_process(applicant_id ,  position_step_id_from ,  
+			position_step_id_to , user_id ,  process_date_created, process_moved_date ,  position_id  )
+			VALUES(?,?,?,?,now(),now(),?)
+	    </dbquery>
+	    <dbquery name ="qSelection_GetStepToShortlist">
+	       	SELECT position_step_id
+			FROM tp_position_steps 
+			WHERE position_step_rank =2
+			AND  position_id=? AND position_step_status=? 
+	    </dbquery> 
+	    <!-- Start: Select -->
+	    <dbquery name="qSelectionProcessManager_GetApplicants">	
+	    	@@
+	    	(
+	    	SELECT applicant_id, applicant_name, current_employer, applicant_cell_phone,
+			CAST(TBL3.flags AS CHAR) AS flags, date, 
+			applicant_date_joined, applicant_working_since, position_id, position_title, position_step_id,
+			position_step_title, v_position_step_isscheduled, position_step_rank, dept_name, v_process_id, vv_process_id, 
+			v_process_date_created, CAST(v_process_moved_date AS DATETIME) AS v_process_moved_date, 
+			v_appointment_id, v_appointment_from_date, selected_message, 
+			CAST(TBL3.users_responsible AS CHAR) AS users_responsible, action_required, v_action_type AS action_type,
+			'' AS count, '' AS email_id
+	    	FROM    	
+	    	(
+			SELECT applicant_id, applicant_name, current_employer, applicant_cell_phone, 
+			CAST(TBL2.flags AS CHAR) AS flags, date, 
+			applicant_date_joined, applicant_working_since, position_id, position_title, position_step_id,
+			position_step_title, v_position_step_isscheduled, position_step_rank, dept_name, v_process_id, vv_process_id, 
+			v_process_date_created, v_process_moved_date, v_appointment_id, v_appointment_from_date, selected_message, 
+			CASE WHEN LOCATE('_', CAST(TBL2.users_responsible AS CHAR)) != 0 THEN
+				SUBSTRING(CAST(TBL2.users_responsible AS CHAR) FROM 1 FOR (LOCATE('_', CAST(TBL2.users_responsible AS CHAR)) - 1)) 
+			ELSE CAST(TBL2.users_responsible AS CHAR)
+			END AS users_responsible, 
+			CASE WHEN v_position_step_isscheduled = ? 
+				THEN 
+					CASE WHEN users_responsible IS NULL THEN ?
+					ELSE CONCAT(?, ' ', position_step_title)
+					END
+			ELSE 
+				CASE WHEN v_appointment_from_date IS NULL THEN CONCAT(?, ' ', position_step_title)
+				WHEN v_appointment_from_date > NOW() THEN CONCAT(?, ' ', position_step_title, ' on ', DATE_FORMAT(v_appointment_from_date, '%d-%b'), ' at ', DATE_FORMAT(v_appointment_from_date, '%l:%i %p'))
+				ELSE 
+					CASE WHEN vv_process_id IS NULL THEN CONCAT(?, ' ', position_step_title)
+					ELSE 
+						CASE WHEN users_responsible IS NULL THEN ?
+						ELSE CONCAT(?, ' ', position_step_title)
+						END
+					END
+				END
+			END AS action_required,
+			CASE WHEN v_position_step_isscheduled = ? 
+			THEN 
+				CASE WHEN users_responsible IS NULL THEN ?
+				ELSE ?
+				END
+			ELSE 
+				CASE WHEN v_appointment_from_date IS NULL THEN ?
+				WHEN v_appointment_from_date > NOW() THEN ?
+				ELSE 
+					CASE WHEN vv_process_id IS NULL THEN ?
+					ELSE 
+						CASE WHEN users_responsible IS NULL THEN ?
+						ELSE ?
+						END
+					END
+				END
+			END AS v_action_type
+			FROM (
+				SELECT applicant_id, applicant_name, current_employer, applicant_cell_phone, flags, date,
+				applicant_date_joined, applicant_working_since, position_id, position_title, position_step_id,
+				position_step_title, v_position_step_isscheduled, position_step_rank, dept_name, v_process_id, vv_process_id, 
+				v_process_date_created, v_process_moved_date, v_appointment_id, v_appointment_from_date, selected_message, 
+				CASE WHEN v_position_step_isscheduled = ? 
+				THEN (	
+					SELECT GROUP_CONCAT(@@ ORDER BY iu.USER_FNAME SEPARATOR ', ') 
+					FROM tp_users iu ,tp_position_step_users ipsu
+					WHERE iu.user_id = ipsu.user_id 
+					AND (ipsu.is_responsible_for_scheduling=? OR ipsu.is_authorized_to_move=?)
+					AND ipsu.position_step_id =TBL.position_step_id
+					AND ipsu.user_id NOT IN (
+									SELECT DISTINCT(taspt.user_id) 
+									FROM tp_applicant_selection_process tasp, tp_applicant_selection_process_traits taspt 
+									WHERE tasp.process_id=taspt.process_id 
+									AND tasp.applicant_id=TBL.applicant_id 
+									AND tasp.position_step_id_from=TBL.position_step_id 
+									AND tasp.process_id>TBL.v_process_id
+								)
+					@@
+				) 
+				ELSE 
+					CASE WHEN v_appointment_from_date IS NULL 
+					THEN (
+						SELECT GROUP_CONCAT(@@ ORDER BY iu.USER_FNAME SEPARATOR ', ') 
+						FROM tp_users iu ,tp_position_step_users ipsu
+						WHERE iu.user_id = ipsu.user_id 
+						AND ipsu.is_responsible_for_scheduling =? 
+						AND ipsu.position_step_id =TBL.position_step_id
+						@@
+					) 
+					WHEN v_appointment_from_date > NOW() 
+					THEN (
+						SELECT GROUP_CONCAT(@@ ORDER BY iu.USER_FNAME SEPARATOR ', ') 
+						FROM tp_users iu ,tp_position_step_users ipsu
+						WHERE iu.user_id = ipsu.user_id 
+						AND (ipsu.is_responsible_for_scheduling =? OR ipsu.is_authorized_to_move=?)
+						AND ipsu.user_id IN (
+									SELECT attendee_id 
+									FROM tp_appointment_attendees
+									WHERE appointment_id = TBL.v_appointment_id
+								)
+						AND ipsu.position_step_id =TBL.position_step_id
+						@@
+					)
+					ELSE 
+						CASE WHEN vv_process_id IS NULL 
+						THEN (
+							SELECT GROUP_CONCAT(@@ ORDER BY iu.USER_FNAME SEPARATOR ', ') 
+							FROM tp_users iu ,tp_position_step_users ipsu, tp_position_steps itps
+							WHERE iu.user_id = ipsu.user_id 
+							AND itps.position_step_id=ipsu.position_step_id
+							AND (
+								ipsu.is_responsible_for_scheduling =?
+								OR (
+									itps.is_interviewer_can_confirm=? 
+									AND ipsu.is_responsible_for_scheduling=?
+									AND ipsu.user_id IN (
+										SELECT attendee_id 
+										FROM tp_appointment_attendees 
+										WHERE appointment_id = TBL.v_appointment_id
+									)
+								)
+							) AND ipsu.position_step_id =TBL.position_step_id
+							@@
+						)
+						ELSE 
+							CASE WHEN vv_attendee_decision_maker IS NULL OR vv_attendee_decision_maker = 0
+							THEN (
+								SELECT GROUP_CONCAT(@@ ORDER BY iu.USER_FNAME SEPARATOR ', ') 
+								FROM tp_users iu ,tp_position_step_users ipsu
+								WHERE iu.user_id = ipsu.user_id 
+								AND ipsu.is_responsible_for_scheduling =?
+								AND (
+									(ipsu.user_id IN (
+											SELECT attendee_id 
+											FROM tp_appointment_attendees
+											WHERE appointment_id = TBL.v_appointment_id
+										)
+									) OR ipsu.is_authorized_to_move=?
+								)
+								AND ipsu.user_id NOT IN(
+									SELECT DISTINCT(user_id) 
+									FROM tp_applicant_selection_process_traits 
+									WHERE process_id=vv_process_id
+								)
+								AND ipsu.position_step_id =TBL.position_step_id
+								@@
+							)
+							ELSE (
+								SELECT GROUP_CONCAT(@@ ORDER BY iu.USER_FNAME SEPARATOR ', ') 
+								FROM tp_users iu ,tp_position_step_users ipsu
+								WHERE iu.user_id = ipsu.user_id	
+								AND ipsu.is_responsible_for_scheduling =?
+								AND ipsu.user_id IN (
+											SELECT attendee_id 
+											FROM tp_appointment_attendees
+											WHERE appointment_id = TBL.v_appointment_id
+										)
+								AND ipsu.user_id NOT IN(
+												SELECT DISTINCT(user_id) 
+												FROM tp_applicant_selection_process_traits 
+												WHERE process_id=vv_process_id
+											)
+								AND ipsu.position_step_id =TBL.position_step_id
+								@@
+							)
+							END
+						END
+					END
+				END AS users_responsible
+				FROM (
+					SELECT ta.applicant_id, ta.applicant_name, ta.applicant_current_employer AS current_employer, 
+					CASE WHEN applicant_cell_phone_is_invalid = 1 THEN '' 
+						ELSE applicant_cell_phone 
+					END AS applicant_cell_phone,				
+					(
+						SELECT group_concat(taf.flag_id) 
+						FROM tp_applicant_flags taf 
+						LEFT JOIN tp_flags tpf ON (tpf.flag_id = taf.flag_id) 
+						WHERE taf.applicant_id = ta.applicant_id 
+						AND (tpf.user_id = ? OR tpf.flag_type = ? )
+					) AS flags,
+					DATE_FORMAT(ta.applicant_date_joined, '%a, %d-%b-%y') AS date, ta.applicant_date_joined, ta.applicant_working_since,
+					tpos.position_id, @@ AS position_title, tps.position_step_id, tps.position_step_title, 
+					tps.position_step_isscheduled AS v_position_step_isscheduled, tps.position_step_rank,
+					(
+						SELECT dept_name 
+						FROM tp_departments 
+						WHERE dept_id=tpos.dept_id
+					) AS dept_name,
+					(
+						SELECT process_id 
+						FROM tp_applicant_selection_process
+						WHERE position_step_id_to = ta.applicant_step_id 
+						AND applicant_id = ta.applicant_id 
+						ORDER BY process_id DESC limit 0, 1
+					) AS v_process_id,
+					(
+						SELECT process_date_created 
+						FROM tp_applicant_selection_process
+						WHERE process_id = (SELECT process_id
+				   FROM tp_applicant_selection_process
+				   WHERE position_step_id_to = ta.applicant_step_id
+				     AND applicant_id = ta.applicant_id
+				   ORDER BY process_id DESC LIMIT 0,
+                                  1)
+					) AS v_process_date_created,
+					(
+						SELECT process_moved_date 
+						FROM tp_applicant_selection_process
+						WHERE process_id = (SELECT process_id
+					   FROM tp_applicant_selection_process
+					   WHERE position_step_id_to = ta.applicant_step_id
+					     AND applicant_id = ta.applicant_id
+					   ORDER BY process_id DESC LIMIT 0,
+                                  1)
+					) AS v_process_moved_date,
+					(
+						SELECT process_id 
+						FROM tp_applicant_selection_process
+						WHERE process_id > (SELECT process_id
+					   FROM tp_applicant_selection_process
+					   WHERE position_step_id_to = ta.applicant_step_id
+					     AND applicant_id = ta.applicant_id
+					   ORDER BY process_id DESC LIMIT 0,
+                                  1) 
+						AND position_step_id_from = ta.applicant_step_id 
+						AND applicant_id = ta.applicant_id
+						AND position_step_id_to != ? 
+						ORDER BY process_id DESC LIMIT 0,1
+					) AS vv_process_id,
+					(
+						SELECT appointment_id
+						FROM tp_appointments AS tapo 
+						WHERE tapo.appointment_date_created > (
+						SELECT process_date_created 
+						FROM tp_applicant_selection_process
+						WHERE process_id = (SELECT process_id
+				   FROM tp_applicant_selection_process
+				   WHERE position_step_id_to = ta.applicant_step_id
+				     AND applicant_id = ta.applicant_id
+				   ORDER BY process_id DESC LIMIT 0,
+                                  1)
+					) 
+						AND tapo.position_step_id = ta.applicant_step_id 
+						AND tapo.appointment_status_id != ? 
+						AND tapo.applicant_id=ta.applicant_id 
+						ORDER BY tapo.appointment_date_created DESC LIMIT 0,1
+					) AS v_appointment_id,		
+					(
+						SELECT appointment_from_date 
+						FROM tp_appointments 
+						WHERE appointment_id = 	(
+						SELECT appointment_id
+						FROM tp_appointments AS tapo 
+						WHERE tapo.appointment_date_created > (
+						SELECT process_date_created 
+						FROM tp_applicant_selection_process
+						WHERE process_id = (SELECT process_id
+				   FROM tp_applicant_selection_process
+				   WHERE position_step_id_to = ta.applicant_step_id
+				     AND applicant_id = ta.applicant_id
+				   ORDER BY process_id DESC LIMIT 0,
+                                  1)
+					) 
+						AND tapo.position_step_id = ta.applicant_step_id 
+						AND tapo.appointment_status_id != ?
+						AND tapo.applicant_id=ta.applicant_id 
+						ORDER BY tapo.appointment_date_created DESC LIMIT 0,1
+					)
+					) AS v_appointment_from_date,
+					(
+						SELECT COUNT(*) 
+						FROM tp_appointments tap, tp_appointment_attendees taa, tp_position_step_users tpsu
+						WHERE tap.appointment_id=taa.appointment_id 
+						AND taa.attendee_id=tpsu.user_id 
+						AND tap.position_step_id =tpsu.position_step_id
+						AND tpsu.is_authorized_to_move=?
+						AND tap.appointment_id=	(
+						SELECT appointment_id
+						FROM tp_appointments AS tapo 
+						WHERE tapo.appointment_date_created > (
+						SELECT process_date_created 
+						FROM tp_applicant_selection_process
+						WHERE process_id = (SELECT process_id
+				   FROM tp_applicant_selection_process
+				   WHERE position_step_id_to = ta.applicant_step_id
+				     AND applicant_id = ta.applicant_id
+				   ORDER BY process_id DESC LIMIT 0,
+                                  1)
+					) 
+						AND tapo.position_step_id = ta.applicant_step_id 
+						AND tapo.appointment_status_id != ? 
+						AND tapo.applicant_id=ta.applicant_id 
+						ORDER BY tapo.appointment_date_created DESC LIMIT 0,1
+					)
+						GROUP BY tap.appointment_id
+					) AS vv_attendee_decision_maker,
+					(
+						SELECT tasm.status_message 
+						FROM tp_applicant_status_messages tasm
+						WHERE tasm.applicant_id = ta.applicant_id 
+						AND tasm.position_step_id = ta.applicant_step_id
+						AND tasm.date_created > (
+						SELECT process_date_created 
+						FROM tp_applicant_selection_process
+						WHERE process_id = (SELECT process_id
+				   FROM tp_applicant_selection_process
+				   WHERE position_step_id_to = ta.applicant_step_id
+				     AND applicant_id = ta.applicant_id
+				   ORDER BY process_id DESC LIMIT 0,
+                                  1)
+					)
+						ORDER BY tasm.date_created DESC 
+						LIMIT 0,1
+					) AS selected_message			
+					FROM tp_applicants ta, tp_positions tpos, tp_position_steps tps,tp_position_step_users tpu
+					WHERE ta.applicant_position_id IS NOT NULL
+					AND ta.applicant_step_id IS NOT NULL
+					AND tpos.position_status=? 
+					AND tpos.position_id = ta.applicant_position_id
+					AND tps.position_step_id = ta.applicant_step_id
+					AND tps.position_step_id = tpu.position_step_id
+					 @@
+					@@
+					@@
+				) AS TBL 
+			) AS TBL2
+			@@
+			) AS TBL3
+			@@
+			)			
+			UNION 
+			(
+				SELECT '' AS applicant_id, '' AS applicant_name, '' AS current_employer, '' AS applicant_cell_phone, 
+				'' AS flags, '' AS date, '' AS applicant_date_joined, now() AS applicant_working_since, 					 
+				tp.position_id, tp.position_title, traf_alias2.to_step_id AS position_step_id, 
+				tras.requisition_approval_step_name AS position_step_title, '' AS v_position_step_isscheduled, 
+				'' AS position_step_rank, '' AS dept_name, '' AS v_process_id, '' AS vv_process_id, traf_alias2.feedback_date AS v_process_date_created,  
+				traf_alias2.feedback_date AS v_process_moved_date, 
+				'' AS v_appointment_id, '' AS v_appointment_from_date, '' AS selected_message, '' AS users_responsible, 
+			   concat('Approve requisition in', ' ', tras.requisition_approval_step_name) AS action_required, ? AS action_type, 
+				'1' AS count, '' AS email_id 
+				FROM tp_positions tp, ( 
+					SELECT * from ( 
+					SELECT  traf.* FROM tp_positions tpos, 
+					tp_requisition_approval_feedback traf 
+					WHERE  traf.position_id = tpos.position_id 
+					AND tpos.position_status=? 
+					ORDER BY feedback_id desc 
+					) as traf_alias 
+					GROUP BY traf_alias.position_id 
+				)as traf_alias2, 
+				tp_requisition_approval_steps tras 
+				WHERE  
+				tp.position_id = traf_alias2.position_id 
+				AND traf_alias2.to_step_id=tras.requisition_approval_step_id 
+				AND traf_alias2.to_user_id=? 
+				@@
+			)
+			UNION
+			(
+				SELECT TBL8.applicant_id AS applicant_id, tpa.applicant_name AS applicant_name, 
+					tpa.applicant_current_employer AS current_employer, tpa.applicant_cell_phone AS applicant_cell_phone, 
+					'' AS flags, '' AS date, tpa.applicant_date_joined AS applicant_date_joined, 
+					tpa.applicant_working_since AS applicant_working_since, TBL8.position_id AS position_id,  
+					tpp.position_title AS position_title, TBL8.position_step_id AS position_step_id, 
+					tpps.position_step_title AS position_step_title, tpps.position_step_isscheduled AS v_position_step_isscheduled, 
+					tpps.position_step_rank AS position_step_rank, '' AS dept_name, '' AS v_process_id, 
+					'' AS vv_process_id, '' AS v_process_date_created, NULL AS v_process_moved_date, 
+					'' AS v_appointment_id, '' AS v_appointment_from_date, '' AS selected_message, '' AS users_responsible, 
+					CONCAT('Clear draft') AS action_required, ? AS action_type, '1' as count, TBL8.email_id
+				FROM (
+				SELECT applicant_id, position_id, position_step_id, email_id
+							FROM tp_inbox_emails tie
+							WHERE tie.folder_id = (SELECT folder_id 
+										FROM tp_inbox_folders
+										WHERE is_system_defined = ?)
+							@@
+							
+				) AS TBL8
+				LEFT JOIN tp_applicants tpa ON (tpa.applicant_id = TBL8.applicant_id)
+				LEFT JOIN tp_positions tpp ON (tpp.position_id = TBL8.position_id)
+				LEFT JOIN tp_position_steps tpps ON (tpps.position_step_id = TBL8.position_step_id)
+				WHERE @@
+			)
+			@@
+			@@
+	    </dbquery>	   
+	    <dbquery name="qSelectionProcessManager_GetDistinctStepTitles">
+	    	select distinct tps.position_step_title 
+				from tp_position_steps tps, tp_positions tp 
+				where tp.position_id=tps.position_id
+				and position_status = ?
+				and position_step_status = ? 
+				@@
+				order by tps.position_step_title
+	    </dbquery>
+	    <!-- End: Select -->
+	    <!-- Start: Hire -->
+	    <dbquery name="qSelectionProcessManager_GetJoinedApplicants">
+	    	select ta.applicant_id, ta.applicant_name,  
+	    	tajh.joining_date as applicant_date_joined, 
+				(select dept_name 
+				from tp_departments td
+				where td.dept_id=tp.dept_id) as dept_name, @@ as position_title
+				from tp_applicant_joining_history tajh, tp_applicants ta, tp_positions tp
+				where ta.applicant_id = tajh.applicant_id
+				and tajh.position_id=tp.position_id @@
+	    </dbquery>
+	    <!-- End: Hire -->
+	    <dbquery name="qSelectionProcessManager_GetPositionStepUsers">
+	    	select user_id from tp_position_step_users
+				where position_step_id = ?
+				and is_responsible_for_scheduling = ?
+				and is_authorized_to_move = ?
+	    </dbquery>
+	     <dbquery name="qSelectionProcessManager_GetPositionStepUsersOfAllTypes">
+	    	SELECT distinct tpsu.user_id, concat(tu.user_fname," ",tu.user_lname) as user_title 
+	    	FROM tp_position_step_users tpsu
+	    	LEFT JOIN tp_users tu ON (tu.user_id=tpsu.user_id)
+			WHERE tpsu.position_step_id = ?
+	    </dbquery>
+	    <dbquery name="qSelectionProcessManager_GetUsersAtUpperLevelInFunnel">
+	    	select distinct tpsu.user_id
+			from tp_position_step_users tpsu, tp_position_steps tps
+			where tpsu.position_step_id = tps.position_step_id 
+			and tps.position_id = ?
+			and tps.position_step_rank &gt; (select position_step_rank from tp_position_steps where position_step_id = ?)
+			and tps.position_step_status=?
+	    </dbquery>	  
+	    <dbquery name="qSelectionProcessManager_GetFeedbackEntry">
+	    	select process_id
+			from tp_applicant_selection_process
+			where position_step_id_from = ?
+			and applicant_id = ?
+			and process_date_created &gt; (select process_date_created
+						from tp_applicant_selection_process
+						where process_id = ?)
+	    </dbquery>  
+		<dbquery name="qSelectionProcessManager_GetMessageDetails">
+			SELECT tm.applicant_id, tm.message_from, tm.message_text, tm.message_date, 
+			tapp.applicant_name, ts.source_title,
+			(
+				SELECT concat(tu.user_fname, ' ', tu.user_lname) FROM tp_users tu 
+				WHERE tu.user_id = tm.message_from
+			) AS messageFromUser,
+			(
+				SELECT group_concat(concat(tu.user_fname, ' ', tu.user_lname) ORDER BY concat(tu.user_fname, ' ', tu.user_lname) SEPARATOR ', ')
+				FROM tp_users tu , tp_messages_to tmt
+				WHERE tmt.message_id=tm.message_id
+				AND tmt.message_to = tu.user_id 
+				AND tmt.message_received_type=?
+			) AS messageToUser,
+			(
+				SELECT group_concat(concat(tu.user_fname, ' ', tu.user_lname) ORDER BY concat(tu.user_fname, ' ', tu.user_lname) SEPARATOR ', ') 
+				FROM tp_users tu , tp_messages_to tmt
+				WHERE tmt.message_id=tm.message_id
+				AND tmt.message_to = tu.user_id 
+				AND tmt.message_received_type=?
+			) AS messageCcUser
+			FROM tp_messages tm, tp_applicants tapp , tp_sources ts
+			WHERE tm.applicant_id = tapp.applicant_id 
+			AND ts.source_id = tapp.source_id and tm.message_id = ?
+		</dbquery>
+		<dbquery name ="qUpdateEmailHideInteraction">
+			UPDATE tp_applicant_inbox_emails SET email_is_hidden = CASE WHEN email_is_hidden=? THEN ? ELSE ? END  
+			WHERE email_id=?
+	    </dbquery>
+	    <dbquery name ="qUpdateSelectionProcessHideInteraction">
+			UPDATE tp_applicant_selection_process SET selection_process_is_hidden = CASE WHEN selection_process_is_hidden=? THEN ? ELSE ? END  
+			WHERE process_id=?
+	    </dbquery>   
+	    <dbquery name ="qUpdateCommunicationHideInteraction">
+			UPDATE tp_communications SET communication_is_hidden = CASE WHEN communication_is_hidden=? THEN ? ELSE ? END  
+			WHERE communication_id=?
+	    </dbquery>  
+		<dbquery name ="qUpdateMessageHideInteraction">
+			UPDATE tp_messages SET message_is_hidden = CASE WHEN message_is_hidden=? THEN ? ELSE ? END  
+			WHERE message_id=?
+	    </dbquery>
+	    <dbquery name ="qUpdateStatusMessageHideInteraction">
+			UPDATE tp_applicant_status_messages SET status_message_is_hidden = CASE WHEN status_message_is_hidden=? THEN ? ELSE ? END  
+			WHERE status_message_id=?
+	    </dbquery>
+	    <dbquery name ="qUpdateOfferDetailsModifiedHideInteraction">
+			UPDATE tp_offer_details_modified_interactions SET interaction_hidden = CASE WHEN interaction_hidden=? THEN ? ELSE ? END  
+			WHERE interaction_id=?
+	    </dbquery>
+	    <dbquery name ="qSelectionProcessManager_GetApplicantsUserIdAndPositionStatus">
+			SELECT user_id, position_status 
+			FROM tp_applicant_selection_process tasp , tp_positions tpos
+			WHERE tpos.position_id = tasp.position_id AND tasp.applicant_id=?
+			ORDER BY process_id DESC 
+			LIMIT 0, 1
+	    </dbquery>
+	    <dbquery name ="qSelectionProcessManager_GetLastStepFromApplicantsSelectionProcess">
+			SELECT process_id, position_step_id_from, position_step_id_to, user_id, position_id, process_date_created
+			FROM tp_applicant_selection_process
+			WHERE applicant_id=?
+			ORDER BY process_id DESC LIMIT 0,1
+	    </dbquery>
+	    <dbquery name ="qDeleteApplicantProcessStepTraits">
+			DELETE FROM tp_applicant_selection_process_traits WHERE process_id=? AND user_id=?
+	    </dbquery>
+	    <dbquery name ="qSelectionProcessManager_GetLastUserIdFromSelectionProcessTraits">
+			SELECT user_id FROM tp_applicant_selection_process_traits WHERE process_id=?
+			ORDER BY feedback_form_field_id DESC LIMIT 0,1
+	    </dbquery>
+	    <dbquery name ="qSelectionProcessManager_GetIsStepSchedulable">
+			SELECT position_step_isscheduled FROM tp_position_steps WHERE position_step_id=?
+	    </dbquery>
+	    <dbquery name ="qSelectionProcessManager_UpdateApplicantsSelectionProcess">
+			UPDATE tp_applicant_selection_process SET user_id=?, position_step_id_to=? WHERE process_id=? AND applicant_id=?
+	    </dbquery>
+	    <dbquery name ="qSelectionProcessManager_DeleteApplicantSelectionProcessStep">
+			DELETE FROM tp_applicant_selection_process WHERE process_id=?
+	    </dbquery>
+	    <dbquery name ="qSelectionProcessManager_updateApplicantStepWithOldStepId">
+			UPDATE tp_applicants SET applicant_position_id=?, applicant_step_id=? WHERE applicant_id=?
+	    </dbquery>
+	    <dbquery name ="qSelectionProcessManager_updateApplicantsJoiningStatus">
+			UPDATE tp_applicants SET applicant_joined=?  ,applicant_date_joined=?  WHERE applicant_id=?
+	    </dbquery>
+	    <dbquery name ="qSelectionProcessManager_GetApplicantsAppointmentId">
+			SELECT appointment_id FROM tp_appointments WHERE applicant_id=? AND position_id=? AND position_step_id=?
+			ORDER BY appointment_id DESC LIMIT 0,1
+	    </dbquery>
+	    <dbquery name ="qSelectionProcessManager_updateApplicantsAppointmentStatus">
+			UPDATE tp_appointments SET appointment_status_id=? WHERE appointment_id = ?
+	    </dbquery>
+	    <dbquery name ="qSelectionProcessManager_GetApplicantsAppointmentDate">
+			SELECT appointment_from_date FROM tp_appointments WHERE applicant_id=? AND position_id=? AND position_step_id=?
+			ORDER BY appointment_from_date DESC LIMIT 0,1
+	    </dbquery>
+	    <dbquery name ="qSelectionProcessManager_InsertReminder">
+			INSERT INTO tp_reminder (applicant_id,user_id,reminder_date,reminder_desc) VALUES(?,?,?,?)
+	    </dbquery>
+	    <dbquery name ="qSelectionProcessManager_UpdateReminder">
+			UPDATE tp_reminder SET reminder_date=?, reminder_desc=?, applicant_id=?, user_id=? WHERE reminder_id=?
+	    </dbquery>
+	    <dbquery name ="qSelectionProcessManager_GetApplicantReminder">
+			SELECT reminder_date,reminder_desc,applicant_id FROM tp_reminder WHERE reminder_id=?
+	    </dbquery>
+	    <dbquery name="qSelection_GetStepLevel">
+	    	SELECT position_step_level FROM tp_position_steps WHERE position_step_id=?
+	    </dbquery>
+	    <dbquery name="qSelection_UpdateIntercationIsHidden">
+	    	update tp_applicant_selection_process set selection_process_is_hidden = ? where process_id = ?
+	    </dbquery>
+	    <dbquery name="qSelection_stepAttendees">
+		    SELECT user_id FROM tp_position_step_users
+			WHERE position_step_id=? AND is_responsible_for_scheduling=? AND is_authorized_to_move=?
+		</dbquery>	
+		<dbquery name="qSelection_GetFlagsWithNoOfApplicants">
+			SELECT tpac.flag_id, count(tpac.applicant_id) as applicant_count
+			FROM tp_applicant_flags tpac, tp_flags tpc
+			WHERE tpac.flag_id=tpc.flag_id 
+			AND ( flag_type=? OR user_id=? )
+			AND tpac.applicant_id in(@@)
+			GROUP BY tpac.flag_id
+			ORDER BY tpc.flag_text
+		</dbquery>	
+		<dbquery name="qSelection_GetAllFlags">
+			select tf.flag_id, tf.flag_image, tf.flag_text, tf.flag_type, tf.flag_status, tf.user_id, tf.date_created,
+			concat(tu.user_fname, ' ', tu.user_lname) as name 
+			from tp_flags tf left join tp_users tu on (tu.user_id = tf.user_id)
+			where tf.flag_type = ? or tf.user_id = ?
+		</dbquery>
+		<dbquery name="qSelectionProcessManager_GetVendorEmailAddress">
+			SELECT tu.USER_EMAIL FROM tp_users tu WHERE user_id = (
+				SELECT vendor_id FROM tp_applicants WHERE applicant_id=?
+			)
+		</dbquery>
+		<dbquery name="qSelectionProcessManager_GetLastProcessDataForBulkFeedback">
+			SELECT * FROM (
+				SELECT tasp.user_id, tasp.process_id, tasp.applicant_id,  tasp.position_id,
+					CASE WHEN tasp.position_step_id_to &gt; ? THEN
+						tasp.position_step_id_to
+					ELSE
+						tasp.position_step_id_from
+					END AS current_step_id,
+					tapp.appointment_id, tapp.appointment_from_date, tapp.appointment_status_id,
+					tasp.position_step_id_from, tasp.position_step_id_to,
+					tps.position_step_title, tps.position_step_isscheduled, tps.position_step_level, 
+					tpos.position_title, tpos.position_code, 
+					ta.applicant_name, ta.applicant_working_since,
+					ta.applicant_current_employer, ta.applicant_date_joined, ta.employee_code, 
+					ta.offered_ctc, ta.offered_basic, ta.applicant_level_offered, ta.applicant_designation_offered, 
+					ta.input_salary_variable, tps.feedback_form_id
+				FROM 
+				tp_applicants ta
+					LEFT JOIN tp_applicant_selection_process tasp ON(tasp.position_id=ta.applicant_position_id)
+					LEFT JOIN tp_appointments tapp ON (tasp.applicant_id=tapp.applicant_id 
+								AND tapp.position_step_id = (
+														CASE WHEN tasp.position_step_id_to &gt; ? THEN
+															tasp.position_step_id_to
+														ELSE
+															tasp.position_step_id_from
+														END
+													)
+							)
+					,tp_positions tpos
+					,tp_position_steps tps
+					
+				WHERE 
+					tasp.process_id in( SELECT max(process_id) from tp_applicant_selection_process where applicant_id in @@ group by applicant_id )
+					AND tasp.applicant_id=ta.applicant_id
+					AND tpos.position_id=ta.applicant_position_id
+					AND ta.applicant_step_id=tps.position_step_id	
+					AND ( @@ )
+				and tasp.process_id=(select max(tpsad.process_id) from tp_applicant_selection_process
+				tpsad where tpsad.applicant_id=tasp.applicant_id and tpsad.position_id=tasp.position_id)
+				GROUP BY tasp.applicant_id, tasp.position_id 
+			) AS x
+		
+		</dbquery>
+		<dbquery name="qSelectionProcessManager_GetPositionStepForUser">
+			SELECT COUNT(*) FROM tp_position_step_users WHERE user_id=? AND position_step_id=?
+		</dbquery>
+		<dbquery name="qSelectionProcessManager_GetNextStepsForPosition">
+			SELECT position_step_id, position_step_title, position_step_level, position_step_isoptional, feedback_form_id 
+			FROM tp_position_steps WHERE position_id=?
+			AND position_step_status=? 
+			@@
+			ORDER BY position_step_rank
+		</dbquery>
+		<dbquery name="qSelectionProcessManager_UndoJoiningHistory">
+		delete from tp_applicant_joining_history
+			where applicant_joining_history_id in (select applicant_joining_history_id from
+								(select * from (select applicant_joining_history_id from
+								(select applicant_joining_history_id, applicant_id 
+								from tp_applicant_joining_history
+								where applicant_id = ?
+								order by date_created desc
+								) as tbl
+								group by tbl.applicant_id
+								) as t) as t1)
+		</dbquery>
+		<dbquery name="qSelectionProcessManager_AddTempTraits">
+			INSERT INTO tp_applicant_selection_process_temp_traits (session_id, applicant_id, feedback_form_field_id, 
+			trait_comment, user_id, rating_field_id) 
+			VALUES (?, ?, ?, ?, ?, ?)
+		</dbquery>
+		<dbquery name="qSelectionProcessManager_DeleteTempTraits">
+			delete from tp_applicant_selection_process_temp_traits
+			where session_id = ? AND applicant_id = ? AND user_id = ?
+		</dbquery>
+		<dbquery name="qSelectionProcessManager_GetTempTraits">
+			SELECT feedback_form_field_id, trait_comment, rating_field_id, select_field_id, feedback_form_id
+			FROM tp_applicant_selection_process_temp_traits 
+			WHERE session_id=? AND applicant_id=? AND user_id =?
+		</dbquery>
+		<dbquery name="qSelectionProcessManager_GetInProcessApplicants">
+			SELECT * ,
+			(SELECT group_concat(taf.flag_id) 
+				FROM tp_applicant_flags taf 
+				LEFT JOIN tp_flags tpf ON (tpf.flag_id = taf.flag_id) 
+				WHERE taf.applicant_id = todo.applicant_id AND (tpf.user_id = ? OR tpf.flag_type = ? )
+				) AS flags,
+				(SELECT tasm.status_message FROM tp_applicant_status_messages tasm 
+					WHERE tasm.applicant_id=todo.applicant_id AND tasm.position_step_id=todo.current_step_id
+					ORDER by tasm.status_message_id DESC
+					LIMIT 0,1 )AS status_message
+			FROM(
+				SELECT *,
+					group_concat(distinct todo.user_fname ORDER BY todo.user_fname SEPARATOR ', ' ) as users
+					FROM (
+					SELECT 
+						todo.applicant_id, ta.applicant_name, ta.applicant_working_since, 
+						ta.applicant_current_employer, ta.applicant_date_joined,
+						ta.applicant_cell_phone, td.dept_name, ta.vendor_id,
+						todo.position_id, ( @@ ) AS position_title, tpos.position_type_ext_int,
+						todo.due_date, todo.appointment_time,todo.current_step_id,
+						tps.position_step_title, tps.position_step_isscheduled, tps.position_step_rank,
+						todo.appointment_status_id, tu.user_fname,ts.source_title,
+						CASE WHEN todo.step_isscheduled=? THEN 
+							CASE WHEN todo.appointment_time IS NULL THEN
+								IF(todo.user_responsible_for_scheduling=?,1,0)
+							ELSE
+								CASE WHEN todo.appointment_time &lt; now() THEN
+									CASE WHEN (todo.appointment_status_id !=? AND todo.appointment_status_id !=?) THEN
+										CASE WHEN todo.interviewer_can_confirm=? THEN
+											IF(todo.user_is_interviewer=? OR todo.user_responsible_for_scheduling=?,1,0)		
+										ELSE
+											IF(todo.user_responsible_for_scheduling=?,1,0)		
+										END
+									ELSE
+										IF(todo.user_is_interviewer=? OR todo.user_is_decision_maker=?,1,0)		
+									END
+								ELSE
+									IF(todo.user_is_interviewer=?,1,0)
+								END
+							END
+						ELSE 
+							1
+						END AS todoUser
+											
+					FROM 
+						tp_todo todo 
+						LEFT JOIN tp_users tu ON (todo.user_id=tu.user_id AND todo.feedback_present=?)		
+						,tp_positions tpos LEFT JOIN tp_departments td ON (tpos.dept_id = td.dept_id)
+						,tp_applicants ta LEFT JOIN tp_sources ts ON (ta.source_id=ts.source_id)
+						,tp_position_steps tps
+						
+					WHERE 
+						todo.position_id=tpos.position_id
+						AND todo.current_step_id = tps.position_step_id
+						AND todo.applicant_id=ta.applicant_id		
+						AND todo.todo_type=?
+						AND tpos.position_status = ?
+						@@
+				)AS todo
+				WHERE todo.todoUser=1
+				GROUP BY todo.applicant_id, todo.position_id 
+				ORDER BY todo.applicant_name
+			) AS todo
+			@@
+		</dbquery>
+		<dbquery name="qSelectionProcessManager_GetLatestAppointmentsForApplicant">
+			select tpa.appointment_id, tpa.position_id, tpa.position_step_id, tpa.appointment_from_date, tpa.appointment_status_id  
+			from tp_appointments tpa, tp_applicants ta 
+			where tpa.applicant_id = ? 
+			and ta.applicant_id = tpa.applicant_id
+			and tpa.position_id = ta.applicant_position_id
+			and tpa.position_step_id = ta.applicant_step_id
+			order by tpa.appointment_from_date desc 
+			limit 0, 1
+		</dbquery>
+		<dbquery name="qSelectionProcessManager_GetSourceMailandType">
+			select 
+				s.source_email,
+				s.source_type_id
+			from 
+				tp_sources s
+			where 
+				s.source_id=?
+		</dbquery>
+		<dbquery name="qSelectionProcessManager_GetApplicantProcessIds">
+		select cast(group_concat(DISTINCT tasp.process_id ORDER BY tasp.process_id desc SEPARATOR ',' ) as char) 
+		from tp_applicant_selection_process tasp,tp_applicants ta 
+		where tasp.applicant_id=? and tasp.position_step_id_from!=? and tasp.position_id=ta.applicant_position_id
+		@@ 
+		</dbquery>
+		<dbquery name="qSelection_GetApplicantOfferDetails">
+		select 
+			ta.applicant_id,
+			ta.applicant_Name,
+			ts.source_title,
+			CONCAT(tp.position_title,' [',tp.position_code,']') as position_title,
+			tg.grade_id,
+			tg.grade_name,
+			ta.offered_ctc,
+			ta.applicant_level_offered,
+			ta.offered_basic,
+			ta.applicant_designation_offered,
+			ta.input_salary_variable
+		from 
+			tp_applicants ta
+			LEFT JOIN tp_sources ts ON (ta.source_id=ts.source_id),
+			tp_positions tp	
+			LEFT JOIN tp_budget_grades tg ON (tg.grade_id=tp.grade_id)
+		where 
+			ta.applicant_position_id = tp.position_id AND
+			ta.applicant_id=?
+		</dbquery>
+		<dbquery name="qSelection_SaveApplicantOfferDetails">
+			UPDATE tp_applicants SET  
+			offered_ctc=?, offered_basic=?,
+			applicant_level_offered=?, applicant_designation_offered=?,
+			input_salary_variable=?
+			WHERE  applicant_id =?
+		</dbquery>
+		<dbquery name="qApplicantManager_getApplicantSelectionProcessData">
+			SELECT ta.applicant_id,ta.applicant_step_id,ta.applicant_position_id from tp_applicants as ta
+			WHERE ta.applicant_id = ?
+		</dbquery>
+		<dbquery name="qSelectionProcess_GetUsersWithPendngAction">
+			SELECT GROUP_CONCAT(tu.user_fname,' ',tu.user_lname SEPARATOR ', ') FROM 
+			tp_applicant_selection_process tasp, tp_todo todo, tp_users tu
+			WHERE  tasp.process_id=todo.process_id 
+			AND todo.user_id=tu.user_id
+			@@ 
+			AND todo.user_id!=? AND todo.feedback_present=? AND user_responsible_for_scheduling!=?
+		</dbquery>
+		<dbquery name="qSelectionProcess_IsApplicantInHireStage">
+			SELECT 
+			CASE WHEN ta.applicant_position_id IS NOT NULL
+			     THEN 
+				CASE WHEN (ta.applicant_joined=? OR tps.position_step_level=?)
+				     THEN 1
+				     ELSE 0 END
+			     ELSE 0 END AS applicant_in_hire_stage
+			FROM tp_applicants AS ta 
+			LEFT JOIN tp_position_steps tps ON(ta.applicant_position_id = tps.position_id  AND tps.position_step_id = ta.applicant_step_id)
+			WHERE ta.applicant_id=?
+		</dbquery>
+		<dbquery name="qSelectionProcess_GetAllFeedbackApplicantDataWithProcessId">
+			SELECT ta.applicant_id,
+				ta.applicant_name,
+				ta.applicant_step_id,
+				ta.applicant_original_resume_path,
+				ta.applicant_date_joined,
+				ta.offered_ctc,
+				ta.applicant_level_offered,
+				ta.applicant_designation_offered,
+				ta.joining_Bonus,
+				ta.variable_Offered,
+				ta.employee_code,
+				ta.offered_basic,
+				tp.position_title,
+				tp.position_id,
+				ts.source_title,
+				tasp.user_id,
+				CONCAT(tu.user_fname, ' ', tu.user_lname) AS user_name,
+				tasp.position_step_id_from AS fromStepId,
+				tasp.position_step_id_to AS toStepId,
+				(CASE 
+		         WHEN tasp.position_step_id_from=? THEN ?
+		         ELSE (tps1.position_step_title ) 
+		         END) AS fromStepTitle, 
+		        tps.position_step_title as toStepTitle, 
+				tasp.process_moved_date,
+				all_fields.feedback_form_id,
+				all_fields.feedback_form_title,
+				all_fields.feedback_form_header,
+				all_fields.category_id,
+				all_fields.category_name,
+				all_fields.summary_field,
+				all_fields.feedback_field_id,
+				all_fields.feedback_field_title,
+				all_fields.feedback_field_type,
+				all_fields.system_generated,
+				all_fields.applicant_field_id,
+				all_fields.feedback_form_field_id,
+				all_fields.feedback_form_field_desc,
+				all_fields.feedback_form_field_type,
+				all_fields.feedback_form_field_display_type,
+				all_fields.feedback_form_field_is_mandatory,
+				all_fields.rating_id,
+				all_fields.select_id,
+				all_fields.feedback_form_field_comment_required,	
+				all_fields.feedback_form_field_rank,
+				taspt.user_id AS interviewer_id,
+				taspt.trait_comment,
+				taspt.rating_field_id,
+				trf.rating_field_desc,
+				taspt.select_field_id
+				FROM tp_applicant_selection_process tasp
+				LEFT JOIN tp_users tu ON (tasp.user_id = tu.user_id)
+				LEFT JOIN tp_applicant_selection_process_traits taspt ON(taspt.process_id=tasp.process_id)
+				LEFT JOIN tp_rating_fields trf ON (trf.rating_field_id=taspt.rating_field_id)
+				LEFT JOIN tp_position_steps tps  ON tps.position_step_id = tasp.position_step_id_to
+       			LEFT JOIN tp_position_steps tps1 ON tps1.position_step_id =tasp.position_step_id_from
+				LEFT JOIN tp_multiple_select_fields tmsf ON (tmsf.select_field_id=taspt.select_field_id)
+				LEFT JOIN
+				(SELECT tfbfrm.feedback_form_id,
+						tfbfrm.feedback_form_title,
+						tfbfrm.feedback_form_header,
+						tfbfldCat.category_id,
+						tfbfldCat.category_name,
+						tfbfldCat.summary_field,
+						tfbfrmflds.feedback_field_id,
+						tfbfld.feedback_field_title,
+						tfbfld.feedback_field_type,
+						tfbfld.system_generated,
+						tfbfld.applicant_field_id,
+						tfbfrmflds.feedback_form_field_id,
+						tfbfrmflds.feedback_form_field_desc,
+						tfbfrmflds.feedback_form_field_type,
+						tfbfrmflds.feedback_form_field_display_type,
+						tfbfrmflds.feedback_form_field_is_mandatory,
+						tfbfrmflds.rating_id,
+						tfbfrmflds.select_id,
+						tfbfrmflds.feedback_form_field_comment_required,	
+						tfbfrmflds.feedback_form_field_rank
+					FROM tp_feedback_forms tfbfrm
+					LEFT JOIN tp_feedback_form_fields tfbfrmflds ON (tfbfrmflds.feedback_form_id=tfbfrm.feedback_form_id)
+					LEFT JOIN tp_feedback_fields tfbfld ON (tfbfld.feedback_field_id=tfbfrmflds.feedback_field_id)
+					LEFT JOIN tp_feedback_field_categories tfbfldCat ON (tfbfldCat.category_id=tfbfld.category_id)
+				WHERE tfbfrmflds.feedback_form_field_type=? ) AS all_fields ON (all_fields.feedback_form_field_id=taspt.feedback_form_field_id), 
+				tp_applicants ta,
+				tp_sources ts,
+			    tp_positions tp
+				WHERE tasp.applicant_id = ta.applicant_id
+				AND ta.source_id = ts.source_id
+				AND tasp.position_id = tp.position_id
+				AND tasp.process_id =? @@
+				GROUP BY all_fields.feedback_form_id,interviewer_id,all_fields.feedback_form_field_id
+				ORDER BY feedback_form_title,all_fields.feedback_form_field_rank
+		</dbquery>
+		<dbquery name="qSelectionProcess_GetAllFeedbackApplicantDataWithProcessIdForCandidate">
+			SELECT ta.applicant_id,
+				ta.applicant_name,
+				ta.applicant_step_id,
+				ta.applicant_original_resume_path,
+				ta.applicant_date_joined,
+				ta.offered_ctc,
+				ta.applicant_level_offered,
+				ta.applicant_designation_offered,
+				ta.joining_Bonus,
+				ta.variable_Offered,
+				ta.employee_code,
+				ta.offered_basic,
+				tp.position_title,
+				tp.position_id,
+				ts.source_title,
+				tasp.user_id,
+				CONCAT(tu.user_fname, ' ', tu.user_lname) AS user_name,
+				tasp.position_step_id_from AS fromStepId,
+				tasp.position_step_id_to AS toStepId,
+				(CASE 
+		         WHEN tasp.position_step_id_from=? THEN ?
+		         ELSE (tps1.position_step_title ) 
+		         END) AS fromStepTitle, 
+		        tps.position_step_title as toStepTitle, 
+				tasp.process_moved_date,
+				all_fields.feedback_form_id,
+				all_fields.feedback_form_title,
+				all_fields.feedback_form_header,
+				all_fields.category_id,
+				all_fields.category_name,
+				all_fields.summary_field,
+				all_fields.feedback_field_id,
+				all_fields.feedback_field_title,
+				all_fields.feedback_field_type,
+				all_fields.system_generated,
+				all_fields.applicant_field_id,
+				all_fields.feedback_form_field_id,
+				all_fields.feedback_form_field_desc,
+				all_fields.feedback_form_field_type,
+				all_fields.feedback_form_field_display_type,
+				all_fields.feedback_form_field_is_mandatory,
+				all_fields.rating_id,
+				all_fields.select_id,
+				all_fields.feedback_form_field_comment_required,	
+				all_fields.feedback_form_field_rank,
+				taspt.user_id AS interviewer_id,
+				taspt.trait_comment,
+				taspt.rating_field_id,
+				trf.rating_field_desc,
+				taspt.select_field_id
+				FROM tp_applicant_questionnaire_response tasp
+				LEFT JOIN tp_users tu ON (tasp.user_id = tu.user_id)
+				LEFT JOIN tp_applicant_questionnaire_traits taspt ON(taspt.process_id=tasp.process_id)
+				LEFT JOIN tp_rating_fields trf ON (trf.rating_field_id=taspt.rating_field_id)
+				LEFT JOIN tp_position_steps tps  ON tps.position_step_id = tasp.position_step_id_to
+       			LEFT JOIN tp_position_steps tps1 ON tps1.position_step_id =tasp.position_step_id_from
+				LEFT JOIN tp_multiple_select_fields tmsf ON (tmsf.select_field_id=taspt.select_field_id)
+				LEFT JOIN
+				(SELECT tfbfrm.feedback_form_id,
+						tfbfrm.feedback_form_title,
+						tfbfrm.feedback_form_header,
+						tfbfldCat.category_id,
+						tfbfldCat.category_name,
+						tfbfldCat.summary_field,
+						tfbfrmflds.feedback_field_id,
+						tfbfld.feedback_field_title,
+						tfbfld.feedback_field_type,
+						tfbfld.system_generated,
+						tfbfld.applicant_field_id,
+						tfbfrmflds.feedback_form_field_id,
+						tfbfrmflds.feedback_form_field_desc,
+						tfbfrmflds.feedback_form_field_type,
+						tfbfrmflds.feedback_form_field_display_type,
+						tfbfrmflds.feedback_form_field_is_mandatory,
+						tfbfrmflds.rating_id,
+						tfbfrmflds.select_id,
+						tfbfrmflds.feedback_form_field_comment_required,	
+						tfbfrmflds.feedback_form_field_rank
+					FROM tp_feedback_forms tfbfrm
+					LEFT JOIN tp_feedback_form_fields tfbfrmflds ON (tfbfrmflds.feedback_form_id=tfbfrm.feedback_form_id)
+					LEFT JOIN tp_feedback_fields tfbfld ON (tfbfld.feedback_field_id=tfbfrmflds.feedback_field_id)
+					LEFT JOIN tp_feedback_field_categories tfbfldCat ON (tfbfldCat.category_id=tfbfld.category_id)
+				WHERE tfbfrmflds.feedback_form_field_type=? ) AS all_fields ON (all_fields.feedback_form_field_id=taspt.feedback_form_field_id), 
+				tp_applicants ta,
+				tp_sources ts,
+			    tp_positions tp
+				WHERE tasp.applicant_id = ta.applicant_id
+				AND ta.source_id = ts.source_id
+				AND tasp.position_id = tp.position_id
+				AND tasp.process_id =? @@
+				GROUP BY all_fields.feedback_form_id,interviewer_id,all_fields.feedback_form_field_id
+				ORDER BY feedback_form_title,all_fields.feedback_form_field_rank
+		</dbquery>
+		<dbquery name="qSelectionProcessManager_GetFeedbackFormIdForUserProcessApplicant">
+			SELECT DISTINCT(feedback_form_id) FROM tp_applicant_selection_process_traits 
+			WHERE user_id=? AND process_id=?
+		</dbquery>
+		<dbquery name="qSelectionProcess_GetRejectedCandidates">
+			SELECT ta.applicant_id, ta.applicant_name, 
+			tp.position_title, tp.position_code, tps.position_step_title AS step_title,
+			tsl.step_level_name AS step_level_name, CONCAT(tu.user_fname,' ',tu.user_lname) AS rejected_by, 
+			tasp.process_moved_date AS rejected_date
+			FROM tp_applicant_selection_process tasp, 
+			tp_applicants ta, tp_positions tp, 
+			tp_position_steps tps, tp_step_level tsl, tp_users tu
+			WHERE tasp.position_step_id_to IN (?,?,?,?)
+			AND tasp.applicant_id = ta.applicant_id
+			AND tasp.position_id = tp.position_id
+			AND tasp.position_step_id_from=tps.position_step_id
+			AND tps.position_step_level=tsl.step_level
+			AND tasp.user_id = tu.user_id
+			AND tp.position_id= ?
+			@@ 
+			ORDER BY rejected_date
+		</dbquery>
+		<dbquery name="qSelectionProcessManager_GetApplicantPositionStatus">
+			select process_id, applicant_id, position_id, position_step_id_from, position_step_id_to 
+			from tp_applicant_selection_process tasp where
+			tasp.applicant_id = ? and tasp.position_id = ?
+			and tasp.process_id = (select max(process_id) from tp_applicant_selection_process tasp1
+			where tasp1.applicant_id=tasp.applicant_id and tasp1.position_id=tasp.position_id)
+		</dbquery>
+		<dbquery name="qSelectionProcessManager_IsSelectionProcessHidden">
+			SELECT selection_process_is_hidden FROM tp_applicant_selection_process WHERE process_id = ?
+		</dbquery>
+		<dbquery name="qSelectionProcessManager_isPositionVacancyFilled">
+			SELECT CAST(position_no_of_openings &lt;= (SELECT COUNT(applicant_id) 
+				FROM tp_applicant_joining_history tajh WHERE tajh.position_id = tp.position_id) AS CHAR) AS isVacancyFull
+			FROM tp_positions tp WHERE tp.position_id = ?
+		</dbquery>
+		<dbquery name="qSelectionProcessManager_getSelectedPositionIdForApplicantId">
+			SELECT position_id FROM tp_applicant_selection_process WHERE applicant_id=? ORDER BY process_id DESC LIMIT 1
+		</dbquery>
+		 <dbquery name="qSelectionProcessManager_GetApplicants_MassEmail">	
+	    	@@
+	    	(
+	    	SELECT applicant_id, applicant_name, current_employer, applicant_cell_phone,
+			CAST(TBL3.flags AS CHAR) AS flags, date, 
+			applicant_date_joined, applicant_working_since, position_id, position_title, position_step_id,
+			position_step_title, v_position_step_isscheduled, position_step_rank, dept_name, v_process_id, vv_process_id, 
+			v_process_date_created, CAST(v_process_moved_date AS DATETIME) AS v_process_moved_date, 
+			v_appointment_id, v_appointment_from_date, selected_message, 
+			CAST(TBL3.users_responsible AS CHAR) AS users_responsible, action_required, v_action_type AS action_type,
+			'' AS count, '' AS email_id
+	    	FROM    	
+	    	(
+			SELECT applicant_id, applicant_name, current_employer, applicant_cell_phone, 
+			CAST(TBL2.flags AS CHAR) AS flags, date, 
+			applicant_date_joined, applicant_working_since, position_id, position_title, position_step_id,
+			position_step_title, v_position_step_isscheduled, position_step_rank, dept_name, v_process_id, vv_process_id, 
+			v_process_date_created, v_process_moved_date, v_appointment_id, v_appointment_from_date, selected_message, 
+			CASE WHEN LOCATE('_', CAST(TBL2.users_responsible AS CHAR)) != 0 THEN
+				SUBSTRING(CAST(TBL2.users_responsible AS CHAR) FROM 1 FOR (LOCATE('_', CAST(TBL2.users_responsible AS CHAR)) - 1)) 
+			ELSE CAST(TBL2.users_responsible AS CHAR)
+			END AS users_responsible, 
+			CASE WHEN v_position_step_isscheduled = ? 
+				THEN 
+					CASE WHEN users_responsible IS NULL THEN ?
+					ELSE CONCAT(?, ' ', position_step_title)
+					END
+			ELSE 
+				CASE WHEN v_appointment_from_date IS NULL THEN CONCAT(?, ' ', position_step_title)
+				WHEN v_appointment_from_date > NOW() THEN CONCAT(?, ' ', position_step_title, ' on ', DATE_FORMAT(v_appointment_from_date, '%d-%b'), ' at ', DATE_FORMAT(v_appointment_from_date, '%l:%i %p'))
+				ELSE 
+					CASE WHEN vv_process_id IS NULL THEN CONCAT(?, ' ', position_step_title)
+					ELSE 
+						CASE WHEN users_responsible IS NULL THEN ?
+						ELSE CONCAT(?, ' ', position_step_title)
+						END
+					END
+				END
+			END AS action_required,
+			CASE WHEN v_position_step_isscheduled = ? 
+			THEN 
+				CASE WHEN users_responsible IS NULL THEN ?
+				ELSE ?
+				END
+			ELSE 
+				CASE WHEN v_appointment_from_date IS NULL THEN ?
+				WHEN v_appointment_from_date > NOW() THEN ?
+				ELSE 
+					CASE WHEN vv_process_id IS NULL THEN ?
+					ELSE 
+						CASE WHEN users_responsible IS NULL THEN ?
+						ELSE ?
+						END
+					END
+				END
+			END AS v_action_type
+			FROM (
+				SELECT applicant_id, applicant_name, current_employer, applicant_cell_phone, flags, date,
+				applicant_date_joined, applicant_working_since, position_id, position_title, position_step_id,
+				position_step_title, v_position_step_isscheduled, position_step_rank, dept_name, v_process_id, vv_process_id, 
+				v_process_date_created, v_process_moved_date, v_appointment_id, v_appointment_from_date, selected_message, 
+				CASE WHEN v_position_step_isscheduled = ? 
+				THEN (	
+					SELECT GROUP_CONCAT(@@ ORDER BY iu.USER_FNAME SEPARATOR ', ') 
+					FROM tp_users iu ,tp_position_step_users ipsu
+					WHERE iu.user_id = ipsu.user_id 
+					AND (ipsu.is_responsible_for_scheduling=? OR ipsu.is_authorized_to_move=?)
+					AND ipsu.position_step_id =TBL.position_step_id
+					AND ipsu.user_id NOT IN (
+									SELECT DISTINCT(taspt.user_id) 
+									FROM tp_applicant_selection_process tasp, tp_applicant_selection_process_traits taspt 
+									WHERE tasp.process_id=taspt.process_id 
+									AND tasp.applicant_id=TBL.applicant_id 
+									AND tasp.position_step_id_from=TBL.position_step_id 
+									AND tasp.process_id>TBL.v_process_id
+								)
+					@@
+				) 
+				ELSE 
+					CASE WHEN v_appointment_from_date IS NULL 
+					THEN (
+						SELECT GROUP_CONCAT(@@ ORDER BY iu.USER_FNAME SEPARATOR ', ') 
+						FROM tp_users iu ,tp_position_step_users ipsu
+						WHERE iu.user_id = ipsu.user_id 
+						AND ipsu.is_responsible_for_scheduling =? 
+						AND ipsu.position_step_id =TBL.position_step_id
+						@@
+					) 
+					WHEN v_appointment_from_date > NOW() 
+					THEN (
+						SELECT GROUP_CONCAT(@@ ORDER BY iu.USER_FNAME SEPARATOR ', ') 
+						FROM tp_users iu ,tp_position_step_users ipsu
+						WHERE iu.user_id = ipsu.user_id 
+						AND (ipsu.is_responsible_for_scheduling =? OR ipsu.is_authorized_to_move=?)
+						AND ipsu.user_id IN (
+									SELECT attendee_id 
+									FROM tp_appointment_attendees
+									WHERE appointment_id = TBL.v_appointment_id
+								)
+						AND ipsu.position_step_id =TBL.position_step_id
+						@@
+					)
+					ELSE 
+						CASE WHEN vv_process_id IS NULL 
+						THEN (
+							SELECT GROUP_CONCAT(@@ ORDER BY iu.USER_FNAME SEPARATOR ', ') 
+							FROM tp_users iu ,tp_position_step_users ipsu, tp_position_steps itps
+							WHERE iu.user_id = ipsu.user_id 
+							AND itps.position_step_id=ipsu.position_step_id
+							AND (
+								ipsu.is_responsible_for_scheduling =?
+								OR (
+									itps.is_interviewer_can_confirm=? 
+									AND ipsu.is_responsible_for_scheduling=?
+									AND ipsu.user_id IN (
+										SELECT attendee_id 
+										FROM tp_appointment_attendees 
+										WHERE appointment_id = TBL.v_appointment_id
+									)
+								)
+							) AND ipsu.position_step_id =TBL.position_step_id
+							@@
+						)
+						ELSE 
+							CASE WHEN vv_attendee_decision_maker IS NULL OR vv_attendee_decision_maker = 0
+							THEN (
+								SELECT GROUP_CONCAT(@@ ORDER BY iu.USER_FNAME SEPARATOR ', ') 
+								FROM tp_users iu ,tp_position_step_users ipsu
+								WHERE iu.user_id = ipsu.user_id 
+								AND ipsu.is_responsible_for_scheduling =?
+								AND (
+									(ipsu.user_id IN (
+											SELECT attendee_id 
+											FROM tp_appointment_attendees
+											WHERE appointment_id = TBL.v_appointment_id
+										)
+									) OR ipsu.is_authorized_to_move=?
+								)
+								AND ipsu.user_id NOT IN(
+									SELECT DISTINCT(user_id) 
+									FROM tp_applicant_selection_process_traits 
+									WHERE process_id=vv_process_id
+								)
+								AND ipsu.position_step_id =TBL.position_step_id
+								@@
+							)
+							ELSE (
+								SELECT GROUP_CONCAT(@@ ORDER BY iu.USER_FNAME SEPARATOR ', ') 
+								FROM tp_users iu ,tp_position_step_users ipsu
+								WHERE iu.user_id = ipsu.user_id	
+								AND ipsu.is_responsible_for_scheduling =?
+								AND ipsu.user_id IN (
+											SELECT attendee_id 
+											FROM tp_appointment_attendees
+											WHERE appointment_id = TBL.v_appointment_id
+										)
+								AND ipsu.user_id NOT IN(
+												SELECT DISTINCT(user_id) 
+												FROM tp_applicant_selection_process_traits 
+												WHERE process_id=vv_process_id
+											)
+								AND ipsu.position_step_id =TBL.position_step_id
+								@@
+							)
+							END
+						END
+					END
+				END AS users_responsible
+				FROM (
+					SELECT ta.applicant_id, ta.applicant_name, ta.applicant_current_employer AS current_employer, 
+					CASE WHEN applicant_cell_phone_is_invalid = 1 THEN '' 
+						ELSE applicant_cell_phone 
+					END AS applicant_cell_phone,				
+					(
+						SELECT group_concat(taf.flag_id) 
+						FROM tp_applicant_flags taf 
+						LEFT JOIN tp_flags tpf ON (tpf.flag_id = taf.flag_id) 
+						WHERE taf.applicant_id = ta.applicant_id 
+						AND (tpf.user_id = ? OR tpf.flag_type = ? )
+					) AS flags,
+					DATE_FORMAT(ta.applicant_date_joined, '%a, %d-%b-%y') AS date, ta.applicant_date_joined, ta.applicant_working_since,
+					tpos.position_id, @@ AS position_title, tps.position_step_id, tps.position_step_title, 
+					tps.position_step_isscheduled AS v_position_step_isscheduled, tps.position_step_rank,
+					(
+						SELECT dept_name 
+						FROM tp_departments 
+						WHERE dept_id=tpos.dept_id
+					) AS dept_name,
+					(
+						SELECT process_id 
+						FROM tp_applicant_selection_process
+						WHERE position_step_id_to = ta.applicant_step_id 
+						AND applicant_id = ta.applicant_id 
+						ORDER BY process_id DESC limit 0, 1
+					) AS v_process_id,
+					(
+						SELECT process_date_created 
+						FROM tp_applicant_selection_process
+						WHERE process_id = v_process_id
+					) AS v_process_date_created,
+					(
+						SELECT process_moved_date 
+						FROM tp_applicant_selection_process
+						WHERE process_id = v_process_id
+					) AS v_process_moved_date,
+					(
+						SELECT process_id 
+						FROM tp_applicant_selection_process
+						WHERE process_id > v_process_id 
+						AND position_step_id_from = ta.applicant_step_id 
+						AND applicant_id = ta.applicant_id
+						AND position_step_id_to != ? 
+						ORDER BY process_id DESC LIMIT 0,1
+					) AS vv_process_id,
+					(
+						SELECT appointment_id
+						FROM tp_appointments AS tapo 
+						WHERE tapo.appointment_date_created > v_process_date_created 
+						AND tapo.position_step_id = ta.applicant_step_id 
+						AND tapo.appointment_status_id != ? 
+						AND tapo.applicant_id=ta.applicant_id 
+						ORDER BY tapo.appointment_date_created DESC LIMIT 0,1
+					) AS v_appointment_id,		
+					(
+						SELECT appointment_from_date 
+						FROM tp_appointments 
+						WHERE appointment_id = v_appointment_id
+					) AS v_appointment_from_date,
+					(
+						SELECT COUNT(*) 
+						FROM tp_appointments tap, tp_appointment_attendees taa, tp_position_step_users tpsu
+						WHERE tap.appointment_id=taa.appointment_id 
+						AND taa.attendee_id=tpsu.user_id 
+						AND tap.position_step_id =tpsu.position_step_id
+						AND tpsu.is_authorized_to_move=?
+						AND tap.appointment_id=v_appointment_id
+						GROUP BY tap.appointment_id
+					) AS vv_attendee_decision_maker,
+					(
+						SELECT tasm.status_message 
+						FROM tp_applicant_status_messages tasm
+						WHERE tasm.applicant_id = ta.applicant_id 
+						AND tasm.position_step_id = ta.applicant_step_id
+						AND tasm.date_created > v_process_date_created 
+						ORDER BY tasm.date_created DESC 
+						LIMIT 0,1
+					) AS selected_message			
+					FROM tp_applicants ta, tp_positions tpos, tp_position_steps tps
+					WHERE ta.applicant_position_id IS NOT NULL
+					AND ta.applicant_step_id IS NOT NULL
+					AND tpos.position_status=? 
+					AND tpos.position_id = ta.applicant_position_id
+					AND tps.position_step_id = ta.applicant_step_id
+					@@
+					@@
+				) AS TBL 
+			) AS TBL2
+			@@
+			) AS TBL3
+			@@
+			)			
+			UNION 
+			(
+				SELECT '' AS applicant_id, '' AS applicant_name, '' AS current_employer, '' AS applicant_cell_phone, 
+				'' AS flags, '' AS date, '' AS applicant_date_joined, now() AS applicant_working_since, 					 
+				tp.position_id, tp.position_title, traf_alias2.to_step_id AS position_step_id, 
+				tras.requisition_approval_step_name AS position_step_title, '' AS v_position_step_isscheduled, 
+				'' AS position_step_rank, '' AS dept_name, '' AS v_process_id, '' AS vv_process_id, traf_alias2.feedback_date AS v_process_date_created,  
+				traf_alias2.feedback_date AS v_process_moved_date, 
+				'' AS v_appointment_id, '' AS v_appointment_from_date, '' AS selected_message, '' AS users_responsible, 
+			   concat('Approve requisition in', ' ', tras.requisition_approval_step_name) AS action_required, ? AS action_type, 
+				'1' AS count, '' AS email_id 
+				FROM tp_positions tp, ( 
+					SELECT * from ( 
+					SELECT  traf.* FROM tp_positions tpos, 
+					tp_requisition_approval_feedback traf 
+					WHERE  traf.position_id = tpos.position_id 
+					AND tpos.position_status=? 
+					ORDER BY feedback_id desc 
+					) as traf_alias 
+					GROUP BY traf_alias.position_id 
+				)as traf_alias2, 
+				tp_requisition_approval_steps tras 
+				WHERE  
+				tp.position_id = traf_alias2.position_id 
+				AND traf_alias2.to_step_id=tras.requisition_approval_step_id 
+				AND traf_alias2.to_user_id=? 
+				@@
+			)
+			UNION
+			(
+				SELECT TBL8.applicant_id AS applicant_id, tpa.applicant_name AS applicant_name, 
+					tpa.applicant_current_employer AS current_employer, tpa.applicant_cell_phone AS applicant_cell_phone, 
+					'' AS flags, '' AS date, tpa.applicant_date_joined AS applicant_date_joined, 
+					tpa.applicant_working_since AS applicant_working_since, TBL8.position_id AS position_id,  
+					tpp.position_title AS position_title, TBL8.position_step_id AS position_step_id, 
+					tpps.position_step_title AS position_step_title, tpps.position_step_isscheduled AS v_position_step_isscheduled, 
+					tpps.position_step_rank AS position_step_rank, '' AS dept_name, '' AS v_process_id, 
+					'' AS vv_process_id, '' AS v_process_date_created, NULL AS v_process_moved_date, 
+					'' AS v_appointment_id, '' AS v_appointment_from_date, '' AS selected_message, '' AS users_responsible, 
+					CONCAT('Clear draft') AS action_required, ? AS action_type, '1' as count, TBL8.email_id
+				FROM (
+				SELECT applicant_id, position_id, position_step_id, email_id
+							FROM tp_inbox_emails tie
+							WHERE tie.folder_id = (SELECT folder_id 
+										FROM tp_inbox_folders
+										WHERE is_system_defined = ?)
+							@@
+							
+				) AS TBL8
+				LEFT JOIN tp_applicants tpa ON (tpa.applicant_id = TBL8.applicant_id)
+				LEFT JOIN tp_positions tpp ON (tpp.position_id = TBL8.position_id)
+				LEFT JOIN tp_position_steps tpps ON (tpps.position_step_id = TBL8.position_step_id)
+				WHERE @@
+			)
+			@@
+			@@
+	    </dbquery>	
+	</dbqueries>
+	<dataqueries>
+		<!-- Start: Applicant Home Section -->
+		<dataquery name="dGetApplicantsInProcess" dbquery="qGetApplicantsInProcess" object="com.talentPool.selectionProcess.dataobject.SelectionProcessData">
+			<attribute name= "applicantId" column="applicant_id" type ="INT" />
+		    <attribute name= "applicantName" column="applicant_name" type ="STRING" />
+		    <attribute name= "applicantPosition" column="position_title" type ="STRING" />
+		    <attribute name= "applicantStep" column="position_step_title" type ="STRING" />
+		    <attribute name= "applicantHomePhone" column="applicant_home_phone" type ="STRING" />
+			<attribute name= "applicantWorkPhone" column="applicant_work_phone" type ="STRING" />
+		    <attribute name= "applicantCellPhone" column="applicant_cell_phone" type ="STRING" />
+		    <attribute name= "applicantOriginalResumePath" column="applicant_original_resume_path" type ="STRING" />
+			<attribute name= "applicantAppointment" column="appointment_from_date" type ="STRING" />
+			<attribute name= "applicantStatus" column="selected_message" type ="STRING" />			
+		</dataquery>
+		<dataquery name="dGetAllOpenPositions" dbquery="qGetAllOpenPositions" object = "com.talentPool.common.db.SimpleDataObject">
+	        <attribute name= "positionId" column="position_id" type ="STRING " />
+	        <attribute name= "positionTitle" column="position_title" type ="STRING "/>
+	        <attribute name= "deptId" column="dept_id" type ="STRING " />
+	        <attribute name= "deptName" column="dept_name" type ="STRING "/>
+		</dataquery>				
+		<dataquery name="dGetStepTypes" dbquery="qGetStepTypes" object="com.talentPool.positions.dataobject.StepData">
+		    <attribute name="stepTypeId" column="step_type_id" type="INT"/>
+		    <attribute name="stepTypeTitle" column="step_type_title" type="STRING"/>
+	    </dataquery>
+	    <dataquery name="dSelectionProcessManager_GetStatusMessagesForStep" dbquery="qSelectionProcessManager_GetStatusMessagesForStep" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name="messageId" column="status_message_id" type="INT"/>
+		    <attribute name="message" column="status_message" type="STRING"/>
+		    <attribute name="selectedMessage" column="selected_message" />
+	    </dataquery>	    
+	    <dataquery name="dSelectionProcessManager_SaveApplicantStatusMessage" dbquery="qSelectionProcessManager_SaveApplicantStatusMessage" />
+		<!-- End: Applicant Home Section -->
+		
+		<!-- Start: Move Up/Down Section -->
+		<dataquery name="dSelectionProcess_GetApplicantCurrentStepData" dbquery="qSelectionProcess_GetApplicantCurrentStepData" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name= "applicantName" column="applicant_name" type ="STRING" />
+			<attribute name= "applicantId" column="applicant_id" type ="STRING" />
+			<attribute name= "applicantSourceTitle" column="source_title" type ="STRING" />
+			<attribute name= "applicantOriginalResumePath" column="applicant_original_resume_path" type ="STRING" />
+			<attribute name= "positionTitle" column="position_title" type ="STRING" />
+			<attribute name= "positionId" column="applicant_position_id" type ="STRING" />
+			<attribute name= "fromStepId" column="applicant_step_id" type ="STRING" />
+			<attribute name= "fromStepTitle" column="position_step_title" type ="STRING" />
+			<attribute name= "feedbackFormFieldId" column="feedback_form_field_id" type ="STRING" />
+			<attribute name= "feedbackFieldTitle" column="feedback_field_title" type ="STRING" />			
+			<attribute name= "feedbackFormId" column="feedback_form_id" type ="STRING" />			
+			<attribute name= "feedbackFormFieldDesc" column="feedback_form_field_desc" type ="STRING" />
+			<attribute name= "feedbackFormFieldType" column="feedback_form_field_type" type ="STRING" />
+			<attribute name= "feedbackFormFieldDisplayType" column="feedback_form_field_display_type" type ="STRING" />
+			<attribute name= "feedbackFormFieldIsMandatory" column="feedback_form_field_is_mandatory" type ="STRING" />
+			<attribute name= "feedbackFieldType" column="feedback_field_type" type ="STRING" />
+			<attribute name= "applicantFieldId" column="applicant_field_id" type ="STRING" />
+			<attribute name= "ratingId" column="rating_id" type ="STRING" />
+			<attribute name= "multipleSelectId" column="select_id" type ="STRING" />
+			<attribute name= "feedbackFormFieldCommentRequired" column="feedback_form_field_comment_required" type ="STRING" />
+			<attribute name="joiningDate" column="applicant_date_joined" type="STRING"/>
+			<attribute name= "ctcOffered" column="offered_ctc" type ="STRING" />
+			<attribute name= "basicOffered" column="offered_basic" type ="STRING" />
+		    <attribute name= "levelOffered" column="applicant_level_offered" type ="STRING" />
+		    <attribute name= "employeeCode" column="employee_code" type ="STRING" />		    
+		    <attribute name= "designationOffered" column="applicant_designation_offered" type ="STRING" />
+		    <attribute name= "inputSalaryVariable" column="input_salary_variable" type ="STRING" />
+			<attribute name="feedbackFormHeader" column="feedback_form_header" type="STRING"/>
+			<attribute name="feedbackFormTitle" column="feedback_form_title" type="STRING"/>
+			<attribute name="systemGenerated" column="system_generated" type="STRING"/>
+			<attribute name="joiningBonus" column="joining_Bonus" type="STRING"/>
+			<attribute name="variableOffered" column="variable_Offered" type="STRING"/>
+		</dataquery>
+		<dataquery name="dSelectionProcess_GetCandidateCurrentStepData" dbquery="qSelectionProcess_GetCandidateCurrentStepData" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name= "applicantName" column="applicant_name" type ="STRING" />
+			<attribute name= "applicantId" column="applicant_id" type ="STRING" />
+			<attribute name= "applicantSourceTitle" column="source_title" type ="STRING" />
+			<attribute name= "applicantOriginalResumePath" column="applicant_original_resume_path" type ="STRING" />
+			<attribute name= "positionTitle" column="position_title" type ="STRING" />
+			<attribute name= "positionId" column="applicant_position_id" type ="STRING" />
+			<attribute name= "fromStepId" column="applicant_step_id" type ="STRING" />
+			<attribute name= "fromStepTitle" column="position_step_title" type ="STRING" />
+			<attribute name= "feedbackFormFieldId" column="feedback_form_field_id" type ="STRING" />
+			<attribute name= "feedbackFieldTitle" column="feedback_field_title" type ="STRING" />			
+			<attribute name= "feedbackFormId" column="feedback_form_id" type ="STRING" />			
+			<attribute name= "feedbackFormFieldDesc" column="feedback_form_field_desc" type ="STRING" />
+			<attribute name= "feedbackFormFieldType" column="feedback_form_field_type" type ="STRING" />
+			<attribute name= "feedbackFormFieldDisplayType" column="feedback_form_field_display_type" type ="STRING" />
+			<attribute name= "feedbackFormFieldIsMandatory" column="feedback_form_field_is_mandatory" type ="STRING" />
+			<attribute name= "feedbackFieldType" column="feedback_field_type" type ="STRING" />
+			<attribute name= "applicantFieldId" column="applicant_field_id" type ="STRING" />
+			<attribute name= "ratingId" column="rating_id" type ="STRING" />
+			<attribute name= "multipleSelectId" column="select_id" type ="STRING" />
+			<attribute name= "feedbackFormFieldCommentRequired" column="feedback_form_field_comment_required" type ="STRING" />
+			<attribute name="joiningDate" column="applicant_date_joined" type="STRING"/>
+			<attribute name= "ctcOffered" column="offered_ctc" type ="STRING" />
+			<attribute name= "basicOffered" column="offered_basic" type ="STRING" />
+		    <attribute name= "levelOffered" column="applicant_level_offered" type ="STRING" />
+		    <attribute name= "employeeCode" column="employee_code" type ="STRING" />		    
+		    <attribute name= "designationOffered" column="applicant_designation_offered" type ="STRING" />
+		    <attribute name= "inputSalaryVariable" column="input_salary_variable" type ="STRING" />
+			<attribute name="feedbackFormHeader" column="feedback_form_header" type="STRING"/>
+			<attribute name="feedbackFormTitle" column="feedback_form_title" type="STRING"/>
+			<attribute name="systemGenerated" column="system_generated" type="STRING"/>
+			<attribute name="joiningBonus" column="joining_Bonus" type="STRING"/>
+			<attribute name="variableOffered" column="variable_Offered" type="STRING"/>
+		</dataquery>
+		<dataquery name="dGetApplicantData" dbquery="qGetApplicantData" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name= "applicantId" column="applicant_id" type ="STRING" />
+			<attribute name= "applicantName" column="applicant_name" type ="STRING" />
+			<attribute name= "applicantSourceTitle" column="source_title" type ="STRING" />			
+			<attribute name= "positionTitle" column="position_title" type ="STRING" />			
+			<attribute name= "stepTitle" column="position_step_title" type ="STRING" />			
+			<attribute name= "positionId" column="applicant_position_id" type ="STRING" />			
+			<attribute name= "stepId" column="applicant_step_id" type ="STRING" />
+			<attribute name= "employeeCode" column="employee_code" type ="STRING" />			
+		</dataquery>		
+		<dataquery name="dGetNextStepData" dbquery="qGetNextStepData" object="com.talentPool.positions.dataobject.StepData">
+			<attribute name= "stepId" column="position_step_id" type ="STRING" />
+			<attribute name= "stepTitle" column="position_step_title" type ="STRING" />			
+			<attribute name= "stepOptional" column="position_step_isoptional" type ="STRING" />
+			<attribute name= "stepLevel" column="position_step_level" type ="STRING" />			
+		</dataquery>
+		<dataquery name="dSelectionProcess_GetApplicantDataWithProcessId" dbquery="qSelectionProcess_GetApplicantDataWithProcessId" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name= "applicantName" column="applicant_name" type ="STRING" />
+			<attribute name= "applicantId" column="applicant_id" type ="STRING" />
+			<attribute name= "applicantStepId" column="applicant_step_id" type ="STRING" />			
+			<attribute name= "applicantSourceTitle" column="source_title" type ="STRING" />
+			<attribute name= "applicantOriginalResumePath" column="applicant_original_resume_path" type ="STRING" />
+			<attribute name= "positionTitle" column="position_title" type ="STRING" />
+			<attribute name= "positionId" column="position_id" type ="STRING" />
+			<attribute name= "userId" column="user_id" type ="STRING" />
+			<attribute name= "userName" column="user_name" type ="STRING" />			
+			<attribute name= "fromStepId" column="fromStepId" type ="STRING" />
+			<attribute name= "fromStepTitle" column="fromStepTitle" type ="STRING" />
+			<attribute name= "toStepId" column="toStepId" type ="STRING" />
+			<attribute name= "toStepTitle" column="toStepTitle" type ="STRING" />
+			<attribute name= "feedbackFormFieldId" column="feedback_form_field_id" type ="STRING" />
+			<attribute name= "feedbackFieldTitle" column="feedback_field_title" type ="STRING" />
+			<attribute name= "feedbackFormFieldDesc" column="feedback_form_field_desc" type ="STRING" />
+			<attribute name= "feedbackFormFieldType" column="feedback_form_field_type" type ="STRING" />
+			<attribute name= "feedbackFormFieldDisplayType" column="feedback_form_field_display_type" type ="STRING" />
+			<attribute name= "feedbackFormFieldIsMandatory" column="feedback_form_field_is_mandatory" type ="STRING" />
+			<attribute name= "feedbackFieldType" column="feedback_field_type" type ="STRING" />
+			<attribute name= "applicantFieldId" column="applicant_field_id" type ="STRING" />
+			<attribute name= "ratingId" column="rating_id" type ="STRING" />
+			<attribute name= "multipleSelectId" column="select_id" type ="STRING" />
+			<attribute name= "feedbackFormFieldCommentRequired" column="feedback_form_field_comment_required" type ="STRING" />
+			<attribute name= "ratingFieldId" column="rating_field_id" type ="STRING" />
+			<attribute name= "ratingFieldDesc" column="rating_field_desc" type ="STRING" />
+			<attribute name= "multipleSelectFieldId" column="select_field_id" type ="STRING" />			
+			<attribute name= "traitComment" column="trait_comment" type ="STRING" />
+			<attribute name= "interviewerId" column="interviewer_id" type ="STRING" />
+			<attribute name="joiningDate" column="applicant_date_joined" type="STRING"/>
+			<attribute name= "ctcOffered" column="offered_ctc" type ="STRING" />
+			<attribute name= "basicOffered" column="offered_basic" type ="STRING" />
+		    <attribute name= "levelOffered" column="applicant_level_offered" type ="STRING" />
+		    <attribute name= "designationOffered" column="applicant_designation_offered" type ="STRING" />
+		    <attribute name= "inputSalaryVariable" column="input_salary_variable" type ="STRING" />
+		    <attribute name= "employeeCode" column="employee_code" type ="STRING" />		    
+			<attribute name="feedbackFormHeader" column="feedback_form_header" type="STRING"/>
+			<attribute name="feedbackFormTitle" column="feedback_form_title" type="STRING"/>
+			<attribute name="feedbackFormId" column="feedback_form_id" type="STRING"/>
+			<attribute name="processMovedDate" column="process_moved_date" type="STRING"/>	
+			<attribute name="systemGenerated" column="system_generated" type="STRING"/>		
+		</dataquery>
+		<dataquery name="dGetNoOfFeedbacksAfter" dbquery="qGetNoOfFeedbacksAfter" />
+		<dataquery name="dAddMoveUpOrDownResult" dbquery="qAddMoveUpOrDownResult" />
+		<dataquery name="dAddMoveUpOrDownResult2" dbquery="qAddMoveUpOrDownResult2" />
+		<dataquery name="dUpdateMoveUpOrDownResult" dbquery="qUpdateMoveUpOrDownResult" />	
+		<dataquery name="dAddCandidateResponse" dbquery="qAddCandidateResponse" />
+		<dataquery name="dUpdateCandidateResponse" dbquery="qUpdateCandidateResponse" />		
+		<dataquery name="dAddMoveUpOrDownTraits" dbquery="qAddMoveUpOrDownTraits" />	
+		<dataquery name="dAddMoveUpOrDownCandidateTraits" dbquery="qAddMoveUpOrDownCandidateTraits" />			
+		<dataquery name="dUpdateApplicantStepId" dbquery="qUpdateApplicantStepId" />
+		<dataquery name="dDeleteFeedbackEntry" dbquery="qDeleteFeedbackEntry" />
+		<dataquery name="dDeleteFeedbackTrait" dbquery="qDeleteFeedbackTrait" />
+		<dataquery name="dDeleteCandidateFeedbackTrait" dbquery="qDeleteCandidateFeedbackTrait" />
+		<dataquery name="dUpdateApplicantPositionStep" dbquery="qUpdateApplicantPositionStep" />
+		<dataquery name="dGetCommunicationId" dbquery="qGetCommunicationId" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name= "communicationId" column="process_id" type ="STRING" />
+			<attribute name= "stepIdTo" column="position_step_id_to" type ="STRING" />			
+		</dataquery>	
+		<dataquery name="dGetCandidateCommunicationId" dbquery="qGetCandidateCommunicationId" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name= "communicationId" column="process_id" type ="STRING" />
+			<attribute name= "stepIdTo" column="position_step_id_to" type ="STRING" />			
+		</dataquery>	
+		<dataquery name="dGetFeedbackEntry" dbquery="qGetFeedbackEntry" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name= "positionStepIdFrom" column="position_step_id_from" type ="STRING" />
+		</dataquery>
+		<dataquery name="dSelectionProcessManager_GetAppointmentsInFuture" dbquery="qSelectionProcessManager_GetAppointmentsInFuture" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name= "appointmentId" column="appointment_id" type ="INT" />
+		</dataquery>
+		<dataquery name="dSelectionProcessManager_GetAllAtiveAppointmentsInPast" dbquery="qSelectionProcessManager_GetAllAtiveAppointmentsInPast" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name= "appointmentId" column="appointment_id" type ="INT" />
+		</dataquery>	
+		<dataquery name="dSelectionProcessManager_GetAppointmentsInPast" dbquery="qSelectionProcessManager_GetAppointmentsInPast" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name= "appointmentId" column="appointment_id" type ="INT" />
+			<attribute name= "positionId" column="position_id" type ="INT" />
+			<attribute name= "stepId" column="position_step_id" type ="INT" />
+			<attribute name="appointmentDate" column="appointment_from_date" type="STRING" />
+			<attribute name="appointmentStatus" column="appointment_status_id" type="STRING" />			
+		</dataquery>
+		<dataquery name="dSelectionProcessManager_DeleteAppointments" dbquery="qSelectionProcessManager_DeleteAppointments" />
+		<dataquery name="dSelectionProcessManager_GetPositionInterviewers" dbquery="qSelectionProcessManager_GetPositionInterviewers" object="com.talentPool.selectionProcess.dataobject.UserData">
+			<attribute name= "userId" column="user_id" type ="STRING" />
+	    	<attribute name= "userName" column="name" type ="STRING" />
+		</dataquery>
+		<dataquery name="dSelectionProcessManager_GetPositionInterviewersForSchedulable" dbquery="qSelectionProcessManager_GetPositionInterviewersForSchedulable" object="com.talentPool.selectionProcess.dataobject.UserData">
+			<attribute name= "userId" column="user_id" type ="STRING" />
+	    	<attribute name= "userName" column="name" type ="STRING" />
+		</dataquery>
+		
+		<dataquery name="dSelectionProcessManager_GetPositionStepSchedulable" dbquery="qSelectionProcessManager_GetPositionStepSchedulable" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name= "isPositionStepScheduled" column="position_step_isscheduled" type ="STRING" />
+		</dataquery>		
+		<dataquery name="dGetOtherOpenPositions" dbquery="qGetOtherOpenPositions" object = "com.talentPool.positions.dataobject.PositionData">
+	        <attribute name= "positionId" column="position_id" type ="STRING " />
+	        <attribute name= "positionTitle" column="position_title" type ="STRING "/>
+	         <attribute name= "positionCode" column="position_code" type ="STRING "/>
+		</dataquery>
+		<dataquery name="dSelectionProcessManager_GetStepsForPosition" dbquery="qSelectionProcessManager_GetStepsForPosition" object = "com.talentPool.common.db.SimpleDataObject">
+	        <attribute name= "stepId" column="position_step_id" type ="STRING " />
+	        <attribute name= "stepTitle" column="position_step_title" type ="STRING "/>
+		</dataquery>		
+		<dataquery name="dUpdateAppointmentStatus" dbquery="qUpdateAppointmentStatus" />
+		<dataquery name="dSelection_ChangeStatusToDefault" dbquery="qSelection_ChangeStatusToDefault"/>
+		<dataquery name="dSelectionProcessManager_GetStepStatusData" dbquery="qSelectionProcessManager_GetStepStatusData" object = "com.talentPool.common.db.SimpleDataObject">
+	    <attribute name= "status" column="position_step_status" type ="STRING " />
+		</dataquery>
+		<dataquery name="dIsUserDecisionMakerOrResponsibleForScheduling" dbquery="qIsUserDecisionMakerOrResponsibleForScheduling" object = "com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "count" column="count" type ="STRING " />
+		</dataquery>		
+		<dataquery name="dSelectionProcessManager_GetStepLevel" dbquery="qSelectionProcessManager_GetStepLevel" object = "com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "positionStepLevel" column="position_step_level" type ="STRING " />
+		</dataquery>
+	
+		<dataquery name="dSelectionProcessManager_UpdateApplicantAttribute" dbquery="qSelectionProcessManager_UpdateApplicantAttribute"/>
+	    	
+		<!-- End: Move Up/Down Section -->
+		<!-- Start: Interactions Section -->		
+		<dataquery name="dGetInteractions" dbquery="qGetInteractions" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name= "name" column="name" type ="STRING" />
+	    	<attribute name= "interactionId" column="interaction_id" type ="INT" />
+			<attribute name= "interactionType" column="interaction_type" type ="INT" />
+			<attribute name= "interactionDate" column="interaction_date" type ="STRING" />
+			<attribute name= "interactionSubject" column="interaction_subject" type ="STRING" />
+			<attribute name= "interactionIsHidden" column="interaction_is_hidden" type ="STRING" />
+			<attribute name= "documentId" column="interaction_document" type ="STRING" />			
+		</dataquery>
+		<dataquery name="dGetCandidateInteractions" dbquery="qGetCandidateInteractions" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name= "name" column="name" type ="STRING" />
+	    	<attribute name= "interactionId" column="interaction_id" type ="INT" />
+			<attribute name= "interactionType" column="interaction_type" type ="INT" />
+			<attribute name= "interactionDate" column="interaction_date" type ="STRING" />
+			<attribute name= "interactionSubject" column="interaction_subject" type ="STRING" />
+			<attribute name= "interactionIsHidden" column="interaction_is_hidden" type ="STRING" />
+			<attribute name= "documentId" column="interaction_document" type ="STRING" />			
+		</dataquery>
+		<!-- End: Interactions Section -->		
+		<!--Start: Interaction Log section -->
+		<dataquery name="dUpdateApplicantPhones" dbquery="qUpdateApplicantPhones" />
+		<dataquery name="dAddInteraction" dbquery="qAddInteraction" />
+		<dataquery name="dUpdateInteraction" dbquery="qUpdateInteraction" />
+		<dataquery name="dGetCommunicationData" dbquery="qGetCommunicationData" object="com.talentPool.selectionProcess.dataobject.CommunicationData">
+			<attribute name= "applicantId" column="applicant_id" type ="INT" />
+			<attribute name= "userId" column="user_id" type ="INT" />
+			<attribute name= "communicationDate" column="communication_date" type ="STRING" />
+			<attribute name= "communicationText" column="communication_text" type ="STRING" />
+			<attribute name= "communicationPhoneNo" column="phone_no" type ="STRING" />
+			<attribute name= "name" column="name" type ="STRING" />
+			<attribute name= "documentId" column="document_id" type ="STRING" />			
+		</dataquery>
+		<dataquery name="dGetStatusMessageData" dbquery="qGetStatusMessageData" object="com.talentPool.selectionProcess.dataobject.CommunicationData">
+			<attribute name= "applicantId" column="applicant_id" type ="INT" />
+			<attribute name= "userId" column="user_id" type ="INT" />
+			<attribute name= "communicationDate" column="date_created" type ="STRING" />
+			<attribute name= "communicationText" column="status_message" type ="STRING" />
+			<attribute name= "name" column="name" type ="STRING" />
+		</dataquery>
+		<dataquery name="dSelectionProcessManager_GetProcessId" dbquery="qSelectionProcessManager_GetProcessId" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name= "processId" column="process_id" type ="INT" />
+			<attribute name= "applicantId" column="applicant_id" type ="INT" />
+			<attribute name= "stepIdFrom" column="position_step_id_from" type ="INT" />
+			<attribute name= "stepIdTo" column="position_step_id_to" type ="INT" />
+			<attribute name= "userId" column="user_id" type ="INT" />
+			<attribute name= "positionId" column="position_id" type ="INT" />
+			<attribute name= "applicantPositionId" column="applicant_position_id" type ="INT" />
+			<attribute name= "applicantStepId" column="applicant_step_id" type ="INT" />
+		</dataquery>
+		<dataquery name="dSelectionProcessManager_GetAppointmentForFeedback" dbquery="qSelectionProcessManager_GetAppointmentForFeedback" object="com.talentPool.calendar.dataobject.AppointmentData">
+			<attribute name= "appointmentId" column="appointment_id" type ="STRING" />
+			<attribute name= "appointmentFromDate" column="appointment_from_date" type ="STRING" />
+			<attribute name= "appointmentSubject" column="appointment_subject" type ="STRING" />
+		</dataquery>
+						
+		<!--End: Interaction Log section -->
+		<!--Start: View Appointment Details-->
+		<dataquery name="dGetAppointmentDetails" dbquery="qGetAppointmentDetails" object="com.talentPool.calendar.dataobject.AppointmentData">
+			<attribute name= "appointmentId" column="appointment_id" type ="STRING" />
+			<attribute name= "applicantId" column="applicant_id" type ="STRING" />
+			<attribute name= "applicantName" column="applicant_name" type ="STRING" />
+			<attribute name= "appointmentFromDate" column="appointment_from_date" type ="STRING" />
+			<attribute name= "appointmentCreatedBy" column="user_id" type ="STRING" />
+			<attribute name= "appointmentCreatorName" column="name" type ="STRING" />
+		</dataquery>
+		<!--End: View Appointment Details-->
+		<dataquery name="dGetApplicantsforCallList" dbquery="qGetApplicantsforCallList" object="com.talentPool.common.db.SimpleDataObject">
+		    <attribute name= "applicantId" column="applicant_id" type ="INT" />
+		    <attribute name= "applicantName" column="applicant_name" type ="STRING" />
+		    <attribute name= "applicantEmail" column="applicant_email1" type ="STRING" />
+		     <attribute name= "applicantEmail2" column="applicant_email2" type ="STRING" />
+		    <attribute name= "applicantPositionId" column="applicant_position_id" type ="INT" />
+		    <attribute name= "positionId" column="applicant_position_id" type ="INT" />
+		    <attribute name= "applicantCity" column="applicant_city" type ="STRING" />
+		    <attribute name= "applicantHomePhone" column="applicant_home_phone" type ="STRING" />
+		    <attribute name= "applicantWorkPhone" column="applicant_work_phone" type ="STRING" />
+		    <attribute name= "applicantCellPhone" column="applicant_cell_phone" type ="STRING" />
+		    <attribute name= "positionTitle" column="position_title" type ="STRING" />
+		    <attribute name= "stepTitle" column="position_step_title" type ="STRING" />
+		    <attribute name= "sourceTitle" column="source_title" type ="STRING" />
+		     <attribute name= "currentemployer" column="currentemployer" type ="STRING" />
+		     <attribute name= "yearsOfExp" column="yearsOfExp" type ="INT" />
+		</dataquery>
+		<dataquery name="dGetPositionSkillsInfo" dbquery="qGetPositionSkillsInfo" object="com.talentPool.common.db.SimpleDataObject">
+		    <attribute name= "applicantPositionId" column="position_id" type ="INT" />
+		    <attribute name= "skill" column="skill" type ="STRING" />
+		</dataquery>
+		<dataquery name="dSelection_GetStepsIfFirstStepOptional" dbquery="qSelection_GetStepsIfFirstStepOptional" object = "com.talentPool.common.db.SimpleDataObject">
+	        <attribute name= "stepId" column="position_step_id" type ="STRING " />
+	        <attribute name= "stepTitle" column="position_step_title" type ="STRING "/>
+	        <attribute name= "optional" column="position_step_isoptional" type ="STRING "/>
+		</dataquery>	
+		<dataquery name="dSelection_UpdateApplicantPositionStatus" dbquery="qSelection_UpdateApplicantPositionStatus"/>
+		<dataquery name="dSelection_InsertApplicantJoiningHistory" dbquery="qSelection_InsertApplicantJoiningHistory"/>
+		<dataquery name="dSelection_AddStepMoveRecord" dbquery="qSelection_AddStepMoveRecord"/>
+		<dataquery name="dSelection_GetStepToShortlist" dbquery="qSelection_GetStepToShortlist"/>	    
+	    <!-- Start: Select -->
+	    <dataquery name="dSelectionProcessManager_GetApplicants" dbquery="qSelectionProcessManager_GetApplicants" object="com.talentPool.selectionProcess.dataobject.SelectionProcessData">
+	    	<attribute name= "applicantId" column="applicant_id" type ="INT" />
+		    <attribute name= "applicantName" column="applicant_name" type ="STRING" />
+		    <attribute name= "applicantWorkingSince" column="applicant_working_since" type ="STRING" />
+		    <attribute name= "applicantCurrentEmployer" column="current_employer" type ="STRING" />		    
+		    <attribute name= "date" column="applicant_date_joined" type ="STRING" />		    
+		    <attribute name= "applicantJoiningDate" column="date" type ="STRING" />		    
+		    <attribute name= "applicantPositionDepartment" column="dept_name" type ="STRING" />
+		    <attribute name= "applicantPosition" column="position_title" type ="STRING" />
+		    <attribute name= "applicantStep" column="position_step_title" type ="STRING" />		    
+		    <attribute name= "applicantPositionId" column="position_id" type ="STRING" />
+		    <attribute name= "applicantStepId" column="position_step_id" type ="STRING" />	
+		    <attribute name= "stepRank" column="position_step_rank" type ="STRING" />		    
+			<attribute name= "applicantStatus" column="selected_message" type ="STRING" />				
+			<attribute name= "flags" column="flags" type ="STRING" />
+			<attribute name= "applicantCellPhone" column="applicant_cell_phone" type ="STRING" />			
+			<attribute name= "responsibleUsers" column="users_responsible" type ="STRING" />
+			<attribute name= "actionRequired" column="action_required" type ="STRING" />					
+			<attribute name= "actionType" column="action_type" type ="STRING" />	
+			<attribute name="processDateCreated" column="v_process_moved_date" type="STRING"/>		
+			<attribute name="dt" column="v_process_date_created" type="STRING"/>		
+			<attribute name="count" column="count" type="STRING"/>										
+			<attribute name="emailId" column="email_id" type="STRING"/>
+	    </dataquery>
+	    <dataquery name="dSelectionProcessManager_GetDistinctStepTitles" dbquery="qSelectionProcessManager_GetDistinctStepTitles" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "stepTitle" column="position_step_title" type ="STRING" />
+	    </dataquery>
+	    <!-- End: Select -->
+	    <!-- Start: Hire -->
+	    <dataquery name="dSelectionProcessManager_GetJoinedApplicants" dbquery="qSelectionProcessManager_GetJoinedApplicants" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "applicantId" column="applicant_id" type ="STRING" />
+	    	<attribute name= "applicantName" column="applicant_name" type ="STRING" />
+	    	<attribute name= "applicantDateJoined" column="applicant_date_joined" type ="STRING" />	    	
+	    	<attribute name= "applicantPositionDepartment" column="dept_name" type ="STRING" />
+	    	<attribute name= "applicantPositionTitle" column="position_title" type ="STRING" />
+	    </dataquery>
+	    <!-- End: Hire -->
+	    <dataquery name="dSelectionProcessManager_GetPositionStepUsers" dbquery="qSelectionProcessManager_GetPositionStepUsers" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "userId" column="user_id" type ="STRING" />
+	    </dataquery>
+	    <dataquery name="dSelectionProcessManager_GetPositionStepUsersOfAllTypes" dbquery="qSelectionProcessManager_GetPositionStepUsersOfAllTypes" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "userId" column="user_id" type ="STRING" />
+	    	<attribute name= "userTitle" column="user_title" type ="STRING" />
+	    </dataquery>
+	    <dataquery name="dSelectionProcessManager_GetUsersAtUpperLevelInFunnel" dbquery="qSelectionProcessManager_GetUsersAtUpperLevelInFunnel" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "userId" column="user_id" type ="STRING" />
+	    </dataquery>
+	    <dataquery name="dSelectionProcessManager_GetFeedbackEntry" dbquery="qSelectionProcessManager_GetFeedbackEntry" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "processId" column="process_id" type ="STRING" />
+	    </dataquery>	    
+	    <dataquery name="dSelectionProcessManager_GetMessageDetails" dbquery="qSelectionProcessManager_GetMessageDetails" object="com.talentPool.common.db.SimpleDataObject">
+	        <attribute name="applicantId" column="applicant_id" type="STRING"/>
+	        <attribute name="messageFrom" column="message_from" type="STRING"/>
+	        <attribute name="messageText" column="message_text" type="STRING"/>
+	        <attribute name="messageDate" column="message_date" type="STRING"/>
+	        <attribute name="applicantName" column="applicant_name" type="STRING"/>
+	        <attribute name="sourceTitle" column="source_title" type="STRING"/>
+	        <attribute name="messageFromUser" column="messageFromUser" type="STRING"/>
+	        <attribute name="messageToUser" column="messageToUser" type="STRING"/>
+	        <attribute name="messageCcUser" column="messageCcUser" type="STRING"/>
+	    </dataquery>
+	    <dataquery name="dUpdateEmailHideInteraction" dbquery="qUpdateEmailHideInteraction"/>
+	    <dataquery name="dUpdateSelectionProcessHideInteraction" dbquery="qUpdateSelectionProcessHideInteraction"/>
+	    <dataquery name="dUpdateCommunicationHideInteraction" dbquery="qUpdateCommunicationHideInteraction"/>
+	    <dataquery name="dUpdateMessageHideInteraction" dbquery="qUpdateMessageHideInteraction"/>
+	    <dataquery name="dUpdateStatusMessageHideInteraction" dbquery="qUpdateStatusMessageHideInteraction"/>
+	    <dataquery name="dUpdateOfferDetailsModifiedHideInteraction" dbquery="qUpdateOfferDetailsModifiedHideInteraction"/>
+	    <dataquery name="dSelectionProcessManager_GetApplicantsUserIdAndPositionStatus" dbquery="qSelectionProcessManager_GetApplicantsUserIdAndPositionStatus" object="com.talentPool.selectionProcess.dataobject.SelectionProcessData">
+	    	<attribute name= "userId" column="user_id" type ="STRING" />
+	    	<attribute name= "positionStatus" column="position_status" type ="STRING" />
+	    </dataquery>
+	    <dataquery name="dSelectionProcessManager_GetLastStepFromApplicantsSelectionProcess" dbquery="qSelectionProcessManager_GetLastStepFromApplicantsSelectionProcess" object="com.talentPool.common.db.SimpleDataObject">
+	        <attribute name="processId" column="process_id" type="STRING"/>
+	        <attribute name="positionStepIdFrom" column="position_step_id_from" type="STRING"/>
+	        <attribute name="positionStepIdTo" column="position_step_id_to" type="STRING"/>
+	        <attribute name="userId" column="user_id" type="STRING"/>
+	        <attribute name="positionId" column="position_id" type="STRING"/>
+	        <attribute name="processDateCreated" column="process_date_created" type="STRING"/>
+	    </dataquery>
+	    <dataquery name="dDeleteApplicantProcessStepTraits" dbquery="qDeleteApplicantProcessStepTraits"/>
+	    <dataquery name="dSelectionProcessManager_GetLastUserIdFromSelectionProcessTraits" dbquery="qSelectionProcessManager_GetLastUserIdFromSelectionProcessTraits" />
+	    <dataquery name="dSelectionProcessManager_GetIsStepSchedulable" dbquery="qSelectionProcessManager_GetIsStepSchedulable" object="com.talentPool.common.db.SimpleDataObject">
+	        <attribute name="stepIsScheduled" column="position_step_isscheduled" type="STRING"/>
+	    </dataquery>
+	    <dataquery name="dSelectionProcessManager_UpdateApplicantsSelectionProcess" dbquery="qSelectionProcessManager_UpdateApplicantsSelectionProcess"/>
+	    <dataquery name="dSelectionProcessManager_DeleteApplicantSelectionProcessStep" dbquery="qSelectionProcessManager_DeleteApplicantSelectionProcessStep"/>
+	    <dataquery name="dSelectionProcessManager_updateApplicantStepWithOldStepId" dbquery="qSelectionProcessManager_updateApplicantStepWithOldStepId"/>
+	    <dataquery name="dSelectionProcessManager_updateApplicantsJoiningStatus" dbquery="qSelectionProcessManager_updateApplicantsJoiningStatus"/>
+	    <dataquery name="dSelectionProcessManager_GetApplicantsAppointmentId" dbquery="qSelectionProcessManager_GetApplicantsAppointmentId"/>
+	    <dataquery name="dSelectionProcessManager_updateApplicantsAppointmentStatus" dbquery="qSelectionProcessManager_updateApplicantsAppointmentStatus"/>
+	    <dataquery name="dSelectionProcessManager_GetApplicantsAppointmentDate" dbquery="qSelectionProcessManager_GetApplicantsAppointmentDate"/>
+	    <dataquery name="dSelectionProcessManager_InsertReminder" dbquery="qSelectionProcessManager_InsertReminder"/>
+	    <dataquery name="dSelectionProcessManager_UpdateReminder" dbquery="qSelectionProcessManager_UpdateReminder"/>
+	    <dataquery name="dSelectionProcessManager_GetApplicantReminder" dbquery="qSelectionProcessManager_GetApplicantReminder" object="com.talentPool.selectionProcess.dataobject.SelectionProcessData">
+	        <attribute name="reminderDate" column="reminder_date" type="STRING"/>
+	        <attribute name="reminderDesc" column="reminder_desc" type="STRING"/>
+	        <attribute name="applicantId" column="applicant_id" type="STRING"/>
+	    </dataquery>
+	    <dataquery name="dSelection_GetStepLevel" dbquery="qSelection_GetStepLevel" />
+	    <dataquery name="dSelection_UpdateIntercationIsHidden" dbquery="qSelection_UpdateIntercationIsHidden" />
+	     <dataquery name="dSelection_stepAttendees" dbquery="qSelection_stepAttendees" object="com.talentPool.common.db.SimpleDataObject">
+	        <attribute name="userId" column="user_id" type="STRING"/>
+	    </dataquery>
+		<dataquery name="dSelection_GetFlagsWithNoOfApplicants" dbquery="qSelection_GetFlagsWithNoOfApplicants" object="com.talentPool.common.db.SimpleDataObject">
+	        <attribute name="flagId" column="flag_id" type="STRING"/>
+	        <attribute name="count" column="applicant_count" type="STRING"/>
+	    </dataquery>
+	    <dataquery name="dSelection_GetAllFlags" dbquery="qSelection_GetAllFlags" object="com.talentPool.common.db.SimpleDataObject">
+		<attribute name="flagId"  column="flag_id" type="STRING" />
+		<attribute name="flagImage"  column="flag_image" type="STRING" />
+		<attribute name="flagText"  column="flag_text" type="STRING" />		
+		<attribute name="flagType"  column="flag_type" type="STRING" />
+		<attribute name="flagStatus"  column="flag_status" type="STRING" />
+		<attribute name="userId"  column="user_id" type="STRING" />
+		<attribute name="dateCreated"  column="date_created" type="STRING" />		
+		<attribute name="name"  column="name" type="STRING" />
+	</dataquery>
+	<dataquery name="dSelectionProcessManager_GetSourceType" dbquery="qSelectionProcessManager_GetSourceType" />
+	<dataquery name="dSelectionProcessManager_GetVendorEmailAddress" dbquery="qSelectionProcessManager_GetVendorEmailAddress"/>
+	<dataquery name="dSelectionProcessManager_GetLastProcessDataForBulkFeedback" dbquery="qSelectionProcessManager_GetLastProcessDataForBulkFeedback" object="com.talentPool.selectionProcess.dataobject.SelectionProcessData">
+        <attribute name="nextUserId" column="user_id" type ="STRING" />
+        <attribute name="processId" column="process_id" type ="STRING" />
+        <attribute name="applicantId" column="applicant_id" type ="STRING" />
+        <attribute name="positionId" column="position_id" type ="STRING" />
+        <attribute name="currentStepId" column="current_step_id" type ="STRING" />
+        <attribute name="appointmentId" column="appointment_id" type ="STRING" />
+        <attribute name="appointmentFromDate" column="appointment_from_date" type ="STRING" />
+        <attribute name="appointmentStatus" column="appointment_status_id" type ="STRING" />
+        <attribute name="positionStepIdFrom" column="position_step_id_from" type ="STRING" />
+        <attribute name="positionStepIdTo" column="position_step_id_to" type ="STRING" />        
+        <attribute name="positionStepTitle" column="position_step_title" type ="STRING" />
+        <attribute name="positionStepIsscheduled" column="position_step_isscheduled" type ="STRING" />
+        <attribute name="positionStepLevel" column="position_step_level" type ="STRING" />
+        <attribute name="positionTitle" column="position_title" type ="STRING" />
+        <attribute name="positionCode" column="position_code" type ="STRING" />
+		<attribute name="applicantName" column="applicant_name" type ="STRING" />
+		<attribute name="applicantWorkingSince" column="applicant_working_since" type ="STRING" />
+		<attribute name="applicantCurrentEmployer" column="applicant_current_employer" type ="STRING" />
+        <attribute name="applicantJoiningDate" column="applicant_date_joined" type ="STRING" />
+        <attribute name="offeredCtc" column="offered_ctc" type ="STRING" />
+        <attribute name="basicOffered" column="offered_basic" type ="STRING" />
+        <attribute name="employeeCode" column="employee_code" type ="STRING" />        
+        <attribute name="applicantLevelOffered" column="applicant_level_offered" type ="STRING" />
+        <attribute name="applicantDesignationOffered" column="applicant_designation_offered" type ="STRING" />
+        <attribute name="inputSalaryVariable" column="input_salary_variable" type ="STRING" />
+        <attribute name="feedbackFormId" column="feedback_form_id" type ="STRING" />
+	</dataquery>
+	<dataquery name="dSelectionProcessManager_GetPositionStepForUser" dbquery="qSelectionProcessManager_GetPositionStepForUser" />
+	<dataquery name="dSelectionProcessManager_GetNextStepsForPosition" dbquery="qSelectionProcessManager_GetNextStepsForPosition" object="com.talentPool.positions.dataobject.StepData" >
+        <attribute name="stepId" column="position_step_id" type ="STRING" />
+        <attribute name="stepTitle" column="position_step_title" type ="STRING" />
+        <attribute name="stepLevel" column="position_step_level" type ="STRING" />
+        <attribute name="stepOptional" column="position_step_isoptional" type ="STRING" />
+        <attribute name="feedbackFormId" column="feedback_form_id" type ="STRING" />
+	</dataquery>
+	<dataquery name="dSelectionProcessManager_UndoJoiningHistory" dbquery="qSelectionProcessManager_UndoJoiningHistory"/>
+	<dataquery name="dSelectionProcessManager_AddTempTraits" dbquery="qSelectionProcessManager_AddTempTraits"/>
+	<dataquery name="dSelectionProcessManager_DeleteTempTraits" dbquery="qSelectionProcessManager_DeleteTempTraits"/>
+	<dataquery name="dSelectionProcessManager_GetTempTraits" dbquery="qSelectionProcessManager_GetTempTraits" object="com.talentPool.positions.dataobject.TraitData">
+		<attribute name="feedbackFormFieldId" column="feedback_form_field_id" type ="STRING" />
+        <attribute name="traitComment" column="trait_comment" type ="STRING" />
+        <attribute name="ratingFieldId" column="rating_field_id" type ="STRING" />
+        <attribute name="selectFieldId" column="select_field_id" type ="STRING" />
+        <attribute name="feedbackFormId" column="feedback_form_id" type ="STRING" />
+	</dataquery>	
+	<dataquery name="dSelectionProcessManager_GetInProcessApplicants" dbquery="qSelectionProcessManager_GetInProcessApplicants" object="com.talentPool.selectionProcess.dataobject.SelectionProcessData">
+		 <attribute name="applicantId" column="applicant_id" type ="STRING" />
+		 <attribute name="applicantName" column="applicant_name" type ="STRING" />
+		 <attribute name="applicantSourceTitle" column="source_title" type ="STRING" />
+		 <attribute name="applicantWorkingSince" column="applicant_working_since" type ="STRING" />
+		 <attribute name="applicantCurrentEmployer" column="applicant_current_employer" type ="STRING" />
+		 <attribute name="applicantPositionDepartment" column="dept_name" type ="STRING" />
+		 <attribute name="applicantCellPhone" column="applicant_cell_phone" type ="STRING" />
+		 <attribute name="applicantJoiningDate" column="applicant_date_joined" type ="STRING" />
+		 <attribute name="applicantPositionId" column="position_id" type ="STRING" />
+		 <attribute name="applicantPosition" column="position_title" type ="STRING" />
+		 <attribute name="stepRank" column="position_step_rank" type ="STRING" />
+		 <attribute name="dueDate" column="due_date" type ="DATE" />
+		 <attribute name="appointmentFromDate" column="appointment_time" type ="STRING" />
+		 <attribute name="currentStepId" column="current_step_id" type ="STRING" />
+		 <attribute name="applicantStep" column="position_step_title" type ="STRING" />
+		 <attribute name="positionStepIsscheduled" column="position_step_isscheduled" type ="STRING" />
+		 <attribute name="responsibleUsers" column="users" type ="STRING" />
+		 <attribute name="appointmentStatus" column="appointment_status_id" type ="STRING" />
+		 <attribute name="applicantStatus" column="status_message" type ="STRING" />
+		 <attribute name="flags" column="flags" type ="STRING" />
+		 <attribute name="positionTypeExtInt" column="position_type_ext_int" type ="STRING" />		
+		 <attribute name="vendorId" column="vendor_id" type ="STRING" /> 
+	</dataquery>
+	<dataquery name="dSelectionProcessManager_GetLatestAppointmentsForApplicant" dbquery="qSelectionProcessManager_GetLatestAppointmentsForApplicant" object="com.talentPool.common.db.SimpleDataObject">
+		<attribute name="appointmentId" column="appointment_id" type ="INT" />
+		<attribute name="positionId" column="position_id" type ="INT" />
+		<attribute name="stepId" column="position_step_id" type ="INT" />
+		<attribute name="appointmentDate" column="appointment_from_date" type="STRING" />
+		<attribute name="appointmentStatus" column="appointment_status_id" type="STRING" />			
+	</dataquery>
+	<dataquery name="dSelectionProcessManager_GetSourceMailandType" dbquery="qSelectionProcessManager_GetSourceMailandType" 
+		object="com.talentPool.masters.dataobject.SourceData">
+		<attribute name="sourceTypeId" column="source_type_id" type="STRING" />
+		<attribute name="sourceEmail" column="source_email" type="STRING" />
+	</dataquery>
+	<dataquery name="dSelectionProcessManager_GetApplicantProcessIds" dbquery="qSelectionProcessManager_GetApplicantProcessIds" />
+	<dataquery name="dSelection_GetApplicantOfferDetails" dbquery="qSelection_GetApplicantOfferDetails" object="com.talentPool.selectionProcess.dataobject.FeedbackData">
+		<attribute name="applicantId" column="applicant_id" type ="STRING" />
+		<attribute name="applicantName" column="applicant_name" type ="STRING" />
+		<attribute name="applicantSourceTitle" column="source_title" type ="STRING" />
+		<attribute name="positionTitle" column="position_title" type ="STRING" />
+		<attribute name="gradeId" column="grade_id" type ="STRING" />
+		<attribute name="gradeName" column="grade_name" type ="STRING" />
+		<attribute name="ctcOffered" column="offered_ctc" type="STRING" />
+		<attribute name="levelOffered" column="applicant_level_offered" type="STRING" />
+		<attribute name="basicOffered" column="offered_basic" type="STRING" />
+		<attribute name="designationOffered" column="applicant_designation_offered" type="STRING" />
+		<attribute name="inputSalaryVariable" column="input_salary_variable" type="STRING" />
+	</dataquery>
+	<dataquery name="dSelection_SaveApplicantOfferDetails" dbquery="qSelection_SaveApplicantOfferDetails" />
+	<dataquery name="dApplicantManager_getApplicantSelectionProcessData" dbquery="qApplicantManager_getApplicantSelectionProcessData" object="com.talentPool.common.db.SimpleDataObject" >
+		<attribute name="applicantId" column="applicant_id" type="STRING" />
+		<attribute name="positionStepFrom" column="applicant_step_id" type="STRING" />
+		<attribute name="positionId" column="applicant_position_id" type="STRING" />
+   	 </dataquery>
+   	 <dataquery name="dSelectionProcess_GetUsersWithPendngAction" dbquery="qSelectionProcess_GetUsersWithPendngAction"  />
+   	 <dataquery name="dSelectionProcess_IsApplicantInHireStage" dbquery="qSelectionProcess_IsApplicantInHireStage"  />
+	<dataquery name="dSelectionProcess_GetAllFeedbackApplicantDataWithProcessId" dbquery="qSelectionProcess_GetAllFeedbackApplicantDataWithProcessId" object="com.talentPool.common.db.SimpleDataObject">
+		<attribute name= "applicantId" column="applicant_id" type ="STRING" />
+		<attribute name= "applicantName" column="applicant_name" type ="STRING" />		
+		<attribute name= "applicantStepId" column="applicant_step_id" type ="STRING" />
+		<attribute name= "applicantOriginalResumePath" column="applicant_original_resume_path" type ="STRING" />
+		<attribute name= "joiningDate" column="applicant_date_joined" type="STRING"/>			
+		<attribute name= "ctcOffered" column="offered_ctc" type ="STRING" />
+		<attribute name= "levelOffered" column="applicant_level_offered" type ="STRING" />
+		<attribute name= "designationOffered" column="applicant_designation_offered" type ="STRING" />
+		<attribute name= "joiningBonus" column="joining_Bonus" type ="STRING" />
+		<attribute name= "variableOffered" column="variable_Offered" type ="STRING" />
+		<attribute name= "employeeCode" column="employee_code" type ="STRING" />
+		<attribute name= "basicOffered" column="offered_basic" type ="STRING" />
+		<attribute name= "positionTitle" column="position_title" type ="STRING" />
+		<attribute name= "positionId" column="position_id" type ="STRING" />
+		<attribute name= "applicantSourceTitle" column="source_title" type ="STRING" />
+		<attribute name= "userId" column="user_id" type ="STRING" />		
+		<attribute name= "userName" column="user_name" type ="STRING" />					
+		<attribute name= "fromStepId" column="fromStepId" type ="STRING" />
+		<attribute name= "toStepId" column="toStepId" type ="STRING" />
+		<attribute name= "fromStepTitle" column="fromStepTitle" type ="STRING" />		
+		<attribute name= "toStepTitle" column="toStepTitle" type ="STRING" />
+		<attribute name= "processMovedDate" column="process_moved_date" type="STRING"/>
+		<attribute name= "feedbackFormId" column="feedback_form_id" type="STRING"/>
+		<attribute name= "feedbackFormTitle" column="feedback_form_title" type="STRING"/>
+		<attribute name= "feedbackFormCategoryId" column="category_id" type="STRING"/>
+		<attribute name= "feedbackFormCategoryTitle" column="category_name" type="STRING"/>
+		<attribute name= "feedbackFieldId" column="feedback_field_id" type ="STRING" />
+		<attribute name= "feedbackFieldTitle" column="feedback_field_title" type ="STRING" />
+		<attribute name= "feedbackFormFieldId" column="feedback_form_field_id" type ="STRING" />
+		<attribute name= "interviewerId" column="interviewer_id" type ="STRING" />		
+		<attribute name= "ratingId" column="rating_id" type ="STRING" />
+		<attribute name= "ratingFieldId" column="rating_field_id" type ="STRING" />
+		<attribute name= "ratingFieldDesc" column="rating_field_desc" type ="STRING" />
+		<attribute name= "feedbackFormFieldDesc" column="feedback_form_field_desc" type ="STRING" />		
+		<attribute name= "feedbackFormFieldType" column="feedback_form_field_type" type ="STRING" />
+		<attribute name= "feedbackFormFieldDisplayType" column="feedback_form_field_display_type" type ="STRING" />
+		<attribute name= "feedbackFormFieldIsMandatory" column="feedback_form_field_is_mandatory" type ="STRING" />
+		<attribute name= "feedbackFieldType" column="feedback_field_type" type ="STRING" />
+		<attribute name= "multipleSelectId" column="select_id" type ="STRING" />		
+		<attribute name= "feedbackFormFieldCommentRequired" column="feedback_form_field_comment_required" type ="STRING" />
+		<attribute name= "multipleSelectFieldId" column="select_field_id" type ="STRING" />			
+		<attribute name= "traitComment" column="trait_comment" type ="STRING" />
+		<attribute name= "feedbackFormHeader" column="feedback_form_header" type="STRING"/>
+		<attribute name= "applicantFieldId" column="applicant_field_id" type ="STRING" />	
+		<attribute name= "systemGenerated" column="system_generated" type="STRING"/>
+	</dataquery>	
+	<dataquery name="dSelectionProcess_GetAllFeedbackApplicantDataWithProcessIdForCandidate" dbquery="qSelectionProcess_GetAllFeedbackApplicantDataWithProcessIdForCandidate" object="com.talentPool.common.db.SimpleDataObject">
+		<attribute name= "applicantId" column="applicant_id" type ="STRING" />
+		<attribute name= "applicantName" column="applicant_name" type ="STRING" />		
+		<attribute name= "applicantStepId" column="applicant_step_id" type ="STRING" />
+		<attribute name= "applicantOriginalResumePath" column="applicant_original_resume_path" type ="STRING" />
+		<attribute name= "joiningDate" column="applicant_date_joined" type="STRING"/>			
+		<attribute name= "ctcOffered" column="offered_ctc" type ="STRING" />
+		<attribute name= "levelOffered" column="applicant_level_offered" type ="STRING" />
+		<attribute name= "designationOffered" column="applicant_designation_offered" type ="STRING" />
+		<attribute name= "joiningBonus" column="joining_Bonus" type ="STRING" />
+		<attribute name= "variableOffered" column="variable_Offered" type ="STRING" />
+		<attribute name= "employeeCode" column="employee_code" type ="STRING" />
+		<attribute name= "basicOffered" column="offered_basic" type ="STRING" />
+		<attribute name= "positionTitle" column="position_title" type ="STRING" />
+		<attribute name= "positionId" column="position_id" type ="STRING" />
+		<attribute name= "applicantSourceTitle" column="source_title" type ="STRING" />
+		<attribute name= "userId" column="user_id" type ="STRING" />		
+		<attribute name= "userName" column="user_name" type ="STRING" />					
+		<attribute name= "fromStepId" column="fromStepId" type ="STRING" />
+		<attribute name= "toStepId" column="toStepId" type ="STRING" />
+		<attribute name= "fromStepTitle" column="fromStepTitle" type ="STRING" />		
+		<attribute name= "toStepTitle" column="toStepTitle" type ="STRING" />
+		<attribute name= "processMovedDate" column="process_moved_date" type="STRING"/>
+		<attribute name= "feedbackFormId" column="feedback_form_id" type="STRING"/>
+		<attribute name= "feedbackFormTitle" column="feedback_form_title" type="STRING"/>
+		<attribute name= "feedbackFormCategoryId" column="category_id" type="STRING"/>
+		<attribute name= "feedbackFormCategoryTitle" column="category_name" type="STRING"/>
+		<attribute name= "feedbackFieldId" column="feedback_field_id" type ="STRING" />
+		<attribute name= "feedbackFieldTitle" column="feedback_field_title" type ="STRING" />
+		<attribute name= "feedbackFormFieldId" column="feedback_form_field_id" type ="STRING" />
+		<attribute name= "interviewerId" column="interviewer_id" type ="STRING" />		
+		<attribute name= "ratingId" column="rating_id" type ="STRING" />
+		<attribute name= "ratingFieldId" column="rating_field_id" type ="STRING" />
+		<attribute name= "ratingFieldDesc" column="rating_field_desc" type ="STRING" />
+		<attribute name= "feedbackFormFieldDesc" column="feedback_form_field_desc" type ="STRING" />		
+		<attribute name= "feedbackFormFieldType" column="feedback_form_field_type" type ="STRING" />
+		<attribute name= "feedbackFormFieldDisplayType" column="feedback_form_field_display_type" type ="STRING" />
+		<attribute name= "feedbackFormFieldIsMandatory" column="feedback_form_field_is_mandatory" type ="STRING" />
+		<attribute name= "feedbackFieldType" column="feedback_field_type" type ="STRING" />
+		<attribute name= "multipleSelectId" column="select_id" type ="STRING" />		
+		<attribute name= "feedbackFormFieldCommentRequired" column="feedback_form_field_comment_required" type ="STRING" />
+		<attribute name= "multipleSelectFieldId" column="select_field_id" type ="STRING" />			
+		<attribute name= "traitComment" column="trait_comment" type ="STRING" />
+		<attribute name= "feedbackFormHeader" column="feedback_form_header" type="STRING"/>
+		<attribute name= "applicantFieldId" column="applicant_field_id" type ="STRING" />	
+		<attribute name= "systemGenerated" column="system_generated" type="STRING"/>
+	</dataquery>	
+	<dataquery name="dSelectionProcessManager_GetFeedbackFormIdForUserProcessApplicant" dbquery="qSelectionProcessManager_GetFeedbackFormIdForUserProcessApplicant" object="com.talentPool.common.db.SimpleDataObject" >
+		<attribute name="feedbackFormId" column="feedback_form_id" type="STRING" />   	 
+	</dataquery>
+	<dataquery name="dSelectionProcess_GetRejectedCandidates" dbquery="qSelectionProcess_GetRejectedCandidates" object="com.talentPool.selectionProcess.dataobject.RejectedCandidateData" >
+		<attribute name="applicantId" column="applicant_id" type="STRING" />
+		<attribute name="applicantName" column="applicant_name" type ="STRING" />
+		<attribute name="positionTitle" column="position_title" type ="STRING" />
+		<attribute name="positionCode" column="position_code" type ="STRING" />
+		<attribute name="stepTitle" column="step_title" type ="STRING" />
+		<attribute name="stepLevelName" column="step_level_name" type ="STRING" />
+		<attribute name="rejectedBy" column="rejected_by" type ="STRING" />
+		<attribute name="rejectedDate" column="rejected_date" type ="DATE" />
+   	 </dataquery>
+   	 <dataquery name="dSelectionProcessManager_IsSelectionProcessHidden" dbquery="qSelectionProcessManager_IsSelectionProcessHidden"  />
+   	 <dataquery name="dSelectionProcessManager_isPositionVacancyFilled" dbquery="qSelectionProcessManager_isPositionVacancyFilled"  />
+   	 <dataquery name="dSelectionProcessManager_GetApplicantPositionStatus" dbquery="qSelectionProcessManager_GetApplicantPositionStatus" object="com.talentPool.selectionProcess.dataobject.SelectionProcessData">
+        <attribute name="processId" column="process_id" type ="STRING" />
+        <attribute name="applicantId" column="applicant_id" type ="STRING" />
+        <attribute name="positionId" column="position_id" type ="STRING" />
+        <attribute name="positionStepIdFrom" column="position_step_id_from" type ="STRING" />
+        <attribute name="positionStepIdTo" column="position_step_id_to" type ="STRING" />        
+	</dataquery>
+	<dataquery name="dSelectionProcessManager_getSelectedPositionIdForApplicantId" dbquery="qSelectionProcessManager_getSelectedPositionIdForApplicantId"  />
+	<dataquery name="dSelectionProcessManager_GetApplicants_MassEmail" dbquery="qSelectionProcessManager_GetApplicants_MassEmail" object="com.talentPool.selectionProcess.dataobject.SelectionProcessData">
+	    	<attribute name= "applicantId" column="applicant_id" type ="INT" />
+		    <attribute name= "applicantName" column="applicant_name" type ="STRING" />
+		    <attribute name= "applicantWorkingSince" column="applicant_working_since" type ="STRING" />
+		    <attribute name= "applicantCurrentEmployer" column="current_employer" type ="STRING" />		    
+		    <attribute name= "date" column="applicant_date_joined" type ="STRING" />		    
+		    <attribute name= "applicantJoiningDate" column="date" type ="STRING" />		    
+		    <attribute name= "applicantPositionDepartment" column="dept_name" type ="STRING" />
+		    <attribute name= "applicantPosition" column="position_title" type ="STRING" />
+		    <attribute name= "applicantStep" column="position_step_title" type ="STRING" />		    
+		    <attribute name= "applicantPositionId" column="position_id" type ="STRING" />
+		    <attribute name= "applicantStepId" column="position_step_id" type ="STRING" />	
+		    <attribute name= "stepRank" column="position_step_rank" type ="STRING" />		    
+			<attribute name= "applicantStatus" column="selected_message" type ="STRING" />				
+			<attribute name= "flags" column="flags" type ="STRING" />
+			<attribute name= "applicantCellPhone" column="applicant_cell_phone" type ="STRING" />			
+			<attribute name= "responsibleUsers" column="users_responsible" type ="STRING" />
+			<attribute name= "actionRequired" column="action_required" type ="STRING" />					
+			<attribute name= "actionType" column="action_type" type ="STRING" />	
+			<attribute name="processDateCreated" column="v_process_moved_date" type="STRING"/>		
+			<attribute name="dt" column="v_process_date_created" type="STRING"/>		
+			<attribute name="count" column="count" type="STRING"/>										
+			<attribute name="emailId" column="email_id" type="STRING"/>
+	    </dataquery>
+		</dataqueries>
+</dbmap>

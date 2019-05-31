@@ -1,0 +1,69 @@
+/*
+ * Created on Jun 13, 2006
+ *
+ * TODO To change the template for this generated file go to
+ * Window - Preferences - Java - Code Style - Code Templates
+ */
+package com.talentPool.applicant;
+
+
+/**
+ * @author pallavi
+ * @date Jun 13, 2006
+ */
+public class ApplicantConstants {
+	public static final String PERMANENT_ADDRESS = "2";
+	public static final String CURRENT_ADDRESS = "1";
+
+	public static final String ACTIVE_SOURCE = "1";
+	public static final String DELETED_SOURCE = "0";
+
+	public static final String APPLICANT_SKILL_PRIMARY = "0";
+	public static final String APPLICANT_SKILL_SECONDARY = "1";
+
+	public static final String APPLICANT_EMAIL_FOLDER_INBOX="1";
+	public static final String APPLICANT_EMAIL_FOLDER_SENT="2";
+	
+	public static final String EMAIL_IMPORTED="1";
+	public static final String EMAIL_NOT_IMPORTED="0";
+	
+	public static final String AUTOCOMPLETE_CURRENT_LOCATION="CLO";
+	public static final String AUTOCOMPLETE_INSTITUTE="INS";
+	public static final String AUTOCOMPLETE_BRANCH="BRN";
+	public static final String AUTOCOMPLETE_EMPLOYER="EMR";
+	public static final String AUTOCOMPLETE_SOURCE="SRC";
+	
+	public static final String AUTOCOMPLETE_EMPLOYMENT_EMPLOYER = "EMPLOYER";
+	public static final String AUTOCOMPLETE_EMPLOYMENT_DESIGNATION = "DESIGNATION";
+	
+	public static final String APPLICANT_JOINED="1";
+	public static final String APPLICANT_NOT_JOINED="0";
+	
+	public static final String APPLICANT_STATUS_BLACKLISTED="2";
+	public static final String APPLICANT_STATUS_NORMAL="0";
+	
+	public static final String IMPORTED="1";
+	public static final String NOT_IMPORTED="0";
+	
+	public static final int DEGREE_LEVEL_HIGHEST=0;
+	public static final int DEGREE_LEVEL_OTHER=1;
+	
+	public static final String APPLICANT_CONFIDENTIAL="1";
+	public static final String APPLICANT_NOT_CONFIDENTIAL="0";
+	
+    public static final String APPLICANT_INDEX_PENDING = "0";
+    public static final String APPLICANT_INDEX_DONE = "1";
+    public static final String APPLICANT_INDEX_DELETE = "2";
+    public static final String APPLICANT_APPLY_EMPLOYEE_PORTAL = "1";
+    public static final String APPLICANT_REFER_EMPLOYEE_PORTA = "0";
+    
+    public static final String AUTOCOMPLETE_POSITION_APPLIED = "POSAPP";
+    public static final String APPLICANT_MARKS_GREATER_THAN= "1";
+    public static final String APPLICANT_MARKS_EQUAL_TO= "2";
+    public static final String APPLICANT_MARKS_LESS_THAN= "3";
+    public static final String GREATER_THAN= "1";
+    public static final String EQUAL_TO= "2";
+    public static final String LESS_THAN= "3";
+    
+
+}

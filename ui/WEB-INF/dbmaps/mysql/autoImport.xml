@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<dbmap> 
+	<dbqueries>
+		<dbquery name="qAutoImportManager_FetchEmails">
+			SELECT  tem.email_id, tem.email_from, tem.email_to, tem.email_subject, tem.email_date_send, 
+			tem.email_date_received, tem.email_textbody, tem.email_htmlbody
+			FROM tp_inbox_emails tem
+			WHERE tem.auto_import_format=? AND tem.auto_import_tried=?
+			LIMIT 0,100
+		</dbquery>
+		<dbquery name="qAutoImportManager_UpdateErrorCodes">
+			UPDATE tp_inbox_emails SET auto_import_tried=?, auto_import_errors=? WHERE email_id=?
+		</dbquery>
+		<dbquery name="qAutoImportManager_UpdateImportTried">
+			UPDATE tp_inbox_emails SET auto_import_tried=? WHERE email_id=?
+		</dbquery>
+	</dbqueries>
+	<dataqueries>
+		<dataquery name="dAutoImportManager_FetchEmails" dbquery="qAutoImportManager_FetchEmails" object="com.talentPool.inbox.dataobject.MessageData">
+			<attribute name="messageId" column="email_id" type="INT"/>
+			<attribute name="from" column="email_from" type="STRING"/>
+			<attribute name="to" column="email_to" type="STRING"/>
+			<attribute name="subject" column="email_subject" type="STRING"/>
+			<attribute name="sendDate" column="email_date_send" type="STRING"/>
+			<attribute name="receivedDate" column="email_date_received" type="STRING"/>
+			<attribute name="textBody" column="email_textbody" type="STRING"/>
+			<attribute name="htmlBody" column="email_htmlbody" type="STRING"/>
+		</dataquery>
+		<dataquery name="dAutoImportManager_UpdateErrorCodes" dbquery="qAutoImportManager_UpdateErrorCodes" />
+		<dataquery name="dAutoImportManager_UpdateImportTried" dbquery="qAutoImportManager_UpdateImportTried" />
+	</dataqueries>   
+</dbmap>

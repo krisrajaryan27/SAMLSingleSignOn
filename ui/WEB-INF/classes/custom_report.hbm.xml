@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<!DOCTYPE hibernate-mapping PUBLIC
+"-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+"http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+<hibernate-mapping>
+	<class name="com.talentPool.customReports.dataobject.CustomReportDetails" table="tp_custom_reports" 
+		dynamic-insert="true" dynamic-update="true">
+		<id name="reportId" type="long" column="report_id">
+			<generator class="increment"/>
+		</id>
+		<property name="reportName" type="string" column="report_name" not-null="true" />
+		<property name="reportDesc" type="string" column="report_desc" not-null="true" />
+		<property name="createdBy" type="string" column="created_by" not-null="true" />
+		<property name="dateCreated" type="timestamp" column="date_created" not-null="true" />
+		<property name="modifiedBy" type="string" column="modified_by" not-null="true" />
+		<property name="dateModified" type="timestamp" column="date_modified" not-null="true" />
+		<property name="xmlFilePath" type="string" column="xml_file_path" />
+		<property name="templateFilePath" type="string" column="template_file_path" />
+		<property name="queryFilePath" type="string" column="query_file_path" />	
+		<property name="inactivePositionsQueryFilePath" type="string" column="inactive_query_file_path" />
+		<property name="reportTypeId" type="string" column="cr_report_type_id" />
+	</class>
+</hibernate-mapping>

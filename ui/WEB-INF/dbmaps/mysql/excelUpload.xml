@@ -1,0 +1,206 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>		
+		<dbquery name="qExcelUploadManager_updateExcelImportTable">
+			UPDATE tp_excel_import SET applicant_id=?, status=? WHERE session_id=? and row_id=?
+		</dbquery>
+		<dbquery name="qExcelUploadManager_GetSourceExists">
+			SELECT source_id,source_title FROM tp_sources
+		</dbquery>
+		<dbquery name="qExcelUploadManager_GetDegreeId">			
+			SELECT degree_id 
+			FROM
+			(
+			(SELECT degree_id FROM tp_degrees WHERE degree_title = ?)
+			UNION
+			(SELECT degree_id FROM tp_degree_aliases WHERE alias = ?)
+			) AS TBL
+			LIMIT 0,1			
+		</dbquery>
+		<dbquery name="qExcelUploadManager_GetDegreeAliasId">
+			SELECT degree_id FROM tp_degree_aliases WHERE alias = ?
+		</dbquery>		
+		<dbquery name="qExcelUploadManager_GetCSVImportFailData">
+			SELECT row_id,applicant_name,applicant_id,status FROM tp_excel_import 
+			WHERE session_id=? AND status!=? AND row_id &gt; ?
+		</dbquery>		
+		<dbquery name="qExcelUploadManager_GetBranchId">
+			(
+			SELECT branch_id
+			FROM tp_branches
+			WHERE branch_name = ?
+			)
+			UNION
+			(
+			SELECT branch_id
+			FROM tp_branch_aliases
+			WHERE alias = ?
+			)
+			LIMIT 0, 1
+		</dbquery>
+		<dbquery name="qExcelUploadManager_GetSkillId">			
+			SELECT skill_id 
+			FROM
+			(
+			(SELECT skill_id FROM tp_skills WHERE skill = ?)
+			UNION
+			(SELECT skill_id FROM tp_skills_aliases WHERE skill_alias = ?)
+			) AS TBL
+			LIMIT 0,1
+		</dbquery>
+		<dbquery name="qExcelUploadManager_GetSkillAliasId">
+			SELECT skill_id FROM tp_skills_aliases WHERE skill_alias = ?
+		</dbquery>
+		<dbquery name="qExcelUploadManager_GetSourceId">
+			SELECT source_id FROM tp_sources WHERE source_title = ?
+		</dbquery>
+		<dbquery name="qExcelUploadManager_InsertExcelData">
+			INSERT INTO tp_excel_import (session_id,row_id,applicant_name,email1,email2,phone1,
+			phone2,mobile,date_of_birth,experience,source,current_location,skills,yop1,startDate1, endDate1, institute1, degree1, 
+			branch1, university1, typeOfProgram1, percentage1, yop2, startDate2, endDate2, institute2, degree2, branch2,
+			university2, typeOfProgram2, percentage2, yop3, startDate3, endDate3, institute3, degree3, branch3,
+			university3, typeOfProgram3, percentage3, yop4, startDate4, endDate4, institute4, degree4, branch4,
+			university4, typeOfProgram4, percentage4, current_employer, current_ctc, expected_ctc,
+			notice_period, note, error, date_created, original_resume_path,
+			employ_from_date1,employ_to_date1,employer_name1,designation_name1,employ_type1,employ_location1,employ_country1,
+			employ_from_date2,employ_to_date2,employer_name2,designation_name2,employ_type2,employ_location2,employ_country2,
+			employ_from_date3,employ_to_date3,employer_name3,designation_name3,
+			employ_from_date4,employ_to_date4,employer_name4,designation_name4,
+			employ_from_date5,employ_to_date5,employer_name5,designation_name5)			
+			values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,now(),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)	
+		</dbquery>
+		<dbquery name="qExcelUploadManager_GetExcelImportData">
+			SELECT session_id,row_id,applicant_name, email1, email2, phone1,
+			phone2, mobile, date_of_birth, experience, source, current_location, skills, yop1, startDate1, endDate1, institute1, degree1, 
+			branch1, university1, typeOfProgram1, percentage1, yop2, startDate2, endDate2, institute2, degree2, branch2,
+			university2, typeOfProgram2, percentage2, yop3, startDate3, endDate3, institute3, degree3, branch3,
+			university3, typeOfProgram3, percentage3, yop4, startDate4, endDate4, institute4, degree4, branch4,
+			university4, typeOfProgram4, percentage4, current_employer, current_ctc, expected_ctc,
+			notice_period, note, error, original_resume_path,
+			employ_from_date1,employ_to_date1,employer_name1,designation_name1,employ_type1,employ_location1,employ_country1,
+			employ_from_date2,employ_to_date2,employer_name2,designation_name2,employ_type2,employ_location2,employ_country2,
+			employ_from_date3,employ_to_date3,employer_name3,designation_name3,
+			employ_from_date4,employ_to_date4,employer_name4,designation_name4,
+			employ_from_date5,employ_to_date5,employer_name5,designation_name5
+			FROM tp_excel_import WHERE session_id=? AND row_id &gt; ?
+		</dbquery>
+		<dbquery name="qMastersManager_GetExcelImportData">
+			SELECT row_id,applicant_name,applicant_id,status FROM tp_excel_import WHERE session_id=?
+		</dbquery>
+	</dbqueries>
+	<dataqueries>
+	    <dataquery name="dExcelUploadManager_updateExcelImportTable" dbquery="qExcelUploadManager_updateExcelImportTable"/>
+	    <dataquery name="dExcelUploadManager_GetSourceExists" dbquery="qExcelUploadManager_GetSourceExists" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name="sourceTitle"  column="source_title" type="STRING" />
+	    	<attribute name="sourceId"  column="source_id" type="STRING" />
+	    </dataquery>
+	    <dataquery name="dExcelUploadManager_GetDegreeId" dbquery="qExcelUploadManager_GetDegreeId" />
+	    <dataquery name="dExcelUploadManager_GetDegreeAliasId" dbquery="qExcelUploadManager_GetDegreeAliasId" />
+	    
+	    <dataquery name="dExcelUploadManager_GetCSVImportFailData" dbquery="qExcelUploadManager_GetCSVImportFailData" object="com.talentPool.common.db.SimpleDataObject">
+	       	<attribute name="rowId"  column="row_id" type="STRING" />
+	    	<attribute name="applicantName"  column="applicant_name" type="STRING" />	    
+	    	<attribute name="applicantId"  column="applicant_id" type="STRING" />
+	    	<attribute name="status"  column="status" type="STRING" />
+	    </dataquery>
+	        
+	    <dataquery name="dExcelUploadManager_GetBranchId" dbquery="qExcelUploadManager_GetBranchId" />
+	    <dataquery name="dExcelUploadManager_GetSkillId" dbquery="qExcelUploadManager_GetSkillId" />
+	    <dataquery name="dExcelUploadManager_GetSkillAliasId" dbquery="qExcelUploadManager_GetSkillAliasId" />
+	    <dataquery name="dExcelUploadManager_GetSourceId" dbquery="qExcelUploadManager_GetSourceId" />
+	    <dataquery name="dExcelUploadManager_InsertExcelData" dbquery="qExcelUploadManager_InsertExcelData"/>
+	    <dataquery name="dMastersManager_GetExcelImportData" dbquery="qMastersManager_GetExcelImportData" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name="rowId"  column="row_id" type="STRING" />
+	    	<attribute name="applicantName"  column="applicant_name" type="STRING" />	    
+	    	<attribute name="applicantId"  column="applicant_id" type="STRING" />
+	    	<attribute name="status"  column="status" type="STRING" />
+	    </dataquery>
+	    <dataquery name="dExcelUploadManager_GetExcelImportData" dbquery="qExcelUploadManager_GetExcelImportData" object="com.talentPool.inbox.dataobject.ImportData">
+	    	<attribute name="sessionId"  column="session_id" type="STRING" />
+	    	<attribute name="rowId"  column="row_id" type="STRING" />	    
+	    	<attribute name="applicantName"  column="applicant_name" type="STRING" />
+	    	<attribute name="email1"  column="email1" type="STRING" />
+	    	<attribute name="email2"  column="email2" type="STRING" />
+	    	<attribute name="phone1"  column="phone1" type="STRING" />
+	    	<attribute name="phone2"  column="phone2" type="STRING" />
+	    	<attribute name="mobile"  column="mobile" type="STRING" />
+	    	<attribute name="dateOfBirth"  column="date_of_birth" type="STRING" />
+	    	<attribute name="experience"  column="experience" type="STRING" />
+	    	<attribute name="source"  column="source" type="STRING" />
+	    	<attribute name="currentLocation"  column="current_location" type="STRING" />
+	    	<attribute name="skills"  column="skills" type="STRING" />
+	    	<attribute name="yop1"  column="yop1" type="STRING" />
+	    	<attribute name="startDate1"  column="startDate1" type="STRING" />
+	    	<attribute name="endDate1"  column="endDate1" type="STRING" />
+	    	<attribute name="institute1"  column="institute1" type="STRING" />
+	    	<attribute name="degree1"  column="degree1" type="STRING" />
+	    	<attribute name="branch1"  column="branch1" type="STRING" />
+	    	<attribute name="university1"  column="university1" type="STRING" />
+	    	<attribute name="typeOfProgram1"  column="typeOfProgram1" type="STRING" />
+	    	<attribute name="percentage1"  column="percentage1" type="STRING" />
+	    	<attribute name="yop2"  column="yop2" type="STRING" />
+	    	<attribute name="startDate2"  column="startDate2" type="STRING" />
+	    	<attribute name="endDate2"  column="endDate2" type="STRING" />
+	    	<attribute name="institute2"  column="institute2" type="STRING" />
+	    	<attribute name="degree2"  column="degree2" type="STRING" />
+	    	<attribute name="branch2"  column="branch2" type="STRING" />
+	    	<attribute name="university2"  column="university2" type="STRING" />
+	    	<attribute name="typeOfProgram2"  column="typeOfProgram2" type="STRING" />
+	    	<attribute name="percentage2"  column="percentage2" type="STRING" />
+	    	<attribute name="yop3"  column="yop3" type="STRING" />
+	    	<attribute name="startDate3"  column="startDate3" type="STRING" />
+	    	<attribute name="endDate3"  column="endDate3" type="STRING" />
+	    	<attribute name="institute3"  column="institute3" type="STRING" />
+	    	<attribute name="degree3"  column="degree3" type="STRING" />
+	    	<attribute name="branch3"  column="branch3" type="STRING" />
+	    	<attribute name="university3"  column="university3" type="STRING" />
+	    	<attribute name="typeOfProgram3"  column="typeOfProgram3" type="STRING" />
+	    	<attribute name="percentage3"  column="percentage3" type="STRING" />
+	    	<attribute name="yop4"  column="yop4" type="STRING" />
+	    	<attribute name="startDate4"  column="startDate4" type="STRING" />
+	    	<attribute name="endDate4"  column="endDate4" type="STRING" />
+	    	<attribute name="institute4"  column="institute4" type="STRING" />
+	    	<attribute name="degree4"  column="degree4" type="STRING" />
+	    	<attribute name="branch4"  column="branch4" type="STRING" />
+	    	<attribute name="university4"  column="university4" type="STRING" />
+	    	<attribute name="typeOfProgram4"  column="typeOfProgram4" type="STRING" />
+	    	<attribute name="percentage4"  column="percentage4" type="STRING" />
+	    	<attribute name="currentEmployer"  column="current_employer" type="STRING" />
+	    	<attribute name="currentCtc"  column="current_ctc" type="STRING" />
+	    	<attribute name="expectedCtc"  column="expected_ctc" type="STRING" />
+	    	<attribute name="noticePeriod"  column="notice_period" type="STRING" />	    	
+	    	<attribute name="note"  column="note" type="STRING" />	    	
+	    	<attribute name="error"  column="error" type="STRING" />
+	    	<attribute name="originalResumePath"  column="original_resume_path" type="STRING" />
+	    	<attribute name="employmentFromDate1"  column="employ_from_date1" type="STRING" />
+	    	<attribute name="employmentToDate1"  column="employ_to_date1" type="STRING" />
+	    	<attribute name="employmentEmployer1"  column="employer_name1" type="STRING" />
+	    	<attribute name="employmentDesignation1"  column="designation_name1" type="STRING" />
+	    	<attribute name="employmentType1"  column="employ_type1" type="STRING" />
+	    	<attribute name="employmentLocation1"  column="employ_location1" type="STRING" />
+	    	<attribute name="employmentCountry1"  column="employ_country1" type="STRING" />
+	    	<attribute name="employmentFromDate2"  column="employ_from_date2" type="STRING" />
+	    	<attribute name="employmentToDate2"  column="employ_to_date2" type="STRING" />
+	    	<attribute name="employmentEmployer2"  column="employer_name2" type="STRING" />
+	    	<attribute name="employmentDesignation2"  column="designation_name2" type="STRING" />
+	    	<attribute name="employmentType2"  column="employ_type2" type="STRING" />
+	    	<attribute name="employmentLocation2"  column="employ_location2" type="STRING" />
+	    	<attribute name="employmentCountry2"  column="employ_country2" type="STRING" />
+	    	<attribute name="employmentFromDate3"  column="employ_from_date3" type="STRING" />
+	    	<attribute name="employmentToDate3"  column="employ_to_date3" type="STRING" />
+	    	<attribute name="employmentEmployer3"  column="employer_name3" type="STRING" />
+	    	<attribute name="employmentDesignation3"  column="designation_name3" type="STRING" />
+	    	<attribute name="employmentFromDate4"  column="employ_from_date4" type="STRING" />
+	    	<attribute name="employmentToDate4"  column="employ_to_date4" type="STRING" />
+	    	<attribute name="employmentEmployer4"  column="employer_name4" type="STRING" />
+	    	<attribute name="employmentDesignation4"  column="designation_name4" type="STRING" />
+	    	<attribute name="employmentFromDate5"  column="employ_from_date5" type="STRING" />
+	    	<attribute name="employmentToDate5"  column="employ_to_date5" type="STRING" />
+	    	<attribute name="employmentEmployer5"  column="employer_name5" type="STRING" />
+	    	<attribute name="employmentDesignation5"  column="designation_name5" type="STRING" />	    	
+	    </dataquery>	    
+	</dataqueries>   
+</dbmap>

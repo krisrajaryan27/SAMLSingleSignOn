@@ -1,0 +1,131 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>		
+		<dbquery name="qLookupManager_AddEntryForLookup">
+			INSERT INTO tp_applicant_lookup_check 
+			(applicant_id, position_id, user_id, position_step_id, lookup_id_create_date, check_modified_date) 
+			VALUES(?,?,?,?,now(),now())
+		</dbquery>
+		<dbquery name="qLookupManager_UpdateApplicantsCheckedForLookup">
+			UPDATE tp_applicant_lookup_check SET check_lookup_db = ?, is_duplicate_flag = ? WHERE applicant_id = ?
+		</dbquery>	
+		<dbquery name="qLookupManager_ApplicantsForLookup">
+			SELECT applicant_id,applicant_name,applicant_email1,applicant_email2,
+					applicant_cell_phone,applicant_work_phone,applicant_home_phone
+			FROM tp_applicants 
+			WHERE applicant_id IN (SELECT applicant_id FROM tp_applicant_lookup_check WHERE check_lookup_db = ?)
+		</dbquery>
+		
+		<dbquery name="qLookupManager_GetFlagIdForLookupStepLevel">
+			SELECT flag_id FROM tp_applicant_lookup_flags WHERE lookup_step_level = ?
+		</dbquery>	
+		<dbquery name="qLookupManager_FetchShortlistedCandidate">
+			SELECT tasp.applicant_id, tasp.applicant_name, tasp.applicant_email1, tasp.applicant_email2,
+				tasp.applicant_cell_phone, tasp.applicant_home_phone, tasp.applicant_work_phone,
+				tasp.position_step_id_to,tps.position_step_level, tasp.position_title, tasp.position_id,
+				tps.position_step_title, tasp.user_id, tasp.user_email
+				FROM(
+					SELECT * FROM(
+						SELECT ta.applicant_name, ta.applicant_email1, ta.applicant_email2,
+							ta.applicant_cell_phone, ta.applicant_home_phone, ta.applicant_work_phone, 
+							tasp.applicant_id, tasp.position_step_id_to, tp.position_id, tp.position_title,
+							tasp.user_id, tu.user_email							
+						FROM tp_applicant_selection_process tasp
+						JOIN tp_applicants ta ON (tasp.applicant_id=ta.applicant_id)
+						JOIN tp_positions tp ON (tasp.position_id=tp.position_id)
+						JOIN tp_users tu ON (tasp.user_id=tu.user_id)						
+						ORDER BY tasp.process_id desc
+						)as tasp
+					GROUP BY tasp.applicant_id
+				) as tasp
+			JOIN tp_position_steps tps ON (tps.position_step_id=tasp.position_step_id_to)
+			WHERE tasp.applicant_id=?
+		</dbquery>	
+		
+		<dbquery name="qLookupManager_ApplicantsCheckDuplicateAtLookup">
+			SELECT tasp.applicant_id, tasp.applicant_name, tasp.applicant_email1, tasp.applicant_email2,
+				tasp.applicant_cell_phone, tasp.applicant_home_phone, tasp.applicant_work_phone,
+				tasp.position_step_id_to,tps.position_step_level, tasp.position_title, tasp.position_id,
+				tps.position_step_title
+			FROM(
+				SELECT * FROM(
+					SELECT ta.applicant_name, ta.applicant_email1, ta.applicant_email2,
+						ta.applicant_cell_phone, ta.applicant_home_phone, ta.applicant_work_phone,
+						tasp.applicant_id, tasp.position_step_id_to, tp.position_id, tp.position_title
+					FROM tp_applicant_selection_process tasp
+					JOIN tp_applicants ta ON (tasp.applicant_id=ta.applicant_id)
+					JOIN tp_positions tp ON (tasp.position_id=tp.position_id)
+				ORDER BY tasp.process_id desc
+				)as tasp
+				GROUP BY tasp.applicant_id
+			) as tasp
+			JOIN tp_position_steps tps ON (tps.position_step_id=tasp.position_step_id_to)
+			WHERE tasp.applicant_name = ?
+			OR tasp.applicant_email1 = ? OR tasp.applicant_email2 = ?
+			OR tasp.applicant_email1 = ? OR tasp.applicant_email2 = ?		
+			OR tasp.applicant_cell_phone = ? OR tasp.applicant_cell_phone = ? OR tasp.applicant_cell_phone = ?
+			OR tasp.applicant_home_phone = ? OR tasp.applicant_home_phone = ? OR tasp.applicant_home_phone = ?
+			OR tasp.applicant_work_phone = ? OR tasp.applicant_work_phone = ? OR tasp.applicant_work_phone = ?
+		</dbquery>
+		<dbquery name="qLookupManager_responsibleUserEmails">
+			SELECT group_concat(user_email) as user_emails FROM (
+				SELECT tu.user_id, tu.user_email,todo.applicant_id
+				FROM tp_todo todo
+				JOIN tp_users tu ON (todo.user_id=tu.user_id) 
+				JOIN tp_user_roles tur ON (tu.user_id=tur.user_id)
+				WHERE todo.applicant_id=? AND tur.role_id in (?,?)
+			) AS emls GROUP BY applicant_id
+		</dbquery>
+	</dbqueries>
+	<dataqueries>		
+	    <dataquery name="dLookupManager_AddEntryForLookup" dbquery="qLookupManager_AddEntryForLookup"/>
+	    <dataquery name="dLookupManager_UpdateApplicantsCheckedForLookup" dbquery="qLookupManager_UpdateApplicantsCheckedForLookup"/>	    
+		<dataquery name="dLookupManager_FetchShortlistedCandidate" dbquery="qLookupManager_FetchShortlistedCandidate" object = "com.talentPool.common.db.SimpleDataObject">
+			<attribute name= "applicantId" column="applicant_id" type ="STRING" />
+			<attribute name= "applicantName" column="applicant_name" type ="STRING" />
+			<attribute name= "applicantEmail1" column="applicant_email1" type ="STRING" />
+			<attribute name= "applicantEmail2" column="applicant_email2" type ="STRING" />
+			<attribute name= "applicantCellPhone" column="applicant_cell_phone" type ="STRING" />
+			<attribute name= "applicantHomePhone" column="applicant_home_phone" type ="STRING" />
+			<attribute name= "applicantWorkPhone" column="applicant_work_phone" type ="STRING" />
+			<attribute name= "positionId" column="position_id" type ="STRING" />
+			<attribute name= "positionTitle" column="position_title" type ="STRING" />
+			<attribute name= "positionStepIdTo" column="position_step_id_to" type ="STRING" />
+			<attribute name= "positionStepTitle" column="position_step_title" type ="STRING" />			
+			<attribute name= "positionStepLevel" column="position_step_level" type ="STRING" />			
+			<attribute name= "userId" column="user_id" type ="STRING" />
+			<attribute name= "userEmail" column="user_email" type ="STRING" />
+	    </dataquery>
+	    <dataquery name="dLookupManager_GetFlagIdForLookupStepLevel" dbquery="qLookupManager_GetFlagIdForLookupStepLevel" object = "com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "flagId" column="flag_id" type ="STRING" />					
+	    </dataquery>
+	    
+	     <dataquery name="dLookupManager_ApplicantsForLookup" dbquery="qLookupManager_ApplicantsForLookup" object = "com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "applicantId" column="applicant_id" type ="STRING" />
+			<attribute name= "applicantName" column="applicant_name" type ="STRING" />
+			<attribute name= "applicantEmail1" column="applicant_email1" type ="STRING" />
+			<attribute name= "applicantEmail2" column="applicant_email2" type ="STRING" />
+			<attribute name= "applicantCellPhone" column="applicant_cell_phone" type ="STRING" />
+			<attribute name= "applicantWorkPhone" column="applicant_work_phone" type ="STRING" />
+			<attribute name= "applicantHomePhone" column="applicant_home_phone" type ="STRING" />			
+	    </dataquery>
+	    <dataquery name="dLookupManager_ApplicantsCheckDuplicateAtLookup" dbquery="qLookupManager_ApplicantsCheckDuplicateAtLookup" object = "com.talentPool.common.db.SimpleDataObject">
+			<attribute name= "applicantId" column="applicant_id" type ="STRING" />
+			<attribute name= "applicantName" column="applicant_name" type ="STRING" />
+			<attribute name= "applicantEmail1" column="applicant_email1" type ="STRING" />
+			<attribute name= "applicantEmail2" column="applicant_email2" type ="STRING" />
+			<attribute name= "applicantCellPhone" column="applicant_cell_phone" type ="STRING" />
+			<attribute name= "applicantHomePhone" column="applicant_home_phone" type ="STRING" />
+			<attribute name= "applicantWorkPhone" column="applicant_work_phone" type ="STRING" />
+			<attribute name= "positionId" column="position_id" type ="STRING" />
+			<attribute name= "positionTitle" column="position_title" type ="STRING" />
+			<attribute name= "positionStepIdTo" column="position_step_id_to" type ="STRING" />
+			<attribute name= "positionStepTitle" column="position_step_title" type ="STRING" />			
+			<attribute name= "positionStepLevel" column="position_step_level" type ="STRING" />			
+	    </dataquery>
+	   <dataquery name="dLookupManager_responsibleUserEmails" dbquery="qLookupManager_responsibleUserEmails"/>
+	</dataqueries>
+</dbmap>

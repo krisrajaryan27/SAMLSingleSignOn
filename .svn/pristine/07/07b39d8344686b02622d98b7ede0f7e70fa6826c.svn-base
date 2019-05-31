@@ -1,0 +1,1910 @@
+/**
+ *
+ */
+package com.talentPool.common.utils;
+
+import java.io.StringWriter;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang.StringUtils;
+import org.xml.sax.SAXException;
+import org.xml.sax.helpers.AttributesImpl;
+
+import com.talentPool.admin.AdminConstants;
+import com.talentPool.common.Logger.TPLogger;
+import com.talentPool.common.db.DBPreparedQuery;
+import com.talentPool.common.db.DBQuery;
+import com.talentPool.common.db.SimpleDataObject;
+import com.talentPool.common.properties.GlobalApplicationProperties;
+import com.talentPool.common.properties.GlobalConstants;
+import com.talentPool.common.properties.TPLabels;
+import com.talentPool.common.xmlutils.XMLWriter;
+import com.talentPool.custom.dataobject.CustomFieldOption;
+import com.talentPool.dashboard.constants.DashboardConstants;
+import com.talentPool.documents.DocumentConstants;
+import com.talentPool.masters.constants.MastersConstants;
+import com.talentPool.masters.dataobject.LocationData;
+import com.talentPool.masters.dataobject.MultipleSelectsData;
+import com.talentPool.masters.dataobject.RatingsData;
+import com.talentPool.masters.dataobject.RecentlyUsedSourceData;
+import com.talentPool.masters.dataobject.SourceTypeData;
+import com.talentPool.masters.exception.MasterExistException;
+import com.talentPool.masters.manager.MastersManager;
+import com.talentPool.masters.manager.MultipleSelectsManager;
+import com.talentPool.masters.manager.RatingsManager;
+import com.talentPool.masters.manager.RecentlyUsedSources;
+import com.talentPool.masters.manager.SecurityQuestionMasterManager;
+
+import static com.talentPool.common.CommonConstants.NEW_ARRAY;
+import static com.talentPool.common.CommonConstants.DEFAULT_DELIMITER;
+
+/**
+ * @author shivprasad
+ * 
+ */
+public class CommonUtils {
+	// _stateIds holds list of states
+	// _stateNames holds list of state names
+	// _stateNamesMap holds the mapping of state id and state names
+	// which can be used to retrieve name from id
+
+	private static ArrayList<SimpleDataObject> _degrees = null;
+	private static ArrayList<String> _degreeIds = null;
+	private static ArrayList<String> _degreeNames = null;
+	private static Map<String, String> _degreeNamesMap = null;
+	private static ArrayList<String> _degreeIdsForTypes = null;
+	private static ArrayList<String> _degreeTypes = null;
+	private static Map<String, String> _degreeTypesMap = null;
+
+	private static ArrayList<String> _stepTypeIds = null;
+	private static ArrayList<String> _stepTypeNames = null;
+	private static Map<String, String> _stepTypeNamesMap = null;
+
+	private static ArrayList<String> _deptIds = null;
+	private static ArrayList<String> _deptNames = null;
+	private static Map<String, String> _deptNamesMap = null;
+
+	private static ArrayList<String> _sourceTypeIds = null;
+	private static ArrayList<String> _sourceTypeNames = null;
+	private static Map<String, String> _sourceTypeNamesMap = null;
+
+	private static Map<String, String> _sourceCategoryTypeMap = null;
+
+	private static ArrayList<String> _sourceIds = null;
+	private static ArrayList<String> _sourceNames = null;
+	private static Map<String, String> _sourceNamesMap = null;
+
+	private static ArrayList<String> _activeSourceIds = null;
+	private static ArrayList<String> _activeSourceNames = null;
+	private static Map<String, String> _activeSourceNamesMap = null;
+
+	private static ArrayList<String> _sourceIdsWithoutEmployeeSource = null;
+	private static ArrayList<String> _sourceNamesWithoutEmployeeSource = null;
+	private static Map<String, String> _sourceNamesMapWithoutEmployeeSource = null;
+
+	private static ArrayList<SimpleDataObject> _skills = null;
+	private static ArrayList<String> _skillIds = null;
+	private static ArrayList<String> _skillNames = null;
+	private static Map<String, String> _skillNamesMap = null;
+
+	private static ArrayList<LocationData> _locations = null;
+	private static ArrayList<String> _locationIds = null;
+	private static ArrayList<String> _locationNames = null;
+	private static Map<String, String> _locationNamesMap = null;
+
+	private static ArrayList<SimpleDataObject> _branches = null;
+	private static ArrayList<String> _braqnchIds = null;
+	private static ArrayList<String> _braqnchNames = null;
+	private static Map<String, String> _branchNamesMap = null;
+
+	private static ArrayList<SimpleDataObject> _resumeTypes = null;
+	private static ArrayList<String> _resumeTypeIds = null;
+	private static ArrayList<String> _resumeTypeNames = null;
+	private static Map<String, String> _resumeTypesMap = null;
+
+	private static ArrayList<SimpleDataObject> _flags = null;
+	private static HashMap<String, SimpleDataObject> _flagIdDataMap = null;
+
+	private static ArrayList<RatingsData> _ratings = null;
+	private static HashMap<String, RatingsData> _ratingsIdDataMap = null;
+
+	private static ArrayList<MultipleSelectsData> _multipleSelects = null;
+	private static HashMap<String, MultipleSelectsData> _multipleSelectsIdDataMap = null;
+
+	private static ArrayList<SimpleDataObject> _securityQuestions = null;
+	private static ArrayList<String> _securityQuestionIds = null;
+	private static ArrayList<String> _securityQuestionNames = null;
+	private static Map<String, String> _securityQuestionsMap = null;
+
+	private static Map<String, String> positionFieldLabelMap = null;
+
+	// Added for Asian Paints
+	private static ArrayList<String> _locIds = null;
+	private static ArrayList<String> _locNames = null;
+	private static Map<String, String> _locNamesMap = null;
+
+	private static ArrayList<String> _jobFunctionIds = null;
+	private static ArrayList<String> _jobFunctionNames = null;
+	private static Map<String, String> _jobFunctionNamesMap = null;
+
+	private static ArrayList<String> _jobPayGradeIds = null;
+	private static ArrayList<String> _jobPayGradeNames = null;
+	private static Map<String, String> _jobPayGradeNamesMap = null;
+
+	private static ArrayList<String> _jobCodeIds = null;
+	private static ArrayList<String> _jobCodeNames = null;
+	private static Map<String, String> _jobCodeNamesMap = null;
+
+	private static ArrayList<String> _countryIds = null;
+	private static ArrayList<String> _countryNames = null;
+	private static Map<String, String> _countryNamesMap = null;
+
+	/**
+	 * Pupulate _degreeIds with Ids, _degreeNames with Names and _degreeNamesMap
+	 * with a mapping of id to name
+	 */
+	public static void populateDegrees() {
+		DBQuery dq = null;
+		try {
+			_degreeIds = new ArrayList<String>();
+			_degreeIdsForTypes = new ArrayList<String>();
+			_degreeNames = new ArrayList<String>();
+			_degreeNamesMap = new HashMap<String, String>();
+			_degreeTypes = new ArrayList<String>();
+			_degreeTypesMap = new HashMap<String, String>();
+			dq = new DBQuery("dGetAllDegrees");
+			_degrees = dq.getResult();
+			populateIdsAndNames(_degrees, _degreeIds, _degreeNames, "degreeId", "title", _degreeNamesMap);
+			populateIdsAndNames(_degrees, _degreeIdsForTypes, _degreeTypes, "degreeId", "degreeType", _degreeTypesMap);
+
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error While Populating States", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+
+	}
+
+	/*
+	 * change Siddharth method added to populate security Question Ids and Names
+	 * 
+	 */
+
+	public static void populateSecurityQuestions() {
+		try {
+			SecurityQuestionMasterManager securityQuestionMasterManager = new SecurityQuestionMasterManager();
+			_securityQuestions = securityQuestionMasterManager.getSecurityQuestions();
+			_securityQuestionIds = new ArrayList<String>();
+			_securityQuestionNames = new ArrayList<String>();
+			_securityQuestionsMap = new HashMap<String, String>();
+			populateIdsAndNames(_securityQuestions, _securityQuestionIds, _securityQuestionNames, "securityQuestionId",
+					"securityQuestion", _securityQuestionsMap);
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error While Populating Security Qestions", e);
+		}
+	}
+
+	public static ArrayList<SimpleDataObject> getDegrees() {
+		if (_degrees == null) {
+			populateDegrees();
+		}
+		return _degrees;
+	}
+
+	public static ArrayList<String> getDegreeIds() {
+		if (_degreeIds == null) {
+			populateDegrees();
+		}
+		return _degreeIds;
+	}
+
+	public static ArrayList<String> getDegreeNames() {
+		if (_degreeNames == null) {
+			populateDegrees();
+		}
+		return _degreeNames;
+	}
+
+	public static void setDegrees(ArrayList<SimpleDataObject> degrees) {
+		_degrees = degrees;
+	}
+
+	public static void setDegreeIds(ArrayList<String> degreeIds) {
+		_degreeIds = degreeIds;
+	}
+
+	public static void setDegreeNames(ArrayList<String> degreeNames) {
+		_degreeNames = degreeNames;
+	}
+
+	public static String getDegreeName(String degreeId) {
+		String title = null;
+		if (_degreeIds == null) {
+			populateDegrees();
+		}
+		title = _degreeNamesMap.get(degreeId);
+		return title;
+	}
+	
+	public static ArrayList<String> getDegreeTypes() {
+		if (_degreeTypes == null) {
+			populateDegrees();
+		}
+		return _degreeTypes;
+	}
+	
+	public static void setDegreeTypes(ArrayList<String> degreeTypes) {
+		_degreeTypes = degreeTypes;
+	}
+	
+	public static String getDegreeType(String degreeId) {
+		String degreeType = null;
+		if (_degreeIds == null) {
+			populateDegrees();
+		}
+		degreeType = _degreeTypesMap.get(degreeId);
+		return degreeType;
+	}
+
+
+
+	/**
+	 * Pupulate _branchIds with Ids, _branchNames with Names and _branchNamesMap
+	 * with a mapping of id to name
+	 */
+	public static void populateBranches() {
+		DBQuery dq = null;
+		try {
+			_braqnchIds = new ArrayList<String>();
+			_braqnchNames = new ArrayList<String>();
+			_branchNamesMap = new HashMap<String, String>();
+			dq = new DBQuery("dGetAllBranches");
+			_branches = dq.getResult();
+			populateIdsAndNames(_branches, _braqnchIds, _braqnchNames, "branchId", "branchName", _branchNamesMap);
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error While Populating States", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+	}
+
+	public static ArrayList<SimpleDataObject> getBranches() {
+		if (_branches == null) {
+			populateBranches();
+		}
+		return _branches;
+	}
+
+	public static ArrayList<String> getBranchIds() {
+		if (_braqnchIds == null) {
+			populateBranches();
+		}
+		return _braqnchIds;
+	}
+
+	public static ArrayList<String> getBranchNames() {
+		if (_braqnchNames == null) {
+			populateBranches();
+		}
+		return _braqnchNames;
+	}
+
+	public static void setBranches(ArrayList<SimpleDataObject> branches) {
+		_branches = branches;
+	}
+
+	public static void setBranchIds(ArrayList<String> branchIds) {
+		_braqnchIds = branchIds;
+	}
+
+	public static void setBranchNames(ArrayList<String> branchNames) {
+		_braqnchNames = branchNames;
+	}
+
+	public static String getBranchName(String branchId) {
+		String title = null;
+		if (_braqnchIds == null) {
+			populateBranches();
+		}
+		title = _branchNamesMap.get(branchId);
+		return title;
+	}
+
+	/*
+	 * change Siddharth methods added to get security Question Ids and Names
+	 * 
+	 */
+
+	public static ArrayList<String> getSecurityQuestionIds() {
+		if (_securityQuestionIds == null) {
+			populateSecurityQuestions();
+		}
+		return _securityQuestionIds;
+	}
+
+	public static ArrayList<String> getSecurityQuestionNames() {
+		if (_securityQuestionNames == null) {
+			populateSecurityQuestions();
+		}
+		return _securityQuestionNames;
+	}
+
+	/**
+	 * Pupulate _stepIds with Ids, _stepNames with Names and _stepNamesMap with
+	 * a mapping of id to name
+	 */
+	public static void populateStepTypes() {
+		DBQuery dq = null;
+		try {
+			_stepTypeIds = new ArrayList<String>();
+			_stepTypeNames = new ArrayList<String>();
+			_stepTypeNamesMap = new HashMap<String, String>();
+			_stepTypeIds.add("-1");
+			_stepTypeNames.add(TPLabels.getLabel("common.selectlist.default"));
+
+			dq = new DBQuery("dGetAllStepTypes");
+			ArrayList stepTypes = dq.getResult();
+			populateIdsAndNames(stepTypes, _stepTypeIds, _stepTypeNames, "stepTypeId", "stepTypeTitle",
+					_stepTypeNamesMap);
+
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error While Populating Step Types", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+	}
+
+	public static ArrayList<String> getStepTypeIds() {
+		if (_stepTypeIds == null) {
+			populateStepTypes();
+		}
+		return _stepTypeIds;
+	}
+
+	public static ArrayList<String> getStepTypeNames() {
+		if (_stepTypeNames == null) {
+			populateStepTypes();
+		}
+		return _stepTypeNames;
+	}
+
+	public static void setStepTypeIds(ArrayList<String> stepTypeIds) {
+		_stepTypeIds = stepTypeIds;
+	}
+
+	public static void setStepTypeNames(ArrayList<String> stepTypeNames) {
+		_stepTypeNames = stepTypeNames;
+	}
+
+	public static void populateDept() {
+		DBQuery dq = null;
+		try {
+			_deptIds = new ArrayList<String>();
+			_deptNames = new ArrayList<String>();
+			_deptNamesMap = new HashMap<String, String>();
+			dq = new DBQuery("dGetAllDept");
+			ArrayList dept = dq.getResult();
+			populateIdsAndNames(dept, _deptIds, _deptNames, "deptId", "deptName","deptExternalCode", _deptNamesMap);
+
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error While Populating department info", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+	}
+
+	public static ArrayList<String> getDeptIds() {
+		if (_deptIds == null) {
+			populateDept();
+		}
+		return _deptIds;
+	}
+
+	public static ArrayList<String> getDeptNames() {
+		if (_deptNames == null) {
+			populateDept();
+		}
+		return _deptNames;
+	}
+
+	public static void setDeptIds(ArrayList<String> deptIds) {
+		_deptIds = deptIds;
+	}
+
+	public static void setDeptNames(ArrayList<String> deptNames) {
+		_deptNames = deptNames;
+	}
+
+	public static String getDeptName(String deptId) {
+		String title = null;
+		if (_deptIds == null) {
+			populateDept();
+		}
+		title = _deptNamesMap.get(deptId);
+		return title;
+	}
+
+	/**
+	 * For given concatenated departmentIds it will return concatenated
+	 * department names
+	 * 
+	 * @param deptIds
+	 * @return
+	 * @author praveenk
+	 */
+	public static String getDeptNames(String deptIds) {
+		StringBuilder deptNames = new StringBuilder();
+		if (_deptIds == null) {
+			populateDept();
+		}
+		if (!Utils.isBlankOrNull(deptIds)) {
+			boolean start = true;
+			for (String deptId : deptIds.split(DEFAULT_DELIMITER)) {
+				if (start) {
+					deptNames.append(_deptNamesMap.get(deptId));
+					start = false;
+				} else {
+					deptNames.append(DEFAULT_DELIMITER).append(_deptNamesMap.get(deptId));
+				}
+			}
+		}
+		return deptNames.toString();
+	}
+
+	public static String getDeptId(String deptName) {
+		String id = null;
+		if (_deptIds == null) {
+			populateDept();
+		}
+		if (_deptNames.contains(deptName)) {
+			id = _deptIds.get(_deptNames.indexOf(deptName));
+		}
+		return id;
+	}
+
+	public static void populateSourceTypes() {
+		DBQuery dq = null;
+		try {
+
+			_sourceTypeIds = new ArrayList<String>();
+			_sourceTypeNames = new ArrayList<String>();
+			_sourceTypeNamesMap = new HashMap<String, String>();
+
+			dq = new DBQuery("dGetAllSourcesTypes");
+			ArrayList sources = dq.getResult();
+			populateIdsAndNames(sources, _sourceTypeIds, _sourceTypeNames, "sourceTypeId", "sourceTypeTitle",
+					_sourceTypeNamesMap);
+
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+	}
+
+	private static void populateSourceCategoryTypeMap() {
+		DBPreparedQuery dq = null;
+		try {
+			_sourceCategoryTypeMap = new HashMap<String, String>();
+			dq = new DBPreparedQuery("dGetSourceCategoryTypeMap");
+			dq.setString(1, AdminConstants.SYSTEM_GENERATED);
+			ArrayList<SourceTypeData> sourceTypeData = dq.getResult();
+			if (sourceTypeData != null) {
+				for (int i = 0; i < sourceTypeData.size(); i++) {
+					_sourceCategoryTypeMap.put(sourceTypeData.get(i).getSourceTypeCategory(),
+							sourceTypeData.get(i).getSourceTypeId());
+				}
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+	}
+
+	public static ArrayList<String> getSourceTypeIds() {
+		if (_sourceTypeIds == null) {
+			populateSourceTypes();
+		}
+		return _sourceTypeIds;
+	}
+
+	public static ArrayList<String> getSourceTypeNames() {
+		if (_sourceTypeNames == null) {
+			populateSourceTypes();
+		}
+		return _sourceTypeNames;
+	}
+
+	public static void setSourceTypeIds(ArrayList<String> sourceTypeIds) {
+		_sourceTypeIds = sourceTypeIds;
+	}
+
+	public static void setSourceTypeNames(ArrayList<String> sourceTypeNames) {
+		_sourceTypeNames = sourceTypeNames;
+	}
+
+	public static String getSourceTypeName(String sourceTypeId) {
+		String SourceTypetitle = null;
+		if (_sourceTypeIds == null) {
+			populateSourceTypes();
+		}
+		SourceTypetitle = _sourceTypeNamesMap.get(sourceTypeId);
+		return SourceTypetitle;
+	}
+
+	public static String getSourceTypeFromCategory(String sourceCategory) {
+		String sourceTypeId = null;
+		if (_sourceCategoryTypeMap == null) {
+			populateSourceCategoryTypeMap();
+		}
+		sourceTypeId = _sourceCategoryTypeMap.get(sourceCategory);
+		return sourceTypeId;
+	}
+
+	public static void populateSources() {
+		DBQuery dq = null;
+		try {
+
+			_sourceIds = new ArrayList<String>();
+			_sourceNames = new ArrayList<String>();
+			_sourceNamesMap = new HashMap<String, String>();
+
+			dq = new DBQuery("dGetAllSources");
+			ArrayList sources = dq.getResult();
+			populateIdsAndNames(sources, _sourceIds, _sourceNames, "sourceId", "sourceTitle", _sourceNamesMap);
+
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error While Populating sources info", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+	}
+
+	public static ArrayList<String> getSourceIds() {
+		if (_sourceIds == null) {
+			populateSources();
+		}
+		return _sourceIds;
+	}
+
+	public static ArrayList<String> getSourceNames() {
+		if (_sourceNames == null) {
+			populateSources();
+		}
+		return _sourceNames;
+	}
+
+	public static void setSourceIds(ArrayList<String> sourceIds) {
+		_sourceIds = sourceIds;
+	}
+
+	public static void setSourceNames(ArrayList<String> sourceNames) {
+		_sourceNames = sourceNames;
+	}
+
+	public static void populateActiveSources() {
+		DBPreparedQuery dq = null;
+		try {
+			_activeSourceIds = new ArrayList<String>();
+			_activeSourceNames = new ArrayList<String>();
+			_activeSourceNamesMap = new HashMap<String, String>();
+			dq = new DBPreparedQuery("dGetAllActiveSources");
+			dq.setString(1, AdminConstants.SOURCE_NOT_BLACKLISTED);
+			ArrayList sources = dq.getResult();
+			populateIdsAndNames(sources, _activeSourceIds, _activeSourceNames, "sourceId", "sourceTitle",
+					_activeSourceNamesMap);
+
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error While Populating sources info", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+	}
+
+	public static ArrayList<String> getActiveSourceIds() {
+		if (_activeSourceIds == null) {
+			populateActiveSources();
+		}
+		return _activeSourceIds;
+	}
+
+	public static ArrayList<String> getActiveSourceNames() {
+		if (_activeSourceNames == null) {
+			populateActiveSources();
+		}
+		return _activeSourceNames;
+	}
+
+	public static void setActiveSourceIds(ArrayList<String> activeSourceIds) {
+		_activeSourceIds = activeSourceIds;
+	}
+
+	public static void setActiveSourceNames(ArrayList<String> activeSourceNames) {
+		_activeSourceNames = activeSourceNames;
+	}
+
+	public static String getSourceName(String sourceId) {
+		String Sourcetitle = null;
+		if (_sourceIds == null) {
+			populateSources();
+		}
+		Sourcetitle = _sourceNamesMap.get(sourceId);
+		return Sourcetitle;
+	}
+
+	public static String getSourceId(String sourceName) {
+		String sourceId = null;
+		if (_sourceIds == null) {
+			populateSources();
+		}
+		Iterator<String> itr = _sourceNames.iterator();
+		while (itr.hasNext()) {
+			String _sourceName = (String) itr.next();
+			if (_sourceName.equalsIgnoreCase(sourceName)) {
+				sourceId = _sourceIds.get(_sourceNames.indexOf(_sourceName));
+				break;
+			}
+		}
+		return sourceId;
+	}
+
+	public static void populateSourcesWithoutEmployeeSource() {
+		DBPreparedQuery dq = null;
+		try {
+
+			_sourceIdsWithoutEmployeeSource = new ArrayList<String>();
+			_sourceNamesWithoutEmployeeSource = new ArrayList<String>();
+			_sourceNamesMapWithoutEmployeeSource = new HashMap<String, String>();
+
+			dq = new DBPreparedQuery("dGetSourcesWithoutEmployeeSource");
+			dq.setString(1, AdminConstants.SOURCE_CATEGORY_EMPLOYEE_REFERAL);
+			ArrayList sources = dq.getResult();
+			populateIdsAndNames(sources, _sourceIdsWithoutEmployeeSource, _sourceNamesWithoutEmployeeSource, "sourceId",
+					"sourceTitle", _sourceNamesMapWithoutEmployeeSource);
+
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error While Populating sources without employee sources info", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+	}
+
+	public static ArrayList<String> getSourceIdsWithoutEmployeeSource() {
+		if (_sourceIdsWithoutEmployeeSource == null) {
+			populateSourcesWithoutEmployeeSource();
+		}
+		return _sourceIdsWithoutEmployeeSource;
+	}
+
+	public static ArrayList<String> getSourceNamesWithoutEmployeeSource() {
+		if (_sourceNamesWithoutEmployeeSource == null) {
+			populateSourcesWithoutEmployeeSource();
+		}
+		return _sourceNamesWithoutEmployeeSource;
+	}
+
+	public static void setSourceIdsWithoutEmployeeSource(ArrayList<String> sourceIds) {
+		_sourceIdsWithoutEmployeeSource = sourceIds;
+	}
+
+	public static void setSourceNamesWithoutEmployeeSource(ArrayList<String> sourceNames) {
+		_sourceNamesWithoutEmployeeSource = sourceNames;
+	}
+
+	public static String getSourceNameWithoutEmployeeSource(String sourceId) {
+		String Sourcetitle = null;
+		if (_sourceIdsWithoutEmployeeSource == null) {
+			populateSourcesWithoutEmployeeSource();
+		}
+		Sourcetitle = _sourceNamesMapWithoutEmployeeSource.get(sourceId);
+		return Sourcetitle;
+	}
+
+	public static ArrayList<String> getSourceIdsWithOnlyEmployeeSource() {
+		ArrayList<String> sourceIdsWithoutEmployeeSource = getSourceIdsWithoutEmployeeSource();
+		ArrayList<String> sourceIds = (ArrayList<String>) getSourceIds().clone();
+		sourceIds.removeAll(sourceIdsWithoutEmployeeSource);
+		return sourceIds;
+	}
+
+	public static ArrayList<String> getSourceNamesWithOnlyEmployeeSource() {
+		ArrayList<String> sourceNamesWithoutEmployeeSource = getSourceNamesWithoutEmployeeSource();
+		ArrayList<String> sourceNames = (ArrayList<String>) getSourceNames().clone();
+		sourceNames.removeAll(sourceNamesWithoutEmployeeSource);
+		return sourceNames;
+	}
+
+	public static void populateSkills() {
+		DBQuery dq = null;
+		try {
+			_skillIds = new ArrayList<String>();
+			_skillNames = new ArrayList<String>();
+			_skillNamesMap = new HashMap<String, String>();
+			dq = new DBQuery("dGetAllSkills");
+			_skills = dq.getResult();
+			populateIdsAndNames(_skills, _skillIds, _skillNames, "skillId", "skillName", _skillNamesMap);
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error While Populating States", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+	}
+
+	public static void populateLocations() {
+		DBQuery dq = null;
+		try {
+			_locationIds = new ArrayList<String>();
+			_locationNames = new ArrayList<String>();
+			_locationNamesMap = new HashMap<String, String>();
+			dq = new DBQuery("dMastersManager_GetAllLocations");
+			_locations = dq.getResult();
+			populateIdsAndNames(_locations, _locationIds, _locationNames, "locationId","locationExternalCode", "locationName",_locationNamesMap);
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error While Populating Locations", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+	}
+
+	public static ArrayList<SimpleDataObject> getSkills() {
+		if (_skills == null) {
+			populateSkills();
+		}
+		return _skills;
+	}
+
+	public static ArrayList<String> getSkillIds() {
+		if (_skillIds == null) {
+			populateSkills();
+		}
+		return _skillIds;
+	}
+
+	public static ArrayList<String> getSkillNames() {
+		if (_skillNames == null) {
+			populateSkills();
+		}
+		return _skillNames;
+
+	}
+
+	public static void setSkills(ArrayList<SimpleDataObject> skills) {
+		_skills = skills;
+	}
+
+	public static void setSkillIds(ArrayList<String> skillIds) {
+		_skillIds = skillIds;
+	}
+
+	public static void setSkillNames(ArrayList<String> skillNames) {
+		_skillNames = skillNames;
+	}
+
+	public static String getSkillName(String skillId) {
+		String skillName = null;
+		if (_skillIds == null) {
+			populateSkills();
+		}
+		skillName = _skillNamesMap.get(skillId);
+		return skillName;
+	}
+
+	public static ArrayList<String> getLocationIds() {
+		if (_locationIds == null) {
+			populateLocations();
+		}
+		return _locationIds;
+	}
+
+	public static ArrayList<String> getLocationNames() {
+		if (_locationNames == null) {
+			populateLocations();
+		}
+		return _locationNames;
+
+	}
+
+	public static void setLocations(ArrayList<LocationData> locations) {
+		_locations = locations;
+	}
+
+	public static void setLocationIds(ArrayList<String> locationIds) {
+		_locationIds = locationIds;
+	}
+
+	public static void setLocationNames(ArrayList<String> locationNames) {
+		_locationNames = locationNames;
+	}
+
+	public static String getLocationName(String locationId) {
+		String locationName = null;
+		if (_locationIds == null) {
+			populateLocations();
+		}
+		locationName = _locationNamesMap.get(locationId);
+		return locationName;
+	}
+
+	public static void populateFlags() {
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dGetAllFlags");
+			_flags = dq.getResult();
+			_flagIdDataMap = new HashMap<String, SimpleDataObject>();
+			for (int i = 0; _flags != null && i < _flags.size(); i++) {
+				SimpleDataObject flg = _flags.get(i);
+				String flagImageUrl = "docs.do?mode=getIcon&fileName=" + flg.getString("flagImage")
+						+ "&contentDisposition=" + DocumentConstants.CONTENT_DISPOSITION_INLINE;
+				flg.setAttribute("flagImage", flagImageUrl);
+				_flagIdDataMap.put(flg.getString("flagId"), flg);
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error While Populating States", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+	}
+
+	public static void resetFlags() {
+		populateFlags();
+	}
+
+	public static ArrayList<SimpleDataObject> getFlagsList() {
+		if (_flags == null) {
+			populateFlags();
+		}
+		return _flags;
+	}
+
+	public static HashMap<String, SimpleDataObject> getFlagIdDataMap() {
+		if (_flagIdDataMap == null) {
+			populateFlags();
+		}
+		return _flagIdDataMap;
+	}
+
+	public static String getFlagImage(String flagId) {
+		return getFlagProperty(flagId, "flagImage");
+	}
+
+	public static String getFlagText(String flagId) {
+		return getFlagProperty(flagId, "flagText");
+	}
+
+	public static String getFlagType(String flagId) {
+		return getFlagProperty(flagId, "flagType");
+	}
+
+	public static String getFlagOwner(String flagId) {
+		return getFlagProperty(flagId, "userId");
+	}
+
+	private static String getFlagProperty(String flagId, String property) {
+		String flagProperty = "";
+		try {
+			if (_flagIdDataMap == null) {
+				populateFlags();
+			}
+			SimpleDataObject sdo = _flagIdDataMap.get(flagId);
+			flagProperty = sdo.getString(property);
+		} catch (Exception e) {
+			TPLogger.getLogger().debug("Flag Id = " + flagId + " does not exist ", e);
+			flagProperty = "";
+		}
+		return flagProperty;
+
+	}
+
+	public static ArrayList<RatingsData> getRatings() {
+		if (_ratings == null) {
+			populateRatings();
+		}
+		return _ratings;
+	}
+
+	public static void populateRatings() {
+		RatingsManager ratingsManager = new RatingsManager();
+		_ratings = ratingsManager.getAllActiveRatingsWithFields();
+		_ratingsIdDataMap = new HashMap<String, RatingsData>();
+		for (int i = 0; _ratings != null && i < _ratings.size(); i++) {
+			_ratingsIdDataMap.put(_ratings.get(i).getRatingId(), _ratings.get(i));
+		}
+	}
+
+	public static RatingsData getRatingsData(String ratingsId) {
+		if (_ratings == null) {
+			populateRatings();
+		}
+		return _ratingsIdDataMap.get(ratingsId);
+	}
+
+	public static ArrayList<MultipleSelectsData> getMultipleSelects() {
+		if (_multipleSelects == null) {
+			populateMultipleSelects();
+		}
+		return _multipleSelects;
+	}
+
+	public static void populateMultipleSelects() {
+		MultipleSelectsManager multipleSelectsManager = new MultipleSelectsManager();
+		_multipleSelects = multipleSelectsManager.getAllActiveMultipleSelectsWithFields();
+		_multipleSelectsIdDataMap = new HashMap<String, MultipleSelectsData>();
+		for (int i = 0; _multipleSelects != null && i < _multipleSelects.size(); i++) {
+			_multipleSelectsIdDataMap.put(_multipleSelects.get(i).getSelectId(), _multipleSelects.get(i));
+		}
+	}
+
+	public static MultipleSelectsData getMultipleSelectsData(String multipleSelectsId) {
+		if (_multipleSelects == null) {
+			populateMultipleSelects();
+		}
+		return _multipleSelectsIdDataMap.get(multipleSelectsId);
+	}
+
+	/**
+	 * Pupulate _resumeTypeIds with Ids, _resumeTypeNames with Names and
+	 * _resumeTypesMap with a mapping of id to name
+	 */
+	public static void populateResumeTypes() {
+		DBQuery dq = null;
+		try {
+			_resumeTypeIds = new ArrayList<String>();
+			_resumeTypeNames = new ArrayList<String>();
+			_resumeTypesMap = new HashMap<String, String>();
+			dq = new DBQuery("dGetAllResumeTypes");
+			_resumeTypes = dq.getResult();
+			populateIdsAndNames(_resumeTypes, _resumeTypeIds, _resumeTypeNames, "resumeTypeId", "resumeType",
+					_resumeTypesMap);
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error While Populating resumeType", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+	}
+
+	public static ArrayList<SimpleDataObject> getResumeTypes() {
+		if (_resumeTypes == null) {
+			populateResumeTypes();
+		}
+		return _resumeTypes;
+	}
+
+	public static ArrayList<String> getResumeTypeIds() {
+		if (_resumeTypeIds == null) {
+			populateResumeTypes();
+		}
+		return _resumeTypeIds;
+	}
+
+	public static ArrayList<String> getResumeTypeNames() {
+		if (_resumeTypeNames == null) {
+			populateResumeTypes();
+		}
+		return _resumeTypeNames;
+	}
+
+	public static void setResumeTypes(ArrayList<SimpleDataObject> resumeTypes) {
+		_resumeTypes = resumeTypes;
+	}
+
+	public static void setResumeTypeIds(ArrayList<String> resumeTypeIds) {
+		_resumeTypeIds = resumeTypeIds;
+	}
+
+	public static void setResumeTypeNames(ArrayList<String> resumeTypeNames) {
+		_resumeTypeNames = resumeTypeNames;
+	}
+
+	public static String getResumeTypeName(String resumeTypeId) {
+		String title = null;
+		if (_resumeTypeIds == null) {
+			populateResumeTypes();
+		}
+		title = _resumeTypesMap.get(resumeTypeId);
+		return title;
+	}
+
+	/**
+	 * This method Take ArrayList as src and Populates ArrayList ids and
+	 * ArrayList names with ids and names. If Map not null then also put mapping
+	 * of id and name into Map map
+	 * 
+	 * @param src
+	 * @param ids
+	 * @param names
+	 * @param paramId
+	 *            is the name of the attribute which is used to populate ids
+	 * @param paramName
+	 *            is the name of the attribute which is used to populate names
+	 * @param map
+	 */
+	public static void populateIdsAndNames(ArrayList src, ArrayList<String> ids, ArrayList<String> names,
+			String paramId, String paramName, Map<String, String> map) {
+		try {
+			if (src != null) {
+				for (int i = 0; i < src.size(); i++) {
+					SimpleDataObject sdo = (SimpleDataObject) src.get(i);
+					String id = sdo.getString(paramId);
+					String name = sdo.getString(paramName);
+					ids.add(ids.size(), id);
+					names.add(names.size(), name);
+					if (map != null) {
+						map.put(id, name);
+					}
+				}
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("error while populating ids and names", e);
+		}
+	}
+
+	public static String getListJavaScriptArrayForFlags(List<SimpleDataObject> flags) {
+		StringBuffer sb = new StringBuffer();
+		try {
+			if (flags != null && flags.size() > 0) {
+				int totalOptions = flags.size();
+				sb.append("[");
+				for (int i = 0; i < totalOptions; i++) {
+					SimpleDataObject sdo = (SimpleDataObject) flags.get(i);
+					String id = sdo.getString("flagId").replaceAll("'", "\\\\'");
+					String txt = sdo.getString("flagText").replaceAll("'", "\\\\'");
+					String flagImageUrl = "docs.do?mode=getIcon&fileName=" + sdo.getString("flagImage")
+							+ "&contentDisposition=" + DocumentConstants.CONTENT_DISPOSITION_INLINE;
+					String img = flagImageUrl.replaceAll("'", "\\\\'");
+
+					sb.append("new SelectOption('" + Utils.escapeJavaScript(id) + "','" + Utils.escapeJavaScript(txt)
+							+ "',0,null,false,{optImage:'" + img + "'})");
+					if (i < totalOptions - 1)
+						sb.append(",");
+				}
+				sb.append("]");
+			} else {
+				sb.append(NEW_ARRAY);
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("error while generating javascript array for flags", e);
+			sb = new StringBuffer(NEW_ARRAY);
+		}
+		return sb.toString();
+	}
+
+	/**
+	 * @param ids
+	 *            ArrayList of ids
+	 * @param names
+	 *            ArrayList of names
+	 * @param namesOnly
+	 *            if true options id and name are same as names.
+	 * @return
+	 */
+	public static String getListJavaScriptArray(ArrayList<String> ids, ArrayList<String> names) {
+		StringBuffer sb = new StringBuffer();
+		try {
+			ArrayList<String> oIds = (ids == null) ? names : ids;
+			int totalOptions = oIds.size();
+			if (totalOptions > 0) {
+				sb.append("[");
+				for (int i = 0; i < totalOptions; i++) {
+					sb.append("new SelectOption('" + Utils.escapeJavaScript(oIds.get(i)) + "','"
+							+ Utils.escapeJavaScript(names.get(i)) + "')");
+					if (i < totalOptions - 1)
+						sb.append(",");
+				}
+				sb.append("]");
+			} else {
+				sb.append(NEW_ARRAY);
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("error while generating javascript array", e);
+			sb = new StringBuffer(NEW_ARRAY);
+		}
+		return sb.toString();
+	}
+
+	/**
+	 * @param map
+	 *            Map<String, Object>
+	 * @return
+	 */
+	public static String getJSArrayForMap(Map<String, Object> map) {
+		StringBuffer sb = new StringBuffer();
+		try {
+			if (!Utils.isMapEmptyOrNull(map)) {
+				sb.append("{");
+				Iterator<String> iter = map.keySet().iterator();
+				while (iter.hasNext()) {
+					String key = iter.next();
+					sb.append("'").append(key).append("':").append(map.get(key));
+
+					if (iter.hasNext())
+						sb.append(", ");
+				}
+				sb.append("}");
+			} else {
+				sb.append("");
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("error while generating javascript array", e);
+			sb = new StringBuffer("");
+		}
+		return sb.toString();
+	}
+
+	public static String getJavaScriptArrayForRecentlyUsed() {
+		ArrayList<RecentlyUsedSourceData> recentlyUsed = RecentlyUsedSources.INSTANCE.getRecentlyUsedSources();
+		return getListJavaScriptArrayWithProperties(recentlyUsed, "sourceId", "sourceTitle");
+	}
+
+	/**
+	 * @param src
+	 *            list of SimpleDataObject
+	 * @param paramId
+	 * @param paramName
+	 * @return
+	 */
+	public static String getListJavaScriptArrayWithProperties(ArrayList src, String paramId, String paramName) {
+		StringBuffer sb = new StringBuffer();
+		try {
+			int totalOptions = src.size();
+			if (totalOptions > 0) {
+				sb.append("[");
+				for (int i = 0; i < totalOptions; i++) {
+					SimpleDataObject sdo = (SimpleDataObject) src.get(i);
+					String id = sdo.getString(paramId);
+					String name = sdo.getString(paramName);
+					if (Utils.isBlankOrNull(name)) {
+						name = StringUtils.EMPTY;
+					}
+					sb.append("new SelectOption('" + Utils.escapeJavaScript(id) + "','" + Utils.escapeJavaScript(name)
+							+ "')");
+					if (i < totalOptions - 1)
+						sb.append(",");
+				}
+				sb.append("]");
+			} else {
+				sb.append(NEW_ARRAY);
+			}
+
+		} catch (Exception e) {
+			TPLogger.getLogger().error("error while generating javascript array", e);
+			sb = new StringBuffer(NEW_ARRAY);
+		}
+		return sb.toString();
+	}
+
+	/**
+	 * @param arList
+	 *            Arraylist containing the String Objects
+	 * @return String with Array of Strings
+	 */
+	public static String returnArrayForJS(ArrayList<String> arList) {
+		String arrayString = "";
+		try {
+			arrayString = "[";
+			for (int i = 0; i < arList.size(); i++) {
+				if (i == (arList.size() - 1)) {
+					arrayString = arrayString + "'"
+							+ arList.get(i).replaceAll("'", "\\\\'").replaceAll("\\\\", "\\\\\\\\") + "'";
+				} else {
+					arrayString = arrayString + "'"
+							+ arList.get(i).replaceAll("'", "\\\\'").replaceAll("\\\\", "\\\\\\\\") + "'" + ",";
+				}
+			}
+			arrayString = arrayString + "]";
+		} catch (Exception e) {
+			TPLogger.getLogger().error("failed in returnArrayForJS", e);
+		}
+		return arrayString;
+	}
+
+	public static String getListJavaScriptArrayForCustomFieldOptions(ArrayList<CustomFieldOption> options) {
+		StringBuffer sb = new StringBuffer();
+		try {
+			if (options == null) {
+				sb.append(NEW_ARRAY);
+			} else {
+				int totalOptions = options.size();
+				if (totalOptions > 0) {
+					sb.append("[");
+					for (int i = 0; i < totalOptions; i++) {
+						sb.append("new SelectOption('" + Utils.escapeJavaScript(options.get(i).getKey()) + "','"
+								+ Utils.escapeJavaScript(options.get(i).getValue()) + "')");
+						if (i < totalOptions - 1)
+							sb.append(",");
+					}
+					sb.append("]");
+				} else {
+					sb.append(NEW_ARRAY);
+				}
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("error while generating javascript array", e);
+			sb = new StringBuffer(NEW_ARRAY);
+		}
+		return sb.toString();
+	}
+
+	public static String getJSArrayGrades() {
+		MastersManager mastersManager = new MastersManager();
+		ArrayList grades = null;
+		try {
+			grades = mastersManager.getAllBudgetGrades();
+		} catch (MasterExistException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		String jsArrayGrades = CommonUtils.getListJavaScriptArrayWithProperties(grades, "itemId", "itemName");
+		return jsArrayGrades;
+	}
+
+	public static String getJSArrayBands() {
+		MastersManager mastersManager = new MastersManager();
+		ArrayList bands = null;
+		try {
+			bands = mastersManager.getAllBudgetBands();
+		} catch (MasterExistException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		String jsArrayBands = CommonUtils.getListJavaScriptArrayWithProperties(bands, "itemId", "itemName");
+		return jsArrayBands;
+	}
+
+	public static String getJsArrayCountries() {
+		MastersManager mastersManager = new MastersManager();
+		ArrayList bands = null;
+		try {
+			bands = mastersManager.getAllCountries();
+		} catch (MasterExistException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		String jsArrayBands = CommonUtils.getListJavaScriptArrayWithProperties(bands, "itemId", "itemName");
+		return jsArrayBands;
+	}
+
+	public static String getJsArrayJobIndustryCodes() {
+		MastersManager mastersManager = new MastersManager();
+		ArrayList bands = null;
+		try {
+			bands = mastersManager.getAllJobIndustryCodes();
+		} catch (MasterExistException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		String jsArrayBands = CommonUtils.getListJavaScriptArrayWithProperties(bands, "itemId", "itemName");
+		return jsArrayBands;
+	}
+
+	public static String getJsArrayJobFunctionalAreaCodes() {
+		MastersManager mastersManager = new MastersManager();
+		ArrayList bands = null;
+		try {
+			bands = mastersManager.getAllJobFunctionCodes();
+		} catch (MasterExistException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		String jsArrayBands = CommonUtils.getListJavaScriptArrayWithProperties(bands, "itemId", "itemName");
+		return jsArrayBands;
+	}
+
+	public static String getJsArrayJobRoleCodes(String id) {
+		MastersManager mastersManager = new MastersManager();
+		ArrayList bands = null;
+		try {
+			bands = mastersManager.getAllJobRoleCodes(id);
+		} catch (MasterExistException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		String jsArrayBands = CommonUtils.getListJavaScriptArrayWithProperties(bands, "itemId", "itemName");
+		return jsArrayBands;
+	}
+
+	public static String getJSArrayDepartmentLevelsForDashBoard() {
+		StringBuffer sb = new StringBuffer();
+		try {
+			sb.append("[");
+			getDepartmentLevelSelectOptionsForDashBoard(sb);
+			sb.append("]");
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+			sb = new StringBuffer(NEW_ARRAY);
+		}
+		return sb.toString();
+	}
+
+	public static void getDepartmentLevelSelectOptionsForDashBoard(final StringBuffer sb) {
+		sb.append("new SelectOption('" + DashboardConstants.POSITION_GRID_TYPE_DEPARTMENT + "','"
+				+ GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_DEPARTMENT_LEVEL_1) + "'),");
+		String maxDeptLevel = GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_MAX_DEPT_LEVEL);
+		if (!maxDeptLevel.equals(MastersConstants.DEPARTMENT_LEVEL_1)) {
+			sb.append("new SelectOption('" + DashboardConstants.POSITION_GRID_TYPE_SUB_DEPARTMENT + "','"
+					+ GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_DEPARTMENT_LEVEL_2) + "'),");
+			if (!maxDeptLevel.equals(MastersConstants.DEPARTMENT_LEVEL_2)) {
+				sb.append("new SelectOption('" + DashboardConstants.POSITION_GRID_TYPE_SUB_SUB_DEPARTMENT + "','"
+						+ GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_DEPARTMENT_LEVEL_3) + "'),");
+				if (!maxDeptLevel.equals(MastersConstants.DEPARTMENT_LEVEL_3)) {
+					sb.append("new SelectOption('" + DashboardConstants.POSITION_GRID_TYPE_SUB3_DEPARTMENT + "','"
+							+ GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_DEPARTMENT_LEVEL_4)
+							+ "'),");
+					if (!maxDeptLevel.equals(MastersConstants.DEPARTMENT_LEVEL_4)) {
+						sb.append("new SelectOption('" + DashboardConstants.POSITION_GRID_TYPE_SUB4_DEPARTMENT + "','"
+								+ GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_DEPARTMENT_LEVEL_5)
+								+ "'),");
+					}
+				}
+			}
+		}
+		sb.replace(sb.length() - 1, sb.length(), "");
+	}
+
+	/**
+	 * @return HashMap of groupBy-id and groupBy-name for position summary
+	 *         grouping options
+	 */
+	public static HashMap<String, String> getDepartmentLevelOptions() {
+		HashMap<String, String> deptLevels = new HashMap<String, String>();
+		deptLevels.put(DashboardConstants.POSITION_GRID_TYPE_DEPARTMENT,
+				GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_DEPARTMENT_LEVEL_1));
+		String maxDeptLevel = GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_MAX_DEPT_LEVEL);
+		if (!maxDeptLevel.equals(MastersConstants.DEPARTMENT_LEVEL_1)) {
+			deptLevels.put(DashboardConstants.POSITION_GRID_TYPE_SUB_DEPARTMENT,
+					GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_DEPARTMENT_LEVEL_2));
+			if (!maxDeptLevel.equals(MastersConstants.DEPARTMENT_LEVEL_2)) {
+				deptLevels.put(DashboardConstants.POSITION_GRID_TYPE_SUB_SUB_DEPARTMENT,
+						GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_DEPARTMENT_LEVEL_3));
+				if (!maxDeptLevel.equals(MastersConstants.DEPARTMENT_LEVEL_3)) {
+					deptLevels.put(DashboardConstants.POSITION_GRID_TYPE_SUB3_DEPARTMENT,
+							GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_DEPARTMENT_LEVEL_4));
+					if (!maxDeptLevel.equals(MastersConstants.DEPARTMENT_LEVEL_4)) {
+						deptLevels.put(DashboardConstants.POSITION_GRID_TYPE_SUB4_DEPARTMENT,
+								GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_DEPARTMENT_LEVEL_5));
+					}
+				}
+			}
+		}
+		return deptLevels;
+	}
+
+	public static String getJSArrayBusinessUnit() {
+		MastersManager mastersManager = new MastersManager();
+		ArrayList<SimpleDataObject> bu = null;
+		try {
+			bu = mastersManager.getAllBusinessUnitData();
+		} catch (SQLException sqle) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, sqle);
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		String jsArrayBU = CommonUtils.getListJavaScriptArrayWithProperties(bu, "buId", "buName");
+		return jsArrayBU;
+	}
+
+	public static String getXMLForBusinessUnit() {
+		String buXML = null;
+		CommonUtils commonUtils = new CommonUtils();
+		try {
+			MastersManager masterManager = new MastersManager();
+			ArrayList<SimpleDataObject> bu = masterManager.getAllBusinessUnitData();
+			buXML = commonUtils.getXmlForBusinessUnit(bu);
+			buXML = Utils.escapeJavaScript(buXML);
+		} catch (SQLException e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return buXML;
+	}
+
+	public String getXmlForBusinessUnit(ArrayList<SimpleDataObject> bus) {
+		StringWriter sWr = new StringWriter();
+		XMLWriter wr = new XMLWriter(sWr);
+		try {
+			wr.startDocument();
+			wr.startElement("rows");
+			if (bus != null && bus.size() > 0) {
+				for (int i = 0; i < bus.size(); i++) {
+					SimpleDataObject buData = (SimpleDataObject) bus.get(i);
+
+					String buId = buData.getString("buId");
+					String buName = Utils.getBlankIfNull(buData.getString("buName"));
+
+					AttributesImpl atr = new AttributesImpl();
+					atr.addAttribute("", "id", "", "", String.valueOf(buId));
+					wr.startElement("", "row", "", atr);
+
+					atr = new AttributesImpl();
+					atr.addAttribute("", "name", "", "", "buName");
+					wr.startElement("", "userdata", "", atr);
+					wr.characters(buName);
+					wr.endElement("userdata");
+
+					wr.startElement("cell");
+					wr.characters(buName);
+					wr.endElement("cell");
+
+					wr.endElement("row");
+				}
+			}
+			wr.endElement("rows");
+			wr.endDocument();
+
+		} catch (SAXException e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return sWr.getBuffer().toString();
+	}
+
+	public static String getJSArrayCostCenter() {
+		MastersManager mastersManager = new MastersManager();
+		ArrayList<SimpleDataObject> costCenter = null;
+		try {
+			costCenter = mastersManager.getAllCostCenterData();
+		} catch (SQLException sqle) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, sqle);
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		String jsArrayCostCenter = CommonUtils.getListJavaScriptArrayWithProperties(costCenter, "costCenterId",
+				"costCenterName");
+		return jsArrayCostCenter;
+	}
+
+	public static String getXMLForCostCenter() {
+		String costCenterXML = null;
+		CommonUtils commonUtils = new CommonUtils();
+		try {
+			MastersManager masterManager = new MastersManager();
+			ArrayList<SimpleDataObject> costCenter = masterManager.getAllCostCenterData();
+			costCenterXML = commonUtils.getXmlForCostCenter(costCenter);
+			costCenterXML = Utils.escapeJavaScript(costCenterXML);
+		} catch (SQLException e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return costCenterXML;
+	}
+
+	public String getXmlForCostCenter(ArrayList<SimpleDataObject> costCenter) {
+		StringWriter sWr = new StringWriter();
+		XMLWriter wr = new XMLWriter(sWr);
+		try {
+			wr.startDocument();
+			wr.startElement("rows");
+			if (costCenter != null && costCenter.size() > 0) {
+				for (int i = 0; i < costCenter.size(); i++) {
+					SimpleDataObject costCenterData = (SimpleDataObject) costCenter.get(i);
+
+					String costCenterId = costCenterData.getString("costCenterId");
+					String costCenterName = Utils.getBlankIfNull(costCenterData.getString("costCenterName"));
+
+					AttributesImpl atr = new AttributesImpl();
+					atr.addAttribute("", "id", "", "", String.valueOf(costCenterId));
+					wr.startElement("", "row", "", atr);
+
+					atr = new AttributesImpl();
+					atr.addAttribute("", "name", "", "", "costCenterName");
+					wr.startElement("", "userdata", "", atr);
+					wr.characters(costCenterName);
+					wr.endElement("userdata");
+
+					wr.startElement("cell");
+					wr.characters(costCenterName);
+					wr.endElement("cell");
+
+					wr.endElement("row");
+				}
+			}
+			wr.endElement("rows");
+			wr.endDocument();
+
+		} catch (SAXException e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return sWr.getBuffer().toString();
+	}
+
+	public static Map<String, String> getPositionFieldLabelMap() {
+		if (positionFieldLabelMap == null) {
+			positionFieldLabelMap = new HashMap<String, String>();
+			positionFieldLabelMap.put("positionName", TPLabels.getLabel("common.position_name"));
+			positionFieldLabelMap.put("positionCode", TPLabels.getLabel("common.position_code"));
+			positionFieldLabelMap.put("positionOwnerName", TPLabels.getLabel("global.position_owner"));
+			positionFieldLabelMap.put("requisitioner", TPLabels.getLabel("position.description.requested_by"));
+			positionFieldLabelMap.put("vacancies", TPLabels.getLabel("common.vacancies"));
+			positionFieldLabelMap.put("hireByDate", TPLabels.getLabel("position.description.hire_by_date"));
+			positionFieldLabelMap.put("note", TPLabels.getLabel("position.description.note"));
+			positionFieldLabelMap.put("responsibilities",
+					TPLabels.getLabel("position.description.job_responsibilities"));
+			positionFieldLabelMap.put("positionCreateDate", TPLabels.getLabel("position.description.created_on"));
+			positionFieldLabelMap.put("department",
+					GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_DEPARTMENT_LEVEL_1));
+			positionFieldLabelMap.put("subDepartment",
+					GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_DEPARTMENT_LEVEL_2));
+			positionFieldLabelMap.put("subSubDepartment",
+					GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_DEPARTMENT_LEVEL_3));
+			positionFieldLabelMap.put("positionLevel",
+					TPLabels.getLabel("common.position") + " " + TPLabels.getLabel("common.level"));
+			positionFieldLabelMap.put("positionReferalFees",
+					TPLabels.getLabel("position.description.position_referal_fees"));
+			positionFieldLabelMap.put("locationName", TPLabels.getLabel("position.description.location"));
+			positionFieldLabelMap.put("budgetItemName", TPLabels.getLabel("position.description.budget_item"));
+			positionFieldLabelMap.put("gradeName",
+					GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_BUDGET_ITEM_GRADE_LABEL));
+			positionFieldLabelMap.put("bandName",
+					GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_BUDGET_ITEM_BAND_LABEL));
+			positionFieldLabelMap.put("degreeTitle", TPLabels.getLabel("position.requirements.minimum_education"));
+			positionFieldLabelMap.put("branchName", TPLabels.getLabel("position.requirements.branch"));
+			positionFieldLabelMap.put("minimumExperience",
+					"Minimum " + TPLabels.getLabel("position.requirements.experience"));
+			positionFieldLabelMap.put("maximumExperience",
+					"Maximum " + TPLabels.getLabel("position.requirements.experience"));
+			positionFieldLabelMap.put("primarySkills", TPLabels.getLabel("position.requirements.primary_skills"));
+			positionFieldLabelMap.put("secondarySkills", TPLabels.getLabel("position.requirements.secondary_skills"));
+			positionFieldLabelMap.put("requirements", TPLabels.getLabel("position.requirements.job_requirements"));
+			positionFieldLabelMap.put("assignedTo", TPLabels.getLabel("position.hiring_process.step.assigned_to"));
+			positionFieldLabelMap.put("decisionMaker",
+					TPLabels.getLabel("position.hiring_process.step.decision_maker"));
+			positionFieldLabelMap.put("scheduledBy", TPLabels.getLabel("position.hiring_process.step.scheduled_by"));
+			positionFieldLabelMap.put("buName",
+					GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_BUSINESS_UNIT_LABEL));
+			positionFieldLabelMap.put("costCenterName",
+					GlobalApplicationProperties.getProperty(GlobalConstants.PROPERTY_COST_CENTER_LABEL));
+			positionFieldLabelMap.put("typeOfVacancy", TPLabels.getLabel("position.description.type_of_vacancy"));
+			positionFieldLabelMap.put("replacementEmpCode",
+					TPLabels.getLabel("position.description.replacement_emp_code"));
+		}
+		return positionFieldLabelMap;
+	}
+
+	public static String getListJavaScriptArrayWithProperties(ArrayList src, String paramId, String paramName,
+			String paramCode) {
+		StringBuffer sb = new StringBuffer();
+		try {
+			int totalOptions = src.size();
+			if (totalOptions > 0) {
+				sb.append("[");
+				for (int i = 0; i < totalOptions; i++) {
+					SimpleDataObject sdo = (SimpleDataObject) src.get(i);
+					String id = sdo.getString(paramId);
+					String name = sdo.getString(paramName);
+					String code = sdo.getString(paramCode);
+					sb.append("new SelectOption('" + Utils.escapeJavaScript(id) + "','" + Utils.escapeJavaScript(name)
+							+ "[" + (Utils.escapeJavaScript(code)) + "]" + "')");
+					if (i < totalOptions - 1)
+						sb.append(",");
+				}
+				sb.append("]");
+			} else {
+				sb.append(NEW_ARRAY);
+			}
+
+		} catch (Exception e) {
+			TPLogger.getLogger().error("error while generating javascript array", e);
+			sb = new StringBuffer(NEW_ARRAY);
+		}
+		return sb.toString();
+	}
+
+	// Added for Asian Paints BEGIN
+
+	/**
+	 * This method Take ArrayList as src and Populates ArrayList ids and
+	 * ArrayList names with ids and names. If Map not null then also put mapping
+	 * of id and name into Map map
+	 * 
+	 * @param src
+	 * @param ids
+	 * @param names
+	 * @param paramId
+	 *            is the name of the attribute which is used to populate ids
+	 * @param paramName1
+	 *            is the name of the attribute which is used to populate names
+	 * @param paramName2
+	 *            is the name of the attribute which is used to populate names
+	 * @param map
+	 */
+	public static void populateIdsAndNames(ArrayList src, ArrayList<String> ids, ArrayList<String> names,
+			String paramId, String paramName1, String paramName2, Map<String, String> map) {
+		try {
+			if (src != null) {
+				for (int i = 0; i < src.size(); i++) {
+					SimpleDataObject sdo = (SimpleDataObject) src.get(i);
+					String id = sdo.getString(paramId);
+					String name = sdo.getString(paramName1) + " (" + sdo.getString(paramName2) + ")";
+					ids.add(ids.size(), id);
+					names.add(names.size(), name);
+					if (map != null) {
+						map.put(id, name);
+					}
+				}
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("error while populating ids and names", e);
+		}
+	}
+
+	/**
+	 * @param src
+	 *            list of SimpleDataObject
+	 * @param paramId
+	 * @param paramName1
+	 * @param paramName2
+	 * @return
+	 */
+	public static String getJobCodeListJavaScriptArrayWithProperties(ArrayList src, String paramId, String paramName1,
+			String paramName2) {
+		StringBuffer sb = new StringBuffer();
+		try {
+			int totalOptions = src.size();
+			if (totalOptions > 0) {
+				sb.append("[");
+				for (int i = 0; i < totalOptions; i++) {
+					SimpleDataObject sdo = (SimpleDataObject) src.get(i);
+					String id = sdo.getString(paramId);
+					String name = StringUtils.EMPTY;
+					if (!Utils.isBlankOrNull(sdo.getString(paramName2))) {
+						String jobName = sdo.getString(paramName1);
+						if (Utils.isBlankOrNull(jobName)) {
+							jobName = StringUtils.EMPTY;
+						}
+						name = jobName + " (" + sdo.getString(paramName2) + ")";
+					}
+					sb.append("new SelectOption('" + Utils.escapeJavaScript(id) + "','" + Utils.escapeJavaScript(name)
+							+ "')");
+					if (i < totalOptions - 1)
+						sb.append(",");
+				}
+				sb.append("]");
+			} else {
+				sb.append(NEW_ARRAY);
+			}
+
+		} catch (Exception e) {
+			TPLogger.getLogger().error("error while generating javascript array", e);
+			sb = new StringBuffer(NEW_ARRAY);
+		}
+		return sb.toString();
+	}
+
+	public static void populateLoc() {
+		DBQuery dq = null;
+		try {
+			_locIds = new ArrayList<String>();
+			_locNames = new ArrayList<String>();
+			_locNamesMap = new HashMap<String, String>();
+			dq = new DBQuery("dGetAllLoc");
+			ArrayList loc = dq.getResult();
+			populateIdsAndNames(loc, _locIds, _locNames, "locId", "locName","locationExternalCode", _locNamesMap);
+
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error While Populating location info", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+	}
+
+	public static ArrayList<String> getLocIds() {
+		if (_locIds == null) {
+			populateLoc();
+		}
+		return _locIds;
+	}
+
+	public static void setLocIds(ArrayList<String> locIds) {
+		_locIds = locIds;
+	}
+
+	public static ArrayList<String> getLocNames() {
+		if (_locNames == null) {
+			populateLoc();
+		}
+		return _locNames;
+	}
+
+	public static void setLocNames(ArrayList<String> locNames) {
+		_locNames = locNames;
+	}
+
+	public static void populateJobFunction() {
+		DBQuery dq = null;
+		try {
+			_jobFunctionIds = new ArrayList<String>();
+			_jobFunctionNames = new ArrayList<String>();
+			_jobFunctionNamesMap = new HashMap<String, String>();
+			dq = new DBQuery("dGetAllJobFunction");
+			ArrayList jobFunction = dq.getResult();
+			populateIdsAndNames(jobFunction, _jobFunctionIds, _jobFunctionNames, "jobFunctionId", "jobFunctionName","jobFunctionExternalCode",
+					_jobFunctionNamesMap);
+
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error While Populating Job Function info", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+	}
+
+	public static void populateJobPayGrade() {
+		DBQuery dq = null;
+		try {
+			_jobPayGradeIds = new ArrayList<String>();
+			_jobPayGradeNames = new ArrayList<String>();
+			_jobPayGradeNamesMap = new HashMap<String, String>();
+			dq = new DBQuery("dGetAllJobPayGrade");
+			ArrayList jobPayGrade = dq.getResult();
+			populateIdsAndNames(jobPayGrade, _jobPayGradeIds, _jobPayGradeNames, "jobPayGradeId", "jobPayGradeName","jobPayGradeExternalCode", _jobPayGradeNamesMap);
+
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error While Populating Pay Grade info", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+	}
+
+	public static void populateJobCode() {
+		DBQuery dq = null;
+		try {
+			_jobCodeIds = new ArrayList<String>();
+			_jobCodeNames = new ArrayList<String>();
+			_jobCodeNamesMap = new HashMap<String, String>();
+			dq = new DBQuery("dGetAllJobCode");
+			ArrayList jobCode = dq.getResult();
+			populateIdsAndNames(jobCode, _jobCodeIds, _jobCodeNames, "jobCodeId", "jobCodeName",
+					"jobExternalCode", _jobCodeNamesMap);
+
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error While Populating Job Code info", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+	}
+
+	public static void populateCountry() {
+		DBQuery dq = null;
+		try {
+			_countryIds = new ArrayList<String>();
+			_countryNames = new ArrayList<String>();
+			_countryNamesMap = new HashMap<String, String>();
+			dq = new DBQuery("dGetAllCountry");
+			ArrayList country = dq.getResult();
+			populateIdsAndNames(country, _countryIds, _countryNames, "countryId", "countryName", _countryNamesMap);
+
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error While Populating Country info", e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+	}
+
+	public static ArrayList<String> getJobFunctionIds() {
+		if (_jobFunctionIds == null) {
+			populateJobFunction();
+		}
+		return _jobFunctionIds;
+	}
+
+	public static void setJobFunctionIds(ArrayList<String> jobFunctionIds) {
+		_jobFunctionIds = jobFunctionIds;
+	}
+
+	public static ArrayList<String> getJobFunctionNames() {
+		if (_jobFunctionNames == null) {
+			populateJobFunction();
+		}
+		return _jobFunctionNames;
+	}
+
+	public static void setJobFunctionNames(ArrayList<String> jobFunctionNames) {
+		_jobFunctionNames = jobFunctionNames;
+	}
+
+	public static ArrayList<String> getJobPayGradeIds() {
+		if (_jobPayGradeIds == null) {
+			populateJobPayGrade();
+		}
+		return _jobPayGradeIds;
+	}
+
+	public static void setJobPayGradeIds(ArrayList<String> jobPayGradeIds) {
+		_jobPayGradeIds = jobPayGradeIds;
+	}
+
+	public static ArrayList<String> getJobPayGradeNames() {
+		if (_jobPayGradeNames == null) {
+			populateJobPayGrade();
+		}
+		return _jobPayGradeNames;
+	}
+
+	public static void setJobPayGradeNames(ArrayList<String> jobPayGradeNames) {
+		_jobPayGradeNames = jobPayGradeNames;
+	}
+
+	public static ArrayList<String> getJobCodeIds() {
+		if (_jobCodeIds == null) {
+			populateJobCode();
+		}
+		return _jobCodeIds;
+	}
+
+	public static void setJobCodeIds(ArrayList<String> jobCodeIds) {
+		_jobCodeIds = jobCodeIds;
+	}
+
+	public static ArrayList<String> getJobCodeNames() {
+		if (_jobCodeNames == null) {
+			populateJobCode();
+		}
+		return _jobCodeNames;
+	}
+
+	public static void setJobCodeNames(ArrayList<String> jobCodeNames) {
+		_jobCodeNames = jobCodeNames;
+	}
+
+	public static ArrayList<String> getCountryIds() {
+		if (_countryIds == null) {
+			populateCountry();
+		}
+		return _countryIds;
+	}
+
+	public static void setCountryIds(ArrayList<String> countryIds) {
+		_countryIds = countryIds;
+	}
+
+	public static ArrayList<String> getCountryNames() {
+		if (_countryNames == null) {
+			populateCountry();
+		}
+		return _countryNames;
+	}
+
+	public static void setCountryNames(ArrayList<String> countryNames) {
+		_countryNames = countryNames;
+	}
+
+	// Added for Asian Paints END
+
+}

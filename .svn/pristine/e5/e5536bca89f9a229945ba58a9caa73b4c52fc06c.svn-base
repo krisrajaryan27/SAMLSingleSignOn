@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<dbmap> 
+	<dbqueries>
+		<dbquery name="qSchedulerManager_UpdateSchedulerEndTimeAndStatus">
+			UPDATE tp_cr_scheduler SET last_run_status = ?, current_status = ? @@
+		</dbquery>
+		<dbquery name="qSchedulerManager_UpdateSchedulerStartTime">
+			UPDATE tp_cr_scheduler SET last_run_starttime = now(), current_status = ?
+		</dbquery>
+		<dbquery name="qSchedulerManager_GetSchedulerDetails">
+			SELECT scheduler_start_hour, scheduler_frequency, last_run_status, last_run_starttime,
+				last_run_endtime, last_success_run, current_status
+			FROM tp_cr_scheduler	
+		</dbquery>
+		<dbquery name="qSchedulerManager_UpdateSchedulerProperties">
+			UPDATE tp_cr_scheduler SET scheduler_start_hour=?, scheduler_frequency=?
+		</dbquery>
+	</dbqueries>
+	<dataqueries>
+	    <dataquery name="dSchedulerManager_UpdateSchedulerEndTimeAndStatus" dbquery="qSchedulerManager_UpdateSchedulerEndTimeAndStatus" />
+	    <dataquery name="dSchedulerManager_UpdateSchedulerStartTime" dbquery="qSchedulerManager_UpdateSchedulerStartTime" />
+	    <dataquery name="dSchedulerManager_GetSchedulerDetails" dbquery="qSchedulerManager_GetSchedulerDetails" object="com.talentPool.scheduler.dataobject.SchedulerData">
+		    <attribute name= "schedulerStartHour" column="scheduler_start_hour" type ="String" />
+		    <attribute name= "schedulerFrequency" column="scheduler_frequency" type ="String" />
+		    <attribute name= "lastRunStatus" column="last_run_status" type ="String" />
+		    <attribute name= "lastRunStarttime" column="last_run_starttime" type ="String" />
+		    <attribute name= "lastRunEndtime" column="last_run_endtime" type ="String" />
+		    <attribute name= "lastSuccessRun" column="last_success_run" type ="String" />
+		    <attribute name= "currentStatus" column="current_status" type ="String" />
+    	</dataquery>
+	    <dataquery name="dSchedulerManager_UpdateSchedulerProperties" dbquery="qSchedulerManager_UpdateSchedulerProperties" />
+	</dataqueries>   
+</dbmap>

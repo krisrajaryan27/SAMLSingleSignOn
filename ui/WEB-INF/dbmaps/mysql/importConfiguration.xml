@@ -1,0 +1,70 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>
+		<dbquery name="qImportConfigurationManager_GetAllFields">
+			SELECT field_id, field_type, is_process_field, field_import_show, field_edit_show, field_import_mandatory,
+			field_vendor_show, field_vendor_mandatory, field_employee_show, field_employee_mandatory,
+			field_applicant_show_on_site,field_applicant_mandatory_on_site, field_confidential
+			FROM tp_screen_configurations
+			ORDER BY field_rank
+		</dbquery>
+		<dbquery name="qImportConfigurationManager_GetAllFieldsForCandidatePortal">
+		  	SELECT tdf.id,if(tpc.field_type=1,(select custom_field_display_name from tp_custom_fields where custom_field_name=tpc.field_id),tdf.display_name)as display_name,tpc.field_id , tpc.field_type, tpc.is_process_field, tpc.field_import_show, tpc.field_edit_show, tpc.field_import_mandatory,
+			tpc.field_vendor_show, tpc.field_vendor_mandatory, tpc.field_employee_show, tpc.field_employee_mandatory,
+			tpc.field_applicant_show_on_site,tpc.field_applicant_mandatory_on_site, tpc.field_confidential,
+			ifnull(tdf.field_type,(select tcf.custom_field_type from tp_custom_fields tcf where tcf.custom_field_name=tpc.field_id)) as type,tdf.regex,tdf.regex_message,tdf.option_list,tdf.default_value,tdf.watermark_placeholder,
+                        tdf.api_url,tdf.css_class_name,tdf.property_name,tdf.parent_id,tdf.id
+			FROM tp_screen_configurations  tpc LEFT JOIN 
+			tp_dynamic_field_candidate_portal tdf on (tdf.reference_field_id = tpc.field_id  and NOT tdf.entity_type = 2 ) 
+			ORDER BY field_rank
+		</dbquery>
+	</dbqueries>
+	<dataqueries>
+	    <dataquery name="dImportConfigurationManager_GetAllFields" dbquery="qImportConfigurationManager_GetAllFields" object="com.talentPool.applicant.dataobject.ImportFieldData">
+	    	<attribute name="fieldId"  column="field_id" type="STRING" />
+       		<attribute name="fieldType"  column="field_type" type="STRING" />
+       		<attribute name="isProcessField"  column="is_process_field" type="STRING" />
+       		<attribute name="fieldImportShow"  column="field_import_show" type="STRING" />
+       		<attribute name="fieldEditShow"  column="field_edit_show" type="STRING" />
+       		<attribute name="fieldImportMandatory"  column="field_import_mandatory" type="STRING" />
+       		<attribute name="fieldConfidential"  column="field_confidential" type="STRING" />
+       		<attribute name="fieldVendorShow"  column="field_vendor_show" type="STRING" />
+       		<attribute name="fieldVendorMandatory"  column="field_vendor_mandatory" type="STRING" />       		
+       		<attribute name="fieldEmployeeShow"  column="field_employee_show" type="STRING" />
+       		<attribute name="fieldEmployeeMandatory"  column="field_employee_mandatory" type="STRING" />
+       		<attribute name="fieldWebsiteShow"  column="field_applicant_show_on_site" type="STRING" />
+       		<attribute name="fieldWebsiteMandatory"  column="field_applicant_mandatory_on_site" type="STRING" />
+	    </dataquery>
+	    <dataquery name="dImportConfigurationManager_GetAllFieldsForCandidatePortal" dbquery="qImportConfigurationManager_GetAllFieldsForCandidatePortal" object="com.talentPool.applicant.dataobject.ImportFieldData">
+	    	<attribute name="id"  column="id" type="STRING" />
+	    	<attribute name="displayName" column="display_name" type="STRING"/>
+	    	<attribute name="fieldId"  column="field_id" type="STRING" />
+       		<attribute name="fieldType"  column="field_type" type="STRING" />
+       		<attribute name="isProcessField"  column="is_process_field" type="STRING" />
+       		<attribute name="fieldImportShow"  column="field_import_show" type="STRING" />
+       		<attribute name="fieldEditShow"  column="field_edit_show" type="STRING" />
+       		<attribute name="fieldImportMandatory"  column="field_import_mandatory" type="STRING" />
+       		<attribute name="fieldConfidential"  column="field_confidential" type="STRING" />
+       		<attribute name="fieldVendorShow"  column="field_vendor_show" type="STRING" />
+       		<attribute name="fieldVendorMandatory"  column="field_vendor_mandatory" type="STRING" />       		
+       		<attribute name="fieldEmployeeShow"  column="field_employee_show" type="STRING" />
+       		<attribute name="fieldEmployeeMandatory"  column="field_employee_mandatory" type="STRING" />
+       		<attribute name="fieldWebsiteShow"  column="field_applicant_show_on_site" type="STRING" />
+       		<attribute name="fieldWebsiteMandatory"  column="field_applicant_mandatory_on_site" type="STRING" />
+       		<attribute name="type" column="type" type="STRING"/>
+       		<attribute name="regex" column="regex" type="STRING"/>
+       		<attribute name="regexMessage" column="regex_message" type="STRING"/>
+       		<attribute name="optionList" column="option_list" type="STRING"/>
+       		<attribute name="defaultValue" column="default_value" type="STRING"/>
+       		<attribute name="waterMarkPlaceHolder" column="watermark_placeholder" type="STRING"/>
+       		<attribute name="apiUrl" column="api_url" type="STRING"/>
+       		<attribute name="cssClassName" column="css_class_name" type="STRING"/>
+       		<attribute name="propertyName" column="property_name" type="STRING"/>
+       		<attribute name="parentId" column="parent_id" type="STRING"/>
+       		<attribute name="id" column="id" type="STRING"/>
+	    </dataquery>
+	</dataqueries>   
+</dbmap>

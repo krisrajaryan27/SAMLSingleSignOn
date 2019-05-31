@@ -1,0 +1,75 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>
+	   <dbquery name="qOtherApplicationManager_GetApplicantsForPositionStepLevel">
+       		SELECT todo.applicant_id FROM tp_todo todo, tp_position_steps tps
+			WHERE tps.position_step_id=todo.current_step_id
+			AND tps.position_step_level = ?
+			GROUP BY todo.position_id, todo.applicant_id       		
+       </dbquery>
+       <dbquery name="qOtherApplicationManager_addWhenStepLevelChange">
+			INSERT INTO tp_on_step_level_change
+			(applicant_id,position_id,step_level_id,date_created)
+			VALUES (?,?,?,now())
+		</dbquery>
+		<dbquery name="qOtherApplicationManager_deleteFromStepLevelChange">
+			DELETE FROM tp_on_step_level_change WHERE applicant_id = ? AND position_id =? AND step_level_id=?
+		</dbquery>
+		<dbquery name="qOtherApplicationManager_updateStepLevelChange">
+			UPDATE tp_on_step_level_change SET scheduler_run_date = now()
+			WHERE applicant_id IN (@@)
+		</dbquery>
+		<dbquery name="qOtherApplicationManager_selectFromStepLevelChange">
+			SELECT applicant_id,position_id,step_level_id,date_created,scheduler_run_date FROM tp_on_step_level_change WHERE scheduler_run_date is NULL
+		</dbquery>		
+		
+		
+		<dbquery name="qOtherApplicationManager_addWhenStepLevelChangeForGreytip">
+			INSERT INTO tp_greytip_applicant_step_level_change
+			(applicant_id,position_id,step_level_id,date_created)
+			VALUES (?,?,?,now())
+		</dbquery>
+		<dbquery name="qOtherApplicationManager_deleteFromStepLevelChangeForGreytip">
+			DELETE FROM tp_greytip_applicant_step_level_change WHERE applicant_id = ? AND position_id =? AND step_level_id=?
+		</dbquery>
+		<dbquery name="qOtherApplicationManager_updateStepLevelChangeForGreytip">
+			UPDATE tp_greytip_applicant_step_level_change SET greytip_scheduler_run_date = now()
+			WHERE applicant_id IN (@@)
+		</dbquery>
+		<dbquery name="qOtherApplicationManager_selectFromStepLevelChangeForGreytip">
+			SELECT applicant_id,position_id,step_level_id,date_created,greytip_scheduler_run_date FROM tp_greytip_applicant_step_level_change WHERE greytip_scheduler_run_date is NULL
+		</dbquery>		
+		
+	</dbqueries>
+	<dataqueries>       
+       <dataquery name="dOtherApplicationManager_GetApplicantsForPositionStepLevel" dbquery="qOtherApplicationManager_GetApplicantsForPositionStepLevel" object="com.talentPool.applicant.dataobject.ApplicantData">
+       		<attribute name="applicantId"  column="applicant_id" type="STRING" />       		
+       </dataquery>       
+       <dataquery name="dOtherApplicationManager_addWhenStepLevelChange" dbquery="qOtherApplicationManager_addWhenStepLevelChange"/>
+       <dataquery name="dOtherApplicationManager_deleteFromStepLevelChange" dbquery="qOtherApplicationManager_deleteFromStepLevelChange"/>
+       <dataquery name="dOtherApplicationManager_selectFromStepLevelChange" dbquery="qOtherApplicationManager_selectFromStepLevelChange" object="com.talentPool.common.db.SimpleDataObject">
+       		<attribute name="applicantId"  column="applicant_id" type="STRING" />       		
+       		<attribute name="positionId"  column="position_id" type="STRING" />
+       		<attribute name="stepLevelId"  column="step_level_id" type="STRING" />       		
+       		<attribute name="dateCreated"  column="date_created" type="STRING" />       		
+       		<attribute name="schedulerRunDate"  column="scheduler_run_date" type="STRING" />
+       </dataquery>
+       <dataquery name="dOtherApplicationManager_updateStepLevelChange" dbquery="qOtherApplicationManager_updateStepLevelChange"/>
+       
+       <dataquery name="dOtherApplicationManager_addWhenStepLevelChangeForGreytip" dbquery="qOtherApplicationManager_addWhenStepLevelChangeForGreytip"/>
+       <dataquery name="dOtherApplicationManager_deleteFromStepLevelChangeForGreytip" dbquery="qOtherApplicationManager_deleteFromStepLevelChangeForGreytip"/>
+       <dataquery name="dOtherApplicationManager_updateStepLevelChangeForGreytip" dbquery="qOtherApplicationManager_updateStepLevelChangeForGreytip"/>
+       <dataquery name="dOtherApplicationManager_selectFromStepLevelChangeForGreytip" dbquery="qOtherApplicationManager_selectFromStepLevelChangeForGreytip" object="com.talentPool.common.db.SimpleDataObject">
+       		<attribute name="applicantId"  column="applicant_id" type="STRING" />       		
+       		<attribute name="positionId"  column="position_id" type="STRING" />
+       		<attribute name="stepLevelId"  column="step_level_id" type="STRING" />       		
+       		<attribute name="dateCreated"  column="date_created" type="STRING" />       		
+       		<attribute name="greytipSchedulerRunDate"  column="greytip_scheduler_run_date" type="STRING" />
+       </dataquery>
+       
+              
+	</dataqueries>
+</dbmap>

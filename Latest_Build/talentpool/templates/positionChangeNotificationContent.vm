@@ -1,0 +1,1 @@
+<p>Dear&nbsp;$POSITION_REQUESTED_BY ,</p><p>Position&nbsp;$POSITION_TITLE has been changed by $USER_FNAME&nbsp;$USER_LNAME.</p><p>Changes made are as follows: </p><p>$FIELD_CHANGE_DETAILS</p><p>&nbsp;Thank you,</p><p>$COMPANY_NAME&nbsp;</p>

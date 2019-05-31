@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+<dbqueries>	
+	    <dbquery name="qCustomIncrementCounter_getCurrentCounter">
+			SELECT incremental_value FROM tp_custom_increment_counter WHERE variable_name=?
+	    </dbquery>  
+	    <dbquery name="qCustomIncrementCounter_incrementCounterVariable">
+	    	UPDATE tp_custom_increment_counter SET incremental_value=(incremental_value+1) WHERE variable_name=?
+	    </dbquery>  
+</dbqueries>
+<dataqueries>
+	    <dataquery name="dCustomIncrementCounter_getCurrentCounter" dbquery="qCustomIncrementCounter_getCurrentCounter" />
+	    <dataquery name="dCustomIncrementCounter_incrementCounterVariable" dbquery="qCustomIncrementCounter_incrementCounterVariable" />
+</dataqueries>	    	    
+</dbmap>

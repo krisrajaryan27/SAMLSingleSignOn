@@ -1,0 +1,162 @@
+<%@ taglib uri="/WEB-INF/tld/struts-html.tld" prefix="html"%>
+<%@ taglib uri="/WEB-INF/tld/struts-bean.tld" prefix="bean"%>
+<%@ taglib uri="/WEB-INF/tld/struts-logic.tld" prefix="logic"%>
+<%@page import="com.talentPool.applicant.form.ApplicantForm"%>
+<%@page import="java.util.ArrayList"%>
+<%@page import="com.talentPool.custom.dataobject.CustomFieldData"%>
+<div class="contentDiv" style="margin: 20px 0px 0px 10px;">
+<div style="width:140px;" class="boxTab"><span class="rightC"></span><span
+	class="leftC"></span>&nbsp;<strong><bean:message
+	key="add_applicant.label.import" /></strong></div>
+	<html:form	action="/importResume">
+	<html:hidden property="mode" value="addApplicant" />
+	<html:hidden property="ignoreDuplicate" value="" />
+	<html:hidden property="duplicateString" name="applicantForm" />
+	<html:hidden property="duplicateApplicantId" name="applicantForm" />
+	<html:hidden property="duplicateApplicantOriginalResumePath" name="applicantForm" />
+	<html:hidden property="duplicateApplicantStatus" name="applicantForm" />
+
+	<html:hidden property="applicantName" name="applicantForm" />
+	<html:hidden property="applicantCity" name="applicantForm" />
+	<html:hidden property="applicantHomePhone" name="applicantForm" />
+	<html:hidden property="applicantWorkPhone" name="applicantForm" />
+	<html:hidden property="applicantCellPhone" name="applicantForm" />
+	<html:hidden property="applicantEmail1" name="applicantForm" />
+	<html:hidden property="applicantEmail2" name="applicantForm" />
+	<html:hidden property="rawPrimarySkills" name="applicantForm" />
+	<html:hidden property="applicantWorkingSince" name="applicantForm" />
+	<html:hidden property="applicantCurrentEmployer" name="applicantForm" />
+
+	<html:hidden property="currentCTC" name="applicantForm" />
+	<html:hidden property="expectedCTC" name="applicantForm" />
+	<html:hidden property="applicantNote" name="applicantForm" />
+
+	<html:hidden property="selAttachment" name="applicantForm" />
+	<html:hidden property="emailId" name="applicantForm" />
+	<html:hidden property="applicantId" name="applicantForm" />
+	<html:hidden property="cancelled" name="applicantForm" />
+	<html:hidden property="sourceId" name="applicantForm" />
+	<html:hidden property="primarySkillIds" name="applicantForm" />
+	<html:hidden property="primarySkills" name="applicantForm" />
+	<html:hidden property="originalResumePath" name="applicantForm" />
+	<html:hidden property="fresher" name="applicantForm" />
+	<html:hidden property="subMode" name="applicantForm" />
+	<html:hidden property="saveNcontinue" name="applicantForm"  />
+	<html:hidden property="uploadedFilePath" name="applicantForm" />
+	<html:hidden property="applicantTextResume" name="applicantForm" />
+	<html:hidden property="vendorId" name="applicantForm" />
+	<html:hidden property="isEmployeeSource" name="applicantForm" />
+	<html:hidden property="requestSource" name="applicantForm"/>
+	<html:hidden property="resultId" name="applicantForm"/>
+	<html:hidden property="sessionId" name="applicantForm"/>
+	<html:hidden property="ieImport" name="applicantForm"/>
+	<html:hidden property="employeeCode" name="applicantForm"/>
+	<%
+		ApplicantForm applicantForm = (ApplicantForm) request.getAttribute("applicantForm");
+		String[] educationYearOfPassing = applicantForm.getEducationYearOfPassing();
+		String[] educationInstitute = applicantForm.getEducationInstitute();
+		String[] educationDegreeId = applicantForm.getEducationDegreeId();
+		String[] educationMajorId = applicantForm.getEducationMajorId();
+		String[] educationalGrade = applicantForm.getEducationalGrade();
+		String[] educationalStartDate = applicantForm.getEducationalStartDate();
+		String[] educationalEndDate = applicantForm.getEducationalEndDate();
+		String[] educationalUniversity = applicantForm.getUniversity();
+		String[] educationalTypeOfProgram = applicantForm.getTypeOfProgram();
+		for (int i = 0; educationYearOfPassing != null && i < educationYearOfPassing.length; i++) {
+	%>
+	<input type="hidden" name="educationYearOfPassing"
+		value="<%=educationYearOfPassing[i] %>" />
+	<input type="hidden" name="educationInstitute"
+		value="<%=educationInstitute[i] %>" />
+	<input type="hidden" name="educationDegreeId"
+		value="<%=educationDegreeId[i] %>" />
+	<input type="hidden" name="educationMajorId"
+		value="<%=educationMajorId[i] %>" />
+	<input type="hidden" name="educationalGrade"
+		value="<%=educationalGrade[i] %>" />
+	<input type="hidden" name="educationalStartDate"
+		value="<%=educationalStartDate[i] %>" />
+	<input type="hidden" name="educationalEndDate"
+		value="<%=educationalEndDate[i] %>" />
+	<input type="hidden" name="educationalUniversity"
+		value="<%=educationalUniversity[i] %>" />
+	<input type="hidden" name="educationalTypeOfProgram"
+		value="<%=educationalTypeOfProgram[i] %>" />		
+	<%
+		}
+		ArrayList customFields = (ArrayList) request.getAttribute("customFields");
+		for (int i = 0; customFields != null && i < customFields.size(); i++) {
+			CustomFieldData customFieldData = (CustomFieldData) customFields.get(i);
+			String[] vals = customFieldData.getFieldValues();
+			for (int k = 0; k < vals.length; k++) {
+	%>
+	<input type="hidden" name="<%=customFieldData.getFieldName() %>"
+		value="<%=vals[k] %>" />
+	<%
+		}
+		}
+	%>
+</html:form>
+<table cellpadding="0" cellspacing="0">
+	<tr>
+		<td>
+			<table class="boxHeader" cellspacing="0" cellpading="0" width="100%">
+				<tr>
+					<td style="height: 18px; font-weight: bold;"><bean:message key="compare_applicant.label.new_resume"/></td>
+				</tr>
+			</table>
+			<div class="outerDiv" style="border-top:0px;"><!--Original Resume IFRAME --> <iframe
+				src="importResume.do?mode=getResumeToImport&applicantId=<bean:write name="applicantForm" property="applicantId" />&originalResumePath=<bean:write name="applicantForm" property="originalResumePath" />&emailId=<bean:write name="applicantForm" property="emailId"/>&noContext=1"
+				style="width:485px;height:630px;visibility:block;border:0px; margin:0px;"
+				frameborder="0" name="viewPort"></iframe> <!--Original Resume IFRAME -->
+			</div>
+		</td>
+		<td style="padding-left:5px;" valign="top">
+			<table class="boxHeader" cellspacing="0" cellpading="0" width="100%">
+				<tr>
+					<td style="height: 18px; font-weight: bold;"> <bean:message key="compare_applicant.label.duplicate_resume_in_database"/></td>
+				</tr>
+			</table>
+			<div class="outerDiv" style="border-top:0px;"><!--Original Resume IFRAME --> <iframe
+				src="importResume.do?mode=getResumeToImport&applicantId=<bean:write name="applicantForm" property="duplicateApplicantId" />&originalResumePath=<bean:write name="applicantForm" property="duplicateApplicantOriginalResumePath" />&noContext=1"
+				style="width:485px;height:630px;visibility:block;border:0px; margin:0px;"
+				frameborder="0" name="viewPort"></iframe> <!--Original Resume IFRAME -->
+			</div>
+		</td>
+	</tr>
+</table>
+<logic:empty property="applicantId" name="applicantForm">
+<div class="navBtn" style="float: left;margin-top:10px; "><a
+	href="#" style="width:60px; margin-right: 5px;" class="active"
+	onclick="javascript:same();return false;" id="ignore"><span
+	class="rightC"></span><span class="leftC"></span><bean:message key="common.same"/></a> <a href="#"
+	style="width:90px; margin-right: 5px;" class="active"
+	onclick="javascript:different();return false;" id="ignore"><span
+	class="rightC"></span><span class="leftC"></span><bean:message key="common.different"/></a></div>
+</div>
+</logic:empty>
+<logic:notEmpty property="applicantId" name="applicantForm">
+<div class="navBtn" style="float: left;margin-top:10px; "><a
+	href="#" style="width:60px; margin-right: 5px;" class="active"
+	onclick="javascript:back();return false;" id="ignore"><span
+	class="rightC"></span><span class="leftC"></span><bean:message key="common.back" /></a></div>
+</div>
+</logic:notEmpty>
+<script language="JavaScript">
+function same(){
+	document.applicantForm.mode.value="updateConfirm";
+	document.applicantForm.ignoreDuplicate.value="1";
+	submitForm();
+}
+function different(){
+	document.applicantForm.mode.value="showDuplicates";
+	submitForm();
+}
+function submitForm(){
+	document.applicantForm.submit();
+}
+function back(){
+	document.applicantForm.mode.value="importResume";
+	submitForm();
+}
+</script>

@@ -1,0 +1,515 @@
+package com.talentPool.applicant.utils;
+
+import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Date;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
+
+import com.talentPool.applicant.constants.ImportConfigurationConstants;
+import com.talentPool.applicant.dataobject.ApplicantData;
+import com.talentPool.applicant.dataobject.EducationalData;
+import com.talentPool.applicant.dataobject.EmploymentHistoryData;
+import com.talentPool.applicant.form.ApplicantForm;
+import com.talentPool.applicant.manager.ImportConfigurationManager;
+import com.talentPool.common.CommonConstants;
+import com.talentPool.common.Logger.TPLogger;
+import com.talentPool.common.properties.GlobalConstants;
+import com.talentPool.common.utils.FileHandler;
+import com.talentPool.common.utils.RegexUtils;
+import com.talentPool.common.utils.Utils;
+import com.talentPool.custom.constants.CustomFieldConstants;
+import com.talentPool.custom.dataobject.CustomFieldData;
+import com.talentPool.custom.manager.CustomFieldManager;
+import com.talentPool.documents.DocumentConstants;
+import com.talentPool.documents.utils.DocumentUtils;
+import com.talentPool.positions.dataobject.PositionSkillsData;
+import com.talentPool.user.manager.PermissionSet;
+
+public class ApplicantUtils {
+	public String getImagePathReplaced(String content, String originalResumePath) {
+		String regex = "(?mids)<(img|v:imagedata)(.*?)src(.*?)=(.*?)\"(.*?)\"(.*?)>";
+		try {
+			ArrayList<String> matches = RegexUtils.getMatches(content, regex);
+			if (matches != null) {
+				ArrayList<String> imgs = new ArrayList<String>();
+				for (int i = 0; i < matches.size(); i++) {
+					regex = "(?mids)src(.*?)=(.*?)\"(.*?)\"";
+					ArrayList<String> groups = RegexUtils.getGroups(matches.get(i), regex);
+					String imgSrc = groups.get(3);
+					if(imgSrc.indexOf("\\")>0){ 
+						//this block is used to remove document path from header image 
+						imgSrc = imgSrc.substring(imgSrc.lastIndexOf("\\")+1,imgSrc.length()-1);	
+					}
+					if (!imgs.contains(imgSrc) && !imgSrc.startsWith(DocumentConstants.DOCUMENT_URL_FORMAT)) {
+						imgs.add(imgSrc);
+					}
+				}
+				if(!Utils.isBlankOrNull(originalResumePath)) {
+					int index = originalResumePath.lastIndexOf("/");
+					String resumeFolderPath = "";
+					if(index > 0) {
+						resumeFolderPath = originalResumePath.substring(0, index); 
+					} 				 
+					for (int i = 0; i < imgs.size(); i++) {
+						String fPath = Utils.concatFilePath(resumeFolderPath, imgs.get(i));
+						String url = DocumentUtils.getDocumentURL(fPath, DocumentConstants.CONTENT_DISPOSITION_INLINE);
+						content = content.replaceAll(imgs.get(i), url);
+					}
+				}
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return content;
+	}
+
+	public String getJsPathReplaced(String content, String originalResumePath, String str1,String str2) {
+		String regex = "(?mids)<("+str1+")(.*?)"+str2+"(.*?)=(.*?)\"(.*?)\"(.*?)>";
+		try {
+			ArrayList<String> matches = RegexUtils.getMatches(content, regex);
+			if (matches != null) {
+				ArrayList<String> imgs = new ArrayList<String>();
+				for (int i = 0; i < matches.size(); i++) {
+					regex = "(?mids)"+str2+"(.*?)=(.*?)\"(.*?)\"";
+					ArrayList<String> groups = RegexUtils.getGroups(matches.get(i), regex);
+					String imgSrc = groups.get(3);
+					if (!imgs.contains(imgSrc) && !imgSrc.startsWith(DocumentConstants.DOCUMENT_URL_FORMAT) && imgSrc.indexOf(DocumentConstants.DOCUMENT_URL_FORMAT) == -1) {
+						imgs.add(imgSrc);
+					}
+				}
+				if(!Utils.isBlankOrNull(originalResumePath)) {
+					int index = originalResumePath.lastIndexOf("/");
+					String resumeFolderPath = "";
+					if(index > 0) {
+						resumeFolderPath = originalResumePath.substring(0, index); 
+					} 				 
+					for (int i = 0; i < imgs.size(); i++) {
+						String fPath = Utils.concatFilePath(resumeFolderPath, imgs.get(i));
+						String url = DocumentUtils.getDocumentURL(fPath, DocumentConstants.CONTENT_DISPOSITION_INLINE);
+						if(imgs.get(i).indexOf(".") != -1) {
+							try {
+								content = content.replaceAll(imgs.get(i), url);
+							} catch (PatternSyntaxException  e) {
+								TPLogger.getLogger().error(GlobalConstants.ERROR,e);
+							}catch (Exception e) {
+								TPLogger.getLogger().error(GlobalConstants.ERROR,e);
+							}
+						}				
+					}
+				}
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return content;
+	}
+	
+	public static String getEmailToString(ApplicantData aData) {
+		StringBuffer sb = new StringBuffer();
+		try {
+		if (aData != null) {
+			if (!Utils.isBlankOrNull(aData.getSourceEmail())) {
+				sb.append(aData.getSourceEmail());
+			} else {
+				if (!Utils.isBlankOrNull(aData.getApplicantEmail1())) {
+					sb.append(aData.getApplicantEmail1());
+				}
+				if (!Utils.isBlankOrNull(sb.toString()) && !Utils.isBlankOrNull(aData.getApplicantEmail2())) {
+					sb.append("; ");
+				}
+				if (!Utils.isBlankOrNull(aData.getApplicantEmail2())) {
+					sb.append(aData.getApplicantEmail2());
+				}
+			}
+		}
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return sb.toString();
+
+	}
+
+	public String getHeaderFooterContent(String filePath) {
+		String headerFooterContent = "";
+		try {
+			String htmlFolderPath = filePath.substring(0, filePath.lastIndexOf(".")) + "_files";
+			String headerFilePath = Utils.concatFilePath(htmlFolderPath, "header.html");
+			FileHandler fileHandler = new FileHandler();
+			headerFooterContent = fileHandler.getTextFileContent(headerFilePath, null);
+		} 
+		catch (FileNotFoundException e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return headerFooterContent;
+	}
+
+	public String getHeader(String content) {
+		return getAllMatches(content, "(?mids)<div style='mso-element:header'.*?</div>");
+	}
+
+	public String getFooter(String content) {
+		return getAllMatches(content, "(?mids)<div style='mso-element:footer'.*?</div>");
+	}
+
+	private String getAllMatches(String content, String regExp) {
+		StringBuffer matchStr = new StringBuffer();
+		try {
+			ArrayList<String> matches = RegexUtils.getMatches(content, regExp);
+			for (int i = 0; i < matches.size(); i++) {
+				matchStr.append(matches.get(i));
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		if (Utils.isBlankOrNull(matchStr.toString())) {
+			matchStr.append("");
+		}
+		return matchStr.toString();
+	}
+
+	public String getBodyParsedForNotRequiredTags(String content) {
+		content = removeExpression(content, "(?mids)<!--\\[if !mso.*?endif\\]-->");
+		content = removeExpression(content, "(?mids)<!--\\[if gte.*?endif\\]-->");
+		content = removeExpression(content, "(?mids)<!\\[if.*?\\]>");
+		content = removeExpression(content, "(?mids)<!\\[endif\\]>");
+		return content;
+	}
+
+	private String removeExpression(String content, String exp) {
+		StringBuffer sb = new StringBuffer();
+		try {
+			Pattern p = Pattern.compile(exp);
+			Matcher m = p.matcher(content);
+			boolean theEnd = false;
+			int beginIndex = 0;
+			while (!theEnd) {
+				theEnd = !m.find();
+				if (!theEnd) {
+					sb.append(content.substring(beginIndex, m.start()));
+					beginIndex = m.end();
+				}
+			}
+			if (beginIndex > 0) {
+				sb.append(content.substring(beginIndex));
+				content = sb.toString();
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return content;
+
+	}
+	
+	public static String getOriginalResumePath(String originalResumePath, String originalDocPath){
+		if (Utils.isBlankOrNull(originalResumePath)) {
+			if(!Utils.isBlankOrNull(originalDocPath) && originalDocPath.toLowerCase().endsWith(".pdf"))
+				originalResumePath = originalDocPath;
+		}
+		return originalResumePath;
+	}
+	
+	public static String getFeedbackFormApplicantFieldsJSArray(){
+		StringBuffer sb = new StringBuffer();
+		try {
+			sb.append("[");
+			//Utils.getJSArraySelectOption(ImportConfigurationConstants.FIELD_NAME, ImportConfigurationManager.getFieldTitle(ImportConfigurationConstants.FIELD_NAME), sb);
+			Utils.getJSArraySelectOption(ImportConfigurationConstants.FIELD_EMAIL1, ImportConfigurationManager.getFieldTitle(ImportConfigurationConstants.FIELD_EMAIL1), sb);
+			Utils.getJSArraySelectOption(ImportConfigurationConstants.FIELD_EMAIL2, ImportConfigurationManager.getFieldTitle(ImportConfigurationConstants.FIELD_EMAIL2), sb.append(CommonConstants.DEFAULT_DELIMITER));
+			Utils.getJSArraySelectOption(ImportConfigurationConstants.FIELD_PHONE1, ImportConfigurationManager.getFieldTitle(ImportConfigurationConstants.FIELD_PHONE1), sb.append(CommonConstants.DEFAULT_DELIMITER));
+			Utils.getJSArraySelectOption(ImportConfigurationConstants.FIELD_PHONE2, ImportConfigurationManager.getFieldTitle(ImportConfigurationConstants.FIELD_PHONE2), sb.append(CommonConstants.DEFAULT_DELIMITER));
+			Utils.getJSArraySelectOption(ImportConfigurationConstants.FIELD_MOBILE, ImportConfigurationManager.getFieldTitle(ImportConfigurationConstants.FIELD_MOBILE), sb.append(CommonConstants.DEFAULT_DELIMITER));
+			//Utils.getJSArraySelectOption(ImportConfigurationConstants.FIELD_SOURCE, ImportConfigurationManager.getFieldTitle(ImportConfigurationConstants.FIELD_SOURCE ), sb.append(CommonConstants.DEFAULT_DELIMITER));
+			Utils.getJSArraySelectOption(ImportConfigurationConstants.FIELD_CURRENT_LOCATION, ImportConfigurationManager.getFieldTitle(ImportConfigurationConstants.FIELD_CURRENT_LOCATION ), sb.append(CommonConstants.DEFAULT_DELIMITER));
+			//Utils.getJSArraySelectOption(ImportConfigurationConstants.FIELD_SKILLS, ImportConfigurationManager.getFieldTitle(ImportConfigurationConstants.FIELD_SKILLS), sb.append(CommonConstants.DEFAULT_DELIMITER));
+			//Utils.getJSArraySelectOption(ImportConfigurationConstants.FIELD_EDUCATION, ImportConfigurationManager.getFieldTitle(ImportConfigurationConstants.FIELD_EDUCATION ), sb.append(CommonConstants.DEFAULT_DELIMITER));
+			Utils.getJSArraySelectOption(ImportConfigurationConstants.FIELD_EXPERIENCE, ImportConfigurationManager.getFieldTitle(ImportConfigurationConstants.FIELD_EXPERIENCE), sb.append(CommonConstants.DEFAULT_DELIMITER));
+			Utils.getJSArraySelectOption(ImportConfigurationConstants.FIELD_CURRENT_EMPLOYER, ImportConfigurationManager.getFieldTitle(ImportConfigurationConstants.FIELD_CURRENT_EMPLOYER     ), sb.append(CommonConstants.DEFAULT_DELIMITER));
+			Utils.getJSArraySelectOption(ImportConfigurationConstants.FIELD_CURRENT_CTC, ImportConfigurationManager.getFieldTitle(ImportConfigurationConstants.FIELD_CURRENT_CTC), sb.append(CommonConstants.DEFAULT_DELIMITER));
+			Utils.getJSArraySelectOption(ImportConfigurationConstants.FIELD_EXPECTED_CTC, ImportConfigurationManager.getFieldTitle(ImportConfigurationConstants.FIELD_EXPECTED_CTC  ), sb.append(CommonConstants.DEFAULT_DELIMITER));
+			Utils.getJSArraySelectOption(ImportConfigurationConstants.FIELD_NOTICE_PERIOD, ImportConfigurationManager.getFieldTitle(ImportConfigurationConstants.FIELD_NOTICE_PERIOD ), sb.append(CommonConstants.DEFAULT_DELIMITER));
+			//Utils.getJSArraySelectOption(ImportConfigurationConstants.FIELD_NOTE, ImportConfigurationManager.getFieldTitle(ImportConfigurationConstants.FIELD_NOTE  ), sb.append(CommonConstants.DEFAULT_DELIMITER));
+			//Utils.getJSArraySelectOption(ImportConfigurationConstants.FIELD_Confidential, ImportConfigurationManager.getFieldTitle(ImportConfigurationConstants.FIELD_Confidential ), sb.append(CommonConstants.DEFAULT_DELIMITER));
+			appendApplicantCustomFields(sb);
+			sb.append("]");
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+			sb = new StringBuffer("new Array()");
+		}
+		return sb.toString();
+	}
+	
+	/**
+	 * Appends Custom Fields JS Array of given field type.
+	 * <p>Field type may be any type from {@link CustomFieldConstants}</p>
+	 *   
+	 * @param sb
+	 */
+	private static void appendApplicantCustomFields(StringBuffer sb){
+		CustomFieldManager customFieldManager = new CustomFieldManager();
+		ArrayList<CustomFieldData> customFields = customFieldManager.getCustomFieldsFor(CustomFieldConstants.ENTITY_TYPE_APPLICANT, false);
+		if(customFields!=null){
+			for (CustomFieldData customFieldData : customFields) {
+				if(CustomFieldConstants.TYPE_TEXT.equals(customFieldData.getFieldType()) || 
+						CustomFieldConstants.TYPE_DATE.equals(customFieldData.getFieldType()) ||
+						CustomFieldConstants.TYPE_NUMBER.equals(customFieldData.getFieldType()) ){
+					Utils.getJSArraySelectOption(customFieldData.getFieldName(), customFieldData.getFieldDisplayName(), sb.append(CommonConstants.DEFAULT_DELIMITER));
+				}
+			}
+		}
+	}
+	
+	public static String getSkillsAsList(ArrayList<PositionSkillsData> skills){
+		StringBuffer skillList = new StringBuffer();
+		if (skills != null) {
+			for (int i = 0; i < skills.size(); i++) {
+				PositionSkillsData pData = skills.get(i);
+				skillList.append(pData.getSkillName());
+				if (i < skills.size() - 1) {
+					skillList.append(", ");
+				}
+			}
+		}
+		return skillList.toString();
+	}
+	
+	
+	/**
+	 * For given {@link ApplicantData} replaces values with {@link GlobalConstants#CONFIDENTIAL_CHARACTER} for fields which are confidential to logged in user   
+	 * @param appData
+	 * @param permissionSet
+	 * @return 
+	 * values of appData are modified.  
+	 */
+	public static void checkConfidentiality(final ApplicantData appData, final PermissionSet permissionSet){
+		
+		if(!ImportConfigurationManager.isCurrentCTCViewable(permissionSet)){
+			appData.setCurrentCTC(GlobalConstants.CONFIDENTIAL_CHARACTER);
+		}
+		if(!ImportConfigurationManager.isExpectedCTCViewable(permissionSet)){
+			appData.setExpectedCTC(GlobalConstants.CONFIDENTIAL_CHARACTER);
+		}
+		if(!ImportConfigurationManager.isCTCOfferedViewable(permissionSet)){
+			appData.setCtcOffered(GlobalConstants.CONFIDENTIAL_CHARACTER);
+		}
+		if(!ImportConfigurationManager.isBasicOfferedViewable(permissionSet)){
+			appData.setBasicOffered(GlobalConstants.CONFIDENTIAL_CHARACTER);
+		}
+		if(!ImportConfigurationManager.isDesignationOfferedViewable(permissionSet)){
+			appData.setDesignationOffered(GlobalConstants.CONFIDENTIAL_CHARACTER);
+		}
+		if(!ImportConfigurationManager.isLevelOfferedViewable(permissionSet)){
+			appData.setLevelOffered(GlobalConstants.CONFIDENTIAL_CHARACTER);
+		}
+		
+	}
+
+	public ApplicantData getApplicantDataConstructed(ApplicantForm aForm){
+		ApplicantData aData = new ApplicantData();
+		aData.setApplicantSourceId(Integer.parseInt(aForm.getSourceId()));
+		aData.setVendorId(aForm.getVendorId());
+		aData.setApplicantName(aForm.getApplicantName());
+		aData.setApplicantCity(aForm.getApplicantCity());
+		aData.setApplicantEmail1(aForm.getApplicantEmail1());
+		aData.setApplicantEmail2(aForm.getApplicantEmail2());
+		aData.setApplicantWorkPhone(aForm.getApplicantWorkPhone());
+		aData.setApplicantHomePhone(aForm.getApplicantHomePhone());
+		aData.setApplicantCellPhone(aForm.getApplicantCellPhone());
+		//aData.setApplicantCurrentEmployer(aForm.getApplicantCurrentEmployer());
+		aData.setCurrentCTC(aForm.getCurrentCTC());
+		aData.setExpectedCTC(aForm.getExpectedCTC());
+		aData.setNoticePeriod(aForm.getNoticePeriod());
+		aData.setAttribute("uuid", aForm.getUuid());
+		if(!Utils.isBlankOrNull(aForm.getDateOfBirth())){
+			aData.setDateOfBirth(Utils.convertToSQLDate(aForm.getDateOfBirth(),Utils.regEUDateFormat));
+		}
+		aData.setPassportNumber(aForm.getPassportNumber());
+		aData.setResumeType(aForm.getResumeType());
+		aData.setResumeTypeId(aForm.getResumeTypeId());
+		aData.setIsConfidential(Utils.isBlankOrNull(aForm.getConfidential())?"0":aForm.getConfidential());
+		aData.setEmployeeCode(aForm.getEmployeeCode());
+		aData.setApplicantHRMSCode(aForm.getApplicantHRMSCode());
+		java.sql.Date dtWorkingFrom = null;
+		if ("0".equalsIgnoreCase(aForm.getFresher())) {
+			Calendar calendar = Calendar.getInstance();
+			//aForm.getApplicantWorkingSince();
+			//dtWorkingFrom = Utils.convertToSQLDate("1" + Utils.dateDescSeparator + aForm.getApplicantWorkingSince(), Utils.regDDMMMYYYYFormat);
+			if(aForm.getApplicantWorkingSince().contains(".")){
+				String[] yysmms = aForm.getApplicantWorkingSince().split("\\.");
+				calendar.add(Calendar.YEAR, -Integer.parseInt(yysmms[0]));
+				calendar.add(Calendar.MONTH, -Integer.parseInt(yysmms[1]));
+			}else{
+				calendar.add(Calendar.YEAR, -Integer.parseInt(aForm.getApplicantWorkingSince()));
+			}
+			dtWorkingFrom = Utils.convertDateToSQLDate(calendar.getTime());
+		}
+		aData.setApplicantWorkingSince(dtWorkingFrom);
+
+		//String[] fromYear = aForm.getFromYear();
+		String[] eduYop = aForm.getEducationYearOfPassing();
+		String[] eduInstitute = aForm.getEducationInstitute();
+		String[] eduDegree = aForm.getEducationDegreeId();
+		String[] eduMajor = aForm.getEducationMajorId();
+		String[] eduGrades = aForm.getEducationalGrade();
+		
+		 String[] startDate= aForm.getEducationalStartDate();
+		 String[] endDate= aForm.getEducationalEndDate();
+		 String[] university= aForm.getUniversity();
+		 String[] typeOfProgram= aForm.getTypeOfProgram();
+		/*String[] remarks = aForm.getRemarks();*/
+		ArrayList<EducationalData> educationalDetails = new ArrayList<EducationalData>();
+
+		for (int i = 0; startDate != null && i < startDate.length; i++) {
+			if (!"null".equals(startDate[i]) && startDate[i] != null) {
+				/*if (!(Utils.isBlankOrNull(eduYop[i]) && Utils.isBlankOrNull(eduInstitute[i]) && eduDegree[i].equals("-1") && eduMajor[i].equals("-1") && Utils.isBlankOrNull(eduGrades[i]) 
+						&& Utils.isBlankOrNull(eduStartDate[i]) && Utils.isBlankOrNull(eduEndDate[i]) && Utils.isBlankOrNull(university[i]) && typeOfProgram[i].equals("-1") &&  Utils.isBlankOrNull(typeOfProgram[i]))) {*/
+					EducationalData eData = new EducationalData();
+					Date tmpDt = null;
+					/*if (!Utils.isBlankOrNull(fromYear[i].trim())) {
+						tmpDt = Utils.convertToDate("1" + Utils.dateDescSeparator + "1" + Utils.dateDescSeparator + fromYear[i], Utils.redDDMMYYYYFormat);
+						if (tmpDt != null) {
+							eData.setFromYear(new java.sql.Date(tmpDt.getTime()));
+						}
+					} else {
+						eData.setFromYear(null);
+					}*/
+					if (!Utils.isBlankOrNull(eduYop[i].trim())) {
+						tmpDt = Utils.convertToDate("1" + Utils.dateDescSeparator + "1" + Utils.dateDescSeparator + eduYop[i], Utils.redDDMMYYYYFormat);
+						if (tmpDt != null) {
+							eData.setYearOfPassing(new java.sql.Date(tmpDt.getTime()));
+						}
+					} else {
+						eData.setYearOfPassing(null);
+					}
+					Date tmpStrDt = null;
+					if (!Utils.isBlankOrNull(startDate[i].trim())) {
+						tmpStrDt = Utils.convertToDate(startDate[i], Utils.regDDMMMYYYYFormat);
+						if (tmpStrDt != null) {
+							eData.setStartDate(new java.sql.Date(tmpStrDt.getTime()));
+						}
+					} else {
+						eData.setStartDate(null);
+					}
+					Date tmpEndDt = null;
+					if (!Utils.isBlankOrNull(endDate[i].trim())) {
+						tmpEndDt = Utils.convertToDate(endDate[i], Utils.regDDMMMYYYYFormat);
+						if (tmpEndDt != null) {
+							eData.setEndDate(new java.sql.Date(tmpEndDt.getTime()));
+						}
+					} else {
+						eData.setEndDate(null);
+					}
+					if(!Utils.isBlankOrNull(eduInstitute[i])){
+						eData.setInstitute(eduInstitute[i]);
+					}
+					
+					if(!eduDegree[i].equals("-1")&&Utils.isNumeric(eduDegree[i])){
+						eData.setDegreeId(Integer.parseInt(eduDegree[i]));
+					}
+					if(!eduMajor[i].equals("-1")&&Utils.isNumeric(eduMajor[i])){
+						eData.setMajorId(Integer.parseInt(eduMajor[i]));
+					}
+					
+					if(Utils.isNumeric(eduGrades[i])){
+						eData.setGrade(eduGrades[i]);
+					}
+					
+					if(!Utils.isBlankOrNull(university[i])){
+						eData.setUniversity(university[i]);
+					}
+					if(Utils.isNumeric(typeOfProgram[i])){
+						eData.setTypeOfProgram(typeOfProgram[i]);
+					}
+					/*eData.setRemarks(remarks[i]);*/
+					educationalDetails.add(eData);
+				//}
+			}
+		}
+		aData.setEducationalDetails(educationalDetails);
+		
+		String[] employmentFromDate = aForm.getEmploymentFromDate();
+		String[] employmentToDate = aForm.getEmploymentToDate();
+		String[] employmentEmployerName = aForm.getEmploymentEmployerId();
+		String[] employmentDesignationName = aForm.getEmploymentDesignationId();
+		String[] empType = aForm.getEmpType();
+		String[] location = aForm.getLocation();
+		String[] country = aForm.getCountry();
+		String[] lastCtc = aForm.getLastCtc();
+		String[] reasonForLeaving = aForm.getReasonForLeaving();
+	/*	String[] grossSalary = aForm.getGrossSalary();
+		String[] allowance = aForm.getAllowance();*/
+		//String[] dutiesInvolved = aForm.getDutiesInvolved();
+		//String[] reasonForLeaving = aForm.getReasonForLeaving();
+		ArrayList<EmploymentHistoryData> employmentHistoryDetails = new ArrayList<EmploymentHistoryData>();
+		
+		for (int i = 0; employmentFromDate != null && i < employmentFromDate.length; i++) {
+			if (!"null".equals(employmentFromDate[i]) && employmentFromDate[i] != null) {
+				/*if (!(Utils.isBlankOrNull(employmentFromDate[i]) && Utils.isBlankOrNull(employmentToDate[i]) 
+						&& Utils.isBlankOrNull(employmentEmployerName[i]) && Utils.isBlankOrNull(employmentDesignationName[i])
+						&& Utils.isBlankOrNull(empType[i]) && Utils.isBlankOrNull(location[i])
+						&& Utils.isBlankOrNull(country[i]) && Utils.isBlankOrNull(lastCtc[i]) && Utils.isBlankOrNull(reasonForLeaving[i])
+						)) {*/
+					EmploymentHistoryData empHistoryData = new EmploymentHistoryData();
+					Date toDt = null;
+					Date fromDt = null;
+					if (!Utils.isBlankOrNull(employmentFromDate[i].trim())&&!Utils.isBlankOrNull(employmentToDate[i].trim())) {
+						fromDt = Utils.convertToDate("1" + Utils.dateDescSeparator + employmentFromDate[i], Utils.regDDMMMYYYYFormat);
+						if (fromDt != null) {							
+							empHistoryData.setEmployerFromDate(new java.sql.Date(fromDt.getTime()));
+						}
+						toDt = Utils.convertToDate("1" + Utils.dateDescSeparator + employmentToDate[i], Utils.regDDMMMYYYYFormat);
+						if (toDt != null) {							
+							empHistoryData.setEmployerToDate(new java.sql.Date(toDt.getTime()));
+						}
+						empHistoryData.setEmployerExperience(Utils.getDateDifferenceInMonths(fromDt, toDt).toString());
+					} else {
+						empHistoryData.setEmployerFromDate(null);
+						empHistoryData.setEmployerToDate(null);
+						empHistoryData.setEmployerExperience("0");
+					}					
+					if(!Utils.isBlankOrNull(employmentEmployerName[i])){
+						empHistoryData.setEmployerName(employmentEmployerName[i]);
+					}
+					if(!Utils.isBlankOrNull(employmentDesignationName[i])){
+						empHistoryData.setDesignationName(employmentDesignationName[i]);
+					}
+					if(!Utils.isBlankOrNull(location[i])){
+						empHistoryData.setLocation(location[i]);
+					}
+					if(!Utils.isBlankOrNull(country[i])&&Utils.isNumeric(country[i])){
+						empHistoryData.setCountry(country[i]);
+					}
+					if(!Utils.isBlankOrNull(empType[i])&&Utils.isNumeric(empType[i])){
+						empHistoryData.setEmpType(empType[i]);
+					}
+					if(!Utils.isBlankOrNull(lastCtc[i])){
+						empHistoryData.setLastCtc(lastCtc[i]);
+					}
+					/*empHistoryData.setGrossSalary(grossSalary[i]);
+					empHistoryData.setAllowance(allowance[i]);
+					//empHistoryData.setDutiesInvolved(dutiesInvolved[i]);
+					if(!Utils.isBlankOrNull(reasonForLeaving[i])){
+						empHistoryData.setReasonForLeaving(reasonForLeaving[i]);
+					}*/
+					employmentHistoryDetails.add(empHistoryData);
+			//	}
+			}
+		}
+		if(!employmentHistoryDetails.isEmpty()){
+			try{
+				Collections.sort(employmentHistoryDetails,EmploymentHistoryData.REVERSE_CHRONOLOGICAL );
+			}catch (Exception e) {
+				TPLogger.getLogger().debug(GlobalConstants.ERROR,e);
+			}
+			aData.setEmploymentHistoryDetails(employmentHistoryDetails);	
+			aData.setApplicantCurrentEmployer(employmentHistoryDetails.get(0).getEmployerName());
+		}
+		return aData;
+	}	
+}

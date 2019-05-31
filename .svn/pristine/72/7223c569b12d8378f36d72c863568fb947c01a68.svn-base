@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+<dbmap> 
+	<dbqueries>
+		<dbquery name="qActivityManager_AddUserActivity">
+			INSERT INTO tp_user_activity (activity, interaction_id, interaction_type, interaction_date,
+			position_id, applicant_id, user_id, date_created)
+			VALUES (?,?,?,?,?,?,?,now())
+		</dbquery>
+		<dbquery name="qActivityManager_GetLatestActivity">
+			SELECT tua.activity_id, tua.activity,  tua.interaction_id, tua.interaction_type, 
+			tua.interaction_date, tua.position_id, tua.applicant_id, ta.applicant_name,
+			tu.user_fname as owner, tua.interaction_is_hidden
+			FROM tp_user_activity tua
+			LEFT JOIN tp_applicants ta ON (ta.applicant_id = tua.applicant_id)
+			LEFT JOIN tp_position_steps tps ON (tps.position_step_id=ta.applicant_step_id)
+			LEFT JOIN tp_users tu ON (tu.user_id = tua.user_id)
+			WHERE datediff(now(), tua.interaction_date)&lt;= ?
+			@@
+			@@
+			@@
+			@@
+			ORDER BY interaction_date DESC
+		</dbquery>
+		<dbquery name="qActivityManager_GetPositionIdWithApplicantId">
+			SELECT applicant_position_id FROM tp_applicants WHERE applicant_id=?
+		</dbquery>
+		<dbquery name ="qActivityManager_UpdateShowHideActivity">
+			UPDATE tp_user_activity 
+			SET interaction_is_hidden = CASE WHEN interaction_is_hidden = ? THEN ? ELSE ? END  
+			WHERE interaction_id = ? AND interaction_type = ?
+	    </dbquery>
+	    <dbquery name="qActivityManager_DeleteUserActivity">
+	    	DELETE FROM tp_user_activity WHERE interaction_id = ? AND interaction_type = ?
+	    </dbquery>
+	</dbqueries>
+	<dataqueries>
+	    <dataquery name="dActivityManager_AddUserActivity" dbquery="qActivityManager_AddUserActivity"/>
+	    <dataquery name="dActivityManager_GetLatestActivity" dbquery="qActivityManager_GetLatestActivity" object="com.talentPool.common.db.SimpleDataObject">
+	    	<attribute name= "owner" column="owner" type ="STRING" />
+	    	<attribute name= "interactionId" column="interaction_id" type ="INT" />
+			<attribute name= "interactionType" column="interaction_type" type ="INT" />
+			<attribute name= "interactionDate" column="interaction_date" type ="STRING" />
+			<attribute name= "activity" column="activity" type ="STRING" />
+			<attribute name= "applicantId" column="applicant_id" type ="STRING" />
+			<attribute name= "applicantName" column="applicant_name" type ="STRING" />
+			<attribute name= "positionId" column="position_id" type ="STRING" />
+			<attribute name= "interactionIsHidden" column="interaction_is_hidden" type ="STRING" />
+	    </dataquery>
+	    <dataquery name="dActivityManager_GetPositionIdWithApplicantId" dbquery="qActivityManager_GetPositionIdWithApplicantId"/>
+	    <dataquery name="dActivityManager_UpdateShowHideActivity" dbquery="qActivityManager_UpdateShowHideActivity"/>
+	    <dataquery name="dActivityManager_DeleteUserActivity" dbquery="qActivityManager_DeleteUserActivity"/>
+	</dataqueries>   
+</dbmap>

@@ -1,0 +1,656 @@
+/**
+ * Class to support the basic document structure required in
+ * TalentPool, and searches over it etc.
+ * Note: Since Lucene's document class can't be extended, it is
+ * being embedded inside this class. 
+ */
+
+package com.talentPool.repository;
+
+import java.io.StringReader;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Vector;
+
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.DoubleField;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.LongField;
+import org.apache.lucene.document.NumericDocValuesField;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.highlight.Highlighter;
+import org.apache.lucene.search.highlight.QueryScorer;
+import org.apache.lucene.search.highlight.SimpleFragmenter;
+
+import com.talentPool.applicant.ApplicantConstants;
+import com.talentPool.common.Logger.TPLogger;
+import com.talentPool.common.utils.DateUtils;
+import com.talentPool.common.utils.Utils;
+import com.talentPool.masters.constants.DegreeConstants;
+import com.talentPool.masters.dataobject.DegreeData;
+import com.talentPool.masters.manager.MastersManager;
+import com.talentPool.positions.dataobject.PositionData;
+import com.talentPool.selectionProcess.SelectionProcessConstants;
+
+public class TPDocument {
+	Document doc;
+	Query query;
+	private boolean emailSent = false;
+	/* The various fields in the document */
+	static final String CONTENTS_FIELD = "Contents";
+	static final String ID_FIELD = "Id";
+	static final String EMP_ID_FIELD = "EmpId";
+	static final String IS_EMPLOYEE_FIELD = "IsEmployee";
+	static final String PATH_FIELD = "Path";
+	static final String NAME_FIELD = "Name";
+	static final String EXP_FIELD = "WorkingSince";
+	static final String LASTEMP_FIELD = "LastEmp";
+	static final String PASSPORT_FIELD = "Passport";
+	static final String SKILLS_FIELD = "Skills";
+	static final String DEGREE_FIELD = "Degree";
+	static final String INST_FIELD = "Institute";
+	static final String MAJOR_FIELD = "Major";
+	static final String GRADYR_FIELD = "GradYear";
+	static final String LOCATION_FIELD = "CurrLocation";
+	static final String EMAIL_FIELD = "Email";
+	static final String SOURCE_FIELD = "ResumeSource";
+	static final String SOURCE_TYPE_ID_FIELD = "SourceTypeId";
+	static final String RESUME_TYPE_ID_FIELD = "ResumeTypeId";
+	static final String IMPORTDT_FIELD = "ImportDate";
+	static final String BIRTH_DATE_FIELD = "BirthDate";
+	static final String LAST_INTERACTIONDT_FIELD = "LastInteractionDate";
+	static final String KEYWORDS_FIELD = "Keywords";
+	static final String MOBILE_NO = "Mob";
+	static final String FLAG_ID = "FId";
+	static final String REJECT_REASON_ID = "RId";
+	static final String REJECT_LEVEL_ID = "RLId";
+	static final String CONFIDENTIAL = "Confidential";
+	static final String APPLICANT_STATUS = "ApplicantStatus";
+	
+	static final String STATE_FIELD = "State";
+	
+	static final String PREVIOUS_EMPLOYERS = "PreviousEmployers";
+	static final String DESIGNATION = "Designation";
+	static final String PHONE_NO = "phone1";
+	static final String WORKPHONE = "phone2";
+	static final String TENTH_GRADE_MARKS = "10th Marks";
+	static final String TWELVTH_GRADE_MARKS = "12th marks";
+	static final String GRADE_MARKS = "UG Marks";
+	static final String POST_GRADE_MARKS = "PG Marks";
+	static final String POST_OTHERS_MARK = "Other Marks";
+	static final String AGE_FIELD = "Age";
+	static final String YEARS_OF_EXPERIENCE_FIELD = "WorkExperience";
+	static final String REQUISITION_APPLIED_FIELD = "PositionName";
+	static final String REQUISITION_APPLIED_FIELD_ID = "PositionId";
+	
+	/*
+	 * Boost factors for the fields. CONTENTS has the default boost factor, so not listed here.
+	 * Keywords will have a large boost factor as we want searches to be driven by keywords. Other
+	 * fields (in which we don't want to search) will have 0 boost factor!
+	 */
+
+	private static final float KEYWORDS_BOOST = (float) 50.0;
+	private static final float OTHER_BOOST = (float) 100.0;
+
+	Vector skills;
+
+	Vector keywords;
+
+	int score;
+
+	public TPDocument(Document doc) {
+		this.doc = doc;
+	}
+
+	public TPDocument(String id, String contents, String filePath, String name, String workingSince, String lastEmp, String passport, String location, String sourceTypeId, String resumeTypeId, String source, String eMailAddr,
+			Date importDate, Date birthDate, Date lastInteractionDate, String state, String mobileNo, String confidential, String employeeCode, String applicantJoined,String applicantStatus) {
+		skills = new Vector();
+		keywords = new Vector();
+		doc = new Document();
+		doc.add(new TextField(CONTENTS_FIELD, contents, Field.Store.YES));
+		doc.add(new StringField(ID_FIELD, id, Field.Store.YES));		
+		doc.add(new StringField(EMP_ID_FIELD, employeeCode, Field.Store.YES));
+		doc.add(new StringField(PATH_FIELD, filePath, Field.Store.YES));
+		doc.add(new StringField(NAME_FIELD, name, Field.Store.YES));
+
+		doc.add(new StringField(EXP_FIELD, workingSince, Field.Store.YES));
+
+		doc.add(new TextField(LASTEMP_FIELD, lastEmp, Field.Store.YES));
+		doc.add(new StringField(PASSPORT_FIELD, passport, Field.Store.YES));
+		doc.add(new TextField(LOCATION_FIELD, location, Field.Store.YES));
+		doc.add(new StringField(SOURCE_TYPE_ID_FIELD, sourceTypeId, Field.Store.YES));
+		doc.add(new StringField(RESUME_TYPE_ID_FIELD, resumeTypeId, Field.Store.YES));
+		doc.add(new TextField(SOURCE_FIELD, source, Field.Store.YES));
+		doc.add(new StringField(EMAIL_FIELD, eMailAddr, Field.Store.YES));
+
+		//TrieUtils.VARIANT_8BIT.addDateTrieCodedDocumentField(doc, IMPORTDT_FIELD, importDate, true, Field.Store.YES);
+		LongField importDtNumericField = new LongField(IMPORTDT_FIELD,importDate.getTime(),Field.Store.YES);
+		doc.add(importDtNumericField);
+
+		LongField birthDtNumericField = new LongField(BIRTH_DATE_FIELD,(birthDate == null) ? 0 : birthDate.getTime(),Field.Store.YES);
+		doc.add(birthDtNumericField);
+
+		//TrieUtils.VARIANT_8BIT.addDateTrieCodedDocumentField(doc, LAST_INTERACTIONDT_FIELD, lastInteractionDate, true, Field.Store.YES);
+		LongField lastInteractionDtNumericField =new LongField(LAST_INTERACTIONDT_FIELD,lastInteractionDate.getTime(),Field.Store.YES);
+		doc.add(lastInteractionDtNumericField);
+		
+		doc.add(new StringField(STATE_FIELD, state, Field.Store.YES));
+		if(!Utils.isBlankOrNull(employeeCode) || ApplicantConstants.APPLICANT_JOINED.equals(applicantJoined)) {
+			doc.add(new StringField(IS_EMPLOYEE_FIELD, RepositoryConstants.APPLICANT_EMPLOYEE, Field.Store.YES));
+		} else {
+			doc.add(new StringField(IS_EMPLOYEE_FIELD, RepositoryConstants.APPLICANT_NOT_EMPLOYEE, Field.Store.YES));
+		}		
+		//String strippedMobileNo = stripMobileNo(mobileNo);
+		//doc.add(new StringField(MOBILE_NO, strippedMobileNo, Field.Store.YES));
+		doc.add(new TextField(MOBILE_NO, mobileNo, Field.Store.YES));
+		doc.add(new StringField(CONFIDENTIAL, confidential, Field.Store.YES));
+		doc.add(new StringField(APPLICANT_STATUS, applicantStatus, Field.Store.YES));
+		
+		DoubleField  ageNumericField=new DoubleField(AGE_FIELD,(birthDate == null) ? 0 : getAge(birthDate),Field.Store.YES);
+		doc.add(ageNumericField);
+		
+		
+		// doc.add(new Field(INPROCESS_FIELD, inProcess, Field.Store.YES,
+		// Field.Index.UN_TOKENIZED));
+		// doc.add(new Field(JOINED_FIELD, joined, Field.Store.YES,
+		// Field.Index.UN_TOKENIZED));
+		keywords.add(id);
+		keywords.add(employeeCode);
+		keywords.add(name);
+		keywords.add(lastEmp);
+		keywords.add(lastEmp);
+		keywords.add(passport);
+		keywords.add(location);
+		keywords.add(source);
+		//keywords.add(strippedMobileNo);
+		keywords.add(mobileNo);
+		keywords.add(eMailAddr);
+	}
+	
+	private String stripMobileNo(String mobileNo) {
+		String strippedMobileNo = mobileNo.trim();
+		strippedMobileNo = strippedMobileNo.replaceAll("[^0-9]", "");
+		return strippedMobileNo;
+	}
+	
+	public void addField(String name, String val, boolean analyzed) {
+		if(analyzed){
+			doc.add(new TextField(name, val, Field.Store.YES));	
+		}else{
+			doc.add(new StringField(name, val, Field.Store.YES));
+		}
+		
+		setBoost(name, OTHER_BOOST);
+	}
+
+	/*
+	 * Generic method to "add keywords", i.e. add aliases for any skill, degree, institute etc. The
+	 * skill / education fields are only meant to contain the "actual" skills, degree, major,
+	 * institute etc.
+	 */
+
+	public void addKeyword(String keywd) {
+		keywords.add(keywd);
+	}
+
+	/* Add one skill at a time to the document */
+	public void addSkill(String skill) {
+		skills.add(skill);
+		keywords.add(skill);
+	}
+	
+	/* Add one phone at a time to the document */
+	public void addPhone1(String phone1) {
+		//String strippedMobileNo = stripMobileNo(phone1);
+		doc.add(new TextField(PHONE_NO, phone1, Field.Store.YES));
+		keywords.add(phone1);
+	}
+	
+	/* Add one phone at a time to the document */
+	public void addPhone2(String phone2) {
+		//String strippedMobileNo = stripMobileNo(phone2);
+		doc.add(new TextField(WORKPHONE, phone2, Field.Store.YES));
+		keywords.add(phone2);
+	}
+	public void addFlagId(String flagId) {
+		addField(FLAG_ID, flagId,true);
+	}
+
+	public void addRejectReasonId(String rejectReasonId) {		
+		String rejectReason = rejectReasonId;
+		if(SelectionProcessConstants.STEP_REJECT.equals(rejectReasonId)) {
+			rejectReason = RepositoryConstants.REJECT_REASON_REJECT;
+		} else if(SelectionProcessConstants.STEP_NOT_INTERESTED_REJECT.equals(rejectReasonId)) {
+			rejectReason = RepositoryConstants.REJECT_REASON_NOT_INTERESTED;
+		} else if(SelectionProcessConstants.STEP_NOT_ATTENDED.equals(rejectReasonId)) {
+			rejectReason = RepositoryConstants.REJECT_REASON_NOT_ATTENDED;
+		} else if(SelectionProcessConstants.STEP_POSITION_CLOSED_REJECT.equals(rejectReasonId)) {
+			rejectReason = RepositoryConstants.REJECT_REASON_POSITION_CLOSED;
+		}		
+		addField(REJECT_REASON_ID, rejectReason, false);
+	}
+	public void addRejectLevelId(String rejectLevelId) {
+		addField(REJECT_LEVEL_ID, rejectLevelId,true);
+	}
+	
+	public void addAppliedPosition(List<PositionData> positions) {		
+		if(!positions.isEmpty()){
+			for(PositionData pos:positions){
+				if(!Utils.isBlankOrNull(pos.getPositionTitle())){
+					addField(REQUISITION_APPLIED_FIELD, pos.getPositionTitle(), false);
+					addField(REQUISITION_APPLIED_FIELD_ID, pos.getPositionId(), false);
+				}
+			}
+		}
+		
+	}
+	
+	/* Add the education related fields */
+	public void addEducation(String degree, String inst, String major, Date gradYear,double grade,int degreeId) {
+		doc.add(new StringField(DEGREE_FIELD, degree, Field.Store.YES));
+		doc.add(new StringField(MAJOR_FIELD, major, Field.Store.YES));
+		doc.add(new StringField(INST_FIELD, inst, Field.Store.YES));
+		
+		String degreeType=getDegreeType(degreeId);
+		
+		if(!Utils.isBlankOrNull(degreeType)){
+			switch(degreeType){
+			case DegreeConstants.TYPE_10Th:
+				doc.add(new DoubleField(TENTH_GRADE_MARKS, grade, Field.Store.YES));
+				break;
+			case DegreeConstants.TYPE_12th:
+				doc.add(new DoubleField(TWELVTH_GRADE_MARKS, grade, Field.Store.YES));
+				break;
+			case DegreeConstants.TYPE_UG:
+				doc.add(new DoubleField(GRADE_MARKS, grade, Field.Store.YES));
+				break;
+			case DegreeConstants.TYPE_PG:
+				doc.add(new DoubleField(POST_GRADE_MARKS, grade, Field.Store.YES));
+				break;
+			case DegreeConstants.TYPE_OTHERS:
+				doc.add(new DoubleField(POST_OTHERS_MARK, grade, Field.Store.YES));
+				break;	
+			}
+		}
+		String gradYearStr = "";
+		if (gradYear != null) {
+			gradYearStr = TPDateTools.dateToString(gradYear, TPDateTools.Resolution.YEAR);
+		}
+		doc.add(new StringField(GRADYR_FIELD, gradYearStr, Field.Store.YES));
+
+		keywords.add(degree);
+		keywords.add(inst);
+		keywords.add(major);
+	}
+	 private String getDegreeType(int degreeId){
+		 MastersManager masterManager=new MastersManager();
+		 if(degreeId!=0){
+			 String degreeIdForType=String.valueOf(degreeId);
+			 return masterManager.getDegreeTypeFromMaster(degreeIdForType).getString("itemName");
+			
+		 }
+	
+		return DegreeConstants.TYPE_OTHERS;
+	 }
+	/*
+	 * After all the stuff has been done, just add the keywords field etc.
+	 */
+	public void done() {
+		/* First, add skills */
+		String skillsValue = catStrs(skills);
+		doc.add(new TextField(SKILLS_FIELD, skillsValue, Field.Store.YES));
+
+		/* Then, add keywords */
+		String kwValue = catStrs(keywords);// .replaceAll("\\.", "");
+		doc.add(new TextField(KEYWORDS_FIELD, kwValue, Field.Store.YES));
+
+		/* Now set boost factors. */
+		setBoost(KEYWORDS_FIELD, KEYWORDS_BOOST);
+		setBoost(PATH_FIELD, OTHER_BOOST);
+		setBoost(NAME_FIELD, OTHER_BOOST);
+		setBoost(LOCATION_FIELD, OTHER_BOOST);
+		setBoost(EXP_FIELD, OTHER_BOOST);
+		setBoost(LASTEMP_FIELD, OTHER_BOOST);
+		setBoost(PASSPORT_FIELD, OTHER_BOOST);
+		setBoost(RESUME_TYPE_ID_FIELD, OTHER_BOOST);
+		setBoost(SKILLS_FIELD, OTHER_BOOST);
+		setBoost(DEGREE_FIELD, OTHER_BOOST);
+		setBoost(INST_FIELD, OTHER_BOOST);
+		setBoost(MAJOR_FIELD, OTHER_BOOST);
+		setBoost(GRADYR_FIELD, OTHER_BOOST);
+
+	}
+
+	public void setBoost(String field, float boostVal) {
+		List fields = doc.getFields();
+		for(int i=0; i<fields.size(); i++) {
+			Object o = fields.get(i);
+			if(o instanceof org.apache.lucene.document.Field) {
+				Field f = (Field)o;
+				if(f.name().equals(field)) {
+					try{
+						f.setBoost(boostVal);
+					}catch(Exception e){
+						TPLogger.getLogger().trace("Cant setboost for field : "+ field);
+					}
+					
+				}
+			}
+		}
+		/*if (doc.getField(field) != null) {
+			doc.getField(field).setBoost(boostVal);
+		}*/
+	}
+
+	/* "Getter" methods for all the fields in the doc */
+
+	public String getId() {
+		return doc.get(ID_FIELD);
+	}
+
+	public String getPath() {
+		return doc.get(PATH_FIELD);
+	}
+
+	public String getName() {
+		return doc.get(NAME_FIELD);
+	}
+
+	public Date getWorkingFrom() {
+		try {
+			String workingFromStr = doc.get(EXP_FIELD);
+			if (!workingFromStr.equals(RepositoryConstants.FRESHER_DATE)) {
+				return TPDateTools.stringToDate(workingFromStr);
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().debug("Working from found null, returning null");
+		}
+		return null;
+	}
+
+	public String getExperience() {
+		return Utils.getExperienceConstructed(getWorkingFrom());
+	}
+	
+	public double getAge(Date dateOfBirth){
+		return Utils.getExperienceInNumber(dateOfBirth);
+	}
+	
+	public double getYearsOfExperience(double totalExperience){
+		return totalExperience;
+	}
+	
+	public String getLastEmployer() {
+		return doc.get(LASTEMP_FIELD);
+	}
+
+	public String getPassport() {
+		return doc.get(PASSPORT_FIELD);
+	}
+
+	public String getSkillsString() {
+		return doc.get(SKILLS_FIELD);
+	}
+
+	public String[] getDegree() {
+		return doc.getValues(DEGREE_FIELD);
+	}
+
+	public String[] getInstitute() {
+		return doc.getValues(INST_FIELD);
+	}
+
+	public String[] getMajor() {
+		return doc.getValues(MAJOR_FIELD);
+	}
+
+	public String[] getFlagIds() {
+		return doc.getValues(FLAG_ID);
+	}
+
+	public String[] getRejectReasonIds() {
+		return doc.getValues(REJECT_REASON_ID);
+	}
+
+	public String getMobileNo() {
+		return doc.get(MOBILE_NO);
+	}
+
+	private Date getDateFromString(String val) {
+		Date dt = null;
+		try {
+			dt = TPDateTools.stringToDate(val);
+		} catch (Exception e) {
+			TPLogger.getLogger().debug(val + " not present, returning null instead of date");
+		}
+		return dt;
+	}
+
+	public Date[] getGradYear() {
+		String[] yops = doc.getValues(GRADYR_FIELD);
+		int cnt = (yops == null) ? 0 : yops.length;
+		Date[] dYop = new Date[cnt];
+		for (int i = 0; i < cnt; i++) {
+			dYop[i] = getDateFromString(yops[i]);
+		}
+		return dYop;
+	}
+
+	public String[] getValues(String fieldName) {
+		return doc.getValues(fieldName);
+	}
+
+	public String getContentsStr() {
+		return doc.get(CONTENTS_FIELD);
+	}
+
+	public String getCurrLocation() {
+		return doc.get(LOCATION_FIELD);
+	}
+
+	public String getEmailAddr() {
+		return doc.get(EMAIL_FIELD);
+	}
+
+	public String getResumeSource() {
+		return doc.get(SOURCE_FIELD);
+	}
+
+	public Date getImportDate() {
+		Date dt = new Date();
+		dt.setTime(new Long(doc.get(IMPORTDT_FIELD)).longValue());
+		return dt;
+		// return getDateFromString(doc.get(IMPORTDT_FIELD));
+	}
+	
+	public String getImportDateToDisplay() {
+		return DateUtils.getSystemDateFormat(getImportDate());
+	}
+	
+	public Date getBirthDate() {
+		Date dt = new Date();
+		dt.setTime(new Long(doc.get(BIRTH_DATE_FIELD)).longValue());
+		return dt;
+	}
+	
+	public String getBirthDateToDisplay() {
+		return DateUtils.getSystemDateFormat(getBirthDate());
+	}
+	
+	public Date getLastInteractionDate() {
+		Date dt = new Date();
+		dt.setTime(new Long(doc.get(LAST_INTERACTIONDT_FIELD)).longValue());
+		return dt;
+	}
+
+	public String getKeywordsStr() {
+		return doc.get(KEYWORDS_FIELD);
+	}
+
+	public String getState() {
+		return doc.get(STATE_FIELD);
+	}
+	
+	public String getApplicantStatus() {
+		return doc.get(APPLICANT_STATUS);
+	}
+
+	Document getDoc() {
+		return doc;
+	}
+
+	private String catStrs(Vector strVec) {
+		StringBuffer retBuff = new StringBuffer();
+		Iterator strIt = strVec.iterator();
+		while (strIt.hasNext()) {
+			String str = (String) strIt.next();
+			retBuff.append(" " + str); // space to enable tokenization
+		}
+		String ret = retBuff.toString();
+		retBuff = null;
+		return ret;
+	}
+
+	/**
+	 * @return Returns the score.
+	 */
+	public int getScore() {
+		return score;
+	}
+
+	/**
+	 * @param score
+	 *            The score to set.
+	 */
+	public void setScore(int score) {
+		this.score = score;
+	}
+
+	/**
+	 * @return Returns the query.
+	 */
+	public Query getQuery() {
+		return query;
+	}
+
+	/**
+	 * @param query
+	 *            The query to set.
+	 */
+	public void setQuery(Query query) {
+		this.query = query;
+	}
+
+	/**
+	 * @return Returns the isProcessed.
+	 */
+	public boolean isProcessed() {
+		return getState().equals(RepositoryConstants.STATE_PROCESSED);
+	}
+
+	/**
+	 * @return the emailSent
+	 */
+	public boolean isEmailSent() {
+		return emailSent;
+	}
+
+	/**
+	 * @param emailSent
+	 *            the emailSent to set
+	 */
+	public void setEmailSent(boolean emailSent) {
+		this.emailSent = emailSent;
+	}
+
+	public String[] getEducationList() {
+		return TPRepositorySearcherUtils.getEducationList(getDegree(), getInstitute(), getMajor(), getGradYear());
+	}
+
+	public String getBestHighlightedFragments() {
+		StringBuffer sb = new StringBuffer();
+//		TPStandardAnalyzer analyzer = new TPStandardAnalyzer(new String[0]);
+		StandardAnalyzer analyzer = new StandardAnalyzer();
+		try {
+			Highlighter highlighter = new Highlighter(new TPHighlighter(), new QueryScorer(query));
+			highlighter.setTextFragmenter(new SimpleFragmenter(80));
+			String text = getContentsStr().replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+			int maxNumFragmentsRequired = 3;
+			String fragmentSeparator = "&nbsp;<b>...</b>";
+			TokenStream tokenStream = analyzer.tokenStream(CONTENTS_FIELD, new StringReader(text));
+			String result = highlighter.getBestFragments(tokenStream, text, maxNumFragmentsRequired, fragmentSeparator);
+			sb.append(result);
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error in TPDOCUMENT", e);
+		}
+		return sb.toString();
+
+	}
+
+	public String highlightQueryTerms(String content) {
+		StringBuffer sb = new StringBuffer();
+//		TPStandardAnalyzer analyzer = new TPStandardAnalyzer(new String[0]);
+		StandardAnalyzer analyzer = new StandardAnalyzer();
+		try {
+			Highlighter highlighter = new Highlighter(new TPHighlighter(), new QueryScorer(query));
+			highlighter.setTextFragmenter(new SimpleFragmenter(1000));
+			int maxNumFragmentsRequired = 1;
+			String fragmentSeparator = "";
+			TokenStream tokenStream = analyzer.tokenStream(null,new StringReader(content));
+			String result = highlighter.getBestFragments(tokenStream, content, maxNumFragmentsRequired, fragmentSeparator);
+			if (result.length() == 0) {
+				result = content;
+			}
+			sb.append(result);
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error in TPDOCUMENT", e);
+		}
+
+		return sb.toString();
+	}
+
+	public void addNumber(String fieldName, Double number) {
+		//TrieUtils.VARIANT_8BIT.addDoubleTrieCodedDocumentField(doc, fieldName, number, true, Field.Store.YES);
+		DoubleField numericField = new DoubleField(fieldName,number,Field.Store.YES);
+		doc.add(numericField);
+	}
+
+	public void addDateAsTimeInMS(String fieldName, Long dt) {
+		//TrieUtils.VARIANT_8BIT.addLongTrieCodedDocumentField(doc, fieldName, dt, true, Field.Store.YES);
+		LongField numericField = new LongField(fieldName,dt,Field.Store.YES);
+		doc.add(numericField);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Object#toString()
+	 */
+	// public String toString() {
+	// return " [applicantId = " + getId() + " isProcessed = " + isProcessed() + "]";
+	// }
+	
+	/* Add the education related fields */
+	public void addEmploymentHistory(String previousEmployerName, String designationName){
+		doc.add(new TextField(PREVIOUS_EMPLOYERS, previousEmployerName, Field.Store.YES));		
+		//doc.add(new StringField(DESIGNATION, designationName, Field.Store.YES));
+		doc.add(new TextField(DESIGNATION, designationName, Field.Store.YES));
+		keywords.add(previousEmployerName);
+		keywords.add(designationName);		
+	}
+	
+	public String[] getPreviousEmployers() {
+		return doc.getValues(PREVIOUS_EMPLOYERS);
+	}
+	public String[] getDesignation() {
+		return doc.getValues(DESIGNATION);
+	}
+	public String[] getEmploymentHistory() {
+		return TPRepositorySearcherUtils.getEmploymentHistoryList(getPreviousEmployers(), getDesignation());
+	}
+}

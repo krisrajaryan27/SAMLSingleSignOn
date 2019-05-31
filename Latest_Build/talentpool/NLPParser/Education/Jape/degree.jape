@@ -1,0 +1,75 @@
+/*
+*  education_degree.jape
+*  Lookups are stored in custom_education_degree.list
+*/
+
+Phase: education_degree
+Input: Token Lookup CustomSpaceToken AcronymToken TempEduToken Percent TempEduWrongToken
+Options: control = appelt
+
+
+Rule: education_degree
+(
+	{Lookup.majorType == education, Lookup.minorType == degree}
+):degree
+--> 
+:degree.TempEduToken = {kind = "degree", rule = "education_degree"}
+
+Rule: education_degree_basedon_prefix
+(
+	{Lookup.majorType == education, Lookup.minorType == degree_of_prefix}(OfToken)(EDUToken)[1,10]
+):degree
+--> 
+:degree.TempEduToken = {kind = "degree", rule = "education_degree_basedon_prefix"}
+
+Rule: education_degree_acronym_from
+(
+	({AcronymToken}):degree({Token, !TempEduToken})[0,8](FromToken)({Token, !TempEduToken})[0,8]({TempEduToken.kind == college}|{TempEduToken.kind == university})
+)
+--> 
+:degree.TempEduToken = {kind = "degree", rule = "education_degree_acronym_from"}
+
+Rule: education_customspace_acronym
+(
+	{CustomSpaceToken}
+	({Token.kind == punctuation, Token.string != ","}|{Token.orth == upperInitial}|{Token.orth == allCaps}|{Token.kind == space}|{Token.kind == number})[0,5]
+	({AcronymToken, !TempEduToken}):degree
+	({Token})[1,25]
+	({TempEduToken}|{Percent})
+)
+--> 
+:degree.TempEduToken = {kind = "degree", rule = "education_customspace_acronym"}
+
+Rule: education_spacetoken_acronym
+(
+	{Token.kind == space}
+	({AcronymToken, !TempEduToken}):degree
+)
+--> 
+:degree.TempEduToken = {kind = "degree", rule = "education_spacetoken_acronym"}
+
+
+Rule: education_acronym_in_branch
+(
+	{CustomSpaceToken}
+	({Token.kind == punctuation, Token.string != ","}|{Token.orth == upperInitial}|{Token.orth == allCaps}|{Token.kind == space})[0,5]
+	({AcronymToken, !TempEduToken}):degree
+	(InToken)
+	((EDUTokenStart)(EDUToken)[0,10]):branch
+)
+--> 
+:degree.TempEduToken = {kind = "degree", rule = "education_acronym_in_branch"},
+:branch.TempEduToken = {kind = "branch", rule = "education_acronym_in_branch"}
+
+Rule: education_acronym_in_branch_from_college
+(
+	({AcronymToken, !TempEduToken}):degree
+	(InToken)
+	((EDUTokenStart)(EDUToken)[0,10]):branch
+	(FromToken)
+	({Token, !TempEduToken})[0,8]
+	{TempEduToken}
+)
+--> 
+:degree.TempEduToken = {kind = "degree", rule = "education_acronym_in_branch"},
+:branch.TempEduToken = {kind = "branch", rule = "education_acronym_in_branch"}

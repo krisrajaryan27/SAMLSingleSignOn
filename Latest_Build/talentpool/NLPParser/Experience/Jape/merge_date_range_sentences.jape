@@ -1,0 +1,51 @@
+/*
+*  merge_date_range_sentences.jape
+*
+*/
+
+
+
+
+Phase: merge_date_range_sentences
+Input: TempExperienceToken CustomSpaceToken
+Options: control = appelt
+
+Rule: merge_date_range_sentences
+(
+ {TempExperienceToken contains CustomSpaceToken}
+):sentence
+-->
+{
+	try{
+		gate.AnnotationSet senSet = (gate.AnnotationSet)bindings.get("sentence");
+		Long start = senSet.firstNode().getOffset();
+		Long end = senSet.lastNode().getOffset();
+		AnnotationSet tempSet = inputAS.get("CustomSentence").get(start,end);
+		inputAS.removeAll(tempSet);
+		gate.FeatureMap features = Factory.newFeatureMap();
+		features.put("kind", "sentence");
+		features.put("rule","merge_date_range_sentences");
+		outputAS.add(tempSet.firstNode(),tempSet.lastNode(), "CustomSentence", features);
+		
+	}
+	catch(Exception e){
+		e.printStackTrace();
+	}
+	/*
+	//gate.AnnotationSet toDateSet = (gate.AnnotationSet)bindings.get("toDate");
+	gate.AnnotationSet dateRangeSet = (gate.AnnotationSet)bindings.get("date_range");
+	gate.Annotation fromAnn = fromDateSet.iterator().next();
+	//gate.Annotation toAnn = toDateSet.iterator().next();
+	
+	gate.FeatureMap features = Factory.newFeatureMap();
+	features.put("kind", "date_range");
+	features.put("fromDate",fromAnn.getFeatures().get("date").toString());
+	features.put("isTillDate", true);
+	java.text.SimpleDateFormat sdFormat2 = new java.text.SimpleDateFormat("dd-MM-yyyy");		
+	Calendar cal = Calendar.getInstance();
+	features.put("toDate",sdFormat2.format(cal.getTime()));
+	features.put("rule", "date_range_fromDate_tillDate");
+	outputAS.add(dateRangeSet.firstNode(),
+	dateRangeSet.lastNode(), "TempExperienceToken", features);
+	*/
+}

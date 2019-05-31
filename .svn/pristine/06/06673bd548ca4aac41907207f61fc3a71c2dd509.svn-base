@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<EMP_HRMS_REQ xmlns:ns0="http://www.tibco.com/schemas/HRMS/BusinessServices/Schemas/EMP.xsd">
+<Header>
+<datpost>datpost</datpost>
+<extsystem>extsystem</extsystem>
+<message_type_cd>Employee_Query</message_type_cd>
+</Header>
+<Body>
+<application_number>application_number</application_number>
+<business_group_id>business_group_id</business_group_id>
+</Body>
+</EMP_HRMS_REQ>

@@ -1,0 +1,24 @@
+/*
+*  main.jape
+*
+*/
+
+MultiPhase:	AllGrammers
+Phases:
+custom_space
+spacetokencontrol
+sentence_splitter
+known_unknown
+email
+name_title
+date_day_with_suffix
+basicinfo_name_unknown_english
+basicinfo_name
+basicinfo_phone
+basicinfo_dob
+basicinfo_email
+location
+location_place
+location_address
+location_default
+salary

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mapping xmlns="http://castor.exolab.org/" xmlns:cst="http://castor.exolab.org/">
+    <description xmlns="">Castor generated mapping file</description>
+    <class name="com.talentPool.websiteservice.dataobject.WpositionFilters">
+        <description xmlns="">Default mapping for class com.talentPool.websiteservice.dataobject.WpositionFilters</description>
+        <map-to xml="wskill-map"/>
+        <field name="skillsMap" collection="map">
+            <bind-xml name="skillsMap">
+	            <class name="org.exolab.castor.mapping.MapItem">
+	            <description xmlns="">Default mapping for class org.exolab.castor.mapping.MapItem</description>
+	                <field name="key" type="java.lang.String">
+	                    <bind-xml name="id" node="attribute" />
+	                </field>
+	                <field name="value" type="java.lang.String">
+	                    <bind-xml name="name" node="element" />
+	                </field>
+	            </class>
+        	</bind-xml>
+        </field>
+          <field name="locationsMap" collection="map">
+            <bind-xml name="locationsMap">
+	            <class name="org.exolab.castor.mapping.MapItem">
+	            <description xmlns="">Default mapping for class org.exolab.castor.mapping.MapItem</description>
+	                <field name="key" type="java.lang.String">
+	                    <bind-xml name="id" node="attribute" />
+	                </field>
+	                <field name="value" type="java.lang.String">
+	                    <bind-xml name="name" node="element" />
+	                </field>
+	            </class>
+        	</bind-xml>
+        </field>
+          <field name="departmentsMap" collection="map">
+            <bind-xml name="departmentsMap">
+	            <class name="org.exolab.castor.mapping.MapItem">
+	            <description xmlns="">Default mapping for class org.exolab.castor.mapping.MapItem</description>
+	                <field name="key" type="java.lang.String">
+	                    <bind-xml name="id" node="attribute" />
+	                </field>
+	                <field name="value" type="java.lang.String">
+	                    <bind-xml name="name" node="element" />
+	                </field>
+	            </class>
+        	</bind-xml>
+        </field>
+    </class>
+</mapping>

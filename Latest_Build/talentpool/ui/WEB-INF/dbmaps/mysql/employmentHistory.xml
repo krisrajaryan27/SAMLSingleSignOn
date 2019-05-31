@@ -1,0 +1,75 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>
+  	<!--*************************** All Queries related to employment history portal *******************-->		
+	  	<dbquery name="qEmploymentHistory_addEmploymentHistory">
+	  		INSERT INTO tp_applicant_employment_history
+			(applicant_id,employmer_from_date,employmer_to_date,employer_id,designation_id,employer_experience,gross_salary,allowance,reason_for_leaving,duties_involved,emp_type,country,
+			location,last_ctc)
+			VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+	  	</dbquery>
+	  	<dbquery name="qEmploymentHistory_getEmploymentHistory">
+	  	    SELECT taeh.employment_history_id,taeh.applicant_id,taeh.employmer_from_date, 
+			taeh.employmer_to_date,taeh.employer_id,taeh.designation_id, taeh.employer_experience, 
+			te.employer_name, td.designation_name,taeh.gross_salary,taeh.allowance,taeh.reason_for_leaving, taeh.duties_involved,
+			taeh.location, tc.country, taeh.emp_type , taeh.last_ctc
+			FROM tp_applicant_employment_history taeh 
+			LEFT JOIN tp_employers te ON (taeh.employer_id=te.employer_id)
+			LEFT JOIN tp_designations td ON (taeh.designation_id=td.designation_id)
+			LEFT JOIN tp_countries tc ON (taeh.country=tc.country_id)
+			WHERE taeh.applicant_id=?
+	  	</dbquery>
+	  	<dbquery name="qEmploymentHistory_DeleteEmploymentHistory">
+			DELETE FROM tp_applicant_employment_history WHERE applicant_id=?
+		</dbquery>
+		<dbquery name="qEmploymentHistory_getAllEmployersAliases">
+			SELECT emp.employer_id,emp.employer_name FROM 
+				(SELECT employer_id,employer_name FROM tp_employers
+				UNION
+				SELECT employer_id,alias FROM tp_employer_aliases) AS emp
+			ORDER BY emp.employer_id
+		</dbquery>
+		<dbquery name="qEmploymentHistory_getAllDesignationsAliases">
+			SELECT desig.designation_id,desig.designation_name FROM 
+				(SELECT designation_id,designation_name FROM tp_designations
+				UNION
+				SELECT designation_id,alias FROM tp_designations_aliases) AS desig
+			ORDER BY desig.designation_id
+		</dbquery>
+  	</dbqueries>
+	<dataqueries>
+	<!--*************************** All Queries related to employment history portal*******************-->	   
+	   <dataquery name="dEmploymentHistory_addEmploymentHistory" dbquery="qEmploymentHistory_addEmploymentHistory" object="com.talentPool.common.db.SimpleDataObject" />
+	   <dataquery name="dEmploymentHistory_DeleteEmploymentHistory" dbquery="qEmploymentHistory_DeleteEmploymentHistory" />
+	   <dataquery name="dEmploymentHistory_getEmploymentHistory" dbquery="qEmploymentHistory_getEmploymentHistory" object="com.talentPool.applicant.dataobject.EmploymentHistoryData">
+			<attribute name="employmentHistoryId"  column="employment_history_id" type="STRING" />
+       		<attribute name="applicantId"  column="applicant_id" type="STRING" />
+       		<attribute name="employerFromDate"  column="employmer_from_date" type="STRING" />
+       		<attribute name="employerToDate"  column="employmer_to_date" type="STRING" />
+       		<attribute name="employerId"  column="employer_id" type="STRING" />
+       		<attribute name="designationId"  column="designation_id" type="STRING" />
+       		<attribute name="employerExperience"  column="employer_experience" type="STRING" />
+       		<attribute name="employerName"  column="employer_name" type="STRING" />       		
+       		<attribute name="designationName"  column="designation_name" type="STRING" />   
+       		<attribute name="grossSalary" column="gross_salary" type="STRING"/>
+       		<attribute name="allowance" column="allowance" type="STRING"/>
+       		<attribute name="reasonForLeaving" column="reason_for_leaving" type="STRING"/>
+       		<attribute name="dutiesInvolved" column="duties_involved" type="STRING"/>
+       		<attribute name="location" column="location" type="STRING"/>
+       		<attribute name="country" column="country" type="STRING"/>
+       		<attribute name="empType" column="emp_type" type="STRING"/>
+       		<attribute name="lastCtc" column="last_ctc" type="STRING"/> 		
+	   </dataquery>	   
+	   <dataquery name="dEmploymentHistory_getAllEmployersAliases" dbquery="qEmploymentHistory_getAllEmployersAliases" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name="id"  column="employer_id" type="STRING" />
+			<attribute name="name"  column="employer_name" type="STRING" />
+	   </dataquery>	   
+	    <dataquery name="dEmploymentHistory_getAllDesignationsAliases" dbquery="qEmploymentHistory_getAllDesignationsAliases" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name="id"  column="designation_id" type="STRING" />
+			<attribute name="name"  column="designation_name" type="STRING" />
+	   </dataquery>
+   </dataqueries>   
+</dbmap>

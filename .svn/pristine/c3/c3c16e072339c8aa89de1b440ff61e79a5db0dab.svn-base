@@ -1,0 +1,1301 @@
+package com.talentPool.custom.manager;
+
+import java.math.BigDecimal;
+import java.sql.Date;
+import java.sql.SQLException;
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Pattern;
+
+import com.talentPool.applicant.constants.ImportConfigurationConstants;
+import com.talentPool.applicant.manager.ImportConfigurationManager;
+import com.talentPool.common.Logger.TPLogger;
+import com.talentPool.common.db.DBPreparedQuery;
+import com.talentPool.common.db.DBQuery;
+import com.talentPool.common.db.DBTransaction;
+import com.talentPool.common.db.SimpleDataObject;
+import com.talentPool.common.properties.GlobalConstants;
+import com.talentPool.common.utils.CommonUtils;
+import com.talentPool.common.utils.Utils;
+import com.talentPool.custom.constants.CustomFieldConstants;
+import com.talentPool.custom.dataobject.CustomFieldCell;
+import com.talentPool.custom.dataobject.CustomFieldData;
+import com.talentPool.custom.dataobject.CustomFieldRow;
+import com.talentPool.custom.dataobject.CustomFieldTable;
+import com.talentPool.masters.constants.FeedbackFieldsConstant;
+import com.talentPool.positions.constants.PositionConfigurationConstants;
+
+public class CustomFieldManager {
+
+	/* mapCustomFields holds the map of entitytype and all custom fields */
+	private static HashMap<String, ArrayList<CustomFieldData>> mapCustomFields = null;
+
+	/*
+	 * mapNameCustomFields holds the map of customfield name and custom field
+	 * data
+	 */
+	private static HashMap<String, CustomFieldData> mapNameCustomFields = null;
+
+	/* mapRanks holds the entitytype and max rank associated with it */
+	private static HashMap<String, String> mapRanks = null;
+
+	static {
+		reloadCustomFieldsMaps();
+	}
+
+	public static void reloadCustomFieldsMaps() {
+		DBQuery dq = null;
+		try {
+			// initialize all maps
+			mapCustomFields = new HashMap<String, ArrayList<CustomFieldData>>();
+			mapNameCustomFields = new HashMap<String, CustomFieldData>();
+			mapRanks = new HashMap<String, String>();
+
+			dq = new DBQuery("dCustomFieldManager_GetAllFields");
+			ArrayList<CustomFieldData> result = dq.getResult();
+			for (int i = 0; result != null && i < result.size(); i++) {
+				CustomFieldData data = result.get(i);
+				ArrayList<CustomFieldData> eTypeList = mapCustomFields.get("" + data.getFieldEntityType());
+				if (eTypeList == null) {
+					eTypeList = new ArrayList<CustomFieldData>();
+				}
+				eTypeList.add(data);
+				mapCustomFields.put("" + data.getFieldEntityType(), eTypeList);
+				mapNameCustomFields.put(data.getFieldName(), data);
+				String rank = mapRanks.get(data.getFieldEntityType());
+				int fldRank = 0;
+				if (!Utils.isBlankOrNull(rank)) {
+					fldRank = Integer.parseInt(rank);
+				}
+				if (fldRank < data.getFieldRank()) {
+					fldRank = data.getFieldRank();
+				}
+				mapRanks.put("" + data.getFieldEntityType(), "" + fldRank);
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+	}
+	
+	public static int getMaxRank(int entityType) {
+		int rank = 0;
+		try {
+			rank = Integer.parseInt(mapRanks.get("" + entityType));
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return rank;
+	}
+
+	public static boolean isCustomFieldsAvailable(int entityType) {
+		boolean available = false;
+		try {
+			List<CustomFieldData> customFields = mapCustomFields.get("" + entityType);
+			if (customFields != null && customFields.size() > 0) {
+				available = true;
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return available;
+	}
+
+	public ArrayList<CustomFieldData> getCustomFieldsFor(int entityType, boolean cloned) {
+		ArrayList<CustomFieldData> customFields = null;
+		try {
+			if (cloned) {
+				ArrayList<CustomFieldData> flds = mapCustomFields.get("" + entityType);
+				if (flds != null) {
+					customFields = new ArrayList<CustomFieldData>();
+					for (int i = 0; i < flds.size(); i++) {
+						customFields.add(flds.get(i).deepCopy());
+					}
+				}
+			} else {
+				customFields = mapCustomFields.get("" + entityType);
+			}
+
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return customFields;
+	}
+
+	public CustomFieldData getCustomFieldByName(String customFieldName, boolean cloned) {
+		CustomFieldData customFieldData = null;
+		try {
+			if (cloned) {
+				customFieldData = mapNameCustomFields.get(customFieldName).deepCopy();
+			} else {
+				customFieldData = mapNameCustomFields.get(customFieldName);
+			}
+
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return customFieldData;
+	}
+	
+	public ArrayList<CustomFieldData> getCustomFieldsForInputAllowed(int entityType, int inputAllowed, boolean cloned) {
+		reloadCustomFieldsMaps();
+		ArrayList<CustomFieldData> fields = getCustomFieldsFor(entityType, cloned);
+		ArrayList<CustomFieldData> result = new ArrayList<CustomFieldData>();
+		for (int i = 0; fields != null && i < fields.size(); i++) {
+			if (fields.get(i).getFieldInputAllowed() == inputAllowed) {
+				CustomFieldData cData = fields.get(i);
+				String values[] = new String[1];
+				values[0] = cData.getFieldDefaultValue();
+				cData.setFieldValues(values);
+				result.add(cData);
+			}
+		}
+
+		return result;
+	}
+	
+	public ArrayList<CustomFieldTable> getCustomTableForEntityTypeApplicantTableFromFields(ArrayList<CustomFieldData> tabularCustomFields){
+		ArrayList<CustomFieldData> tabularFields = getApplicantTabularCustomFields();
+		ArrayList<CustomFieldTable> customTables = new ArrayList<CustomFieldTable>();
+		for(CustomFieldData tabularData:tabularFields){
+			CustomFieldTable cft = new CustomFieldTable();
+			cft.setTableId(tabularData.getTableId());
+			cft.setTableName(tabularData.getTableName());
+			List<CustomFieldRow> rows = new ArrayList<CustomFieldRow>();
+			boolean isFirstIteration = true;
+			boolean tableFieldPresent = false;
+			for (CustomFieldData data:tabularCustomFields){
+				CustomFieldData tData = (CustomFieldData) data;
+				if (!Utils.isBlankOrNull(tData.getTableId()) && tData.getTableId().equals(tabularData.getTableId())){
+					tableFieldPresent = true;
+					if (isFirstIteration){
+						CustomFieldRow row = new CustomFieldRow();
+						CustomFieldCell cell = new CustomFieldCell();
+						cell.setValue(tData.getFieldDisplayName());
+						cell.setData(tData);
+						row.addCell(cell);
+						rows.add(row);
+						String[] values = tData.getFieldValues();
+						for (int j=0; j<values.length; j++){
+							CustomFieldRow row1 = new CustomFieldRow();
+							CustomFieldCell cell1 = new CustomFieldCell();
+							CustomFieldData tabData = (CustomFieldData)tData.clone();
+							tabData.setFieldStringValue(values[j]);
+							String[] fieldValues = new String[1];
+							fieldValues[0] = values[j];
+							tabData.setFieldValues(fieldValues);
+							cell1.setData(tabData);
+							cell1.setValue(values[j]);
+							row1.addCell(cell1);
+							rows.add(row1);
+						}
+						isFirstIteration= false;
+					}else{
+						CustomFieldRow row = rows.get(0);
+						CustomFieldCell cell = new CustomFieldCell();
+						cell.setValue(tData.getFieldDisplayName());
+						cell.setData(tData);
+						row.addCell(cell);
+						String[] values = tData.getFieldValues();
+						for (int j=0; j<values.length; j++){
+							CustomFieldRow row1 = rows.get(j+1);
+							CustomFieldCell cell1 = new CustomFieldCell();
+							CustomFieldData tabData = (CustomFieldData)tData.clone();
+							tabData.setFieldStringValue(values[j]);
+							String[] fieldValues = new String[1];
+							fieldValues[0] = values[j];
+							tabData.setFieldValues(fieldValues);
+							cell1.setData(tabData);
+							cell1.setValue(values[j]);
+							row1.addCell(cell1);
+						}
+					}
+					
+				}
+			}
+			if (!tableFieldPresent){
+				ArrayList<CustomFieldData> tabCustomFields = getCustomFieldsForInputAllowed(CustomFieldConstants.ENTITY_TYPE_APPLICANT_TABLE_FIELD, CustomFieldConstants.INPUT_ALLOWED, true);
+				for (CustomFieldData data:tabCustomFields){
+					CustomFieldData tData = (CustomFieldData) data;
+					if (!Utils.isBlankOrNull(tData.getTableId()) && tData.getTableId().equals(tabularData.getTableId())){
+						if (isFirstIteration){
+							CustomFieldRow row = new CustomFieldRow();
+							CustomFieldCell cell = new CustomFieldCell();
+							cell.setValue(tData.getFieldDisplayName());
+							cell.setData(tData);
+							row.addCell(cell);
+							rows.add(row);
+							CustomFieldRow row1 = new CustomFieldRow();
+							CustomFieldCell cell1 = new CustomFieldCell();
+							CustomFieldData tabData = (CustomFieldData)tData.clone();
+							tabData.setFieldStringValue("");
+							String[] fieldValues = new String[1];
+							fieldValues[0] = "";
+							tabData.setFieldValues(fieldValues);
+							cell1.setData(tabData);
+							cell1.setValue("");
+							row1.addCell(cell1);
+							rows.add(row1);
+							isFirstIteration= false;
+						}else{
+							CustomFieldRow row = rows.get(0);
+							CustomFieldCell cell = new CustomFieldCell();
+							cell.setValue(tData.getFieldDisplayName());
+							row.addCell(cell);
+							CustomFieldRow row1 = rows.get(1);
+							CustomFieldCell cell1 = new CustomFieldCell();
+							CustomFieldData tabData = (CustomFieldData)tData.clone();
+							tabData.setFieldStringValue("");
+							String[] fieldValues = new String[1];
+							fieldValues[0] = "";
+							tabData.setFieldValues(fieldValues);
+							cell1.setData(tabData);
+							cell1.setValue("");
+							row1.addCell(cell1);
+						}
+					}
+				}
+			}
+			cft.setRows(rows);
+			customTables.add(cft);
+			tableFieldPresent = false;
+		}
+		return customTables;
+	}
+
+	// fields for search should be cloned by default, as we are setting values
+	// to null
+	public ArrayList<CustomFieldData> getCustomFieldsForSearch(int entityType) {
+		ArrayList<CustomFieldData> fields = getCustomFieldsFor(entityType, true);
+		ArrayList<CustomFieldData> result = new ArrayList<CustomFieldData>();
+		for (int i = 0; fields != null && i < fields.size(); i++) {
+			if (fields.get(i).getFieldSearchable() == CustomFieldConstants.FIELD_SEARCHABLE && fields.get(i).getFieldInputAllowed() == CustomFieldConstants.FIELD_REQUIRED) {
+				CustomFieldData cData = fields.get(i);
+				cData.setFieldValues(null);
+				cData.setToValues(null);
+				result.add(cData);
+			}
+		}
+
+		return result;
+	}
+
+	public void insertCustomFieldValues(ArrayList<CustomFieldData> customFields, String entityId, int entityType, DBTransaction tran) throws Exception {
+		DBPreparedQuery dq = null;
+		try {
+			if (customFields != null) {
+				String[] dynParam = new String[1];
+				for (int i = 0; i < customFields.size(); i++) {
+					CustomFieldData data = customFields.get(i);
+
+					String values[] = data.getFieldValues();
+					for (int x = 0; values != null && x < values.length; x++) {
+
+						if (!Utils.isBlankOrNull(values[x]) || data.getFieldEntityType()==CustomFieldConstants.ENTITY_TYPE_APPLICANT_TABLE_FIELD) {
+							if (entityType == CustomFieldConstants.ENTITY_TYPE_APPLICANT || entityType == CustomFieldConstants.ENTITY_TYPE_APPLICANT_TABLE_FIELD) {
+								dynParam[0] = "tp_custom_field_values_applicant";
+							} else if (entityType == CustomFieldConstants.ENTITY_TYPE_POSITION) {
+								dynParam[0] = "tp_custom_field_values_position";
+							} else if (entityType == CustomFieldConstants.ENTITY_TYPE_BULK_IMPORT) {
+								dynParam[0] = "tp_bulk_import_session_custom_fields";
+							}else if (entityType == CustomFieldConstants.ENTITY_TYPE_EXCEL_IMPORT) {								
+								dynParam[0] = "tp_excel_import_custom_field_values";
+							}
+							dq = new DBPreparedQuery("dCustomFieldManager_AddCustomFieldValues", dynParam, tran);
+							dq.setId(1, data.getFieldId());
+							if (!data.getFieldType().equals(CustomFieldConstants.TYPE_NUMBER) && !data.getFieldType().equals(CustomFieldConstants.TYPE_DATE)) {
+								dq.setString(2, values[x]);
+							} else {
+								dq.setNull(2, Types.NULL);
+							}
+							if (data.getFieldType().equals(CustomFieldConstants.TYPE_NUMBER)) {
+								double d = 0;
+								try {
+									d = Double.parseDouble(values[x]);
+								} catch (Exception e) {
+									// TODO: handle exception
+								}
+								dq.setDouble(3, d);
+							} else {
+								dq.setNull(3, Types.NULL);
+							}
+							if (data.getFieldType().equals(CustomFieldConstants.TYPE_DATE)) {
+								Date d = null;
+								try {
+									d = Utils.convertToSQLDate(values[x], data.getOtherAttribute(CustomFieldConstants.ATTRIBUTE_DATE_FORMAT));
+								} catch (Exception e) {
+									// TODO: handle exception
+								}
+								dq.setDate(4, d);
+							} else {
+								dq.setNull(4, Types.NULL);
+							}
+							if (entityType == CustomFieldConstants.ENTITY_TYPE_BULK_IMPORT || entityType == CustomFieldConstants.ENTITY_TYPE_EXCEL_IMPORT) {
+								dq.setString(5, entityId);
+							} else {
+								dq.setId(5, entityId);
+							}
+							if (!Utils.isBlankOrNull(data.getTableId())) {
+								dq.setString(6, data.getTableId());
+							} else {
+								dq.setNull(6, Types.NULL);
+							}
+							dq.execute();
+						}
+					}
+				}
+			}
+		} catch (Exception e) {
+			throw e;
+		} finally {
+			if (dq != null) {
+				if (tran == null) {
+					dq.releaseConnection();
+				} else {
+					dq.closeOpenCursors();
+				}
+
+			}
+		}
+	}
+
+	public void deleteCustomFieldValuesForEntity(String entityId, int entityType, DBTransaction tran) throws Exception {
+		DBPreparedQuery dq = null;
+		try {
+			String[] dynParam = new String[1];
+			if (entityType == CustomFieldConstants.ENTITY_TYPE_APPLICANT || entityType == CustomFieldConstants.ENTITY_TYPE_APPLICANT_TABLE_FIELD) {
+				dynParam[0] = "tp_custom_field_values_applicant";
+			} else if (entityType == CustomFieldConstants.ENTITY_TYPE_POSITION) {
+				dynParam[0] = "tp_custom_field_values_position";
+			} 
+			dq = new DBPreparedQuery("dCustomFieldManager_DeleteCustomFieldValues", dynParam, tran);
+			dq.setId(1, entityId);
+			dq.execute();
+
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+			throw e;
+		} finally {
+			if (dq != null) {
+				if (tran == null) {
+					dq.releaseConnection();
+				} else {
+					dq.closeOpenCursors();
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Deletes the Custom Field Values for particular <code>entity_type</code> given the <code>entity_id</code> and <code>custom_field_ids</code> (comma delimited).
+	 * @param custFldIds <code>custom_field_ids</code> (comma delimited) 
+	 * @param entityId  position_id or applicant_id based on entityType
+	 * @param entityType ENTITY_TYPE_APPLICANT or ENTITY_TYPE_POSITION
+	 * @param tran
+	 * @throws SQLException
+	 * @throws Exception
+	 */
+	public void deleteCustomFieldValuesForEntity(String custFldIds,String entityId, int entityType, DBTransaction tran) throws SQLException,Exception {
+		DBPreparedQuery dq = null;
+		int cnt = 1;
+		ArrayList<String> dynamicContent = new ArrayList<String>();
+		try {
+			String[] dynParam = new String[2];
+			if (entityType == CustomFieldConstants.ENTITY_TYPE_APPLICANT) {
+				dynParam[0] = "tp_custom_field_values_applicant";
+			} else if (entityType == CustomFieldConstants.ENTITY_TYPE_POSITION) {
+				dynParam[0] = "tp_custom_field_values_position";
+			} 
+			dynParam[1] = Utils.setDynamicParamsAndReturnQmarks(custFldIds, dynamicContent);
+			if(tran!=null)
+				dq = new DBPreparedQuery("dCustomFieldManager_DeleteCustomFieldValuesForEntityAndField", dynParam, tran);
+			else
+				dq = new DBPreparedQuery("dCustomFieldManager_DeleteCustomFieldValuesForEntityAndField", dynParam);
+			
+			dq.setId(cnt++, entityId);
+			for (String parameter : dynamicContent) {
+				dq.setString(cnt++, parameter);
+			}
+			dq.execute();
+		} catch (SQLException sqe) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, sqe);
+			throw sqe;
+		}catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+			throw e;
+		} finally {
+			if (dq != null) {
+				if (tran == null) {
+					dq.releaseConnection();
+				} else {
+					dq.closeOpenCursors();
+				}
+			}
+		}
+	}
+
+	public void deleteCustomFieldValuesForField(String customFieldId, int entityType, DBTransaction tran) throws Exception {
+		DBPreparedQuery dq = null;
+		try {
+			String[] dynParam = new String[1];
+			if (entityType == CustomFieldConstants.ENTITY_TYPE_APPLICANT) {
+				dynParam[0] = "tp_custom_field_values_applicant";
+			} else if (entityType == CustomFieldConstants.ENTITY_TYPE_POSITION) {
+				dynParam[0] = "tp_custom_field_values_position";
+			} 
+			dq = new DBPreparedQuery("dCustomFieldManager_DeleteCustomFieldValuesForField", dynParam, tran);
+			dq.setId(1, customFieldId);
+			dq.execute();
+
+		} catch (Exception e) {
+			throw e;
+		} finally {
+			if (dq != null) {
+				if (tran == null) {
+					dq.releaseConnection();
+				} else {
+					dq.closeOpenCursors();
+				}
+			}
+		}
+	}
+	
+	public ArrayList<CustomFieldData> getCustomFieldDataForEntity(String entityId, int entityType) {
+		ArrayList<CustomFieldData> result = getCustomFieldDataForEntityFromDB(entityId, entityType);
+		result = getCustomFieldsConstructed(result);
+		return result;
+	}
+	
+	public Map<String,CustomFieldData> getCustomFieldDataMapForEntity(String entityId, int entityType) {
+		ArrayList<CustomFieldData> result = getCustomFieldDataForEntityFromDB(entityId, entityType);
+		Map<String,CustomFieldData> cusFldDataMap = getCustomFieldDataMapConstructed(result);
+		return cusFldDataMap;
+	}
+	
+	/**
+	 * @param entityId
+	 * @param entityType
+	 * @return
+	 */
+	public ArrayList<CustomFieldData> getCustomFieldDataForEntityFromDB(String entityId, int entityType) {
+		//dCustomFieldManager_GetCustomFieldValues
+		DBPreparedQuery dq = null;
+		ArrayList<CustomFieldData> result = null;
+		try {
+			String[] dynParam = new String[1];
+			if (entityType == CustomFieldConstants.ENTITY_TYPE_APPLICANT || entityType == CustomFieldConstants.ENTITY_TYPE_APPLICANT_TABLE_FIELD) {
+				dynParam[0] = "tp_custom_field_values_applicant";
+			} else if (entityType == CustomFieldConstants.ENTITY_TYPE_POSITION) {
+				dynParam[0] = "tp_custom_field_values_position";
+			} else if (entityType == CustomFieldConstants.ENTITY_TYPE_BULK_IMPORT) {
+				dynParam[0] = "tp_bulk_import_session_custom_fields";
+			} else if (entityType == CustomFieldConstants.ENTITY_TYPE_EXCEL_IMPORT) {								
+				dynParam[0] = "tp_excel_import_custom_field_values";
+			}
+
+			int entryTypeNew = entityType;
+			/*if (entityType == CustomFieldConstants.ENTITY_TYPE_BULK_IMPORT || entityType == CustomFieldConstants.ENTITY_TYPE_EXCEL_IMPORT) { // bulk import select criteria
+				entityType = CustomFieldConstants.ENTITY_TYPE_APPLICANT;
+			}*/
+
+			dq = new DBPreparedQuery("dCustomFieldManager_GetCustomFieldValues", dynParam);
+			/*dq.setInt(1, entityType);*/
+			if (entryTypeNew == CustomFieldConstants.ENTITY_TYPE_BULK_IMPORT) {
+				dq.setString(1, entityId);
+			} else {
+				dq.setString(1, entityId);
+			}
+			dq.setInt(2, CustomFieldConstants.INPUT_ALLOWED);
+			result = dq.getResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return result;
+	}
+	
+	public ArrayList<CustomFieldData> getCustomFieldDataForTables(String entityId) {
+		//dCustomFieldManager_GetCustomFieldValues
+		DBPreparedQuery dq = null;
+		ArrayList<CustomFieldData> result = null;
+		try {
+
+			dq = new DBPreparedQuery("dCustomFieldManager_GetTabularCustomFieldValues");
+			dq.setInt(1, CustomFieldConstants.ENTITY_TYPE_APPLICANT_TABLE_FIELD);
+			dq.setString(2, entityId);
+			dq.setInt(3, CustomFieldConstants.INPUT_ALLOWED);
+			result = dq.getResult();
+			result = getCustomFieldsConstructed(result);
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return result;
+	}
+	
+	public ArrayList<CustomFieldData> getApplicantTabularCustomFields() {
+		//dCustomFieldManager_GetCustomFieldValues
+		DBPreparedQuery dq = null;
+		ArrayList<CustomFieldData> result = null;
+		try {
+			dq = new DBPreparedQuery("dCustomFieldManager_GetTabularCustomFields");
+			result = dq.getResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return result;
+	}
+	
+	private ArrayList<CustomFieldData> getCustomFieldsConstructed(ArrayList<CustomFieldData> result) {
+		try {
+			for (int i = 0; result != null && i < result.size(); i++) {
+				CustomFieldData cData = result.get(i);
+				processCustomFieldData(cData);
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return result;
+	}
+	
+	private Map<String,CustomFieldData> getCustomFieldDataMapConstructed(ArrayList<CustomFieldData> result){
+		Map<String,CustomFieldData> cDataMap = null;
+		try {
+			if(result != null){
+				cDataMap = new HashMap<String, CustomFieldData>();
+				for (int i = 0; i < result.size(); i++) {
+					CustomFieldData cData = result.get(i);
+					processCustomFieldData(cData);
+					cDataMap.put(cData.getFieldName(), cData);
+				}
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return cDataMap;
+	}
+	
+	private void processCustomFieldData(CustomFieldData cData){
+		String[] vals = new String[1];
+		String[] dateVals = new String[1];
+		if (cData.getFieldType().equals(CustomFieldConstants.TYPE_DATE)) {
+			if (!Utils.isBlankOrNull(cData.getFieldDateValues())){
+				dateVals = cData.getFieldDateValues().split("\\|");
+				String[] stringVals = new String[dateVals.length];
+				SimpleDataObject sdo = new SimpleDataObject();
+				for (int i=0; i<dateVals.length; i++){
+					stringVals[i] = Utils.getDateStringConvertedToOtherDateFormat(dateVals[i], Utils.regDDMMYYYYhhmmssFromat,cData.getOtherAttribute(CustomFieldConstants.ATTRIBUTE_DATE_FORMAT));
+				}
+				vals = stringVals;
+			}else{
+				String val = Utils.getDateConvertedToString(cData.getFieldDateValue(), cData.getOtherAttribute(CustomFieldConstants.ATTRIBUTE_DATE_FORMAT));
+				vals[0] = val;
+			}
+		} else if (cData.getFieldType().equals(CustomFieldConstants.TYPE_NUMBER)) {
+			//vals[0] = "" + cData.getFieldNumberValue();
+			vals[0] = BigDecimal.valueOf(cData.getFieldNumberValue()).toPlainString();
+		} else {
+			vals = cData.getFieldStringValue().split("\\|");
+		}
+		cData.setFieldValues(vals);
+	}
+	
+	/**
+	 * return searchable custom field values
+	 * 
+	 * @param entityId
+	 * @param entityType
+	 * @return
+	 */
+	public ArrayList<CustomFieldData> getCustomFieldValuesForSearchableFields(String entityId, int entityType) {
+		DBPreparedQuery dq = null;
+		ArrayList<CustomFieldData> result = null;
+		try {
+			dq = new DBPreparedQuery("dCustomFieldManager_GetValuesSearchableCustomFields");
+			dq.setId(1, entityId);
+			dq.setInt(2, entityType);
+			dq.setInt(3, CustomFieldConstants.FIELD_SEARCHABLE);
+			result = dq.getResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return result;
+	}
+	
+	/**
+	 * return non searchable custom field values
+	 * 
+	 * @param entityId
+	 * @param entityType
+	 * @return
+	 */
+	public ArrayList<CustomFieldData> getCustomFieldValuesForNonSearchableFields(String entityId, int entityType) {
+		DBPreparedQuery dq = null;
+		ArrayList<CustomFieldData> result = null;
+		try {
+			dq = new DBPreparedQuery("dCustomFieldManager_GetValuesSearchableCustomFields");
+			dq.setId(1, entityId);
+			dq.setInt(2, entityType);
+			dq.setInt(3, CustomFieldConstants.FIELD_NOT_SEARCHABLE);
+			result = dq.getResult();
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return result;
+	}
+
+	// Start: Custom Fields
+
+	public ArrayList<String> addNewCustomField(CustomFieldData customFieldData) throws Exception {
+		boolean customfieldExist=isExistingCustomFieldDisplayName(customFieldData);
+		ArrayList<String> errorList=new ArrayList<String>();
+		if(customfieldExist){
+			errorList.add("admin.custom_fields.error.addOrUpdateExistingDisplayField");
+			return errorList;
+		}
+		else{
+		DBPreparedQuery dq = null;
+		DBTransaction tran = null;		
+		try {			
+			tran =new DBTransaction();
+			String sdo="";
+			int maxRankInDB = 0;
+			dq = new DBPreparedQuery("dCustomFieldManager_GetMaxRankForEntityType", tran);			
+			dq.setInt(1, customFieldData.getFieldEntityType());
+			sdo = dq.getIdResult();
+			if(!Utils.isBlankOrNull(sdo)){
+				maxRankInDB = Integer.parseInt(sdo);
+			}				
+			dq = new DBPreparedQuery("dCustomFieldManager_AddNewCustomField", tran);			
+			dq.setString(1, customFieldData.getFieldName());			
+			dq.setString(2, customFieldData.getFieldType());						
+			dq.setString(3, customFieldData.getFieldAttributes());			
+			dq.setString(4, customFieldData.getFieldOtherAttributes());			
+			dq.setString(5, customFieldData.getFieldDisplayName());			
+			dq.setString(6, customFieldData.getFieldDefaultValue());			
+			dq.setString(7, customFieldData.getFieldOptions());			
+			dq.setInt(8, customFieldData.getFieldRequired());			
+			dq.setInt(9, maxRankInDB + 1);			
+			dq.setInt(10, customFieldData.getFieldSearchable());			
+			dq.setInt(11, customFieldData.getFieldEntityType());
+			dq.execute();
+			 
+			// add Applicant custom fields to screen configuration
+			if(customFieldData.getFieldEntityType() == CustomFieldConstants.ENTITY_TYPE_APPLICANT){
+				dq = new DBPreparedQuery("dCustomFieldManager_GetMaxRankForImportField", tran);			
+				String rank = dq.getIdResult();
+				int maxFieldRankInDB = 0;
+				if(!Utils.isBlankOrNull(rank)){
+					maxFieldRankInDB = Integer.parseInt(rank);
+				}
+				dq = new DBPreparedQuery("dCustomFieldManager_AddCustomFieldToImportScreen", tran);
+				dq.setString(1, customFieldData.getFieldName());			
+				dq.setString(2, ImportConfigurationConstants.FIELD_TYPE_CUSTOM);						
+				dq.setInt(3, maxFieldRankInDB+1);	
+				dq.setString(4, ImportConfigurationConstants.FIELD_SHOW);			
+				dq.setString(5, ImportConfigurationConstants.FIELD_EDIT);			
+				dq.setString(6, ""+customFieldData.getFieldRequired());
+				dq.execute();
+			}
+			
+			// add Position custom fields to position screen configuration
+			if(customFieldData.getFieldEntityType() == CustomFieldConstants.ENTITY_TYPE_POSITION){
+				dq = new DBPreparedQuery("dCustomFieldManager_GetMaxRankForPositionField", tran);			
+				String rank = dq.getIdResult();
+				int maxFieldRankInDB = 0;
+				if(!Utils.isBlankOrNull(rank)){
+					maxFieldRankInDB = Integer.parseInt(rank);
+				}
+				int maxRank = maxFieldRankInDB+1;
+				dq = new DBPreparedQuery("dCustomFieldManager_AddCustomFieldToPositionScreen", tran);
+				dq.setString(1, customFieldData.getFieldName());			
+				dq.setString(2, PositionConfigurationConstants.FIELD_TYPE_CUSTOM);						
+				dq.setInt(3, maxRank);
+				dq.setInt(4, maxRank);
+				dq.execute();
+				
+				dq = new DBPreparedQuery("dCustomFieldManager_GetMaxRankForPositionScreenField", tran);			
+				String positionScreenRank = dq.getIdResult();
+				int maxPositionScreenFieldRankInDB = 0;
+				if(!Utils.isBlankOrNull(positionScreenRank)){
+					maxPositionScreenFieldRankInDB = Integer.parseInt(positionScreenRank);
+				}
+				maxPositionScreenFieldRankInDB = maxPositionScreenFieldRankInDB+1;
+				dq = new DBPreparedQuery("dCustomFieldManager_AddCustomFieldToPositionScreenField", tran);
+				dq.setString(1, customFieldData.getFieldName());			
+				dq.setString(2, PositionConfigurationConstants.FIELD_TYPE_CUSTOM);						
+				dq.setInt(3, maxPositionScreenFieldRankInDB);
+				dq.setId(4, PositionConfigurationConstants.FIELD_SHOW);
+				dq.execute();
+				
+				dq = new DBPreparedQuery("dCustomFieldManager_GetMaxRankForPositionDescriptionField", tran);			
+				String positionDescriptionRank = dq.getIdResult();
+				int maxPositionDescriptionFieldRankInDB = 0;
+				if(!Utils.isBlankOrNull(positionDescriptionRank)){
+					maxPositionDescriptionFieldRankInDB = Integer.parseInt(positionDescriptionRank);
+				}
+				maxPositionDescriptionFieldRankInDB = maxPositionDescriptionFieldRankInDB+1;
+				dq = new DBPreparedQuery("dCustomFieldManager_AddCustomFieldToPositionDescriptionField", tran);
+				dq.setString(1, customFieldData.getFieldName());			
+				dq.setString(2, PositionConfigurationConstants.FIELD_TYPE_CUSTOM);						
+				dq.setInt(3, maxPositionDescriptionFieldRankInDB);
+				dq.setId(4, PositionConfigurationConstants.FIELD_SHOW);
+				dq.setInt(5, customFieldData.getFieldRequired());
+				dq.execute();				
+			}
+			
+			tran.commit();		
+		} catch (SQLException e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+			tran.rollback();			
+			throw e;
+		} finally {
+			if(dq != null) {
+				dq.releaseTransaction(tran);
+			}
+		}
+		 return errorList;
+		}
+	}
+
+	public void updateCustomField(CustomFieldData customFieldData) throws Exception {
+		DBPreparedQuery dq = null;
+		DBTransaction tran = null;
+		boolean applicantToTableFieldFlag = false;
+		try {
+			tran = new DBTransaction();			
+			String[] dynParams = new String[1];
+			
+			String options = customFieldData.getFieldOptions();
+			if (!Utils.isBlankOrNull(options) && options.contains("{")){
+				String[] opts = options.split(Pattern.quote("}"));
+				Arrays.sort(opts);
+				options = "";
+				for (int i=0;i<opts.length;i++){
+						options = options+opts[i] + "}";
+				}
+				customFieldData.setFieldOptions(options);
+				}
+			
+			CustomFieldData tmp = getCustomField(customFieldData.getFieldId());
+			if(tmp.getFieldEntityType()== CustomFieldConstants.ENTITY_TYPE_APPLICANT_TABLE_FIELD && customFieldData.getFieldEntityType()==CustomFieldConstants.ENTITY_TYPE_APPLICANT && tmp.getFieldEntityType() != customFieldData.getFieldEntityType()){
+				//update operation in entity type.
+				dynParams[0]= ", table_id= NULL , custom_field_entity_type="+customFieldData.getFieldEntityType()+" ";
+				deleteCustomFieldTableMappingFromCustomApplicantValues(tmp.getTableId(), customFieldData.getFieldId(), tran);
+				deleteCustomFieldTableColumnMapping(tmp.getTableId(), customFieldData.getFieldId(), tran);
+				
+				dq = new DBPreparedQuery("dCustomFieldManager_GetMaxRankForImportField", tran);			
+				String rank = dq.getIdResult();
+				int maxFieldRankInDB = 0;
+				if(!Utils.isBlankOrNull(rank)){
+					maxFieldRankInDB = Integer.parseInt(rank);
+				}
+				dq = new DBPreparedQuery("dCustomFieldManager_AddCustomFieldToImportScreen", tran);
+				dq.setString(1, customFieldData.getFieldName());			
+				dq.setString(2, ImportConfigurationConstants.FIELD_TYPE_CUSTOM);						
+				dq.setInt(3, maxFieldRankInDB+1);	
+				dq.setString(4, ImportConfigurationConstants.FIELD_SHOW);			
+				dq.setString(5, ImportConfigurationConstants.FIELD_EDIT);			
+				dq.setString(6, ""+customFieldData.getFieldRequired());
+				dq.execute();
+			}else if(tmp.getFieldEntityType()==CustomFieldConstants.ENTITY_TYPE_APPLICANT && customFieldData.getFieldEntityType() == CustomFieldConstants.ENTITY_TYPE_APPLICANT_TABLE_FIELD){
+				dynParams[0]=", custom_field_entity_type="+customFieldData.getFieldEntityType()+" ";
+				deleteCustomFieldTableMappingFromCustomApplicantValues(tmp.getTableId(), customFieldData.getFieldId(), tran);
+				
+				dq = new DBPreparedQuery("dCustomFieldManager_DeleteCustomFieldFromImportScreen", tran);
+				dq.setString(1, customFieldData.getFieldName());
+				dq.execute();
+				
+				dq = new DBPreparedQuery("dCustomFieldManager_DeleteCustomFieldFromImportScreen", tran);
+				dq.setString(1, "app_"+customFieldData.getFieldName());
+				dq.execute();
+				
+				dq = new DBPreparedQuery("dCustomFieldManager_DeleteAssociationFromFeedbackField", tran);
+				dq.setString(1, FeedbackFieldsConstant.FIELD_TYPE_NORMAL);
+				dq.setString(2, customFieldData.getFieldName());
+				dq.execute();
+				
+				dq = new DBPreparedQuery("dCustomFieldManager_DeleteCustomFieldFromImportScreen", tran);
+				dq.setString(1, "app_"+customFieldData.getFieldName());
+				dq.execute();
+				
+				applicantToTableFieldFlag = true;
+			} else{
+				dynParams[0]=" ";
+			}
+			
+			
+			dq = new DBPreparedQuery("dCustomFieldManager_UpdateCustomField",dynParams, tran);
+			dq.setString(1, customFieldData.getFieldName());
+			dq.setString(2, customFieldData.getFieldType());
+			dq.setString(3, customFieldData.getFieldAttributes());
+			dq.setString(4, customFieldData.getFieldOtherAttributes());
+			dq.setString(5, customFieldData.getFieldDisplayName());
+			dq.setString(6, customFieldData.getFieldDefaultValue());
+			dq.setString(7, customFieldData.getFieldOptions());
+			dq.setInt(8, customFieldData.getFieldRequired());
+			dq.setInt(9, customFieldData.getFieldSearchable());
+			dq.setString(10, customFieldData.getFieldId());
+			dq.execute();
+
+			// update Applicant custom fields to screen configuration
+			if (customFieldData.getFieldEntityType() == CustomFieldConstants.ENTITY_TYPE_APPLICANT && !applicantToTableFieldFlag) {
+				CustomFieldData data = getCustomField(customFieldData.getFieldId());
+				String oldName = data.getFieldName();
+				dq = new DBPreparedQuery("dCustomFieldManager_UpdateCustomFieldToImportScreen", tran);
+				dq.setString(1, "" + customFieldData.getFieldRequired());
+				dq.setString(2, customFieldData.getFieldName());
+				dq.setString(3, oldName);
+				dq.execute();
+				
+				dq = new DBPreparedQuery("dCustomFieldManager_UpdateCustomFieldToFeedbackFormField", tran);
+				dq.setString(1, customFieldData.getFieldName());
+				dq.setString(2, oldName);
+				dq.execute();
+			}
+			
+			// update Position custom fields to position screen configuration
+			if (customFieldData.getFieldEntityType() == CustomFieldConstants.ENTITY_TYPE_POSITION) {
+				CustomFieldData data = getCustomField(customFieldData.getFieldId());
+				String oldName = data.getFieldName();
+				dq = new DBPreparedQuery("dCustomFieldManager_UpdateCustomFieldToPositionScreen", tran);
+				dq.setString(1, customFieldData.getFieldName());
+				dq.setString(2, oldName);
+				dq.execute();
+				
+				dq = new DBPreparedQuery("dCustomFieldManager_UpdateCustomFieldToPositionScreenField", tran);
+				dq.setString(1, customFieldData.getFieldName());
+				dq.setString(2, oldName);
+				dq.execute();
+				
+				dq = new DBPreparedQuery("dCustomFieldManager_UpdateCustomFieldToPositionDescriptionField", tran);
+				dq.setString(1, customFieldData.getFieldName());
+				dq.setInt(2, customFieldData.getFieldRequired());
+				dq.setString(3, oldName);
+				dq.execute();
+			}
+			
+			tran.commit();
+			
+			
+			if(applicantToTableFieldFlag){
+				ImportConfigurationManager.reloadImportFieldsMaps();
+			}
+		} catch (SQLException e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+			tran.rollback();
+			throw e;
+		} finally {
+			if (dq != null) {
+				dq.releaseTransaction(tran);
+			}
+		}
+	}
+
+//	public void updateScreenConfigurationForCustomField(String fieldId, int required) throws SQLException {
+//		DBPreparedQuery dq = null;
+//		try {
+//			dq = new DBPreparedQuery("dCustomFieldManager_UpdateScreenConfigurationForCustomField");
+//			dq.setInt(1, required);
+//			dq.setString(2, fieldId);
+//			dq.execute();
+//		} catch (SQLException e) {
+//			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+//			throw e;
+//		} finally {
+//			if (dq != null) {
+//				dq.releaseConnection();
+//			}
+//		}
+//	}
+
+	public void deleteCustomField(String customFieldId, String customFieldEntityType) throws Exception {
+		DBPreparedQuery dq = null;
+		DBTransaction tran = null;
+		try {
+			tran = new DBTransaction();
+			CustomFieldData customFieldData = getCustomField(customFieldId);
+
+			deleteCustomFieldValuesForField(customFieldId, Integer.parseInt(customFieldEntityType), tran);
+
+			dq = new DBPreparedQuery("dCustomFieldManager_UpdateCustomFieldRank", tran);
+			dq.setString(1, customFieldId);
+			dq.setString(2, customFieldEntityType);
+			dq.execute();
+
+			dq = new DBPreparedQuery("dCustomFieldManager_DeleteCustomField", tran);
+			dq.setString(1, customFieldId);
+			dq.execute();
+
+			// Delete Applicant custom fields from screen configuration
+			if (customFieldEntityType.equals("" + CustomFieldConstants.ENTITY_TYPE_APPLICANT)) {
+				dq = new DBPreparedQuery("dCustomFieldManager_DeleteCustomFieldFromImportScreen", tran);
+				dq.setString(1, customFieldData.getFieldName());
+				dq.execute();
+				
+				dq = new DBPreparedQuery("dCustomFieldManager_DeleteAssociationFromFeedbackField", tran);
+				dq.setString(1, FeedbackFieldsConstant.FIELD_TYPE_NORMAL);
+				dq.setString(2, customFieldData.getFieldName());
+				dq.execute();
+			}
+			
+			// Delete Position custom fields from position screen configuration
+			if (customFieldEntityType.equals("" + CustomFieldConstants.ENTITY_TYPE_POSITION)) {
+				dq = new DBPreparedQuery("dCustomFieldManager_DeleteCustomFieldFromPositionScreen", tran);
+				dq.setString(1, customFieldData.getFieldName());
+				dq.execute();
+				
+				dq = new DBPreparedQuery("dCustomFieldManager_DeleteCustomFieldFromPositionScreenField", tran);
+				dq.setString(1, customFieldData.getFieldName());
+				dq.execute();
+				
+				dq = new DBPreparedQuery("dCustomFieldManager_DeleteCustomFieldFromPositionDescriptionField", tran);
+				dq.setString(1, customFieldData.getFieldName());
+				dq.execute();
+			}
+			
+			tran.commit();
+			
+		} catch (SQLException e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+			tran.rollback();
+			throw e;
+		} catch (Exception e) {
+			throw e;
+		} finally {
+			if (dq != null) {
+				dq.releaseTransaction(tran);
+			}
+		}
+	}
+
+	public ArrayList<CustomFieldData> getCustomFieldsForType(String type) {
+		ArrayList<CustomFieldData> fields = null;
+		DBPreparedQuery dq = null;
+		String[] dynParams = new String[1];
+		try {
+			dynParams[0]=type;
+			dq = new DBPreparedQuery("dCustomFieldManager_GetCustomFieldsForType",dynParams);
+			fields = dq.getResult();
+		} catch (SQLException e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return fields;
+	}
+	
+	public ArrayList<CustomFieldData> getCustomFieldsForTableType(String type, String id) {
+		ArrayList<CustomFieldData> fields = null;
+		DBPreparedQuery dq = null;
+		String[] dynParams = new String[2];
+		try {
+			dynParams[0]=type;
+			if (!Utils.isBlankOrNull(id)){
+				dynParams[1] = "OR table_id="+id;
+			}else{
+				dynParams[1] = "";
+			}
+			dq = new DBPreparedQuery("dCustomFieldManager_GetCustomFieldsForTableType",dynParams);
+			fields = dq.getResult();
+		} catch (SQLException e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return fields;
+	}
+
+	public CustomFieldData getCustomField(String customFieldId) throws SQLException {
+		CustomFieldData customFieldData = null;
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dCustomFieldManager_GetCustomField");
+			dq.setString(1, customFieldId);
+			customFieldData = (CustomFieldData) dq.getSingleObjectResult();
+		} catch (SQLException e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+			throw e;
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return customFieldData;
+	}
+	
+	public String getJSArrayCustomFields(int entityType) {
+		ArrayList<CustomFieldData> customFields = getCustomFieldsForType("" + entityType);
+		String jsArrayCustomFields = null;
+		jsArrayCustomFields = CommonUtils.getListJavaScriptArrayWithProperties(customFields, "fieldId", "fieldDisplayName");
+		
+		return jsArrayCustomFields;
+	}
+	
+	public boolean isExistingCustomFieldDisplayName(CustomFieldData customFieldData) throws SQLException{
+		boolean exist=false;
+		String customFieldDisplayName=customFieldData.getFieldDisplayName();
+		String existingCustomFieldDisplay="";
+		if(!Utils.isBlankOrNull(customFieldDisplayName)){
+			CustomFieldData customFieldDataExist=getCustomFieldExistingForDisplayName(customFieldDisplayName);
+			if(customFieldDataExist!=null){
+			existingCustomFieldDisplay=customFieldDataExist.getFieldDisplayName();
+			}
+			if(!Utils.isBlankOrNull(existingCustomFieldDisplay)){
+				if(existingCustomFieldDisplay.equals(customFieldDisplayName)){
+					exist=true;
+				}
+			}
+		}
+		return exist;
+	}
+	public CustomFieldData getCustomFieldExistingForDisplayName(String customFieldDisplayName) throws SQLException {
+		CustomFieldData customFieldData = null;
+		DBPreparedQuery dq = null;
+		try {
+			dq = new DBPreparedQuery("dCustomFieldManager_GetCustomFieldForDisplayName");
+			dq.setString(1, customFieldDisplayName);
+			customFieldData = (CustomFieldData) dq.getSingleObjectResult();
+		} catch (SQLException e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+			throw e;
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return customFieldData;
+	}
+
+	public void addNewCustomFieldTable(CustomFieldData cData) throws SQLException {
+		DBPreparedQuery dq = null;
+		DBTransaction tran = null;
+		try{
+			tran = new DBTransaction();
+			int type = 0;
+			if(cData.getFieldEntityType()==CustomFieldConstants.ENTITY_TYPE_APPLICANT_TABLE){
+				type= CustomFieldConstants.ENTITY_TYPE_APPLICANT;
+			}else{
+				type= CustomFieldConstants.ENTITY_TYPE_POSITION;
+			}
+			dq = new DBPreparedQuery("dCustomFieldManager_insertCustomFieldTable", tran);
+			dq.setString(1,Utils.isBlankOrNull(cData.getFieldId())?"":cData.getFieldId());
+			dq.setString(2, cData.getFieldName());
+			dq.setInt(3,type);
+			dq.execute();
+			
+			dq = new DBPreparedQuery("dCustomFieldManager_getLastTableInsertId",tran);
+			String id = dq.getIdResult();
+			if(!Utils.isBlankOrNull(cData.getFieldId())){
+				id=cData.getFieldId();
+			}
+			String[] dynParams = new String[1];
+			StringBuilder sb = new StringBuilder();
+			String[] tmps = cData.getCustomFieldTableColumnIds().split(",");
+			for(String tmp: tmps){
+				sb.append("(").append(id).append(",").append(tmp).append("),");
+			}
+			String str = sb.toString();
+			str=str.replaceAll(",$", "");
+			dynParams[0]= str;
+			dq= new DBPreparedQuery("dCustomFieldManager_insertCustomFieldTableColumnMapping",dynParams,tran);
+			dq.execute();
+			dynParams[0]=cData.getCustomFieldTableColumnIds();
+			dq= new DBPreparedQuery("dCustomFieldManager_deleteUnusedCustomFieldTableColumnMapping",dynParams,tran);
+			dq.setString(1, id);
+			dq.execute();
+			dq = new DBPreparedQuery("dCustomFieldManager_deleteCustomFieldTableColumns",tran);
+			dq.setNull(1, Types.NULL);
+			dq.setString(2,id);
+			dq.execute();
+			dynParams[0] = cData.getCustomFieldTableColumnIds();
+			dq= new DBPreparedQuery("dCustomFieldManager_updateCustomFieldTableColumns",dynParams,tran);
+			dq.setString(1, id);
+			dq.execute();
+			
+			dq = new DBPreparedQuery("dCustomFieldManager_GetMaxRankForImportField", tran);			
+			String rank = dq.getIdResult();
+			int maxFieldRankInDB = 0;
+			if(!Utils.isBlankOrNull(rank)){
+				maxFieldRankInDB = Integer.parseInt(rank);
+			}
+			dq = new DBPreparedQuery("dCustomFieldManager_AddCustomFieldToImportScreen", tran);
+			dq.setString(1, cData.getFieldName());			
+			dq.setString(2, ImportConfigurationConstants.FIELD_TYPE_CUSTOM_TABLE);						
+			dq.setInt(3, maxFieldRankInDB+1);	
+			dq.setString(4, ImportConfigurationConstants.FIELD_SHOW);			
+			dq.setString(5, ImportConfigurationConstants.FIELD_EDIT);			
+			dq.setString(6, ""+cData.getFieldRequired());
+			dq.execute();
+			
+			tran.commit();
+			ImportConfigurationManager.reloadImportFieldsMaps();
+		}catch (SQLException e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+			tran.rollback();
+			throw e;
+		} catch (Exception e) {
+			throw e;
+		} finally {
+			if (dq != null) {
+				dq.releaseTransaction(tran);
+			}
+		}
+		
+	}
+
+	public List<CustomFieldData> getAllCustomFieldTablesForEntityType(String entityTypeApplicant) throws SQLException {
+		DBPreparedQuery dq = null;
+		List<CustomFieldData> result = null;
+		try {
+			dq=new DBPreparedQuery("dCustomFieldManager_getAllCustomTablesForEntityType");
+			dq.setString(1, entityTypeApplicant);
+			result = dq.getResult();
+		} catch (SQLException e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+			throw e;
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return result;
+	}
+
+	public CustomFieldData getCustomFieldTableData(String customTableId) throws SQLException{
+		DBPreparedQuery dq = null;
+		CustomFieldData result = null;
+		try {
+			dq=new DBPreparedQuery("dCustomFieldManager_getCustomFieldTableData");
+			dq.setString(1, customTableId);
+			result = (CustomFieldData) dq.getSingleObjectResult();
+		} catch (SQLException e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+			throw e;
+		} finally {
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return result;
+	}
+
+	public void deleteCustomTable(String tableId) throws SQLException {
+		DBPreparedQuery dq = null;
+		DBTransaction tran = null;
+		CustomFieldData cData = getCustomFieldTableData(tableId);
+		try{
+			tran = new DBTransaction();
+			
+			
+			deleteCustomFieldTableMappingFromCustomApplicantValues(tableId,null,tran);
+			deleteCustomFieldTableColumnMapping(tableId,null,tran);
+			
+			dq = new DBPreparedQuery("dCustomFieldManager_deleteCustomFieldTable",tran);
+			dq.setString(1,tableId);
+			dq.execute();
+			
+			dq = new DBPreparedQuery("dCustomFieldManager_deleteCustomFieldTableColumns",tran);
+			dq.setNull(1, Types.NULL);
+			dq.setString(2,tableId);
+			dq.execute();
+			
+			dq = new DBPreparedQuery("dCustomFieldManager_DeleteCustomFieldFromImportScreen", tran);
+			dq.setString(1, cData.getFieldDisplayName());
+			dq.execute();
+
+			tran.commit();
+			
+			ImportConfigurationManager.reloadImportFieldsMaps();
+		}catch (SQLException e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+			tran.rollback();
+			throw e;
+		} catch (Exception e) {
+			throw e;
+		} finally {
+			if (dq != null) {
+				dq.releaseTransaction(tran);
+			}
+		}
+	}
+	
+	
+	public void deleteCustomFieldTableColumnMapping(String tableId ,String customFieldId, DBTransaction tran) throws SQLException{
+		DBPreparedQuery dq = null;
+		String[] dynParams = new String[1];
+		if(!Utils.isBlankOrNull(customFieldId)){
+			dynParams[0] = "AND custom_field_id = "+ customFieldId+" ";
+		}else{
+			dynParams[0]=" ";
+		}
+		dq= new DBPreparedQuery("dCustomFieldManager_deleteCustomFieldTableColumnMapping",dynParams,tran);
+		dq.setString(1, tableId);
+		dq.execute();
+	}
+	
+
+	public void deleteCustomFieldTableMappingFromCustomApplicantValues(String tableId ,String customFieldId, DBTransaction tran) throws SQLException{
+		DBPreparedQuery dq = null;
+		String[] dynParams = new String[1];
+		if(!Utils.isBlankOrNull(customFieldId)){
+			dynParams[0] = "AND custom_field_id = "+ customFieldId+" ";
+		}else{
+			dynParams[0]=" ";
+		}
+		dq= new DBPreparedQuery("dCustomFieldManager_deleteCustomFieldTableMappingFromCustomApplicantValues",dynParams,tran);
+		dq.setString(1,tableId);
+		dq.execute();
+	}
+	
+	/**
+	 * @param tableName
+	 * @return custom table id from custom table name
+	 */
+	public String getTableIdFromTableName(String tableName){
+		DBPreparedQuery dq = null;
+		String result = null;
+		try{
+			dq = new DBPreparedQuery("dCustomFieldManager_getTableIdFromTableName");
+			dq.setString(1,tableName);
+			result = dq.getIdResult();
+		}catch(SQLException e){
+			TPLogger.getLogger().error("error fetching custom table id from table  name",e);
+		}finally{
+			if (dq != null) {
+				dq.releaseConnection();
+			}
+		}
+		return result;
+	}
+	
+}

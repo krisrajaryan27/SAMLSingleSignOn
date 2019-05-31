@@ -1,0 +1,4 @@
+Interview Reminder
+Time:$APPOINTMENT_DATE
+Company:$COMPANY_NAME
+Contact person:$CONTACT_PERSON_FNAME $CONTACT_PERSON_LNAME

@@ -1,0 +1,12 @@
+<s:if test="hasActionErrors()">
+	<div style="margin-bottom: 5px;" >
+		<table id="m_errortable">
+			<tr>
+				<td>Error</td>
+			</tr>  
+			<tr>
+			   <td><s:actionerror /></td>
+			</tr>  
+		</table>
+	</div>
+</s:if>	

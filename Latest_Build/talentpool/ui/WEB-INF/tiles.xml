@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ 
+<!DOCTYPE tiles-definitions PUBLIC
+"-//Apache Software Foundation//DTD Tiles Configuration 2.0//EN"
+"http://tiles.apache.org/dtds/tiles-config_2_0.dtd">
+ 
+<tiles-definitions>
+
+	<definition name="oneColumnTemplate" template="templates/struts2/oneColumnTemplate.jsp">
+		<put-attribute name="pageTitle" value="TalentPool" />
+		<put-attribute name="topPane" value="/common/topPane.jsp" />
+	</definition>
+	
+	<definition name="twoColumnTemplate" template="templates/struts2/twoColumnTemplate.jsp">
+		<put-attribute name="pageTitle" value="TalentPool" />
+		<put-attribute name="topPane" value="/common/topPane.jsp" />
+	</definition>
+	
+	<definition name="popupWindowTemplate" template="templates/struts2/popupWindowTemplate.jsp">
+	</definition>
+	
+	<definition name="mastersTemplate" extends="twoColumnTemplate" >
+		<put-attribute name="leftPane" value="/masters/leftPane.jsp" />
+	</definition>
+	
+	<definition name="addNewReport" extends="twoColumnTemplate" >
+		<put-attribute name="leftPane" value="/reports/reportLeftPane.jsp" />
+		<put-attribute name="mainPane" value="/reports/customReports/selectReportCategory.jsp" />
+	</definition>
+	
+	<definition name="customizeReport" extends="oneColumnTemplate" >
+		<put-attribute name="mainPane" value="/reports/customReports/customizeReport.jsp" />
+	</definition>
+	
+	<definition name="selectReportColumns" extends="twoColumnTemplate" >
+		<put-attribute name="leftPane" value="/reports/reportLeftPane.jsp" />
+		<put-attribute name="mainPane" value="/reports/customReports/selectReportColumns.jsp" />
+	</definition>
+	
+	<definition name="selectReportGrouping" extends="twoColumnTemplate" >
+		<put-attribute name="leftPane" value="/reports/reportLeftPane.jsp" />
+		<put-attribute name="mainPane" value="/reports/customReports/selectReportGrouping.jsp" />
+	</definition>
+	
+	<definition name="candidateNamesSpecification" extends="oneColumnTemplate" >
+		<put-attribute name="mainPane" value="/reports/customReports/candidateNamesSpecification.jsp" />
+	</definition>
+	
+	<definition name="configureReportTotals" extends="oneColumnTemplate" >
+		<put-attribute name="mainPane" value="/reports/customReports/configureReportTotals.jsp" />
+	</definition>
+	
+	<definition name="selectFilters" extends="oneColumnTemplate" >
+		<put-attribute name="mainPane" value="/reports/customReports/selectFilters.jsp" />
+	</definition>
+	
+	<definition name="templateSaved" extends="twoColumnTemplate" >
+		<put-attribute name="leftPane" value="/reports/reportLeftPane.jsp" />
+		<put-attribute name="mainPane" value="/reports/customReports/templateSaved.jsp" />
+	</definition>
+	
+	<definition name="reportMain" extends="oneColumnTemplate" >
+		<put-attribute name="mainPane" value="/reports/customReports/reportMain.jsp" />
+	</definition>
+	
+	<definition name="migrationMessage" extends="oneColumnTemplate" >
+		<put-attribute name="mainPane" value="/reports/customReports/migrationmessage.jsp" />
+	</definition>
+	
+	<definition name="manageResumeTypeMaster" extends="twoColumnTemplate" >
+		<put-attribute name="leftPane" value="/masters/leftPane.jsp" />
+		<put-attribute name="mainPane" value="/masters/manageResumeTypeMaster.jsp" />
+	</definition>
+	
+	<definition name="manageSecurityQuestionMaster" extends="twoColumnTemplate" >
+		<put-attribute name="leftPane" value="/masters/leftPane.jsp" />
+		<put-attribute name="mainPane" value="/masters/manageSecurityQuestionMaster.jsp" />
+	</definition>
+	
+	<definition name="addSecurityQuestion" extends="popupWindowTemplate" >
+		<put-attribute name="mainPane" value="/masters/addSecurityQuestion.jsp" />
+	</definition>
+	
+	<definition name="saveReport" extends="twoColumnTemplate" >
+		<put-attribute name="leftPane" value="/reports/reportLeftPane.jsp" />
+		<put-attribute name="mainPane" value="/reports/customReports/saveReport.jsp" />
+	</definition>
+	
+	<definition name="saveAsReport" extends="twoColumnTemplate">
+		<put-attribute name="leftPane" value="/reports/reportLeftPane.jsp" />
+		<put-attribute name="mainPane" value="/reports/customReports/saveReport.jsp" />
+	</definition>
+	
+	<definition name="modifyColumns" extends="twoColumnTemplate" >
+		<put-attribute name="leftPane" value="/reports/reportLeftPane.jsp" />
+		<put-attribute name="mainPane" value="/reports/customReports/modifyColumnSelection.jsp" />
+	</definition>
+	
+	<definition name="stepsMigrationStatus" extends="mastersTemplate" >
+		<put-attribute name="mainPane" value="/stepsMigration/stepsMigrationStatus.jsp" />
+	</definition>
+	
+	<definition name="migrationDisclaimer" extends="mastersTemplate" >
+		<put-attribute name="mainPane" value="/stepsMigration/migrationDisclaimer.jsp" />
+	</definition>
+	
+	<definition name="stepsMigrationWizard" extends="mastersTemplate" >
+		<put-attribute name="mainPane" value="/stepsMigration/stepsMigrationWizard.jsp" />
+	</definition>
+	
+	<definition name="migrationExceptionsScreen" extends="mastersTemplate" >
+		<put-attribute name="mainPane" value="/stepsMigration/migrationExceptionsScreen.jsp" />
+	</definition>
+	
+	<definition name="positionMigrationScreen" extends="popupWindowTemplate" >
+		<put-attribute name="mainPane" value="/stepsMigration/positionMigrationScreen.jsp" />
+	</definition>
+	
+	<definition name="hidePopUp" extends="popupWindowTemplate" >
+		<put-attribute name="mainPane" value="/stepsMigration/hidePopUp.jsp" />
+	</definition>
+	
+	<definition name="addResumeType" extends="popupWindowTemplate" >
+		<put-attribute name="mainPane" value="/masters/addResumeType.jsp" />
+	</definition>
+	
+	<definition name="customFieldReportMapping" extends="popupWindowTemplate" >
+		<put-attribute name="mainPane" value="/custom/customFieldReportMapping.jsp" />
+	</definition>
+	
+	<definition name="manageSummaryReportScheduler" extends="twoColumnTemplate" >
+		<put-attribute name="leftPane" value="/admin/leftPane.jsp" />
+		<put-attribute name="mainPane" value="/admin/manageSummaryReportScheduler.jsp" />
+	</definition>
+	<definition name="managePositionStatusScheduler" extends="twoColumnTemplate" >
+		<put-attribute name="leftPane" value="/admin/leftPane.jsp" />
+		<put-attribute name="mainPane" value="/admin/managePositionStatusScheduler.jsp" />
+	</definition>
+	<definition name="offerProposalScreen" extends="popupWindowTemplate" >
+		<put-attribute name="mainPane" value="/salaryStructure/offerProposal/offerProposalScreen.jsp" />
+	</definition>
+	
+	<definition name="manageEmployerMaster" extends="twoColumnTemplate" >
+		<put-attribute name="leftPane" value="/masters/leftPane.jsp" />
+		<put-attribute name="mainPane" value="/masters/manageEmployerMaster.jsp" />
+	</definition>
+	
+	<definition name="addEmployer" extends="popupWindowTemplate" >
+		<put-attribute name="mainPane" value="/masters/addEmployer.jsp" />
+	</definition>
+		
+	<definition name="manageDesignationMaster" extends="twoColumnTemplate" >
+		<put-attribute name="leftPane" value="/masters/leftPane.jsp" />
+		<put-attribute name="mainPane" value="/masters/manageDesignationMaster.jsp" />
+	</definition>
+	
+	<definition name="addDesignation" extends="popupWindowTemplate" >
+		<put-attribute name="mainPane" value="/masters/addDesignation.jsp" />
+	</definition>
+	
+	<definition name="manageSalCompCategory" extends="twoColumnTemplate" >
+		<put-attribute name="leftPane" value="/masters/leftPane.jsp" />
+		<put-attribute name="mainPane" value="/masters/salCompCategory/manageSalCompCategory.jsp" />
+	</definition>
+	
+	<definition name="addEditSalCompCategory" extends="popupWindowTemplate" >
+		<put-attribute name="mainPane" value="/masters/salCompCategory/addEditSalCompCategory.jsp" />
+	</definition>
+	
+	<definition name="manageApplicantOfferGeneration" extends="popupWindowTemplate" >
+		<put-attribute name="mainPane" value="/salaryStructure/manageApplicantOfferGeneration.jsp" />
+	</definition>
+	
+	<definition name="manageApplicantOfferDetails" extends="popupWindowTemplate" >
+		<put-attribute name="mainPane" value="/salaryStructure/manageApplicantOfferDetails.jsp" />
+	</definition>
+	
+	<definition name="offerTemplateVariableMapping" extends="popupWindowTemplate" >
+		<put-attribute name="mainPane" value="/salaryStructure/offerTemplateVariableMapping.jsp" />
+	</definition>
+	
+	<definition name="offerGeneratedMessage" extends="popupWindowTemplate" >
+		<put-attribute name="mainPane" value="/salaryStructure/offerGeneratedMessage.jsp" />
+	</definition>
+	
+	<definition name="socialSettings" extends="twoColumnTemplate" >
+		<put-attribute name="leftPane" value="/admin/leftPane.jsp" />
+		<put-attribute name="mainPane" value="/admin/socialSettings.jsp" />
+	</definition>
+	
+	<definition name="manageUserScheduler" extends="twoColumnTemplate" >
+		<put-attribute name="leftPane" value="/admin/leftPane.jsp" />
+		<put-attribute name="mainPane" value="/admin/manageUserScheduler.jsp" />
+	</definition>
+	
+</tiles-definitions>

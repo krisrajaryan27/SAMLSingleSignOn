@@ -1,0 +1,30 @@
+.contextMenu{
+	font-family:Verdana; font-size:8pt;
+	padding:3px 10px 3px 2px;
+	margin: 0px 1px 0px 1px;
+	text-align:left;
+	cursor:default;	
+	background-color:#FFFFFF;
+}
+
+.contextMenuOver, .contextMenuDown{
+	font-family:Verdana; font-size:8pt;
+	padding:3px 10px 3px 2px;
+	margin: 0px 1px 0px 1px;
+	text-align:left;
+	background-color:#9EAC64;
+	color:white; 
+	cursor:default;
+}
+.contextMenuOver td{ 
+	color:white;  
+}
+.menuTable{
+	border-top:1px solid #DDEBA5;
+	border-right:2px solid #265644;
+	border-bottom:2px solid #265644;
+	border-left:1px solid #DDEBA5;
+	margin : 0px 0px 0px 0px;
+	padding : 3px 1px 4px 1px;
+	background-color:#FFFFFF;
+}

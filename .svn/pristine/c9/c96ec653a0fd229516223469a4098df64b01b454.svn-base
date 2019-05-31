@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<dbmap> 
+	<dbqueries>	
+		<dbquery name="qCustomizedReportManager_GetAllReports">
+			SELECT report_id, report_name, report_label, report_jrxml, report_jsp
+			FROM tp_customization_reports
+		</dbquery>
+		<dbquery name="qCustomizedReportManager_GetAllReportsForUser">
+		    SELECT tcr.report_id, tcr.report_name, tcr.report_label, tcr.report_jrxml, tcr.report_jsp
+			FROM tp_customization_reports tcr 
+				JOIN tp_report_levels trl ON (tcr.report_id = trl.report_id AND trl.report_type = ?)
+				JOIN tp_report_level_user trlu ON (trl.level_id = trlu.level_id)
+			WHERE trlu.user_id = ?
+		</dbquery>
+		<dbquery name="qCustomizedReportManager_GetCustomizedReportDataForReport">
+		    SELECT report_id, report_name, report_label, report_jrxml, report_jsp 
+		    FROM tp_customization_reports WHERE report_name = ?
+		</dbquery>
+	</dbqueries>
+	<dataqueries>
+	    <dataquery name="dCustomizedReportManager_GetAllReports" dbquery="qCustomizedReportManager_GetAllReports" object="com.talentPool.reports.dataobject.CustomizedReportData">
+	    	<attribute name= "reportId" column="report_id" type ="INT" />
+	    	<attribute name= "reportName" column="report_name" type ="STRING" />
+	    	<attribute name= "reportLabel" column="report_label" type ="STRING" />
+	    	<attribute name= "reportJrxml" column="report_jrxml" type ="STRING" />
+	    	<attribute name= "reportJsp" column="report_jsp" type ="STRING" />	    	
+	    </dataquery>
+	    <dataquery name="dCustomizedReportManager_GetAllReportsForUser" dbquery="qCustomizedReportManager_GetAllReportsForUser" object="com.talentPool.reports.dataobject.CustomizedReportData">
+	    	<attribute name= "reportId" column="report_id" type ="INT" />
+	    	<attribute name= "reportName" column="report_name" type ="STRING" />
+	    	<attribute name= "reportLabel" column="report_label" type ="STRING" />
+	    	<attribute name= "reportJrxml" column="report_jrxml" type ="STRING" />
+	    	<attribute name= "reportJsp" column="report_jsp" type ="STRING" />	    	
+	    </dataquery>
+	    <dataquery name="dCustomizedReportManager_GetCustomizedReportDataForReport" dbquery="qCustomizedReportManager_GetCustomizedReportDataForReport" object="com.talentPool.reports.dataobject.CustomizedReportData">
+	        <attribute name= "reportId" column="report_id" type ="INT" />
+	    	<attribute name= "reportName" column="report_name" type ="STRING" />
+	    	<attribute name= "reportLabel" column="report_label" type ="STRING" />
+	    	<attribute name= "reportJrxml" column="report_jrxml" type ="STRING" />
+	    	<attribute name= "reportJsp" column="report_jsp" type ="STRING" />
+	    </dataquery>
+	</dataqueries>    
+</dbmap>

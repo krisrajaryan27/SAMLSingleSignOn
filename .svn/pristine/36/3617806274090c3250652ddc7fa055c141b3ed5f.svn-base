@@ -1,0 +1,109 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+   <dbqueries>
+       <dbquery name="qBranchExportManager_GetData">
+			SELECT tpb.branch_name as fld0, tba.alias as fld1, tbaa.alias as fld2, tbab.alias as fld3
+			FROM tp_branches tpb
+			LEFT JOIN tp_branch_aliases tba ON(tpb.branch_id=tba.branch_id)
+			LEFT JOIN tp_branch_aliases tbaa ON(tpb.branch_id=tbaa.branch_id AND tba.alias != tbaa.alias)
+			LEFT JOIN tp_branch_aliases tbab ON (tpb.branch_id=tbab.branch_id AND tbab.alias != tbaa.alias AND tbab.alias != tba.alias)
+			@@
+			group by tpb.branch_id			
+			ORDER BY "fld1" ASC
+       </dbquery>
+       <dbquery name="qDegreeExportManager_GetData">
+       		SELECT tpd.degree_title as fld0, tda.alias as fld1, tdaa.alias as fld2, tdab.alias as fld3, 
+       		CASE 
+			WHEN tpd.degree_type=? THEN 'UG' 
+			WHEN tpd.degree_type=? THEN 'PG' 
+			ELSE ''
+			END as fld4
+			FROM tp_degrees tpd
+			LEFT JOIN tp_degree_aliases tda ON(tpd.degree_id=tda.degree_id)
+			LEFT JOIN tp_degree_aliases tdaa ON(tpd.degree_id=tdaa.degree_id AND tda.alias != tdaa.alias)
+			LEFT JOIN tp_degree_aliases tdab ON (tpd.degree_id=tdab.degree_id AND tdab.alias != tdaa.alias AND tdab.alias != tda.alias)
+			@@
+			group by tpd.degree_id			
+			ORDER BY "fld1" ASC
+       </dbquery>
+       <dbquery name="qInstituteExportManager_GetData">
+			SELECT tpi.institute_name as fld0, tia.alias as fld1, tiaa.alias as fld2, tiab.alias as fld3
+			FROM tp_institutes tpi
+			LEFT JOIN tp_institute_aliases tia ON(tpi.institute_id=tia.institute_id)
+			LEFT JOIN tp_institute_aliases tiaa ON(tpi.institute_id=tiaa.institute_id AND tia.alias != tiaa.alias)
+			LEFT JOIN tp_institute_aliases tiab ON (tpi.institute_id=tiab.institute_id AND tiab.alias != tiaa.alias AND tiab.alias != tia.alias)
+			@@
+			group by tpi.institute_id
+			ORDER BY "fld1" ASC
+       </dbquery>
+       <dbquery name="qSkillExportManager_GetData">
+	      	SELECT tps.skill as fld0,tsc.skill_category_description as fld1, tsa.skill_alias as fld2, tsaa.skill_alias as fld3, tsab.skill_alias as fld4
+			FROM tp_skills tps
+			LEFT JOIN tp_skill_category tsc ON(tsc.skill_category_id=tps.skill_category_id)
+			LEFT JOIN tp_skills_aliases tsa ON(tsa.skill_id=tps.skill_id)
+			LEFT JOIN tp_skills_aliases tsaa ON(tsaa.skill_id=tps.skill_id AND tsa.skill_alias != tsaa.skill_alias)
+			LEFT JOIN tp_skills_aliases tsab ON (tsab.skill_id=tps.skill_id AND tsab.skill_alias != tsaa.skill_alias AND tsab.skill_alias != tsa.skill_alias)				
+			@@
+			group by tps.skill_id				
+			ORDER BY tps.skill
+       </dbquery>
+        <dbquery name="qSourceExportManager_GetData">
+	      	SELECT tps.source_title as fld0, tst.source_type as fld1, tps.source_email as fld2, tps.source_phone  as fld3, tps.source_mobile  as fld4, tps.employee_code  as fld5, 
+			CASE WHEN tps.is_send_email_to_source = 1 THEN 'Yes' ELSE 'No' END  as fld6, CASE WHEN tps.is_send_sms_to_source = 1 THEN 'Yes' ELSE 'No' END  as fld7,concat(tps.lock_in_period_on_import,' mos')  as fld8
+			FROM tp_sources tps
+			LEFT JOIN tp_source_types tst ON (tst.source_type_id=tps.source_type_id)
+			@@
+       </dbquery>       
+       <dbquery name="qLocationExportManager_GetData">
+	      	SELECT location_name as fld0
+			FROM tp_location_ap
+			@@
+			ORDER BY location_name
+       </dbquery>
+   </dbqueries>
+   <dataqueries>   		   	   
+   	   <dataquery name="dBranchExportManager_GetData" dbquery="qBranchExportManager_GetData" object="com.talentPool.common.db.SimpleDataObject">
+       		<attribute name="fld0" column="fld0" type="INT"/>
+			<attribute name="fld1" column="fld1" type="INT"/>
+			<attribute name="fld2" column="fld2" type="INT"/>
+			<attribute name="fld3" column="fld3" type="INT"/>
+       </dataquery>
+       <dataquery name="dDegreeExportManager_GetData" dbquery="qDegreeExportManager_GetData" object="com.talentPool.common.db.SimpleDataObject">
+       		<attribute name="fld0" column="fld0" type="INT"/>
+			<attribute name="fld1" column="fld1" type="INT"/>
+			<attribute name="fld2" column="fld2" type="INT"/>
+			<attribute name="fld3" column="fld3" type="INT"/>
+			<attribute name="fld4" column="fld4" type="INT"/>
+       </dataquery>
+       <dataquery name="dInstituteExportManager_GetData" dbquery="qInstituteExportManager_GetData" object="com.talentPool.common.db.SimpleDataObject">
+       		<attribute name="fld0" column="fld0" type="INT"/>
+			<attribute name="fld1" column="fld1" type="INT"/>
+			<attribute name="fld2" column="fld2" type="INT"/>
+			<attribute name="fld3" column="fld3" type="INT"/>
+       </dataquery>
+       <dataquery name="dSkillExportManager_GetData" dbquery="qSkillExportManager_GetData" object="com.talentPool.common.db.SimpleDataObject">
+       		<attribute name="fld0" column="fld0" type="INT"/>
+			<attribute name="fld1" column="fld1" type="INT"/>
+			<attribute name="fld2" column="fld2" type="INT"/>
+			<attribute name="fld3" column="fld3" type="INT"/>
+			<attribute name="fld4" column="fld4" type="INT"/>		
+       </dataquery>
+       <dataquery name="dSourceExportManager_GetData" dbquery="qSourceExportManager_GetData" object="com.talentPool.common.db.SimpleDataObject">
+       		<attribute name="fld0" column="fld0" type="INT"/>
+			<attribute name="fld1" column="fld1" type="INT"/>
+			<attribute name="fld2" column="fld2" type="INT"/>
+			<attribute name="fld3" column="fld3" type="INT"/>
+			<attribute name="fld4" column="fld4" type="INT"/>	
+			<attribute name="fld5" column="fld5" type="INT"/>
+			<attribute name="fld6" column="fld6" type="INT"/>
+			<attribute name="fld7" column="fld7" type="INT"/>
+			<attribute name="fld8" column="fld8" type="INT"/>
+       </dataquery>
+       <dataquery name="dLocationExportManager_GetData" dbquery="qLocationExportManager_GetData" object="com.talentPool.common.db.SimpleDataObject">
+       		<attribute name="fld0" column="fld0" type="INT"/>
+       </dataquery>
+   </dataqueries>   
+</dbmap>

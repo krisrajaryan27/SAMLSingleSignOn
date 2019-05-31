@@ -1,0 +1,204 @@
+<%--
+
+
+ --%>
+<%@page import="com.talentPool.reports.ReportConstants"%>
+<script type="text/javascript">
+var selectPositionOwnerFilter = null;
+</script>
+<table class="innerReport">
+	<tr>
+		<td class="label">
+			<bean:message key="global.position_owner" />:&nbsp;
+		</td>
+		<td>
+			<script type="text/javascript">
+				var opts = new Array();
+				opts[0] = new SelectOption('<%=ReportConstants.FILTER_ALL%>','<bean:message key="common.all"/>');
+				opts[1] = new SelectOption('<%=ReportConstants.FILTER_SPECIFIC_POSITION_OWNER%>','<bean:message key="global.position_owner"/>');
+				selectPositionOwnerFilter = new SelectBox(opts,'<%=ReportConstants.FILTER_ALL%>','images/btn_dropdown.gif',{namesonly:false, width:'180px', size:20});
+				document.write(selectPositionOwnerFilter.getHtml());
+				selectPositionOwnerFilter.setOnChangeHandler('onChangePositionOwnerFilter');
+				selectPositionOwnerFilter.init();
+			</script>
+		</td>
+	</tr>
+</table>	
+<div id="pOwnerFilterDiv" style="display: none;">
+<table class="innerCustomReport" cellspacing="0" cellpadding="0" border="0">
+	<tr>
+		<td style="height: 100px; padding-top: 10px;"  >
+			<table cellspacing="0" cellpadding="0" border="0">
+				<tr>
+					<td>
+						<table cellpadding="0" cellspacing="0">
+							<tr>
+								<td>
+									<input id="pOwnersFilter" name="pOwnersFilter" type="text" size="45" value="Filter" style="color: grey; border-bottom: 0px;" onclick="onFilterFocus('pOwnersFilter','Filter');" onblur="onFilterUnfocus('pOwnersFilter','Filter')"/>
+								</td>
+							</tr>
+							<tr>
+								<td class="gridborder" width="300px;">
+									<div id="POWNERS_FILTER_GRID" style="width:320px; height: 80px; overflow: visible;"></div>
+								</td>
+							</tr>
+						</table>
+					</td>
+					<td width="42px" align="center">	<a href="#" onclick="javascript: selectItem(pOwnersFilter,selectedPOwnersFilter);return false;" title="<bean:message key='common.add' />" >
+							<img src="images/ico_rightarrow.gif"  border="0" />
+						</a>
+						<br/> 
+						<a href="#" onclick="javascript: deselectItem(selectedPOwnersFilter,pOwnersFilter);return false;" title="<bean:message key='common.remove' />" >
+							<img src="images/ico_leftarrow.gif"  border="0" />
+						</a>  </td>
+					<td >
+						<table cellpadding="0" cellspacing="0">
+							<tr>
+								<td class="gridborder">
+									<div id="SELECTED_POWNERS_FILTER_GRID" style="width:320px;height: 100px; overflow: visible;"></div>
+								</td>
+							</tr>
+						</table>
+					</td>
+				</tr>
+			</table>
+		</td>
+	</tr>
+</table>
+</div>
+<script type="text/javascript">
+/**
+ * Position owner Filter Gird 
+ */
+var pOwnersFilter = null;
+var selectedPOwnersFilter = null;
+
+function initPOwnersFilter() {	
+	pOwnersFilter = new dhtmlXGridObject('POWNERS_FILTER_GRID'); 
+	pOwnersFilter.imgURL = "images/"; 
+	pOwnersFilter.setHeader('<bean:message key="global.position_owner" />'); 
+	pOwnersFilter.setInitWidths("300");
+	pOwnersFilter.setNoHeader(true);
+	pOwnersFilter.setColAlign("left");
+	pOwnersFilter.setColTypes("ro");
+	//pOwnersFilter.setColSorting("requisition_userName_sort");
+	//pOwnersFilter.enableMultiselect('true');	
+	pOwnersFilter.init();
+	loadPOwnersFilterGrid();	
+	pOwnersFilter.sortRows(0,'str',"asc");
+	//pOwnersFilter.attachEvent("onXLE",doOnLoadingEndRequisitioner);
+	pOwnersFilter.attachEvent("onKeyPress",onPOwnersFilterKeyPressed);
+	pOwnersFilter.attachEvent("onRowSelect",doOnPOwnersFilterGridRowSelectHandler);
+	pOwnersFilter.attachEvent("onRowDblClicked",doOnPOwnersFilterGirdRowDblClicked);
+	
+	pOwnersFilter.gridToGrid = function(rowId,sgrid,tgrid){
+	    var z=new Array();
+		for(var i=0;i<sgrid.hdr.rows[0].cells.length;i++)
+		z[i]=sgrid.cells(rowId,i).getValue();
+		return z;
+	}	
+}
+
+function initSelectedPOwnersFilter(){
+	selectedPOwnersFilter = new dhtmlXGridObject('SELECTED_POWNERS_FILTER_GRID'); 
+	selectedPOwnersFilter.imgURL = "images/"; 
+	selectedPOwnersFilter.setHeader('<bean:message key="global.position_owner" />'); 
+	selectedPOwnersFilter.setInitWidths("300");
+	selectedPOwnersFilter.setColAlign("left");
+	selectedPOwnersFilter.setColTypes("ro"); 	
+	//selectedPOwnersFilter.enableMultiselect('true');
+	selectedPOwnersFilter.setNoHeader(true);
+	//selectedPOwnersFilter.setColSorting("requisition_userName_sort");
+	selectedPOwnersFilter.init();
+	selectedPOwnersFilter.sortRows(0,'str',"asc");
+	selectedPOwnersFilter.setSortImgState(true,0,"ASC");	
+	selectedPOwnersFilter.gridToGrid = function(rowId,sgrid,tgrid){
+	    var z=new Array();
+		for(var i=0;i<sgrid.hdr.rows[0].cells.length;i++)
+		z[i]=sgrid.cells(rowId,i).getValue();
+		return z;
+	}
+	selectedPOwnersFilter.attachEvent("onKeyPress",onSelectedPOwnersFilterKeyPressed);
+	selectedPOwnersFilter.attachEvent("onRowSelect",doOnSelectedPOwnersFilterGridRowSelectHandler);
+	selectedPOwnersFilter.attachEvent("onRowDblClicked",doOnSelectedPOwnersFilterGridRowDblClicked);
+}
+
+function loadPOwnersFilterGrid(){
+	 var url = 'reports.do?mode=getPositionOwnersXML';
+	 var filterId = selectFilter.getSelectedId();
+	 url+="&filterId="+filterId;
+	 if(filterId=="<%=ReportConstants.FILTER_SPECIFIC_POSITION%>"){
+		if(selectPosition.getSelectedId()!="-1"){
+			url+="&positionId="+selectPosition.getSelectedId();
+		}
+	}else if(filterId=="<%=ReportConstants.FILTER_SPECIFIC_DEPARTMENT%>"){
+		if(selectBoxDepartment.getSelectedId()!="-1"){
+			url+="&departmentId="+selectBoxDepartment.getSelectedId();
+		}
+		if(selectBoxSubDepartment.getSelectedId()!="-1"){
+			url+="&subDepartmentId="+selectBoxSubDepartment.getSelectedId();
+		}
+		if(selectBoxSubSubDepartment.getSelectedId()!="-1"){
+			url+="&subSubDepartmentId="+selectBoxSubSubDepartment.getSelectedId();
+		}
+	}
+	pOwnersFilter.loadXML(url);
+}
+
+function onPOwnersFilterKeyPressed(keyCode,ctrl,shift) {	
+	var text = (pOwnersFilter.cells(pOwnersFilter.getSelectedId(),0)).getValue();
+	selectedPOwnersFilter.clearSelection();
+	onGridObjKeyPressed(pOwnersFilter,selectedPOwnersFilter,4,keyCode,ctrl,shift);
+	if(keyCode=='13'){
+		removeIdFromBackUp(pOwnersFilter, text);
+	}
+}
+
+function onSelectedPOwnersFilterKeyPressed(keyCode,ctrl,shift) {
+	pOwnersFilter.clearSelection();
+	onGridObjKeyPressed(selectedPOwnersFilter,pOwnersFilter,4,keyCode,ctrl,shift);
+	if(keyCode=='13'){
+		resetFilterBackUp(pOwnersFilter);
+	}
+}
+
+function doOnPOwnersFilterGridRowSelectHandler() {
+	selectedPOwnersFilter.clearSelection();
+}
+function doOnSelectedPOwnersFilterGridRowSelectHandler() {
+	 pOwnersFilter.clearSelection();
+}
+
+function doOnPOwnersFilterGirdRowDblClicked() {	
+	var text = (pOwnersFilter.cells(pOwnersFilter.getSelectedId(),0)).getValue();
+	selectItem(pOwnersFilter,selectedPOwnersFilter);
+	removeIdFromBackUp(pOwnersFilter, text);	
+}
+
+function doOnSelectedPOwnersFilterGridRowDblClicked() {	
+	selectItem(selectedPOwnersFilter,pOwnersFilter);
+	resetFilterBackUp(pOwnersFilter);
+}
+
+function onPOwnersCriteriaChange(event){
+	var iKeyCode = event.keyCode;
+	switch(iKeyCode) {
+		case Event.KEY_UP:
+		case Event.KEY_DOWN: 
+		break;
+		case Event.KEY_PAGEUP:
+		case Event.KEY_PAGEDOWN:
+		break;
+		case Event.KEY_RETURN:
+		break;
+		default:
+		if((iKeyCode>=48 && iKeyCode<=90) || (iKeyCode>=96 && iKeyCode<=105) || iKeyCode==Event.KEY_BACKSPACE || iKeyCode==Event.KEY_DELETE){
+			pOwnersFilter.filterBy(0, $('pOwnersFilter').value, false);		
+		}
+	}
+}
+
+/**
+ * END Position Owner Filter Gird 
+ */
+</script>

@@ -1,0 +1,489 @@
+<?xml version="1.0"?>
+<dbmap> 
+<dbqueries>
+		<dbquery name="qDashboardManager_GetTotalSentMessagesForUser">
+			SELECT COUNT(*)
+			FROM tp_messages tm, tp_messages_to tmt, tp_users tu, tp_applicants ta
+			WHERE 
+			tm.applicant_id=ta.applicant_id 
+			AND tmt.message_to=tu.user_id
+			AND tm.message_id = tmt.message_id
+			AND tm.message_from =?
+			AND tmt.message_received_type=?
+			AND TO_DAYS(tm.message_date) &gt;= TO_DAYS(DATE_SUB(now(),INTERVAL ? DAY) )
+			@@
+		</dbquery>
+		<dbquery name="qDashboardManager_GetUpcomingEvents">
+			( select ta.applicant_id, ta.applicant_name, ta.applicant_original_resume_path, tp.position_id, tp.position_title,
+			tps.position_step_id, tps.position_step_title, tapp.appointment_from_date, tapp.appointment_id,
+			(select status_message from tp_applicant_status_messages tasm where tasm.applicant_id =ta.applicant_id order by status_message_id desc limit 0,1) as status_message, 
+			? as type
+			from
+			tp_applicants ta, tp_positions tp, tp_position_steps tps, tp_position_step_users tpsu,
+			tp_appointments tapp, tp_appointment_attendees tatt
+			where
+			ta.applicant_position_id = tp.position_id
+			AND ta.applicant_step_id = tps.position_step_id
+			AND ta.applicant_step_id = tpsu.position_step_id
+			AND tapp.applicant_id=ta.applicant_id
+			AND ta.applicant_position_id = tapp.position_id
+			AND ta.applicant_step_id  = tapp.position_step_id
+			AND tapp.appointment_id=tatt.appointment_id
+			AND tps.position_step_status=?
+			AND tp.position_status=?
+			AND ta.applicant_joined=?
+			AND tpsu.is_responsible_for_scheduling=?
+			AND tpsu.user_id=?
+			AND tatt.attendee_id=?
+			AND tapp.appointment_status_id !=?
+			AND tapp.appointment_from_date &gt; now()
+			@@
+			GROUP BY ta.applicant_id, ta.applicant_name, ta.applicant_original_resume_path, 
+			tp.position_id, tp.position_title, tps.position_step_id, 
+			tps.position_step_title, tapp.appointment_from_date, tapp.appointment_id, status_message
+			) @@
+			order by appointment_from_date desc
+		</dbquery>
+		<dbquery name="qDashboardManager_GetPositionSummaryDashBoard">
+		SELECT 
+		tp.position_id, tp.position_code, tp.position_title, tp.position_priority, 
+		tp.position_date_created, tp.position_no_of_openings, tp.position_status,
+		tp.position_referal_fees, tp.position_level, tp.position_type_ext_int,
+		tp.dept_name, tp.sub_dept_name, tp.sub_sub_dept_name,tp.sub4_dept_name,tp.sub3_dept_name, 
+		tp.band_name, tp.grade_name, 
+		tp.position_date_expiry, tp.position_owner_name, tp.requested_by_name, tp.recruiters,
+		GROUP_CONCAT(DISTINCT tp.location_name SEPARATOR ', ') AS location_name,
+		(select count(*) from tp_applicants ta ,tp_position_steps tps where ta.applicant_position_id=tp.position_id and 
+		ta.applicant_step_id=tps.position_step_id and tps.position_step_level=? ) as shortlistCandidates, 
+		(select count(*) from tp_applicants ta ,tp_position_steps tps where ta.applicant_position_id=tp.position_id and 
+		ta.applicant_step_id=tps.position_step_id and tps.position_step_level=? ) as selectCandidates,
+		(select count(*) from tp_applicants ta ,tp_position_steps tps where ta.applicant_position_id=tp.position_id and 
+		ta.applicant_step_id=tps.position_step_id and tps.position_step_level=?) as offered, 
+		(select count(*) from tp_applicant_joining_history ta where ta.position_id=tp.position_id) as joined, 
+		(select count(process_id) from tp_applicant_selection_process tasp  where tasp.position_step_id_to IN (?,?,?,?)
+		and tasp.position_id = tp.position_id ) as rejected, 
+		CAST(GROUP_CONCAT(tvp.custom_field_id, '===', IFNULL(tvp.string_value, IFNULL(tvp.number_value, tvp.date_value)) SEPARATOR '$$$') AS CHAR) AS custom_fields
+		FROM (
+            SELECT tp.position_id, tp.position_code, tp.position_title, tp.position_priority, 
+            tp.position_date_created, tp.position_no_of_openings, tp.position_status,
+            tp.position_referal_fees, tp.position_level, tp.position_type_ext_int,
+            td.dept_name as dept_name, tds.dept_name as sub_dept_name, tdss.dept_name as sub_sub_dept_name,
+            tds3.dept_name as sub3_dept_name,tds4.dept_name as sub4_dept_name,
+            tb.band_name, tg.grade_name, tl.location_name,
+            tp.position_date_expiry, CONCAT(tupo.user_fname, ' ', tupo.user_lname) AS position_owner_name,
+            CONCAT(tu1.user_fname, ' ', tu1.user_lname) AS requested_by_name,
+           	(select recruiters
+			from
+			(SELECT GROUP_CONCAT(DISTINCT recruiters) as recruiters , position_id
+			FROM
+			(SELECT DISTINCT CONCAT(tu.user_fname, ' ', tu.user_lname) as recruiters , tpi.position_id
+			FROM
+			tp_positions tpi left join tp_position_step_users tpsu on (tpsu.position_id = tpi.position_id and tpi.position_status='1') 
+			left join tp_user_roles tur on (tur.user_id = tpsu.user_id and tur.role_id=?)
+            left join tp_users tu on (tu.user_id = tur.user_id)
+            left join tp_position_steps tps on (tps.position_step_id = tpsu.position_step_id and tps.position_step_status=?)
+	
+			UNION
+			SELECT DISTINCT CONCAT(tu.user_fname, ' ', tu.user_lname) as recruiters , tpi.position_id
+			FROM  
+			tp_positions tpi
+
+              left join tp_users tu  on(tu.user_id = tpi.position_requested_by and tpi.position_status = '1')
+              left join tp_user_roles tur on (tur.user_id = tu.user_id and tur.role_id =?)
+			) A
+			group by position_id ) AMain where AMain.position_id = tp.position_id) AS recruiters
+            FROM tp_positions tp 
+            LEFT JOIN tp_departments td ON (tp.dept_id=td.dept_id)
+            LEFT JOIN tp_departments tds ON (tp.sub_dept_id=tds.dept_id)
+            LEFT JOIN tp_departments tdss ON (tp.sub_sub_dept_id=tdss.dept_id)
+            LEFT JOIN tp_departments tds3 ON (tp.sub3_dept_id=tds3.dept_id)
+            LEFT JOIN tp_departments tds4 ON (tp.sub4_dept_id=tds4.dept_id)
+            LEFT JOIN tp_users tu1 ON (tp.position_requested_by=tu1.user_id)
+            LEFT JOIN tp_users tupo ON (tp.position_owner_id=tupo.user_id) 
+            LEFT JOIN tp_budget_grades tg ON (tp.grade_id=tg.grade_id) 
+            LEFT JOIN tp_budget_bands tb ON (tp.band_id=tb.band_id) 
+            LEFT JOIN tp_position_locations tpl ON (tpl.position_id = tp.position_id)
+            LEFT JOIN tp_location_ap tl ON (tpl.location_id = tl.location_id) 
+            WHERE tp.position_status=? 
+            @@
+            @@
+		)AS tp
+			LEFT JOIN tp_custom_field_values_position tvp ON (tvp.entity_id=tp.position_id) 
+            LEFT JOIN tp_custom_fields tcfp ON (tcfp.custom_field_id=tvp.custom_field_id)            
+		GROUP BY tp.position_id order by tp.position_priority desc,tp.position_title
+		</dbquery>
+		<dbquery name="qDashboardManager_GetPositionSummaryDetailsDashBoard">
+			select dept_name,CAST(group_concat(distinct dept_id) AS CHAR) as dept_id,
+				position_requested_by,requested_by_name,position_type_ext_int,
+				CASE WHEN position_owner_id IS NULL THEN 
+				? ELSE position_owner_id END AS position_owner_id,
+				CASE WHEN position_owner_id IS NULL THEN 
+				? ELSE position_owner_name END AS position_owner_name,
+				count(position_id) as count,
+				SUM(position_no_of_openings) as position_no_of_openings,
+				SUM(shortlistCandidates) as shortlistCandidates,
+				SUM(selectCandidates) as selectCandidates,
+				SUM(offered) as offered,
+				SUM(joined) as joined,
+				SUM(rejected) as rejected
+			from (
+			SELECT tp.position_id,tp.position_priority,tp.position_type_ext_int,
+			tp.position_requested_by, CONCAT(tu1.user_fname, ' ', tu1.user_lname) AS requested_by_name,
+			tp.position_owner_id, CONCAT(tupo.user_fname, ' ', tupo.user_lname) AS position_owner_name, 			
+			tp.position_no_of_openings,
+			(select count(*) from tp_applicants ta ,tp_position_steps tps where ta.applicant_position_id=tp.position_id and 
+			ta.applicant_step_id=tps.position_step_id and tps.position_step_level=? ) as shortlistCandidates,
+			(select count(*) from tp_applicants ta ,tp_position_steps tps where ta.applicant_position_id=tp.position_id and 
+			ta.applicant_step_id=tps.position_step_id and tps.position_step_level=? ) as selectCandidates,
+			(select count(*) from tp_applicants ta ,tp_position_steps tps where ta.applicant_position_id=tp.position_id and 
+			ta.applicant_step_id=tps.position_step_id and tps.position_step_level=?) as offered,
+			(select count(*) from tp_applicant_joining_history ta where ta.position_id=tp.position_id) as joined,
+			(SELECT count(*) FROM ( 	
+				SELECT * FROM tp_applicant_selection_process WHERE position_step_id_to IN (?,?,?,?)
+				) AS tasp WHERE tasp.position_id=tp.position_id
+			)AS rejected,
+			td.dept_name,td.dept_id 
+			from
+			tp_positions tp
+			LEFT JOIN tp_users tupo ON (tp.position_owner_id = tupo.user_id), 
+			tp_departments td, tp_users tu1  
+			where 
+			tp.@@=td.dept_id 
+			and tp.position_requested_by=tu1.user_id
+			and tp.position_status=?
+			@@
+			) as position_summary
+			@@
+			@@
+		</dbquery>
+		<dbquery name="qDashboardManager_GetPositionSummaryDetailsLocationGrouped">
+			select location_name,location_id,
+				count(position_id) as count,
+				SUM(position_no_of_openings) as position_no_of_openings,
+				SUM(shortlistCandidates) as shortlistCandidates,
+				SUM(selectCandidates) as selectCandidates,
+				SUM(offered) as offered,
+				SUM(joined) as joined,
+				SUM(rejected) as rejected
+			from (
+			SELECT tp.position_id,tp.position_priority,tpl.location_id,tl.location_name,
+			tp.position_no_of_openings,
+			(select count(*) from tp_applicants ta ,tp_position_steps tps where ta.applicant_position_id=tp.position_id and 
+			ta.applicant_step_id=tps.position_step_id and tps.position_step_level=? ) as shortlistCandidates,
+			(select count(*) from tp_applicants ta ,tp_position_steps tps where ta.applicant_position_id=tp.position_id and 
+			ta.applicant_step_id=tps.position_step_id and tps.position_step_level=? ) as selectCandidates,
+			(select count(*) from tp_applicants ta ,tp_position_steps tps where ta.applicant_position_id=tp.position_id and 
+			ta.applicant_step_id=tps.position_step_id and tps.position_step_level=?) as offered,
+			(select count(*) from tp_applicant_joining_history ta where ta.position_id=tp.position_id) as joined,
+			(SELECT count(*) FROM ( 	
+				SELECT * FROM tp_applicant_selection_process WHERE position_step_id_to IN (?,?,?,?)
+				) AS tasp WHERE tasp.position_id=tp.position_id
+			)AS rejected			
+			from
+			tp_positions tp,tp_position_locations tpl,tp_location_ap tl
+			where 
+			tp.position_status=?
+			AND tpl.position_id = tp.position_id
+			AND tpl.location_id=tl.location_id
+			@@
+			) as position_summary
+			group by location_name
+			order by location_name
+		</dbquery>
+		<dbquery name="qDashboardManager_GetMessagesForUser">
+			SELECT tm.message_id, tm.applicant_id,  tm.message_text, tm.message_date,
+			tu.user_id as messageFromId, 
+			CONCAT(tu.user_fname,' ',tu.user_lname) as messageFrom, ta.applicant_name, 
+			ta.applicant_original_resume_path, tmt.message_to
+			FROM tp_messages tm, tp_messages_to tmt, tp_users tu, tp_applicants ta
+			WHERE 
+			tm.applicant_id=ta.applicant_id 
+			AND tm.message_from=tu.user_id
+			AND tm.message_id = tmt.message_id
+			AND tmt.message_to =?
+			AND tmt.message_read = ?
+			@@
+			ORDER BY message_date desc
+		</dbquery>
+		<dbquery name="qDashboardManager_GetSentMessagesForUser">
+			SELECT tm.message_id, tm.applicant_id,  tm.message_text, tm.message_date,
+			CONCAT(tu.user_fname,' ',tu.user_lname) as messageTo, ta.applicant_name, 
+			ta.applicant_original_resume_path
+			FROM tp_messages tm, tp_messages_to tmt, tp_users tu, tp_applicants ta
+			WHERE 
+			tm.applicant_id=ta.applicant_id 
+			AND tmt.message_to=tu.user_id
+			AND tm.message_id = tmt.message_id
+			AND tm.message_from =?
+			AND tmt.message_received_type=?
+			AND TO_DAYS(tm.message_date) &gt;= TO_DAYS(DATE_SUB(now(),INTERVAL ? DAY) )
+			@@
+			ORDER BY message_date desc
+		</dbquery>
+		<dbquery name="qDashboardManager_MarkMessagesRead">
+			UPDATE tp_messages_to SET message_read =? WHERE message_id in(@@) AND message_to=?
+		</dbquery>
+		
+	    <!--Start: Dashboard Reminder -->
+	    <dbquery name="qDashboardManager_GetReminderListDashBoard">
+		    SELECT trem.reminder_id, trem.applicant_id, trem.reminder_date, trem.reminder_desc,
+			ta.applicant_name
+			FROM tp_reminder trem LEFT JOIN tp_applicants ta ON(trem.applicant_id=ta.applicant_id)
+			WHERE trem.user_id=?
+			ORDER BY trem.reminder_date 
+		</dbquery>
+	    <dbquery name="qDashboardManager_DeleteReminder">
+			DELETE FROM tp_reminder WHERE reminder_id=?
+		</dbquery>
+	    <!--End: Dashboard Reminder -->	    
+		<dbquery name="qDashboardManager_GetToDoList">
+			SELECT *, @@ FROM (	
+				SELECT 	applicant_id, applicant_name, position_id, position_code, position_title, step_name,
+					due_date, current_step_id, todo_type, action_type, null as email_id,
+					todo.flag_id
+				FROM 
+				(
+					SELECT *, count(*) AS number, CONVERT(sum(feedback_present), SIGNED) AS feedback
+					FROM (
+						SELECT 
+							todo.applicant_id, ta.applicant_name, 	
+							todo.position_id, tpos.position_code, tpos.position_title, 
+							tps.position_step_title AS step_name,
+							todo.due_date AS due_date,
+							todo.current_step_id, todo.todo_type, todo.feedback_present,		
+							
+							CASE WHEN tps.position_step_isscheduled =? THEN
+								CASE WHEN todo.appointment_time is null THEN 
+								      ?
+								ELSE
+									CASE WHEN todo.appointment_time &lt; now() THEN
+										CASE WHEN (todo.appointment_status_id !=? AND todo.appointment_status_id !=?) THEN
+											  ?
+										ELSE
+											  ?
+										END
+									ELSE 
+										?
+									END
+								END
+							ELSE
+							     ?
+							END AS action_type,
+						
+							CASE WHEN todo.step_isscheduled=? THEN 
+								CASE WHEN todo.appointment_time IS NULL THEN
+									IF(todo.user_responsible_for_scheduling=?,1,0)
+								ELSE
+									CASE WHEN todo.appointment_time &lt; now() THEN
+										CASE WHEN (todo.appointment_status_id !=? AND todo.appointment_status_id !=?) THEN
+											CASE WHEN todo.interviewer_can_confirm=? THEN
+												IF(todo.user_is_interviewer=? OR todo.user_responsible_for_scheduling=?,1,0)		
+											ELSE
+												IF(todo.user_responsible_for_scheduling=?,1,0)		
+											END
+										ELSE
+											IF(todo.user_is_interviewer=? OR todo.user_is_decision_maker=?,1,0)		
+										END
+									ELSE
+										IF(todo.user_is_interviewer=?,1,0)
+									END
+								END
+							ELSE 
+								1
+							END AS todoUser,
+							taf.flag_id
+	
+						FROM 
+							tp_todo todo ,tp_positions tpos ,tp_users tu, 
+							tp_position_steps tps, tp_applicants ta 
+							LEFT JOIN tp_applicant_flags taf ON (ta.applicant_id=taf.applicant_id)
+						WHERE 
+							todo.position_id=tpos.position_id
+							AND todo.current_step_id = tps.position_step_id
+							AND todo.applicant_id=ta.applicant_id
+							AND todo.user_id=tu.user_id
+							AND todo.todo_type=?
+							AND tpos.position_status = ?
+							AND todo.user_id=?
+							@@
+					) AS todo
+					WHERE todoUser=1
+					AND action_type!=?
+					GROUP BY todo.applicant_id, todo.position_id
+
+				) AS todo WHERE todo.number != todo.feedback
+				
+				UNION ALL			
+				
+				SELECT 
+					null,null, todo.position_id,tpos.position_code, tpos.position_title, 
+					tras.requisition_approval_step_name AS step_name ,
+					todo.due_date AS due_date,
+					todo.current_step_id, todo.todo_type, 
+					? as action_type, null as email_id, null
+				FROM 
+					tp_todo todo ,tp_positions tpos, 
+					tp_requisition_approval_steps tras
+				WHERE  todo.position_id=tpos.position_id
+					AND todo.current_step_id= tras.requisition_approval_step_id
+					AND todo.todo_type=?
+					AND todo.user_id=?
+				
+				UNION ALL
+				
+				SELECT 
+					null,null, null,null, null, 
+					tbi.budget_item_name AS step_name ,
+					todo.due_date AS due_date,
+					tbi.budget_item_id, todo.todo_type, 
+					? as action_type, null as email_id, null
+				FROM 
+					tp_todo todo ,tp_budget_items tbi
+				WHERE  todo.budget_item_id=tbi.budget_item_id
+					AND todo.todo_type=?
+					AND todo.user_id=?
+		
+				UNION ALL
+
+				SELECT
+				tpa.applicant_id, tpa.applicant_name, tpp.position_id, tpp.position_code, tpp.position_title, 
+				tpps.position_step_title AS step_name, '' , tpps.position_step_id, ? AS todo_type, ? as action_type,
+				tie.email_id, null
+				FROM tp_inbox_emails tie
+				LEFT JOIN tp_applicants tpa ON (tpa.applicant_id = tie.applicant_id)
+				LEFT JOIN tp_positions tpp ON (tpp.position_id = tie.position_id)
+				LEFT JOIN tp_position_steps tpps ON (tpps.position_step_id = tie.position_step_id)
+				WHERE tie.folder_id = (SELECT folder_id 
+						FROM tp_inbox_folders
+						WHERE is_system_defined = ?
+						)
+				@@
+
+			) AS action
+			@@
+			@@
+			@@ limit 500
+		</dbquery>
+</dbqueries>
+<dataqueries>
+    <dataquery name="dDashboardManager_GetTotalSentMessagesForUser" dbquery="qDashboardManager_GetTotalSentMessagesForUser" />
+	    <dataquery name="dDashboardManager_GetUpcomingEvents" dbquery="qDashboardManager_GetUpcomingEvents" object="com.talentPool.common.db.SimpleDataObject">
+	        <attribute name="applicantId" 	column="applicant_id" 	type="INT"/>
+	        <attribute name="applicantName" column="applicant_name" type="STRING"/>
+	        <attribute name="positionId" column="position_id" type="INT"/>
+	        <attribute name="positionTitle" column="position_title" type="STRING"/>
+	        <attribute name="stepId" column="position_step_id" type="INT"/>
+	        <attribute name="stepTitle" column="position_step_title" type="STRING"/>
+	        <attribute name="applicantStatus" column="status_message" type="STRING"/>
+	        <attribute name="appointmentId" column="appointment_id" type="STRING"/>
+	        <attribute name="appointmentDate" column="appointment_from_date" 	type="STRING"/>
+	        <attribute name="originalResumePath" column="applicant_original_resume_path" type="STRING"/>
+	        <attribute name="type" column="type" type="STRING"/>
+	    </dataquery>	    
+	    <dataquery name="dDashboardManager_GetPositionSummaryDashBoard" dbquery="qDashboardManager_GetPositionSummaryDashBoard" object="com.talentPool.common.db.SimpleDataObject">
+	        <attribute name="positionId" 	column="position_id" 	type="STRING"/>
+	        <attribute name="positionCode" 	column="position_code" 	type="STRING"/>
+	        <attribute name="positionTitle" column="position_title" type="STRING"/>
+	        <attribute name="noOfPositions" column="position_no_of_openings" type="INT"/>
+	        <attribute name="shortlistCandidates" column="shortlistCandidates" type="INT"/>
+	        <attribute name="selectCandidates" column="selectCandidates" type="INT"/>
+	        <attribute name="offered" column="offered" type="INT"/>
+	        <attribute name="joined" column="joined" type="INT"/>
+	        <attribute name="rejected" column="rejected" type="INT"/>
+	        <attribute name="positionLevel" column="position_level" type="String"/>
+	        <attribute name="departmentName" column="dept_name" type="String"/>
+	        <attribute name="subDepartmentName" column="sub_dept_name" type="String"/>
+	        <attribute name="subSubDepartmentName" column="sub_sub_dept_name" type="String"/>
+	        <attribute name="sub3DeptName" column="sub3_dept_name" type="String"/>
+	        <attribute name="sub4DeptName" column="sub4_dept_name" type="String"/>
+	        <attribute name="locationName" column="location_name" type="String"/>
+			<attribute name="recruiters" column="recruiters" type="STRING"/>
+			<attribute name="positionOwnerName" column="position_owner_name" type="STRING"/>
+			<attribute name="requestedByName" column="requested_by_name" type="STRING"/>
+			<attribute name="positionCreatedOn" column="position_date_created" type="STRING"/>	
+	        <attribute name="positionPriority" column="position_priority" type="STRING"/>
+	        <attribute name="positionStatus" column="position_status" type="STRING"/>	
+	        <attribute name="expiryDate" column="position_date_expiry" type="STRING"/>
+	        <attribute name="bandName" column="band_name" type="STRING"/>
+	        <attribute name="gradeName" column="grade_name" type="STRING"/>
+	        <attribute name="referalFees" column="position_referal_fees" type="STRING"/>
+	        <attribute name="customFields" column="custom_fields" type="STRING"/>
+	        <attribute name="positionTypeExtInt" column="position_type_ext_int" type="STRING"/>	        
+		</dataquery>
+		<dataquery name="dDashboardManager_GetPositionSummaryDetailsDashBoard" dbquery="qDashboardManager_GetPositionSummaryDetailsDashBoard" object="com.talentPool.common.db.SimpleDataObject">
+	        <attribute name="departmentName" column="dept_name" type="String"/>
+			<attribute name="departmentId" column="dept_id" type="INT"/>
+			<attribute name="reqestedById" column="position_requested_by" type="String"/>
+			<attribute name="reqestedByName" column="requested_by_name" type="String"/>
+			<attribute name="positionOwnerId" column="position_owner_id" type="String"/>
+			<attribute name="positionOwnerName" column="position_owner_name" type="String"/>
+			<attribute name="noOfPositions" column="position_no_of_openings" type="INT"/>
+	        <attribute name="shortlistCandidates" column="shortlistCandidates" type="INT"/>
+	        <attribute name="selectCandidates" column="selectCandidates" type="INT"/>
+	        <attribute name="offered" column="offered" type="INT"/>
+	        <attribute name="joined" column="joined" type="INT"/>
+	        <attribute name="rejected" column="rejected" type="INT"/>
+	        <attribute name="count" column="count" type="STRING"/>
+	       	<attribute name="positionTypeExtInt" column="position_type_ext_int" type="STRING"/>
+		</dataquery>
+		<dataquery name="dDashboardManager_GetPositionSummaryDetailsLocationGrouped" dbquery="qDashboardManager_GetPositionSummaryDetailsLocationGrouped" object="com.talentPool.common.db.SimpleDataObject">
+	        <attribute name="locationName" column="location_name" type="String"/>
+			<attribute name="locationId" column="location_id" type="INT"/>
+			<attribute name="noOfPositions" column="position_no_of_openings" type="INT"/>
+	        <attribute name="shortlistCandidates" column="shortlistCandidates" type="INT"/>
+	        <attribute name="selectCandidates" column="selectCandidates" type="INT"/>
+	        <attribute name="offered" column="offered" type="INT"/>
+	        <attribute name="joined" column="joined" type="INT"/>
+	        <attribute name="rejected" column="rejected" type="INT"/>
+	        <attribute name="count" column="count" type="STRING"/>			
+	    </dataquery>
+		<dataquery name="dDashboardManager_GetMessagesForUser" dbquery="qDashboardManager_GetMessagesForUser" object="com.talentPool.common.db.SimpleDataObject">
+	        <attribute name="messageId" column="message_id" type="STRING"/>
+	        <attribute name="applicantId" column="applicant_id" type="STRING"/>
+	        <attribute name="messageFromId" column="messageFromId" type="STRING"/>
+	        <attribute name="messageFrom" column="messageFrom" type="STRING"/>
+	        <attribute name="applicantName" column="applicant_name" type="STRING"/>
+	        <attribute name="messageText" column="message_text" type="STRING"/>
+	        <attribute name="messageDate" column="message_date" type="STRING"/>
+	        <attribute name="originalResumePath" column="applicant_original_resume_path" type="STRING"/>
+	    </dataquery>
+	    <dataquery name="dDashboardManager_GetSentMessagesForUser" dbquery="qDashboardManager_GetSentMessagesForUser" object="com.talentPool.common.db.SimpleDataObject">
+	        <attribute name="messageId" column="message_id" type="STRING"/>
+	        <attribute name="applicantId" column="applicant_id" type="STRING"/>
+	        <attribute name="messageText" column="message_text" type="STRING"/>
+	        <attribute name="messageDate" column="message_date" type="STRING"/>
+	        <attribute name="messageTo" column="messageTo" type="STRING"/>
+	        <attribute name="applicantName" column="applicant_name" type="STRING"/>
+	        <attribute name="originalResumePath" column="applicant_original_resume_path" type="STRING"/>
+	    </dataquery>
+	    
+	    <dataquery name="dDashboardManager_MarkMessagesRead" dbquery="qDashboardManager_MarkMessagesRead" />
+	    
+	    <!--Start: Dashboard Reminder -->
+	    <dataquery name="dDashboardManager_GetReminderListDashBoard" dbquery="qDashboardManager_GetReminderListDashBoard" object="com.talentPool.common.db.SimpleDataObject">
+	        <attribute name="reminderId" column="reminder_id" type="STRING"/>
+	        <attribute name="applicantId" column="applicant_id" type="STRING"/>
+	        <attribute name="reminderDate" column="reminder_date" type="STRING"/>
+	        <attribute name="reminderDesc" column="reminder_desc" type="STRING"/>
+	        <attribute name="applicantName" column="applicant_name" type="STRING"/>	        
+	    </dataquery>
+	    <dataquery name="dDashboardManager_DeleteReminder" dbquery="qDashboardManager_DeleteReminder" />
+	    <!--End: Dashboard Reminder -->    
+	    <dataquery name="dDashboardManager_GetToDoList" dbquery="qDashboardManager_GetToDoList" object="com.talentPool.common.db.SimpleDataObject">
+	        <attribute name="applicantId" column="applicant_id" type="STRING"/>
+	        <attribute name="applicantName" column="applicant_name" type="STRING"/>
+	        <attribute name="positionId" column="position_id" type="STRING"/>
+	        <attribute name="positionCode" column="position_code" type="STRING"/>
+	        <attribute name="positionTitle" column="position_title" type="STRING"/>
+	        <attribute name="dueDate" column="due_date" type="DATE"/>
+	        <attribute name="currentStepId" column="current_step_id" type="STRING"/>
+	        <attribute name="stepName" column="step_name" type="STRING"/>
+	        <attribute name="todoType" column="todo_type" type="STRING"/>
+	        <attribute name="actionType" column="action_type" type ="STRING" />
+	        <attribute name="emailId" column="email_id" type ="STRING" />
+	        <attribute name="count" column="count" type ="STRING" />
+	        <attribute name="flagId" column="flag_id" type ="STRING" />	        
+	    </dataquery>
+</dataqueries>
+
+</dbmap>

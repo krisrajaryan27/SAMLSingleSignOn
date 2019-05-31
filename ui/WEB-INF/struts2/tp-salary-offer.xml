@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE struts PUBLIC
+    "-//Apache Software Foundation//DTD Struts Configuration 2.0//EN" 
+    "http://struts.apache.org/dtds/struts-2.0.dtd">
+    <!-- -->
+<struts>
+    <package name="salaryOffer" namespace="/" extends="pool-default">
+    
+        <default-interceptor-ref name="poolStack" />
+        
+		<action name="offerProposalScreen" class="offerProposal" method="offerProposalScreen" >
+	          <result type="tiles">offerProposalScreen</result>
+	          <result type="tiles" name="error">offerProposalScreen</result>
+		</action>
+		
+		<action name="saveCTCComparisonGrid" class="offerProposal" method="saveCTCComparisonGrid" >
+	          <result type="tiles">hidePopUp</result>
+	          <result type="tiles" name="error">offerProposalScreen</result>
+		</action>
+		
+		<action name="manageApplicantOfferGeneration" class="com.talentPool.offerSheet.acion.ManageApplicantOfferAction" method="manageApplicantOfferGeneration" >
+	          <result type="tiles">manageApplicantOfferGeneration</result>
+		</action>
+		
+		<action name="manageApplicantOfferDetails" class="com.talentPool.offerSheet.acion.ManageApplicantOfferAction" method="manageApplicantOfferDetails" >
+	          <result type="tiles">manageApplicantOfferDetails</result>
+		</action>
+		
+		<action name="offerTemplateVariableMapping" class="com.talentPool.offerSheet.acion.ManageApplicantOfferAction" method="offerTemplateVariableMapping" >
+	          <result type="tiles">offerTemplateVariableMapping</result>
+		</action>
+		
+		<action name="exportOffer" class="com.talentPool.offerSheet.acion.ManageApplicantOfferAction" method="exportOffer" >
+		  <interceptor-ref name="poolStack" />
+		  <interceptor-ref name="store">
+		     <param name="operationMode">STORE</param>
+		  </interceptor-ref>
+	      <result type="redirect">
+	         <param name="location">docs.do</param>
+	         <param name="mode">getDocument</param>
+	         <param name="fileName">${offerSheetPath}</param>
+	      </result>
+	      <result name="error" type="redirectAction">exportOfferFailed</result>
+		</action>
+		
+		<action name="exportOfferFailed" class="com.talentPool.offerSheet.acion.ManageApplicantOfferAction" method="manageApplicantOfferGeneration" >
+			 <interceptor-ref name="poolStack" />
+			 <interceptor-ref name="store">
+			     <param name="operationMode">RETRIEVE</param>
+			  </interceptor-ref>
+	          <result type="tiles">manageApplicantOfferGeneration</result>
+		</action>
+		
+		<action name="previewOfferSheet" class="com.talentPool.offerSheet.acion.ManageApplicantOfferAction" method="previewOfferSheet" >
+	          <result name="error" type="tiles">offerTemplateVariableMapping</result>
+		</action>
+		
+		<action name="generateOfferSheet" class="com.talentPool.offerSheet.acion.ManageApplicantOfferAction" method="generateOfferSheet" >
+	          <result type="tiles">offerGeneratedMessage</result>
+	          <result name="error" type="tiles">offerTemplateVariableMapping</result>
+		</action>
+		
+    </package>
+</struts>

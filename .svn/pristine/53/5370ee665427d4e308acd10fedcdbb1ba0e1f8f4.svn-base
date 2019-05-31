@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>
+		<dbquery name="qCandidateMaster_getApplicantNamesWithAttributes">  	
+			SELECT 
+				tccm.applicant_id,tccm.applicant_name, 
+				tccm.source_title,
+				CASE WHEN tccm.applicant_joined=1 THEN ?
+					 ELSE tccm.position_step_title END AS position_step_title,
+				tccm.status_message,
+				tccm.applicant_date_joined,
+				tccm.position_id 
+			FROM 
+				tp_cr_candidate_master tccm
+		</dbquery>
+		<dbquery name="qCandidateMaster_getApplicantNames">  	
+			SELECT 
+				tccm.applicant_id,tccm.applicant_name
+			FROM 
+				tp_cr_candidate_master tccm
+		</dbquery>
+	</dbqueries>
+	<dataqueries>
+	    <dataquery name="dCandidateMaster_getApplicantNamesWithAttributes" dbquery="qCandidateMaster_getApplicantNamesWithAttributes" object="com.talentPool.customReports.dataobject.ApplicantMasterData" >
+		    <attribute name= "applicantId" column="applicant_id" type ="INT" />
+		    <attribute name= "applicantName" column="applicant_name" type ="STRING" />
+		    <attribute name= "sourceTitle" column="source_title" type ="STRING" />
+		    <attribute name= "positionStepTitle" column="position_step_title" type ="STRING" />
+		    <attribute name= "statusMessage" column="status_message" type ="STRING" />
+		    <attribute name= "applicantDateJoined" column="applicant_date_joined" type ="STRING" />
+		    <attribute name= "applicantPositionId" column="position_id" type ="STRING" />
+    	</dataquery>
+    	<dataquery name="dCandidateMaster_getApplicantNames" dbquery="qCandidateMaster_getApplicantNames" object="com.talentPool.customReports.dataobject.ApplicantMasterData" >
+		    <attribute name= "applicantId" column="applicant_id" type ="INT" />
+		    <attribute name= "applicantName" column="applicant_name" type ="STRING" />
+    	</dataquery>
+	</dataqueries>   
+</dbmap>

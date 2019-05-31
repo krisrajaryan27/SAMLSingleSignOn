@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<dbmap> 
+	<dbqueries>
+		<dbquery name="qMassEmailManager_GetEmailSentApplicants">
+			select applicant_id from tp_applicant_inbox_emails
+			where TO_DAYS(email_date_send) > TO_DAYS(DATE_SUB(now(), INTERVAL ? DAY)) AND folder_id=? @@
+		</dbquery>
+	</dbqueries>
+	<dataqueries>
+	    <dataquery name="dMassEmailManager_GetEmailSentApplicants" dbquery="qMassEmailManager_GetEmailSentApplicants" object="com.talentPool.common.db.SimpleDataObject">
+		    <attribute name= "applicantId" column="applicant_id" type ="String" />
+    	</dataquery>
+	</dataqueries>   
+</dbmap>

@@ -1,0 +1,72 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>
+	  	<!--Manage Communication and Interaction section**********************************************-->
+		<dbquery name="qLogOfferProposalInteraction">
+			INSERT INTO tp_offer_details_modified_interactions 
+				(applicant_id, interaction_type, interaction_title, 
+				previous_ctc, changed_ctc, previous_basic, changed_basic, 
+				previous_designation, changed_designation, previous_level, changed_level,
+				previous_input_salary_variable, changed_input_salary_variable,
+				interaction_hidden, user_id, date_created
+				)
+			VALUES
+				(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())
+  		</dbquery>
+  		<dbquery name="qLogOfferGenerationInteraction">
+			INSERT INTO tp_offer_details_modified_interactions 
+				(applicant_id, interaction_type, interaction_title, 
+				previous_ctc, changed_ctc, previous_basic, changed_basic, 
+				previous_designation, changed_designation, previous_level, changed_level,
+				previous_input_salary_variable, changed_input_salary_variable, 
+				interaction_hidden, offer_code, offer_sheet_name, user_id, date_created
+				)
+			VALUES
+				(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())
+  		</dbquery>
+  		<dbquery name="qCommunicationManager_getOfferProposalInteractionData">
+			SELECT	
+			     todmi.interaction_id, ta.applicant_name, ta.applicant_id, todmi.interaction_type, todmi.interaction_title, todmi.
+			     previous_ctc, todmi.changed_ctc, todmi.previous_basic, todmi.changed_basic, todmi.previous_designation, todmi.
+			     changed_designation, todmi.previous_level, todmi.changed_level,
+			     todmi.previous_input_salary_variable, todmi.changed_input_salary_variable,
+			     todmi.offer_code, todmi.offer_sheet_name, 
+			     CONCAT(tu.user_fname,' ',tu.user_lname) AS user_name, todmi.date_created
+			FROM 
+			     tp_offer_details_modified_interactions todmi
+			     LEFT JOIN tp_users tu ON (todmi.user_id=tu.user_id)
+			     LEFT JOIN tp_applicants ta ON (todmi.applicant_id=ta.applicant_id)
+			WHERE 
+			     todmi.interaction_id=?
+  		</dbquery>
+  	</dbqueries>
+	<dataqueries>
+  	<!--Manage Communication and Interaction section********************************************************************************************-->
+		<dataquery name="dLogOfferProposalInteraction" dbquery="qLogOfferProposalInteraction"/>
+		<dataquery name="dLogOfferGenerationInteraction" dbquery="qLogOfferGenerationInteraction"/>
+		<dataquery name="dCommunicationManager_getOfferProposalInteractionData" dbquery="qCommunicationManager_getOfferProposalInteractionData" object="com.talentPool.selectionProcess.dataobject.OfferDetailsModifiedInteractionData">
+			<attribute name= "interactionId" column="interaction_id" type ="STRING" />
+			<attribute name= "applicantName" column="applicant_name" type ="STRING" />
+			<attribute name= "applicantId" column="applicant_id" type ="STRING" />
+			<attribute name= "interactionType" column="interaction_type" type ="STRING" />
+			<attribute name= "interactionTitle" column="interaction_title" type ="STRING" />
+			<attribute name= "previousCtc" column="previous_ctc" type ="STRING" />
+			<attribute name= "changedCtc" column="changed_ctc" type ="STRING" />
+			<attribute name= "previousBasic" column="previous_basic" type ="STRING" />
+			<attribute name= "changedBasic" column="changed_basic" type ="STRING" />
+			<attribute name= "previousDesignation" column="previous_designation" type ="STRING" />
+			<attribute name= "changedDesignation" column="changed_designation" type ="STRING" />
+			<attribute name= "previousLevel" column="previous_level" type ="STRING" />
+			<attribute name= "changedLevel" column="changed_level" type ="STRING" />
+			<attribute name= "previousInputSalaryVariable" column="previous_input_salary_variable" type ="STRING" />
+			<attribute name= "changedInputSalaryVariable" column="changed_input_salary_variable" type ="STRING" />
+			<attribute name= "offerSheetName" column="offer_sheet_name" type ="STRING" />
+			<attribute name= "offerCode" column="offer_code" type ="STRING" />
+			<attribute name= "userName" column="user_name" type ="STRING" />
+			<attribute name= "dateCreated" column="date_created" type ="STRING" />
+		</dataquery>
+   	</dataqueries>   
+</dbmap>

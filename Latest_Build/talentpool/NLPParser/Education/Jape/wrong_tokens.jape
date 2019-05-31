@@ -1,0 +1,16 @@
+/*
+*  basicinfo_email.jape
+*
+*/
+
+Phase: edu_wrong_tokens
+Input: Lookup
+Options: control = appelt
+
+
+Rule: wrong_tokens
+(
+	{Lookup.majorType == education, Lookup.minorType == wrong_token}
+):wrong_token
+--> 
+:wrong_token.TempEduWrongToken = {kind = "wrong_token", rule = "wrong_tokens"}

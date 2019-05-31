@@ -1,0 +1,28 @@
+.myCalender{
+	position:absolute;
+	background-color:white;
+	border:1px solid #265644;
+	margin:0px;
+	padding:0px;
+	z-index:500;
+	display:none;
+
+}
+.Cal{
+	background-color:#fff;
+	border:0px solid #265644;
+}
+.Cal td{
+	padding:4px;
+}
+
+.CalContent{
+	border:0px;
+	margin:0px;
+	font-family:Verdana, Arial, Helvetica, sans-serif;
+	font-size:10px;
+	background-color:#F3F9DC;
+	margin:1px;
+}
+.CalContent td{text-decoration:none; color:#265644;border:0px; padding:2px;cursor:hand;}
+.CalContent td.menuon { background-color:#265644; color: #FFFFFF;cursor:auto;}

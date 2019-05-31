@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<dbmap> 
+	<dbqueries>
+		<dbquery name="qSchedulerManager_UpdatePosSchedulerEndTimeAndStatus">
+			UPDATE tp_position_approval_scheduler SET last_run_status = ?, current_status = ? @@
+		</dbquery>
+		<dbquery name="qSchedulerManager_UpdatePosSchedulerStartTime">
+			UPDATE tp_position_approval_scheduler SET last_run_starttime = now(), current_status = ?
+		</dbquery>
+		<dbquery name="qSchedulerManager_GetPosSchedulerDetails">
+			SELECT scheduler_start_hour, scheduler_frequency, last_run_status, last_run_starttime,
+				last_run_endtime, last_success_run, current_status
+			FROM tp_position_approval_scheduler	
+		</dbquery>
+		<dbquery name="qSchedulerManager_UpdatePosSchedulerProperties">
+			UPDATE tp_position_approval_scheduler SET scheduler_start_hour=?, scheduler_frequency=?
+		</dbquery>
+		<dbquery name="qpositionApproval_AutoLastRunDate">
+			INSERT INTO tp_posApproval_last_update (last_run_date) VALUES(?)
+		</dbquery>
+	</dbqueries>
+	<dataqueries>
+	    <dataquery name="dSchedulerManager_UpdatePosSchedulerEndTimeAndStatus" dbquery="qSchedulerManager_UpdatePosSchedulerEndTimeAndStatus" />
+	    <dataquery name="dSchedulerManager_UpdatePosSchedulerStartTime" dbquery="qSchedulerManager_UpdatePosSchedulerStartTime" />
+	    <dataquery name="dSchedulerManager_GetPosSchedulerDetails" dbquery="qSchedulerManager_GetPosSchedulerDetails" object="com.talentPool.scheduler.dataobject.SchedulerData">
+		    <attribute name= "schedulerStartHour" column="scheduler_start_hour" type ="String" />
+		    <attribute name= "schedulerFrequency" column="scheduler_frequency" type ="String" />
+		    <attribute name= "lastRunStatus" column="last_run_status" type ="String" />
+		    <attribute name= "lastRunStarttime" column="last_run_starttime" type ="String" />
+		    <attribute name= "lastRunEndtime" column="last_run_endtime" type ="String" />
+		    <attribute name= "lastSuccessRun" column="last_success_run" type ="String" />
+		    <attribute name= "currentStatus" column="current_status" type ="String" />
+    	</dataquery>
+	    <dataquery name="dSchedulerManager_UpdatePosSchedulerProperties" dbquery="qSchedulerManager_UpdatePosSchedulerProperties" />
+	     <dataquery name="dpositionApproval_AutoLastRunDate" dbquery="qpositionApproval_AutoLastRunDate"/>
+	</dataqueries>   
+</dbmap>

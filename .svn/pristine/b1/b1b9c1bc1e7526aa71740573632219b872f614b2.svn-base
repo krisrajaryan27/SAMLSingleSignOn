@@ -1,0 +1,80 @@
+########## This Property File Contains the Reg Expression used in parsing the Resume got from Dice. ##########
+part1 = "(?mids)(Phone:.*)";
+part2 = "(?mids)(Email:.*)";
+part3 = "(?mids)(Contact Information.*)";
+part31 = "(?mids)(Last Modified:.*)";
+part4 = "Current Location:";
+part5 = "(?mids)(Gender:.*)";
+part6 = "(?mids)(Salary.*)";
+part7 = "(?mids)(Experience:.*)";
+part8 = "(?mids)(Key Skills:.*)";
+part9 = "(?mids)(Current Employer.*)";
+part10 = "(?mids)(Current Location:.*)";
+part11 = "(?mids)(Mobile.*)";
+part12 = "(?mids)(Highest Degree Held.*)";
+part13 = "2nd Highest Degree Held";
+part14 = "Preferred Job Location";
+part15 = "dice";
+part16 = "5iantlavalamp";
+part17 = "(?mids)(.*?2nd Highest Degree Held)";
+part18 = "(?mids)(Previous Employer.*)";
+part40 = "(?mids)(Ph)(.*)";
+part19 = "(?mids)(EDUCATION.*)";
+part20 = "EXPERIENCE";
+part21 = "Certification";
+part22 = "WORK AUTHORISATION";
+part23 = "TEXT RESUME";
+part24 = "(?mids).*?from.*?in.*?[0-9]{4}";
+part25 = "(?mids)from(.*)? in ";
+part26 = "(?mids)(Work Experience)(.*)";
+part27 = "(?mids)(Current Company.*)";
+part28 = "(?mids)(Last Active:.*)";
+part29 = "(?mids)(Current Location:.*)";
+part30 = "(?mids)(Work Experience.*)";
+part32 = "WORK AUTHORISATION";
+part33 = "TEXT RESUME";
+part35 = "(?mids)(Register for Event.*)";
+part36 = "(?mids)(Register for Event.*)";
+part37 = "(?m)(Green Card.*)"; 
+part39 = "References";
+part41 = "Education";
+part42 = "d";
+part43 = "Â";
+part44 = "Comment";
+part45 = "Remaining";
+part46 = "Characters";
+part47 = "Preview";
+part48 = "ModifyForward Print";
+part49 = "ModifySMS Forward Print";
+part51 = "Work Experience"; 
+part52 = "(((?i)jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec) ((19|20)\\d{2})) (to)";
+part53 = "(to) (((?i)jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec) ((19|20)\\d{2}))";	
+part54 = " N/A to ";
+part55 = " N/A";
+part56= "to till date";
+part57= "till date";
+part58 = "Modify";
+part59 = "div";
+part60 = "Tot Exp";
+NotDisclosed = "Not Disclosed";
+AnnualSalary = "Annual Salary:";
+CurrentLocation = "Location";
+CurrentCompany = "Current Company:";
+part62 = "(?mids)(Preferred Location:.*)";
+part61 = "$";
+regexMobile = "(?mids)[0-9]*[\\s&&[^\\n]]?[0-9]+\\(M\\)";	
+regexLandline = "(?mids)[0-9]+[\\s&&[^\\n]][0-9]+[\\s&&[^\\n]][0-9]+\\(R\\)";	
+regexEmail = "(?mids)[a-z0-9.\\-_]+@([a-z0-9\\-_]+\\.)+(" + "com|net|org|edu|int|mil|gov|arpa|biz|" + "aero|name|coop|info|pro|museum|tv|([a-z]{2}))";	
+regexMobileDice = "[\\s](\\({0,1}\\d{3}\\){0,1}" +
+				"[- \\.]\\d{3}[- \\.]\\d{4})|" +
+				"(\\+\\d{2}-\\d{2,4}-\\d{3,4}-\\d{3,4})";	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	

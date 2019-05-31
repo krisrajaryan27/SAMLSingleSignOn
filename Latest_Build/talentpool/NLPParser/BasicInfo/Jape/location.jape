@@ -1,0 +1,41 @@
+/*
+*  location.jape
+*
+*/
+
+
+Phase:	location
+Input:  Token Lookup CustomSpaceToken
+Options: control = appelt
+
+Rule: location_zip
+Priority: 20
+(
+(({Lookup.majorType == location}({Token.kind == punctuation})?)[1,2]):location
+(({Token.kind == punctuation})?{Token.kind == number})
+)
+-->
+:location.TempLocationToken = {kind = "location", rule = "location_zip"}
+
+Rule: location_at_end
+Priority: 20
+(
+(({Lookup.majorType == location}({Token.kind == punctuation})?)[1,2]):location
+{CustomSpaceToken}
+)
+-->
+:location.TempLocationToken = {kind = "location", rule = "location_at_end"}
+
+Rule: location_prefix_city
+(
+	{Lookup.majorType == location_prefix, Lookup.minorType == city}
+):location
+-->
+:location.TempLocationToken = {kind = "location_prefix", subkind = "city", rule = "location_prefix_city"}
+
+Rule: location_prefix_address
+(
+	{Lookup.majorType == location_prefix, Lookup.minorType == address}
+):location
+-->
+:location.TempLocationToken = {kind = "location_prefix", subkind = "address", rule = "location_prefix_address"}

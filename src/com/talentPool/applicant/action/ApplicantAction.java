@@ -1,0 +1,1456 @@
+/**
+ * 
+ */
+package com.talentPool.applicant.action;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.struts.Globals;
+import org.apache.struts.action.ActionError;
+import org.apache.struts.action.ActionErrors;
+import org.apache.struts.action.ActionForm;
+import org.apache.struts.action.ActionForward;
+import org.apache.struts.action.ActionMapping;
+import org.apache.struts.upload.FormFile;
+import org.codehaus.jackson.map.ObjectMapper;
+
+import com.talentPool.admin.AdminConstants;
+import com.talentPool.admin.manager.AdminManager;
+import com.talentPool.applicant.ApplicantConstants;
+import com.talentPool.applicant.bc.ApplicantBC;
+import com.talentPool.applicant.dataobject.ApplicantData;
+import com.talentPool.applicant.dataobject.ApplicantDuplicateSearchData;
+import com.talentPool.applicant.dataobject.EducationalData;
+import com.talentPool.applicant.dataobject.EmploymentHistoryData;
+import com.talentPool.applicant.form.ApplicantForm;
+import com.talentPool.applicant.manager.ApplicantDuplicateChecker;
+import com.talentPool.applicant.manager.ApplicantManager;
+import com.talentPool.applicant.utils.ApplicantUtils;
+import com.talentPool.applicant.utils.ApplicantValidators;
+import com.talentPool.audit.action.AuditAction;
+import com.talentPool.audit.constants.AuditConstants;
+import com.talentPool.common.CommonConstants;
+import com.talentPool.common.Logger.TPLogger;
+import com.talentPool.common.base.TPDispatchAction;
+import com.talentPool.common.dataobject.FormFileData;
+import com.talentPool.common.db.SimpleDataObject;
+import com.talentPool.common.properties.GlobalConstants;
+import com.talentPool.common.properties.TPLabels;
+import com.talentPool.common.utils.CommonUtils;
+import com.talentPool.common.utils.FileHandler;
+import com.talentPool.common.utils.Utils;
+import com.talentPool.common.utils.Exception.FileUploadException;
+import com.talentPool.common.utils.Exception.InvalidMimeTypeException;
+import com.talentPool.common.utils.Exception.PathTraversalException;
+import com.talentPool.common.utils.Exception.RChilliParseException;
+import com.talentPool.common.utils.FileUtils.FileHandlerUtils;
+import com.talentPool.custom.constants.CustomFieldConstants;
+import com.talentPool.custom.dataobject.CustomFieldCell;
+import com.talentPool.custom.dataobject.CustomFieldData;
+import com.talentPool.custom.dataobject.CustomFieldRow;
+import com.talentPool.custom.dataobject.CustomFieldTable;
+import com.talentPool.custom.manager.CustomFieldManager;
+import com.talentPool.custom.utils.CustomFieldDataProcessor;
+import com.talentPool.dashboard.manager.RecentViewManager;
+import com.talentPool.desktop.constants.DesktopConstants;
+import com.talentPool.desktop.manager.BulkImportManager;
+import com.talentPool.documents.DocumentConstants;
+import com.talentPool.documents.utils.DocumentUploader;
+import com.talentPool.documents.utils.DocumentUtils;
+import com.talentPool.inbox.InboxConstants;
+import com.talentPool.inbox.dataobject.AttachmentData;
+import com.talentPool.inbox.dataobject.MessageData;
+import com.talentPool.inbox.manager.InboxManager;
+import com.talentPool.masters.dataobject.SourceTypeData;
+import com.talentPool.parser.EducationParser;
+import com.talentPool.parser.EmploymentHistoryParser;
+import com.talentPool.parser.SkillsParser;
+import com.talentPool.parser.converter.GenericConverter;
+import com.talentPool.parser.converter.HTMLToPlainTextConverter;
+import com.talentPool.parser.converter.WordToHtmlConverter;
+import com.talentPool.positions.dataobject.PositionSkillsData;
+import com.talentPool.repository.TPIndexEvent;
+import com.talentPool.repository.TPIndexEventQueue;
+import com.talentPool.selectionProcess.SelectionProcessConstants;
+import com.talentPool.selectionProcess.dataobject.CommunicationData;
+import com.talentPool.selectionProcess.manager.SelectionProcessManager;
+import com.talentPool.socialNetwork.dataobject.DataObject;
+import com.talentPool.socialNetwork.dataobject.EntryObject;
+import com.talentPool.socialNetwork.dataobject.LinkedInConnectionSearchDataObject;
+import com.talentPool.socialNetwork.manager.SocialMediaManager;
+import com.talentPool.socialNetwork.utils.SocialMediaUtils;
+import com.talentPool.user.UserConstants;
+import com.talentPool.user.constants.PermissionConstants;
+import com.talentPool.user.dataobject.LoginData;
+import com.talentPool.user.manager.SessionManager;
+
+/**
+ * @author shivprasad
+ * 
+ */
+public class ApplicantAction extends TPDispatchAction {
+
+	public ActionForward importResume(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		String forward = "createApplicant";
+		ApplicantForm applicantForm = (ApplicantForm) actionForm;
+		ActionErrors errors = (ActionErrors) (request.getAttribute(Globals.ERROR_KEY));
+		Integer[] permissions = new Integer[1];
+		permissions[0] = PermissionConstants.PERMISSION_IMPORT_FROM_EMAIL;
+		if(!isUserAuthorized(request, CommonConstants.NO_MODULE, permissions,null,null,null)) {
+			forward = "authorizationFailure";			
+			return mapping.findForward(forward);
+		}
+		
+		try {
+			String userId = (String) request.getSession().getAttribute("userId");
+			
+			if (errors == null) {
+				errors = new ActionErrors();
+			}
+			// Convert the file content to text format.
+			String attachmentId = applicantForm.getSelAttachment();
+			String relativeFilePath = "";
+
+			String fileContent = "";
+			String textContent = "";
+			String emailId = applicantForm.getEmailId();
+			String parse = applicantForm.getParse();
+			String uploadedFilePath = applicantForm.getUploadedFilePath();
+			String sessionId = applicantForm.getSessionId();
+			InboxManager inboxManager = new InboxManager();
+			if (!Utils.isBlankOrNull(emailId)) {
+				MessageData messageData = inboxManager.getEmailHeader(emailId, InboxConstants.EMAIL_LOCATION_INBOX, true);
+				if (messageData == null) {
+					errors.add("add_applicant.errors.email_does_not_exist", new ActionError("add_applicant.errors.email_does_not_exist"));
+					forward = "error";
+					request.setAttribute(Globals.ERROR_KEY, errors);
+					return mapping.findForward(forward);
+				}
+				if (Utils.isBlankOrNull(attachmentId)) {
+					attachmentId = inboxManager.getAttachmentIdToParse(messageData.getAttachments());
+					applicantForm.setSelAttachment(attachmentId);
+				}
+				request.setAttribute("messageData", messageData);
+			}
+			if (!Utils.isBlankOrNull(attachmentId)) {
+				if (!attachmentId.equals("0")) {
+					AttachmentData aData = inboxManager.getAttachmentData(attachmentId);
+					request.setAttribute("attachmentData", aData);
+					request.setAttribute("attachmentPath", DocumentConstants.documentsPath);
+					relativeFilePath = aData.getAttachmentFilePath();
+				}
+			}
+
+			if (!Utils.isBlankOrNull(uploadedFilePath)) {
+				relativeFilePath = uploadedFilePath;
+			}			
+			if(!Utils.isBlankOrNull(applicantForm.getSessionId())) {
+				ApplicantManager applicantManager = new ApplicantManager();
+				List<SimpleDataObject> documents = applicantManager.getBrowserImportSessionDocument(sessionId);
+				if(documents != null && documents.size() > 1) {
+					request.setAttribute("documents", documents);
+				}				
+			}
+			
+			ArrayList<CustomFieldData> customFields = null;
+			CustomFieldManager customFieldManager = new CustomFieldManager();
+			if (CustomFieldManager.isCustomFieldsAvailable(CustomFieldConstants.ENTITY_TYPE_APPLICANT)) {
+				customFields = customFieldManager.getCustomFieldsForInputAllowed(CustomFieldConstants.ENTITY_TYPE_APPLICANT, CustomFieldConstants.INPUT_ALLOWED, true);
+				CustomFieldDataProcessor customFieldDataProcessor = new CustomFieldDataProcessor();
+				customFields = customFieldDataProcessor.setCustomFieldValuesFromRequest(request, customFields);
+				request.setAttribute("customFields", customFields);
+			}
+			
+			if (CustomFieldManager.isCustomFieldsAvailable(CustomFieldConstants.ENTITY_TYPE_APPLICANT_TABLE_FIELD)) {
+				ArrayList<CustomFieldData> tabularFields = customFieldManager.getApplicantTabularCustomFields();
+				List<CustomFieldTable> customTables = new ArrayList<CustomFieldTable>();
+				for(CustomFieldData tabularData:tabularFields){
+					CustomFieldTable cft = new CustomFieldTable();
+					cft.setTableId(tabularData.getTableId());
+					cft.setTableName(tabularData.getTableName());
+					List<CustomFieldRow> rows = new ArrayList<CustomFieldRow>();
+					ArrayList<CustomFieldData> tabCustomFields = customFieldManager.getCustomFieldsForInputAllowed(CustomFieldConstants.ENTITY_TYPE_APPLICANT_TABLE_FIELD, CustomFieldConstants.INPUT_ALLOWED, true);
+					boolean isFirstIteration = true;
+					for (CustomFieldData data:tabCustomFields){
+						CustomFieldData tData = (CustomFieldData) data;
+						if (!Utils.isBlankOrNull(tData.getTableId()) && tData.getTableId().equals(tabularData.getTableId())){
+							if (isFirstIteration){
+								CustomFieldRow row = new CustomFieldRow();
+								CustomFieldCell cell = new CustomFieldCell();
+								cell.setValue(tData.getFieldDisplayName());
+								cell.setData(tData);
+								row.addCell(cell);
+								rows.add(row);
+								CustomFieldRow row1 = new CustomFieldRow();
+								CustomFieldCell cell1 = new CustomFieldCell();
+								CustomFieldData tabData = (CustomFieldData)tData.clone();
+								tabData.setFieldStringValue("");
+								String[] fieldValues = new String[1];
+								fieldValues[0] = "";
+								tabData.setFieldValues(fieldValues);
+								cell1.setData(tabData);
+								cell1.setValue("");
+								row1.addCell(cell1);
+								rows.add(row1);
+								isFirstIteration = false;
+							}else{
+								CustomFieldRow row = rows.get(0);
+								CustomFieldCell cell = new CustomFieldCell();
+								cell.setValue(tData.getFieldDisplayName());
+								cell.setData(tData);
+								row.addCell(cell);
+								CustomFieldRow row1 = rows.get(1);
+								CustomFieldCell cell1 = new CustomFieldCell();
+								CustomFieldData tabData = (CustomFieldData)tData.clone();
+								tabData.setFieldStringValue("");
+								String[] fieldValues = new String[1];
+								fieldValues[0] = "";
+								tabData.setFieldValues(fieldValues);
+								cell1.setData(tabData);
+								cell1.setValue("");
+								row1.addCell(cell1);
+							}
+						}
+					}
+					cft.setRows(rows);
+					customTables.add(cft);
+				}
+				request.setAttribute("customTables", customTables);
+			
+			}
+			// If control comes in the same action with errors means we need not
+			// required to parse data again
+			if (!Utils.isBlankOrNull(parse)) {
+
+				// Comment following part if you don't want to take parsed
+				// content
+				// Following step is temporary. Here the resume should be
+				// converted to the text format first.
+				String filePath = Utils.concatFilePath(DocumentConstants.documentsPath, relativeFilePath);
+				if (!Utils.isBlankOrNull(relativeFilePath)) {					
+					// read content from the file
+					DocumentUploader documentUploader = new DocumentUploader();
+					//if there is no Html file path for uploaded document from US job portal then convert doc, docx file into html file and provide that path 
+					
+					String htmlFilePath = documentUploader.getHtmlFilePathIfExist(filePath);
+					if (!Utils.isBlankOrNull(htmlFilePath)) {
+						filePath = htmlFilePath;
+					}
+					String relativeResumePath = filePath.substring(DocumentConstants.documentsPath.length() + 1, filePath.length());
+					/* PDF resume : display PDF inside i-frame in browser */
+					try {
+						String pdfFile = relativeFilePath.substring(0, relativeFilePath.lastIndexOf(".")) + ".pdf";
+						String pdfFilePath = Utils.concatFilePath(DocumentConstants.documentsPath, pdfFile);
+						File f = new File(pdfFilePath);
+						if(f.exists() && !f.isDirectory()) {
+							relativeResumePath = pdfFile;
+						}
+					} catch(Exception e) {
+						TPLogger.getLogger().debug(e);
+					}
+					applicantForm.setOriginalResumePath(relativeResumePath);
+
+					// Get html file content to pass to parser
+					fileContent = DocumentUtils.getHTMLFileContent(filePath);// added
+
+					GenericConverter conv = new GenericConverter();
+					textContent = conv.convert(filePath);
+				} else {
+					applicantForm.setOriginalResumePath("");
+					MessageData mData = inboxManager.getEmailBody(applicantForm.getEmailId(), InboxConstants.EMAIL_LOCATION_INBOX);
+					if (mData.getHtmlBody() != null) {
+						fileContent = mData.getHtmlBody();
+						HTMLToPlainTextConverter conv = new HTMLToPlainTextConverter();
+						textContent = conv.convertText(fileContent);
+					} else {
+						fileContent = mData.getTextBody();
+						textContent = fileContent;
+					}
+					TPLogger.getLogger().debug(fileContent);
+				}
+				applicantForm.setApplicantTextResume(textContent);
+				String relativeResumePath = Utils.concatFilePath(DocumentConstants.documentsPath, relativeFilePath);
+				// Get parsed content once you have text body
+				if (!parse.equals("2")) {
+					ApplicantBC applicantBC = new ApplicantBC();
+					try{
+						//for parsing it should come under this block ,it will check the text content and parse it 
+						applicantBC.parseAndSetFormFields(applicantForm, fileContent, textContent, relativeResumePath, userId);
+					}catch (RChilliParseException e){
+						String rchilliErrorMsg = e.getMessage();
+						request.setAttribute("parsingError", rchilliErrorMsg);
+					}
+				
+				}
+			}
+
+			AdminManager adminManager = new AdminManager();
+			ArrayList<SourceTypeData> employeeSourceList = adminManager.getEmployeeSourceTypeId();
+			SourceTypeData employeeSourceData = employeeSourceList.get(0);
+			applicantForm.setEmployeeSourceName(employeeSourceData.getSourceType());
+
+			// ArrayList employeeSource = adminManager.getEmployeeSource();
+			// String jsArrayEmployeeSource =
+			// CommonUtils.getListJavaScriptArrayWithProperties(employeeSource,
+			// "itemId", "itemName");
+			// applicantForm.setJsArrayEmployeeSource(jsArrayEmployeeSource);
+			if (Utils.isBlankOrNull(applicantForm.getSaveNcontinue())) {
+				String fieldValueDataString = checkForDuplicateRecord(applicantForm.getApplicantId(), applicantForm.getApplicantName(), applicantForm.getApplicantEmail1(), applicantForm
+						.getApplicantEmail2(), applicantForm.getApplicantCellPhone(), customFields, applicantForm.getSaveNcontinue());
+				request.setAttribute("fieldValueData", fieldValueDataString);
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		
+		request.setAttribute("pageTitle", "Import");
+
+		return mapping.findForward(forward);
+	}
+
+	private String checkForDuplicateRecord(String applicantId, String applicantName, String email1, String email2, String mobile, ArrayList<CustomFieldData> customFields, String saveNcontinue) {
+		String fieldValueDataString = null;
+		ApplicantDuplicateChecker applicantDuplicateChecker = new ApplicantDuplicateChecker();
+		ArrayList<ApplicantDuplicateSearchData> duplicates = applicantDuplicateChecker.getInternalDuplicateChecked(applicantId, applicantName, email1, email2, mobile, customFields);
+		if (duplicates != null && duplicates.size() > 0 && Utils.isBlankOrNull(saveNcontinue)) {
+			ArrayList<String> matchedFields = new ArrayList<String>();
+			ArrayList<String> matchedFieldValues = new ArrayList<String>();
+			for (int i = 0; i < duplicates.size(); i++) {
+				ApplicantDuplicateSearchData data = duplicates.get(i);
+
+				for (int j = 0; j < data.getMatchedFields().size(); j++) {
+					if (!matchedFields.contains(data.getMatchedFields().get(j))) {
+						matchedFields.add(data.getMatchedFields().get(j));
+						matchedFieldValues.add(data.getMatchedFieldValues().get(j));
+					}
+				}
+			}
+
+			StringBuffer fieldValueData = new StringBuffer();
+			for (int i = 0; i < matchedFields.size(); i++) {
+				if (fieldValueData.length() > 0) {
+					fieldValueData.append(":::");
+				}
+				fieldValueData.append(matchedFields.get(i));
+				fieldValueData.append(" : ");
+				fieldValueData.append(matchedFieldValues.get(i));
+			}
+			fieldValueDataString = fieldValueData.toString();
+		}
+		return fieldValueDataString;
+	}
+
+	/**
+	 * Returns the resume in html format if available, if not then return the original resume
+	 * 
+	 * @param mapping
+	 * @param actionForm
+	 * @param request
+	 * @param response
+	 * @return
+	 */
+	public ActionForward getResumeToImport(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		ApplicantForm aForm = (ApplicantForm) actionForm;
+		String forward = "resumeToImport";
+		ActionErrors errors = (ActionErrors) (request.getAttribute(Globals.ERROR_KEY));
+		if (errors == null) {
+			errors = new ActionErrors();
+		}
+		try {
+			// If applicant id exist, then resume is in documents folder
+			// if applicant id does not esist the resume is in attachments
+			// folder
+			String originalResumePath = aForm.getOriginalResumePath();
+			String emailId = aForm.getEmailId();
+			String content = null;
+			boolean textFormat = false;
+			String originalDocPath = "";
+			String htmlResumePath = "";
+			if (!Utils.isBlankOrNull(originalResumePath)) {
+				originalResumePath = DocumentUtils.sanitize(DocumentConstants.documentsPath, originalResumePath);
+				if (originalResumePath.toLowerCase().endsWith(".html") || originalResumePath.toLowerCase().endsWith(".txt") || originalResumePath.toLowerCase().endsWith(".htm")) {
+					// read String from file
+					htmlResumePath = Utils.concatFilePath(DocumentConstants.documentsPath, originalResumePath);
+					if (originalResumePath.toLowerCase().endsWith(".txt")) {
+						textFormat = true;
+					}
+				} else if (!"null".equalsIgnoreCase(originalResumePath)) {
+					originalDocPath = Utils.concatFilePath(DocumentConstants.documentsPath, originalResumePath);
+				}
+			} else {
+				InboxManager inboxManager = new InboxManager();
+				MessageData messageData = inboxManager.getEmailBody(emailId, InboxConstants.EMAIL_LOCATION_INBOX);
+				if (Utils.isBlankOrNull(messageData.getHtmlBody())) {
+					content = messageData.getTextBody();
+					textFormat = true;
+				} else {
+					content = messageData.getHtmlBody();
+				}
+			}
+			FileHandler fileHandler = new FileHandler();
+			// Get content to add JS code if resume can be converted to html
+			ApplicantUtils applicantUtils = new ApplicantUtils();
+			if (!Utils.isBlankOrNull(htmlResumePath)) {
+				content = fileHandler.getTextFileContent(htmlResumePath, null);
+				if(content.contains("dice")){
+					
+				}
+				else{
+					String headerFooterContent = applicantUtils.getHeaderFooterContent(htmlResumePath);
+					if (!Utils.isBlankOrNull(headerFooterContent)) {
+						String header = applicantUtils.getHeader(headerFooterContent);
+						String footer = applicantUtils.getFooter(headerFooterContent);
+						content = header + content + footer;
+					}
+				}
+				if (Utils.isBlankOrNull(request.getParameter("ieImport"))) {
+					content = applicantUtils.getImagePathReplaced(content, originalResumePath);
+					// inserted for firefox plugin
+					content = applicantUtils.getJsPathReplaced(content, originalResumePath, "script", "src"); // for JS
+					content = applicantUtils.getJsPathReplaced(content, originalResumePath, "link", "href"); // for CSS
+				}
+			}
+			if (textFormat) {
+				content = "<pre>" + content + "</pre>";
+			}
+			if (!Utils.isBlankOrNull(content)) {
+				if(content.contains("techfetch")){
+					content=content.replaceAll("Â","");
+					content=content.replaceAll("â€“","to");
+					//content=content.replaceAll("https?://\\S+\\s?", "");
+				}
+				content = applicantUtils.getBodyParsedForNotRequiredTags(content);
+				//description = description.replaceAll("https?://\\S+\\s?", "");
+				//content=removeUrl(content);
+				request.setAttribute("content", Utils.escapeJavaScript(content));
+			} else {
+				if (!Utils.isBlankOrNull(originalDocPath)) {
+					String contentType = fileHandler.getContentType(originalResumePath);
+					request.setAttribute("contentType", contentType);
+					request.setAttribute("originalDocPath", originalDocPath);
+				}
+			}
+		} catch (PathTraversalException e) {
+			TPLogger.getLogger().error("Invalid file path", e);
+			errors.add("resume_summary.error.invalid_file_path", new ActionError("resume_summary.error.invalid_file_path"));
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting resume to import from", e);
+		}
+		if (errors.size() > 0) {
+			request.setAttribute(Globals.ERROR_KEY, errors);
+			forward = "error";
+		}
+		return mapping.findForward(forward);
+	}
+	private String removeUrl(String commentstr)
+    {
+        String urlPattern = "((https?|ftp|gopher|telnet|file|Unsure|http):((//)|(\\\\))+[\\w\\d:#@%/;$()~_?\\+-=\\\\\\.&]*)";
+        Pattern p = Pattern.compile(urlPattern,Pattern.CASE_INSENSITIVE);
+        Matcher m = p.matcher(commentstr);
+        int i = 0;
+        while (m.find()) {
+            commentstr = commentstr.replaceAll(m.group(i),"");
+            i++;
+        }
+        return commentstr;
+    }
+	private void validateForm(ActionErrors errors, ApplicantForm aForm, ArrayList<CustomFieldData> customFields) throws Exception {
+		ApplicantValidators.validateApplicantEmail(errors, aForm.getApplicantEmail1(), aForm.getApplicantEmail2());
+		//Note: Deleted the commented code from version 9451.
+	}
+
+	public ActionForward checkForDuplicates(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		ApplicantForm aForm = (ApplicantForm) actionForm;
+
+		try {
+			// custom fields validations
+			ArrayList<CustomFieldData> customFields = null;
+			CustomFieldDataProcessor customFieldDataProcessor = new CustomFieldDataProcessor();
+			if (CustomFieldManager.isCustomFieldsAvailable(CustomFieldConstants.ENTITY_TYPE_APPLICANT)) {
+				CustomFieldManager customFieldManager = new CustomFieldManager();
+				customFields = customFieldManager.getCustomFieldsForInputAllowed(CustomFieldConstants.ENTITY_TYPE_APPLICANT, CustomFieldConstants.INPUT_ALLOWED, true);
+				customFields = customFieldDataProcessor.setCustomFieldValuesFromRequest(request, customFields);
+				request.setAttribute("customFields", customFields);
+			}
+			ApplicantDuplicateChecker applicantDuplicateChecker = new ApplicantDuplicateChecker();
+			ArrayList<ApplicantDuplicateSearchData> duplicates = applicantDuplicateChecker.getInternalDuplicateChecked(aForm.getApplicantId(), aForm.getApplicantName(), aForm.getApplicantEmail1(),
+					aForm.getApplicantEmail2(), aForm.getApplicantCellPhone(), customFields);
+			if (duplicates != null && duplicates.size() > 0) {
+				request.setAttribute("duplicates", duplicates);
+				return showDuplicates(mapping, actionForm, request, response);
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while adding applicant", e);
+		}
+		request.setAttribute("noDuplicateFound", "1");
+		return importResume(mapping, actionForm, request, response);
+	}
+
+	public ActionForward addApplicant(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		ApplicantForm aForm = (ApplicantForm) actionForm;
+		
+		String forward = "createApplicant";
+		String userId = (String) request.getSession().getAttribute("userId");
+		String clientIpAddr = getClientIpAddr(request);
+		try {
+			ApplicantManager applicantManager = new ApplicantManager();
+			ActionErrors errors = (ActionErrors) (request.getAttribute(Globals.ERROR_KEY));
+			if (errors == null) {
+				errors = new ActionErrors();
+			}
+			// custom fields validations
+			String val = request.getParameter("relation1");
+			String val1 = request.getParameter("name1");
+			String val2 = request.getParameter("relation2");
+			String val3 = request.getParameter("name2");
+			ArrayList<CustomFieldData> customFields = null;
+			CustomFieldDataProcessor customFieldDataProcessor = new CustomFieldDataProcessor();
+			ApplicantBC applicantBC = new ApplicantBC();
+			CustomFieldManager customFieldManager = new CustomFieldManager();
+			if (CustomFieldManager.isCustomFieldsAvailable(CustomFieldConstants.ENTITY_TYPE_APPLICANT)) {
+				customFields = customFieldManager.getCustomFieldsForInputAllowed(CustomFieldConstants.ENTITY_TYPE_APPLICANT, CustomFieldConstants.INPUT_ALLOWED, true);
+				customFields = customFieldDataProcessor.setCustomFieldValuesFromRequest(request, customFields);
+				request.setAttribute("customFields", customFields);
+			}
+			
+			
+			if (CustomFieldManager.isCustomFieldsAvailable(CustomFieldConstants.ENTITY_TYPE_APPLICANT_TABLE_FIELD)) {
+				ArrayList<CustomFieldData> tabularCustomFields = customFieldManager.getCustomFieldsForInputAllowed(CustomFieldConstants.ENTITY_TYPE_APPLICANT_TABLE_FIELD, CustomFieldConstants.INPUT_ALLOWED, true);
+				tabularCustomFields = customFieldDataProcessor.setTabularCustomFieldValuesFromRequest(request, tabularCustomFields);
+				customFields.addAll(tabularCustomFields);
+			}
+			// validate form modified due to Screen configuration
+			validateForm(errors, aForm, customFields);
+
+			if (aForm.getEducationalStartDate() == null) {
+				aForm.setDefaultEducationRow();
+			}
+			
+			if(aForm.getEmploymentFromDate() == null){
+				aForm.setDefaultEmploymentHistoryRow();
+			}
+			
+			if (errors.size() == 0 && Utils.isBlankOrNull(aForm.getIgnoreDuplicate())) {
+				ApplicantDuplicateChecker applicantDuplicateChecker = new ApplicantDuplicateChecker();
+				ArrayList<ApplicantDuplicateSearchData> duplicates = applicantDuplicateChecker.getInternalDuplicateChecked(aForm.getApplicantId(), aForm.getApplicantName(),
+						aForm.getApplicantEmail1(), aForm.getApplicantEmail2(), aForm.getApplicantCellPhone(), customFields);
+				if (duplicates != null && duplicates.size() > 0) {
+					request.setAttribute("duplicates", duplicates);
+					return showDuplicates(mapping, actionForm, request, response);
+				}
+
+			}
+			if (errors.size() > 0) {
+				request.setAttribute(Globals.ERROR_KEY, errors);
+				return importResume(mapping, actionForm, request, response);
+			} else {
+				String applicantId = aForm.getApplicantId();
+				
+				// Construct ApplicantData
+				ApplicantUtils appUtils = new ApplicantUtils();
+				ApplicantData aData = appUtils.getApplicantDataConstructed(aForm);
+				aData.setUserId(userId);
+				aData.setCustomFields(customFields);
+				String skillIds = aForm.getPrimarySkillIds();
+				
+				String isEmployeeSource = aForm.getIsEmployeeSource();
+				if (isEmployeeSource.equals("1")) { // Use EmployeeUserId as
+					// vendorID
+					ArrayList<LoginData> employeeUsers = applicantManager.getUsersForSource(aForm.getSourceId());
+					if (employeeUsers != null && employeeUsers.size() > 0) {
+						LoginData empuser = employeeUsers.get(0);
+						String employeeUserId = String.valueOf(empuser.getUserId());
+						aData.setVendorId(employeeUserId);
+					}
+				}
+
+				if (Utils.isBlankOrNull(applicantId)) {
+					// Add New Applicant
+					// Save applicant Original Resume
+					if (!applicantBC.emailExist(aForm.getEmailId())) {
+						errors = new ActionErrors();
+						errors.add("add_applicant.errors.email_does_not_exist", new ActionError("add_applicant.errors.email_does_not_exist"));
+						forward = "error";
+						request.setAttribute(Globals.ERROR_KEY, errors);
+						return mapping.findForward(forward);
+					}
+					
+					List<SimpleDataObject> documents = null;
+					
+					if(!Utils.isBlankOrNull(aForm.getSessionId())) {
+						// replace original resume path and doc path for ie and firefox single import
+						String htmlDocPath = aForm.getUploadedFilePath();
+						String originalDocPath = "";
+						String textContent="";
+						documents = applicantManager.getBrowserImportSessionDocument(aForm.getSessionId());
+						if(documents != null && documents.size() > 0) {
+							htmlDocPath = documents.get(0).getString("documentPath");
+							if(aForm.getUploadedFilePath().equals(htmlDocPath)) {
+								aData.setApplicantTextResume(aForm.getApplicantTextResume());
+							} else {
+								GenericConverter conv = new GenericConverter();
+								 textContent = conv.convert(htmlDocPath);
+								aData.setApplicantTextResume(textContent);
+							}								
+							if(documents.size() > 1) {
+								originalDocPath = documents.get(1).getString("documentPath");;
+							}
+						}	
+						//added to display techfetch html resume page in edit and display page since doc file is not coming while importing.
+						if(aForm.getUploadedFilePath().equals(htmlDocPath)) {
+							textContent=aForm.getApplicantTextResume();
+						}
+						
+						if(!Utils.isBlankOrNull(textContent)){
+							if(textContent.contains("techfetch")){
+								//htmldocpath is being passed instead of original doc path
+								aData = applicantBC.saveResumeAndUpdatePaths(aData, aForm.getSelAttachment(), aForm.getEmailId(), htmlDocPath);
+							}
+							else{
+								if(Utils.isBlankOrNull(originalDocPath)){
+									aData = applicantBC.saveResumeAndUpdatePaths(aData, aForm.getSelAttachment(), aForm.getEmailId(), htmlDocPath);
+								}
+								else{
+								aData = applicantBC.saveResumeAndUpdatePaths(aData, aForm.getSelAttachment(), aForm.getEmailId(), originalDocPath);
+								}
+							}
+						}
+						else{
+							aData = applicantBC.saveResumeAndUpdatePaths(aData, aForm.getSelAttachment(), aForm.getEmailId(), originalDocPath);
+						}
+					}else{
+							aData = applicantBC.saveResumeAndUpdatePaths(aData, aForm.getSelAttachment(), aForm.getEmailId(), aForm.getUploadedFilePath());
+							aData.setApplicantTextResume(aForm.getApplicantTextResume());	
+					}
+					// Save Applicant
+					applicantId = applicantManager.addApplicant(aData, skillIds, clientIpAddr);
+					AuditAction auditAction = new AuditAction();
+					auditAction.insertAuditInfo(TPLabels.getLabel("common.applicant"), AuditConstants.TYPE_ADDED, 
+							applicantId, AuditConstants.AUDIT_CANDIDATE, aData.getUserId(),
+							null, null, null, true, clientIpAddr);
+
+					//Save html as email body for ieImport						
+					if(!Utils.isBlankOrNull(aForm.getSessionId()) && documents != null && documents.size() > 0) { 
+						aData.setApplicantId(applicantId);
+						MessageData messageData = applicantManager.getMessageDataForBrowserImportSession(aData, documents);						
+						InboxManager inboxManager = new InboxManager();
+						inboxManager.saveCommunicationMessage(messageData, ApplicantConstants.APPLICANT_EMAIL_FOLDER_INBOX, userId, ApplicantConstants.EMAIL_IMPORTED);
+					}
+					if(!Utils.isBlankOrNull(aForm.getSessionId())) {
+						applicantManager.updateBrowserImportSessionDocument(aForm.getSessionId());
+						String userName = request.getSession(false).getAttribute("userFirstName") + " " + request.getSession(false).getAttribute("userLastName");
+						SimpleDataObject commentUrl = applicantManager.getBrowserImportSessionCommentUrl(aForm.getSessionId(), applicantId, TPLabels.getLabel("common.imported_to_app"), userName);
+						if(commentUrl != null) {
+							request.setAttribute("commentUrl", commentUrl.getString("commentUrl"));
+						}						
+					}
+					//END
+					
+					// Add applicant to index to event queue
+					TPIndexEventQueue.push(new TPIndexEvent(TPIndexEvent.TYPE_ADD_APPLICANT, applicantId, TPIndexEvent.PRIORITY_HIGH));
+					// Add Applicant Note
+					if (!Utils.isBlankOrNull(aForm.getApplicantNote()) && !Utils.isBlankOrNull(applicantId)) {
+						Calendar cal = new GregorianCalendar();
+						Date dtLogDate = cal.getTime();
+						CommunicationData cData = new CommunicationData();
+						cData.setApplicantId(applicantId);
+						cData.setUserId(userId);
+						cData.setCommunicationType(SelectionProcessConstants.INTERACTION_NOTE);
+						cData.setCommunicationDate(new java.sql.Timestamp(dtLogDate.getTime()));
+						// cData.setCommunicationPhoneNo("");
+						cData.setCommunicationText(aForm.getApplicantNote());
+						SelectionProcessManager selectionProcessManager = new SelectionProcessManager();
+						selectionProcessManager.addPhoneLog(cData);
+					}
+					if (!Utils.isBlankOrNull(aForm.getEmailId())) {
+						InboxManager inboxManager = new InboxManager();
+						inboxManager.attachEmailToApplicantRecord(applicantId, aForm.getEmailId(), userId);
+					}
+
+					aForm.setApplicantId(applicantId);
+					forward = "applicantSaved";
+					if (!Utils.isBlankOrNull(aForm.getRequestSource())) {
+						aForm.setResult(DesktopConstants.SUCCESS);
+						String resultId = aForm.getResultId();
+						if (!Utils.isBlankOrNull(resultId)) {
+							BulkImportManager bulkImportManager = new BulkImportManager();
+							bulkImportManager.updateImportStatusForResult(resultId, applicantId, DesktopConstants.IS_IMPORTED);
+						}
+						forward = "desktopResult";
+					}
+				} else {
+					// update applicant
+					aData.setApplicantId(applicantId);
+					String ignoreDuplicate = aForm.getIgnoreDuplicate();
+					if (Utils.isBlankOrNull(ignoreDuplicate) || (ignoreDuplicate!=null && "1".equals(ignoreDuplicate))) {
+						applicantManager.updateApplicant(aData, skillIds, clientIpAddr);
+					}
+					
+					AuditAction auditAction = new AuditAction();
+					auditAction.insertAuditInfo(TPLabels.getLabel("common.applicant"), AuditConstants.TYPE_ADDED, 
+							applicantId, AuditConstants.AUDIT_CANDIDATE, aData.getUserId(),
+							null, null, null, true, clientIpAddr);
+					
+					if (!Utils.isBlankOrNull(aForm.getIgnoreDuplicate())) {
+						if (!applicantBC.emailExist(aForm.getEmailId())) {
+							errors = new ActionErrors();
+							errors.add("add_applicant.errors.email_does_not_exist", new ActionError("add_applicant.errors.email_does_not_exist"));
+							forward = "error";
+							request.setAttribute(Globals.ERROR_KEY, errors);
+							return mapping.findForward(forward);
+						}
+						if (!Utils.isBlankOrNull(aForm.getDuplicateApplicantId())) {
+							aData = applicantBC.saveResumeAndUpdatePaths(aData, aForm.getSelAttachment(), aForm.getEmailId(), aForm.getUploadedFilePath());
+							aData.setApplicantTextResume(aForm.getApplicantTextResume());
+							applicantManager.updateOriginalResume(applicantId,aData.getApplicantPositionId(), aData.getApplicantOriginalResumePath(), aData.getApplicantOriginalDocPath(), aData.getApplicantTextResume());
+							if (!Utils.isBlankOrNull(aForm.getEmailId())) {
+								InboxManager inboxManager = new InboxManager();
+								inboxManager.attachEmailToApplicantRecord(applicantId, aForm.getEmailId(), userId);
+							}
+						}
+					}
+					TPIndexEventQueue.push(new TPIndexEvent(TPIndexEvent.TYPE_UPDATE_APPLICANT, applicantId, TPIndexEvent.PRIORITY_HIGH));
+					forward = "applicantSaved";
+				}
+				RecentViewManager recentViewManager = new RecentViewManager();
+				recentViewManager.addLastViewedEntry(applicantId, UserConstants.ENTITY_CANDIDATE, userId);
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while adding applicant", e);
+			return importResume(mapping, actionForm, request, response);
+		}
+		return mapping.findForward(forward);
+	}
+
+	public ActionForward editApplicant(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		String forward = "createApplicant";
+		
+		ApplicantForm aForm = (ApplicantForm) actionForm;
+		try {
+			String applicantId = aForm.getApplicantId();
+			
+			Integer[] permissions = new Integer[1];
+			permissions[0] = PermissionConstants.PERMISSION_EDIT_CANDIDATE_DETAILS;
+			if(!isUserAuthorized(request, CommonConstants.NO_MODULE, permissions,applicantId,null,null)) {
+				forward = "authorizationFailure";			
+				return mapping.findForward(forward);
+			}			
+			
+			if (!Utils.isBlankOrNull(applicantId)) {
+				ApplicantManager applicantManager = new ApplicantManager();
+				ApplicantData aData = applicantManager.getApplicantData(applicantId);
+
+				aForm.setSourceId("" + aData.getApplicantSourceId());
+
+				aForm.setApplicantName(aData.getApplicantName());
+				aForm.setApplicantCity(aData.getApplicantCity());
+				aForm.setApplicantWorkPhone(aData.getApplicantWorkPhone());
+				aForm.setApplicantHomePhone(aData.getApplicantHomePhone());
+				aForm.setApplicantCellPhone(aData.getApplicantCellPhone());
+				aForm.setApplicantEmail1(aData.getApplicantEmail1());
+				aForm.setApplicantEmail2(aData.getApplicantEmail2());
+				if (aData.getApplicantWorkingSince() != null) {
+					//aForm.setApplicantWorkingSince(Utils.getDateConvertedToString(aData.getApplicantWorkingSince(), Utils.regMMMYYYYFormat));					
+					//aForm.setApplicantWorkingSince(Utils.getDateDifferenceInYearMonthString(aData.getApplicantWorkingSince(),Calendar.getInstance().getTime(),null));
+					aForm.setApplicantWorkingSince(Utils.getExperienceInDecimalFormat(aData.getApplicantWorkingSince()));
+					
+					aForm.setFresher("0");
+				} else {
+					aForm.setFresher("1");
+				}
+				if(!Utils.isBlankOrNull(aData.getCategory())){
+					aForm.setCategory(aData.getCategory());
+				}
+				if(!Utils.isBlankOrNull(aData.getSubCategory())){
+					aForm.setSubCategory(aData.getSubCategory());
+				}
+				aForm.setApplicantCurrentEmployer(aData.getApplicantCurrentEmployer());
+				aForm.setCurrentCTC(aData.getCurrentCTC());
+				aForm.setExpectedCTC(aData.getExpectedCTC());
+				aForm.setNoticePeriod(aData.getNoticePeriod());
+				
+				if(aData.getDateOfBirth()!=null){
+					aForm.setDateOfBirth(Utils.getDateConvertedToString(aData.getDateOfBirth(), Utils.regEUDateFormat));
+				}
+				aForm.setPassportNumber(aData.getPassportNumber());
+				aForm.setResumeTypeId(aData.getResumeTypeId());
+				
+				aForm.setSource(aData.getApplicantSourceTitle());
+
+				ArrayList<EducationalData> educationalDetails = aData.getEducationalDetails();
+				if (educationalDetails != null && educationalDetails.size() > 0) {
+					int sz = educationalDetails.size();
+					String[] fromYear= new String[sz];
+					String[] eduYop = new String[sz];
+					String[] eduInstitute = new String[sz];
+					String[] eduDegree = new String[sz];
+					String[] eduMajor = new String[sz];
+					String[] eduGrades = new String[sz];
+					String[] remarks = new String[sz];
+					String[] eduStartDate = new String[sz];
+					String[] eduEndDate = new String[sz];
+					String[] university = new String[sz];
+					String[] typeOfProgram = new String[sz];
+					for (int i = 0; i < sz; i++) {
+						EducationalData eData = (EducationalData) educationalDetails.get(i);
+						if (eData != null) {
+							fromYear[i]=eData.getFromYear() ==null ? "" : Utils.getDateConvertedToString(eData.getFromYear(), Utils.regYYYYFormat);
+							eduYop[i] = eData.getYearOfPassing() == null ? "" : Utils.getDateConvertedToString(eData.getYearOfPassing(), Utils.regYYYYFormat);
+							eduInstitute[i] = eData.getInstitute();
+							eduDegree[i] = "" + eData.getDegreeId();
+							eduMajor[i] = "" + eData.getMajorId();
+							eduGrades[i] = eData.getGrade();
+							remarks[i]=Utils.isBlankOrNull(eData.getRemarks())?"":eData.getRemarks();
+							eduStartDate[i]= eData.getStartDate() == null ? "" : Utils.getDateConvertedToString(eData.getStartDate(), Utils.regDDMMMYYYYFormat);
+							eduEndDate[i]= eData.getEndDate() == null ? "" : Utils.getDateConvertedToString(eData.getEndDate(), Utils.regDDMMMYYYYFormat);
+							university[i]= "" + eData.getUniversity() == null ? "" : eData.getUniversity();
+							if(!Utils.isBlankOrNull(eData.getTypeOfProgram())&&Utils.isNumeric(eData.getTypeOfProgram())){
+								typeOfProgram[i]=eData.getTypeOfProgram();
+							}else if(!Utils.isNumeric(eData.getTypeOfProgram())){
+								typeOfProgram[i]=String.valueOf(CommonUtils.getEmploymentTypeIdByString(Utils.isBlankOrNull(eData.getTypeOfProgram())?"":eData.getTypeOfProgram()));	
+							} else {
+								typeOfProgram[i] = Utils.isBlankOrNull(eData.getTypeOfProgram())?"":eData.getTypeOfProgram();
+							}
+						}
+					}
+					aForm.setEducationYearOfPassing(eduYop);
+					aForm.setEducationInstitute(eduInstitute);
+					aForm.setEducationDegreeId(eduDegree);
+					aForm.setEducationMajorId(eduMajor);
+					aForm.setEducationalGrade(eduGrades);
+					aForm.setFromYear(fromYear);
+					aForm.setRemarks(remarks);
+					aForm.setUniversity(university);
+					aForm.setEducationalStartDate(eduStartDate);
+					aForm.setEducationalEndDate(eduEndDate);
+					aForm.setTypeOfProgram(typeOfProgram);
+				} else {
+					aForm.setDefaultEducationRow();
+				}
+
+				ArrayList skills = aData.getApplicantSkills();
+				if (skills != null) {
+					StringBuffer skillList = new StringBuffer();
+					StringBuffer skillIds = new StringBuffer();
+					for (int i = 0; i < skills.size(); i++) {
+						PositionSkillsData pData = (PositionSkillsData) skills.get(i);
+						skillList.append(pData.getSkillName());
+						skillIds.append(pData.getSkillId());
+						if (i < skills.size() - 1) {
+							skillList.append(", ");
+							skillIds.append(",");
+						}
+					}
+					aForm.setPrimarySkills(skillList.toString());
+					aForm.setPrimarySkillIds(skillIds.toString());
+				}
+				aForm.setOriginalResumePath(ApplicantUtils.getOriginalResumePath(aData.getApplicantOriginalResumePath(), aData.getApplicantOriginalDocPath()));
+				
+				ArrayList<EmploymentHistoryData> employmentHistoryDetails = aData.getEmploymentHistoryDetails();
+				if (employmentHistoryDetails != null && employmentHistoryDetails.size() > 0) {
+					int sz = employmentHistoryDetails.size();
+					String[] employmentFromDate = new String[sz];
+					String[] employmentToDate = new String[sz];
+					String[] employmentEmployerId = new String[sz];
+					String[] employmentDesignationId = new String[sz];
+					String[] employmentExperience = new String[sz];
+					String[] grossSalary = new String[sz];
+					String[] allowance = new String[sz];
+					String[] reasonForLeaving = new String[sz];
+					String[] dutiesInvolved = new String[sz];
+					String[] empType = new String[sz];
+					String[] location = new String[sz];
+					String[] country = new String[sz];
+					String[] lastCtc = new String[sz];
+					for (int i = 0; i < sz; i++) {
+						EmploymentHistoryData eData = (EmploymentHistoryData) employmentHistoryDetails.get(i);
+						if (eData != null) {
+							employmentFromDate[i] = eData.getEmployerFromDate() == null ? "" : Utils.getDateConvertedToString(eData.getEmployerFromDate(), Utils.regMMMYYYYFormat);
+							employmentToDate[i] = eData.getEmployerToDate() == null ? "" : Utils.getDateConvertedToString(eData.getEmployerToDate(), Utils.regMMMYYYYFormat);
+							employmentEmployerId[i] = Utils.isBlankOrNull(eData.getEmployerName())?"":eData.getEmployerName();
+							employmentDesignationId[i] = Utils.isBlankOrNull(eData.getDesignationName())?"": eData.getDesignationName();
+							Date fromDt = null;
+							Date toDt = null;
+							if(!Utils.isBlankOrNull(employmentFromDate[i])){
+								fromDt = Utils.convertToDate("1" + Utils.dateDescSeparator + employmentFromDate[i], Utils.regDDMMMYYYYFormat);
+							}
+							if(!Utils.isBlankOrNull(employmentToDate[i])){
+								toDt = Utils.convertToDate("1" + Utils.dateDescSeparator + employmentToDate[i], Utils.regDDMMMYYYYFormat);
+							}			
+							
+							employmentExperience[i] = Utils.getDateDifferenceInYearMonthString(fromDt,toDt,null);
+							grossSalary[i] = Utils.isBlankOrNull(eData.getGrossSalary())?"":eData.getGrossSalary();
+							allowance[i]=Utils.isBlankOrNull(eData.getAllowance())?"":eData.getAllowance();
+							reasonForLeaving[i]=Utils.isBlankOrNull(eData.getReasonForLeaving())?"":eData.getReasonForLeaving();
+							dutiesInvolved[i]=Utils.isBlankOrNull(eData.getDutiesInvolved())?"":eData.getDutiesInvolved();
+							
+							
+							if(!Utils.isBlankOrNull(eData.getCountry())&&!Utils.isNumeric(eData.getCountry())){
+								country[i]=eData.getCountry();
+							}else{
+								country[i]="";
+							}
+							if(!Utils.isBlankOrNull(eData.getLocation())&&!Utils.isNumeric(eData.getLocation())){
+								location[i]=eData.getLocation();
+							}else{
+								location[i]="";
+							}
+							if(!Utils.isBlankOrNull(eData.getEmpType())&&Utils.isNumeric(eData.getEmpType())){
+								empType[i]=eData.getEmpType();
+							}else if(!Utils.isNumeric(eData.getEmpType())){
+								empType[i]=String.valueOf(CommonUtils.getEmploymentTypeIdByString(Utils.isBlankOrNull(eData.getEmpType())?"":eData.getEmpType()));	
+							} else {
+								empType[i] = Utils.isBlankOrNull(eData.getEmpType())?"":eData.getEmpType();
+							}
+							if(!Utils.isBlankOrNull(eData.getLastCtc())&&Utils.isNumeric(eData.getLastCtc())){
+								lastCtc[i]=eData.getLastCtc();
+							}else{
+								lastCtc[i]="";
+							}
+						}
+					}
+					aForm.setEmploymentFromDate(employmentFromDate);
+					aForm.setEmploymentToDate(employmentToDate);
+					aForm.setEmploymentEmployerId(employmentEmployerId);
+					aForm.setEmploymentDesignationId(employmentDesignationId);
+					aForm.setEmploymentExperience(employmentExperience);
+					aForm.setGrossSalary(grossSalary);
+					aForm.setAllowance(allowance);
+					aForm.setReasonForLeaving(reasonForLeaving);
+					aForm.setDutiesInvolved(dutiesInvolved);
+					aForm.setLastCtc(lastCtc);
+					aForm.setLocation(location);
+					aForm.setCountry(country);
+					aForm.setEmpType(empType);
+				} else {
+					aForm.setDefaultEmploymentHistoryRow();
+				}
+				
+				ArrayList<CustomFieldData> customFields = null;
+				if (CustomFieldManager.isCustomFieldsAvailable(CustomFieldConstants.ENTITY_TYPE_APPLICANT)) {
+					CustomFieldManager customFieldManager = new CustomFieldManager();
+					customFields = customFieldManager.getCustomFieldsForInputAllowed(CustomFieldConstants.ENTITY_TYPE_APPLICANT, CustomFieldConstants.INPUT_ALLOWED, true);
+					CustomFieldDataProcessor customFieldDataProcessor = new CustomFieldDataProcessor();
+					customFields = customFieldDataProcessor.setCustomFieldValuesFromPreviousValues(customFields, aData.getCustomFields());
+					request.setAttribute("customFields", customFields);
+				}
+				request.setAttribute("customTables", aData.getCustomTables());
+				// to set Employee source
+				AdminManager adminManager = new AdminManager();
+				ArrayList<SourceTypeData> employeeSourceList = adminManager.getEmployeeSourceTypeId();
+				SourceTypeData employeeSourceData = employeeSourceList.get(0);
+				ArrayList employeeSource = adminManager.getEmployeeSource();
+				String jsArrayEmployeeSource = CommonUtils.getListJavaScriptArrayWithProperties(employeeSource, "itemId", "itemName");
+				for (int i = 0; i < employeeSource.size(); i++) {
+					SimpleDataObject sDo = (SimpleDataObject) employeeSource.get(i);
+					String itemId = sDo.getString("itemId");
+					if (itemId.equals("" + aData.getApplicantSourceId())) {
+						aForm.setIsEmployeeSource("1");
+					}
+				}
+
+				aForm.setEmployeeSourceName(employeeSourceData.getSourceType());
+				aForm.setJsArrayEmployeeSource(jsArrayEmployeeSource);
+				aForm.setVendorId(aData.getVendorId());
+				if (Utils.isBlankOrNull(aForm.getSaveNcontinue())) {
+					String fieldValueDataString = checkForDuplicateRecord(aForm.getApplicantId(), aForm.getApplicantName(), aForm.getApplicantEmail1(), aForm.getApplicantEmail2(), aForm
+							.getApplicantCellPhone(), customFields, aForm.getSaveNcontinue());
+					request.setAttribute("fieldValueData", fieldValueDataString);
+				}
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while adding applicant", e);
+		}
+		return mapping.findForward(forward);
+	}
+	
+	public ActionForward showDuplicates(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		String forward = "showDuplicates";
+		try {
+			ArrayList<ApplicantDuplicateSearchData> duplicates = null;
+			ApplicantForm applicantForm = (ApplicantForm) actionForm;
+			ApplicantBC applicantBC = new ApplicantBC();
+			CustomFieldDataProcessor customFieldDataProcessor = new CustomFieldDataProcessor();
+			if (request.getAttribute("duplicates") == null) {
+				// create duplicate list from aForm and set atttribute in
+				// request
+				duplicates = applicantBC.getDuplicateDataFromString(applicantForm.getDuplicateString(), applicantForm.getDuplicateApplicantId());
+				request.setAttribute("duplicates", duplicates);
+			} else {
+				duplicates = (ArrayList<ApplicantDuplicateSearchData>) request.getAttribute("duplicates");
+			}
+			applicantForm.setDuplicateString(applicantBC.getDuplicateStringFromData(duplicates));
+
+			if (CustomFieldManager.isCustomFieldsAvailable(CustomFieldConstants.ENTITY_TYPE_APPLICANT)) {
+				if (request.getAttribute("customFields") == null) {
+					CustomFieldManager customFieldManager = new CustomFieldManager();
+					ArrayList<CustomFieldData> customFields = customFieldManager.getCustomFieldsForInputAllowed(CustomFieldConstants.ENTITY_TYPE_APPLICANT, CustomFieldConstants.INPUT_ALLOWED, true);
+					customFields = customFieldDataProcessor.setCustomFieldValuesFromRequest(request, customFields);
+					request.setAttribute("customFields", customFields);
+				}
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while display duplicates", e);
+		}
+		return mapping.findForward(forward);
+	}
+
+	public ActionForward compareResume(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		String forward = "compareResume";
+		try {
+			if (CustomFieldManager.isCustomFieldsAvailable(CustomFieldConstants.ENTITY_TYPE_APPLICANT)) {
+				CustomFieldManager customFieldManager = new CustomFieldManager();
+				ArrayList<CustomFieldData> customFields = customFieldManager.getCustomFieldsForInputAllowed(CustomFieldConstants.ENTITY_TYPE_APPLICANT, CustomFieldConstants.INPUT_ALLOWED, true);
+				CustomFieldDataProcessor customFieldDataProcessor = new CustomFieldDataProcessor();
+				customFields = customFieldDataProcessor.setCustomFieldValuesFromRequest(request, customFields);
+				request.setAttribute("customFields", customFields);
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while compare resumes", e);
+		}
+		return mapping.findForward(forward);
+	}
+
+	public ActionForward updateConfirm(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		String forward = "updateConfirm";
+		try {
+			if (CustomFieldManager.isCustomFieldsAvailable(CustomFieldConstants.ENTITY_TYPE_APPLICANT)) {
+				CustomFieldManager customFieldManager = new CustomFieldManager();
+				ArrayList<CustomFieldData> customFields = customFieldManager.getCustomFieldsForInputAllowed(CustomFieldConstants.ENTITY_TYPE_APPLICANT, CustomFieldConstants.INPUT_ALLOWED, true);
+				CustomFieldDataProcessor customFieldDataProcessor = new CustomFieldDataProcessor();
+				customFields = customFieldDataProcessor.setCustomFieldValuesFromRequest(request, customFields);
+				request.setAttribute("customFields", customFields);
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while create update confirm", e);
+		}
+		return mapping.findForward(forward);
+	}
+
+	public ActionForward getAutoCompleteList(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		String forward = "xmlFile";
+		ApplicantForm applicantForm = (ApplicantForm) actionForm;
+		try {
+			ApplicantManager applicantManager = new ApplicantManager();
+			String xmlFile = "";
+			String fld = applicantForm.getFld();
+			if (!Utils.isBlankOrNull(fld)) {
+				if (fld.equals(ApplicantConstants.AUTOCOMPLETE_CURRENT_LOCATION)) {
+					xmlFile = applicantManager.getAutoCompleteXML(applicantForm.getApplicantCity(), ApplicantConstants.AUTOCOMPLETE_CURRENT_LOCATION);
+				} else if (fld.equals(ApplicantConstants.AUTOCOMPLETE_INSTITUTE)) {
+					xmlFile = applicantManager.getAutoCompleteXML(applicantForm.getEducationInstitute()[0], ApplicantConstants.AUTOCOMPLETE_INSTITUTE);
+				} else if (fld.equals(ApplicantConstants.AUTOCOMPLETE_BRANCH)) {
+					xmlFile = applicantManager.getAutoCompleteXML(applicantForm.getEducationMajorId()[0], ApplicantConstants.AUTOCOMPLETE_BRANCH);
+				} else if (fld.equals(ApplicantConstants.AUTOCOMPLETE_EMPLOYER)) {
+					xmlFile = applicantManager.getAutoCompleteXML(applicantForm.getApplicantCurrentEmployer(), ApplicantConstants.AUTOCOMPLETE_EMPLOYER);
+				} else if (fld.equals(ApplicantConstants.AUTOCOMPLETE_SOURCE)) {
+					String source = request.getParameter("source");
+					String sourceTypeId = request.getParameter("sourceTypeId");
+					if("0".equals(sourceTypeId)){
+						sourceTypeId =CommonUtils.getSourceTypeFromCategory(AdminConstants.SOURCE_CATEGORY_EMPLOYEE_REFERAL); 
+					}
+					xmlFile = applicantManager.getAutoCompleteXMLForSource(source, sourceTypeId);
+				} else if(fld.equals(ApplicantConstants.AUTOCOMPLETE_EMPLOYMENT_EMPLOYER)){
+					xmlFile = applicantManager.getAutoCompleteXML(applicantForm.getEmploymentEmployerId()[0], ApplicantConstants.AUTOCOMPLETE_EMPLOYMENT_EMPLOYER);
+				}else if(fld.equals(ApplicantConstants.AUTOCOMPLETE_EMPLOYMENT_DESIGNATION)){
+					xmlFile = applicantManager.getAutoCompleteXML(applicantForm.getEmploymentDesignationId()[0], ApplicantConstants.AUTOCOMPLETE_EMPLOYMENT_DESIGNATION);
+				}
+				
+			}
+			request.setAttribute("xmlFile", xmlFile);
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return mapping.findForward(forward);
+	}
+
+	public ActionForward getExtractedSkills(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		String forward = "xmlFile";
+		String xmlFile = "";
+		try {
+			if (!SessionManager.isLoginFound(mapping, actionForm, request, response, this)) {
+				xmlFile = Utils.getXMLForSessionExpiry();
+			} else {
+				ApplicantManager applicantManager = new ApplicantManager();
+				ApplicantForm applicantForm = (ApplicantForm) actionForm;
+				// ArrayList extractedSkills =
+				// ApplicantManager.getExtractedSkills(applicantForm.getRawPrimarySkills(),
+				// 0);
+				SkillsParser skillsParser = new SkillsParser();
+
+				ArrayList extractedSkills = skillsParser.getParsedSkillsFromMaster(applicantForm.getRawPrimarySkills(), -1);
+				xmlFile = applicantManager.getExtractedSkillXml(extractedSkills);
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting cities", e);
+		}
+		request.setAttribute("xmlFile", xmlFile);
+		return mapping.findForward(forward);
+	}
+
+	public ActionForward getExtractedEducation(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		String forward = "xmlFile";
+		String xmlFile = "";
+		try {
+			if (!SessionManager.isLoginFound(mapping, actionForm, request, response, this)) {
+				xmlFile = Utils.getXMLForSessionExpiry();
+			} else {
+				ApplicantManager applicantManager = new ApplicantManager();
+				ApplicantForm applicantForm = (ApplicantForm) actionForm;
+				EducationParser educationParser = new EducationParser();
+				EducationalData eData = educationParser.getEducationParsedFromMaster(applicantForm.getRawEducation());
+				xmlFile = applicantManager.getExtractedEducationXml(eData, Integer.parseInt(applicantForm.getEducationLevel()));
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error("Error while getting cities", e);
+		}
+		request.setAttribute("xmlFile", xmlFile);
+		return mapping.findForward(forward);
+	}
+
+	public ActionForward addDocument(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		String forward = "addDocument";
+		Integer[] permissions = new Integer[1];
+		permissions[0] = PermissionConstants.PERMISSION_UPLOAD_DOCUMENT;
+		if(!isUserAuthorized(request, CommonConstants.NO_MODULE, permissions,null,null,null)) {
+			forward = "authorizationFailure";			
+			return mapping.findForward(forward);
+		}
+		return mapping.findForward(forward);
+	}
+
+	public ActionForward uploadDocument(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		String forward = "uploadSuccess";
+		ApplicantForm applicantForm = (ApplicantForm) actionForm;
+		String error = "";
+		try {
+			// get all attachments for this message
+			FormFile formFile = applicantForm.getAttachedFile();
+			String option = request.getParameter("option");
+			String fileName = formFile.getFileName();
+			if (formFile != null) {
+				if (formFile.getFileSize() <= 0) {
+					error = TPLabels.getLabel("inbox.error.could_not_read_file");
+				}
+				FileHandler fileHandler = new FileHandler();
+				if(InboxConstants.OPTION_CSV_UPLOAD.equals(option)
+						&& !".csv".equalsIgnoreCase(FileHandlerUtils.getFileExtention(fileName, ""))) {
+					request.setAttribute("option", "1");
+					error = TPLabels.getLabel("inbox.error.upload_csv_file");
+				}else if(InboxConstants.OPTION_RESUME_UPLOAD.equals(option)){
+					if(!fileHandler.isValidResume(fileName)){
+						request.setAttribute("option", InboxConstants.OPTION_RESUME_UPLOAD);
+						error = TPLabels.getLabel("inbox.error.upload_resume",new Object[]{Utils.convertArrayIntoCommaSptdString(DocumentConstants.SINGLE_IMPORT_EXTENSIONS)});
+					}
+				}
+				if (Utils.isBlankOrNull(error)) {
+					ApplicantManager applicantManager = new ApplicantManager();
+					FormFileData formFileData = new FormFileData(formFile.getFileName(), formFile.getFileSize(), formFile.getContentType(), formFile.getInputStream());
+					AttachmentData attachmentData = applicantManager.uploadResumeTmp(formFileData);
+					if (attachmentData != null && !Utils.isBlankOrNull(attachmentData.getAttachmentFilePath())) {
+						String srcFilePath = Utils.concatFilePath(DocumentConstants.documentsPath, attachmentData.getAttachmentFilePath());
+						WordToHtmlConverter converter = new WordToHtmlConverter();
+						converter.convertToHtml(srcFilePath);
+					}
+					request.setAttribute("attachmentData", attachmentData);
+				}
+			}
+		} catch (FileUploadException fe) {
+			error = TPLabels.getLabel("inbox.error.could_not_read_file");
+		} catch (InvalidMimeTypeException e) {
+			TPLogger.getLogger().error("Error while uploading user document", e);
+			error = TPLabels.getLabel("upload_document.error.invalid_mime_type");
+		}catch (Exception e) {
+			TPLogger.getLogger().error("Error while uploading resume from HD", e);
+		}
+		request.setAttribute("error", error);
+		return mapping.findForward(forward);
+	}
+
+	public ActionForward getAllSourcesWithoutEmployee(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		String forward = "xmlFile";
+		String xmlFile = "";
+		try {
+			if (!SessionManager.isLoginFound(mapping, actionForm, request, response, this)) {
+				xmlFile = Utils.getXMLForSessionExpiry();
+				forward = "xmlFile";
+			} else {
+				xmlFile = CommonUtils.getListJavaScriptArray(CommonUtils.getSourceIdsWithoutEmployeeSource(), CommonUtils.getSourceNamesWithoutEmployeeSource());
+			}
+
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+			xmlFile = Utils.getXMLForError();
+		}
+		request.setAttribute("xmlFile", xmlFile);
+		return mapping.findForward(forward);
+	}
+
+	public ActionForward getVendorUserJS(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		String forward = "xmlFile";
+		String xmlFile = "";
+		try {
+			if (!SessionManager.isLoginFound(mapping, actionForm, request, response, this)) {
+				xmlFile = Utils.getXMLForSessionExpiry();
+				forward = "xmlFile";
+			} else {
+				ApplicantForm applicantForm = (ApplicantForm) actionForm;
+				ApplicantManager applicantManager = new ApplicantManager();
+				ArrayList<LoginData> vendorUsers = applicantManager.getUsersForSource(applicantForm.getSourceId());
+				xmlFile = CommonUtils.getListJavaScriptArrayWithProperties(vendorUsers, "userId", "userName");
+			}
+
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+			xmlFile = Utils.getXMLForError();
+		}
+		request.setAttribute("xmlFile", xmlFile);
+		return mapping.findForward(forward);
+	}
+
+	public ActionForward getSourceId(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		String forward = "xmlFile";
+		String xmlFile = "";
+		try {
+			if (!SessionManager.isLoginFound(mapping, actionForm, request, response, this)) {
+				xmlFile = Utils.getXMLForSessionExpiry();
+				forward = "xmlFile";
+			} else {
+				ApplicantForm applicantForm = (ApplicantForm) actionForm;
+				ApplicantManager applicantManager = new ApplicantManager();
+				String sourceId = applicantManager.getSourceId(applicantForm.getSource());
+				xmlFile = Utils.getXMLForIds(sourceId);
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+			xmlFile = Utils.getXMLForError();
+		}
+		request.setAttribute("xmlFile", xmlFile);
+		return mapping.findForward(forward);
+	}
+	public ActionForward getExtractedEmploymentHistory(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		String forward = "xmlFile";
+		String xmlFile = "";
+		try{
+			if (!SessionManager.isLoginFound(mapping, actionForm, request, response, this)) {
+				xmlFile = Utils.getXMLForSessionExpiry();
+			} else {
+				String rawEmploymentHistory = request.getParameter("rawEmploymentHistory");
+				String emplevel = request.getParameter("emplevel");
+				ApplicantManager am = new ApplicantManager();
+				EmploymentHistoryParser ehp = new EmploymentHistoryParser();
+				EmploymentHistoryData ehd = ehp.getEmploymentHistoryParsedFromMaster(rawEmploymentHistory);				
+				xmlFile=am.getExtractedEmploymentHistoryXml(ehd,emplevel);
+			}
+		}catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+			xmlFile = Utils.getXMLForError();
+		}
+		request.setAttribute("xmlFile", xmlFile);
+		return mapping.findForward(forward);
+	}
+	
+	public ActionForward getEmployerExperience(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		String forward = "xmlFile";
+		String xmlFile = "";
+		Date fromDt = null;
+		Date toDt = null;
+		try {
+			if (!SessionManager.isLoginFound(mapping, actionForm, request, response, this)) {
+				xmlFile = Utils.getXMLForSessionExpiry();
+			} else {
+				String toStrDt = request.getParameter("toDt").toString();
+				String fromStrDt = request.getParameter("fromDt").toString();
+				String emplevel = request.getParameter("emplevel");
+				if(!Utils.isBlankOrNull(fromStrDt)){
+					fromDt = Utils.convertToDate("1" + Utils.dateDescSeparator + fromStrDt, Utils.regDDMMMYYYYFormat);
+				}
+				if(!Utils.isBlankOrNull(toStrDt)){
+					toDt = Utils.convertToDate("1" + Utils.dateDescSeparator + toStrDt, Utils.regDDMMMYYYYFormat);
+				}				
+				String diff1 = Utils.getDateDifferenceInYearMonthString(fromDt,toDt,null);
+				String monDiff = diff1 + "_" + emplevel;
+				xmlFile = Utils.getXMLForIds(monDiff);
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+			xmlFile = Utils.getXMLForError();
+		}
+		request.setAttribute("xmlFile", xmlFile);
+		return mapping.findForward(forward);
+	}
+
+	public ActionForward getToAndFromDateValidation(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		String forward = "xmlFile";
+		String xmlFile = "";
+		Date fromDt = null;
+		Date toDt = null;
+		try {
+			if (!SessionManager.isLoginFound(mapping, actionForm, request, response, this)) {
+				xmlFile = Utils.getXMLForSessionExpiry();
+			} else {
+				String toStrDt = request.getParameter("toDt").toString();
+				String fromStrDt = request.getParameter("fromDt").toString();
+				String emplevel = request.getParameter("emplevel");
+				if(!Utils.isBlankOrNull(fromStrDt)){
+					fromDt = Utils.convertToDate("1" + Utils.dateDescSeparator + fromStrDt, Utils.regDDMMMYYYYFormat);
+				}
+				if(!Utils.isBlankOrNull(toStrDt)){
+					toDt = Utils.convertToDate("1" + Utils.dateDescSeparator + toStrDt, Utils.regDDMMMYYYYFormat);
+				}
+				String diff1 = Utils.getDateDifferenceInYearMonthString(fromDt,toDt,null);
+				String monDiff = diff1 + "_" + emplevel;
+				xmlFile = Utils.getXMLForIds(monDiff);
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+			xmlFile = Utils.getXMLForError();
+		}
+		request.setAttribute("xmlFile", xmlFile);
+		return mapping.findForward(forward);
+	}
+	
+	/**
+	 * @param mapping
+	 * @param actionForm
+	 * @param request
+	 * @param response
+	 * @return
+	 * @throws Exception 
+	 */
+	public ActionForward showSocialRelations(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request,
+			HttpServletResponse response) throws Exception {	String forward = "showSocialRelations";
+			String applicantId= request.getParameter("applicantId");
+			if(!isUserAuthorized(request, CommonConstants.NO_MODULE, null, applicantId, null, null)) {
+				forward = "authorizationFailure";			
+				return mapping.findForward(forward);
+			}
+			ActionErrors errors = (ActionErrors) (request.getAttribute(Globals.ERROR_KEY));
+			if (errors == null) {
+				errors = new ActionErrors();
+			}
+			String error = null;
+			SocialMediaManager manager = new SocialMediaManager();
+			List<SimpleDataObject> result = manager.getPersonIdForActiveApplicant(applicantId);
+			String personId = null;
+			try{
+				if(result!=null && result.size()>0){
+					personId = result.get(0).getString("personId"); //personId will be same as only one applicant id will be passed
+				    String token = result.get(0).getString("token");
+				    String sourceTitle = result.get(0).getString("sourceTitle");
+					if(!Utils.isBlankOrNull(token)){
+						DataObject obj = new DataObject();
+						List<EntryObject> entryObjs = obj.getEntries();
+						EntryObject entry1 = new EntryObject();
+						entry1.setKey(sourceTitle);
+						entry1.setValue(token);
+						entryObjs.add(entry1);
+						DataObject profileResults = SocialMediaUtils.fetchLinkedInProfile(obj,personId);
+						ObjectMapper mapper = new ObjectMapper();
+						LinkedInConnectionSearchDataObject linkedInConnectionObject =null;
+						String[] linkedInCandidateProfileParams=null;
+						for(EntryObject entry : profileResults.getEntries()){
+							if(((String)entry.getKey()).equalsIgnoreCase("LinkedIn")){
+								String value=(String) entry.getValue();
+								if(value.contains("Error")){
+									error = TPLabels.getLabel("token.applicant.invalid");
+									request.setAttribute("errorMessage", error);
+									throw new Exception("Invalid Token ound for the applicant "+applicantId);
+								}else{
+									linkedInConnectionObject = mapper.readValue(value, LinkedInConnectionSearchDataObject.class);
+									request.setAttribute("linkedInPeopleList", linkedInConnectionObject.getPeople().getValues());
+								}
+							}
+							if(((String)entry.getKey()).equalsIgnoreCase("LinkedInProfile")){
+								linkedInCandidateProfileParams = ((String)entry.getValue()).split("\\|");
+								request.setAttribute("linkedInName", linkedInCandidateProfileParams[0]+" "+linkedInCandidateProfileParams[1]);
+								request.setAttribute("linkedInHeadline", linkedInCandidateProfileParams[2]);
+								request.setAttribute("linkedInProfilePicUrl",linkedInCandidateProfileParams[3]);
+								request.setAttribute("linkedInPublicProfileUrl", linkedInCandidateProfileParams[4]);
+							}
+						}
+					}else{
+						request.setAttribute("errorMessage",TPLabels.getLabel("token.applicant.notFound"));
+					}
+				}
+			}catch(Exception e){
+				TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+			}
+			
+			if(!Utils.isBlankOrNull(personId)){
+				Map<String,String> commonAttribsMap = new HashMap<String,String>();
+				DataObject graphCommonSearchResultObject = SocialMediaUtils.getCommonFactorsFromGraph(personId);
+				for(EntryObject entry: graphCommonSearchResultObject.getEntries()){
+					String value = (String) entry.getValue();
+					String key = (String) entry.getKey();
+					if(commonAttribsMap.containsKey(key)){
+						String tmp = commonAttribsMap.get(key);
+						value = "," +value;
+						value=tmp+value;
+					}
+					commonAttribsMap.put(key, value);
+				}
+				for(String key : commonAttribsMap.keySet()){
+					String values = commonAttribsMap.get(key);
+					values = manager.getUserAndJoinedFromPersonId(values);
+					commonAttribsMap.put(key, values);
+				}
+				
+				Iterator<String> itr = commonAttribsMap.keySet().iterator();
+				while(itr.hasNext()){
+					String values =commonAttribsMap.get(itr.next());
+					if (Utils.isBlankOrNull(values)) {
+						itr.remove();
+					}
+				}
+//				
+//				for(String key : commonAttribsMap.keySet()){
+//					String values = commonAttribsMap.get(key);
+//					if(Utils.isBlankOrNull(values)){
+//						commonAttribsMap.remove(key);
+//					}
+//				}
+				
+				request.setAttribute("commonAttribsFromGraph",commonAttribsMap);
+			}else{
+				errors.add("personId.notFound", new ActionError("personId.notFound"));
+				request.setAttribute(Globals.ERROR_KEY,errors);
+				return mapping.findForward("error");
+			}
+			return mapping.findForward("showSocialRelations");}
+	
+}

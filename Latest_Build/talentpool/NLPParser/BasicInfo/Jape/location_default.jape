@@ -1,0 +1,17 @@
+/*
+*  location.jape
+*
+*/
+
+
+Phase:	location
+Input:  TempLocationToken
+Options: control = once
+
+Rule: location_default
+Priority: 20
+(
+	({TempLocationToken.kind == location}):location
+)
+-->
+:location.LocationToken = {kind = "city", rule = "location_default", priority="80"}

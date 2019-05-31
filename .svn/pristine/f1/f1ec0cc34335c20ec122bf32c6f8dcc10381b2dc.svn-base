@@ -1,0 +1,204 @@
+/**
+ * 
+ */
+package com.talentPool.export.action;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.struts.action.ActionForm;
+import org.apache.struts.action.ActionForward;
+import org.apache.struts.action.ActionMapping;
+
+import com.talentPool.applicant.dataobject.ApplicantData;
+import com.talentPool.common.Logger.TPLogger;
+import com.talentPool.common.base.TPDispatchAction;
+import com.talentPool.common.db.SimpleDataObject;
+import com.talentPool.common.properties.GlobalConstants;
+import com.talentPool.common.utils.FileHandler;
+import com.talentPool.common.utils.Utils;
+import com.talentPool.custom.constants.CustomFieldConstants;
+import com.talentPool.custom.dataobject.CustomFieldData;
+import com.talentPool.custom.manager.CustomFieldManager;
+import com.talentPool.documents.DocumentConstants;
+import com.talentPool.export.ExportConstants;
+import com.talentPool.export.bo.Field;
+import com.talentPool.export.bo.Fields;
+import com.talentPool.export.bo.FieldsFactory;
+import com.talentPool.export.form.ExportForm;
+import com.talentPool.export.manager.ExportManager;
+import com.talentPool.export.manager.ExportManagerFactory;
+import com.talentPool.export.utils.ExportUtils;
+import com.talentPool.otherApplications.manager.ExcelGenerator;
+import com.talentPool.user.manager.PermissionSet;
+import com.talentPool.user.manager.SessionManager;
+
+/**
+ * @author pallavi
+ *
+ */
+public class ExportAction extends TPDispatchAction {
+	public ActionForward export(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		String forward = "getDocument";
+		if (!SessionManager.validateSession(mapping, actionForm, request, response, this)) {
+			return null;
+		}
+		try {
+			ExportForm exportForm = (ExportForm) actionForm;
+			PermissionSet permissionSet = (PermissionSet) request.getSession(false).getAttribute("permissionSet");
+			String positionId = exportForm.getPositionId();
+			String rejectedBy = exportForm.getRejectedBy();
+			String applicantName = exportForm.getApplicantName();
+			String stepName = exportForm.getStepName();
+			String fieldIds=exportForm.getSelectedFields();
+			String id=exportForm.getIds();
+			ExportUtils exportUtils = new ExportUtils();
+			String fileName="";
+			ExcelGenerator excelGenerator = new ExcelGenerator();
+			ExportManagerFactory exportManagerFactory = new ExportManagerFactory();
+			ExportManager exportManager = exportManagerFactory.getManager(exportForm.getEntityType());
+			List<SimpleDataObject> exportData;
+			/*
+			 * position Id is checked for Rejected Candidates as same candidate can be rejected more than once
+			 * and hence two records will be fetched while exporting such candidates if we don't use positionId.
+			 */
+			if(!Utils.isBlankOrNull(positionId)) {
+				exportData = exportManager.getData(exportForm.getIds(), permissionSet, positionId, rejectedBy, applicantName, stepName);
+			} else {
+				exportData = exportManager.getData(exportForm.getIds(), permissionSet);
+			}
+			
+			FieldsFactory fieldsFactory = new FieldsFactory();
+			Fields fields = fieldsFactory.getFields(exportForm.getEntityType());
+			String[] fieldss = fieldIds.split(",");
+			
+			ArrayList<String> fieldList = Utils.convertStringArrayIntoArrayList(fieldss);
+			
+			String entityType = exportForm.getEntityType();
+			if(ExportConstants.ENTITY_SELECT_STAGE_APPLICANTS.equals(entityType) || ExportConstants.ENTITY_HIRE_STAGE_APPLICANTS.equals(entityType) ||
+					ExportConstants.ENTITY_SELECT_STAGE_APPLICANTS.equals(entityType)) {
+				LinkedHashMap<String, String> fieldsMap = ExportUtils.getAllFieldsMap(entityType);
+				 fileName = exportUtils.exportToExcelApplicant(fieldList,fieldsMap,fields, exportForm.getSelectedFields(), exportData, request.getSession(false).getId());
+			}
+			
+			else{
+			
+			 fileName = exportUtils.exportToExcel(fields, exportForm.getSelectedFields(), exportData, request.getSession(false).getId());
+			}
+			
+			FileHandler fileHandler = new FileHandler();
+			String contentType = fileHandler.getContentType(fileName);				
+			request.setAttribute("filePath", fileName);
+			request.setAttribute("contentType", contentType);
+			request.setAttribute("fileName", fileName);
+			request.setAttribute("contentDisposition", DocumentConstants.CONTENT_DISPOSITION_ATTACHMENT);
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+		}
+		return mapping.findForward(forward);
+	}
+	
+	public ActionForward getExportFields(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		String forward = "xmlFile";
+		String xmlFile = "";
+		try {
+			if (!SessionManager.isLoginFound(mapping, actionForm, request, response, this)) {
+				xmlFile = Utils.getXMLForSessionExpiry();
+			} else {
+				ExportForm exportForm = (ExportForm) actionForm;
+				FieldsFactory fieldsFactory = new FieldsFactory();
+			
+				
+				
+				String entityType = exportForm.getEntityType();
+				/*
+				 * If block added to remove Sr. No. from applicant type( which uses ApplicantExportManager) export to excel select fields.
+				 */
+				if(ExportConstants.ENTITY_SELECT_STAGE_APPLICANTS.equals(entityType) || ExportConstants.ENTITY_HIRE_STAGE_APPLICANTS.equals(entityType) ||
+						ExportConstants.ENTITY_SELECT_STAGE_APPLICANTS.equals(entityType)) {
+				
+					LinkedHashMap<String, String> fieldsMap = ExportUtils.getAllFieldsMap(entityType);
+					xmlFile = ExportUtils.getXMLforFieldsToExport(fieldsMap);
+					
+				}
+				else{
+					Fields fields = fieldsFactory.getFields(exportForm.getEntityType());
+				ExportUtils exportUtils = new ExportUtils();
+				xmlFile = exportUtils.getFieldsInXml(fields);
+				}
+			}
+		} catch (Exception e) {
+			TPLogger.getLogger().error(GlobalConstants.ERROR, e);
+			xmlFile = Utils.getXMLForError(null);
+		}
+		request.setAttribute("xmlFile", xmlFile);
+		return mapping.findForward(forward);
+	}
+	
+	public ActionForward exportSelectApplicants(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		String forward = "selectFields";
+		ExportForm exportForm = (ExportForm) actionForm;
+		exportForm.setEntityType(ExportConstants.ENTITY_SELECT_STAGE_APPLICANTS);
+		return mapping.findForward(forward);
+	}
+	
+	/**
+	 * @param mapping
+	 * @param actionForm
+	 * @param request
+	 * @param response
+	 * @return position fields to select for export
+	 */
+	public ActionForward exportPositions(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		String forward = "selectFields";
+		ExportForm exportForm = (ExportForm) actionForm;
+		exportForm.setEntityType(ExportConstants.ENTITY_POSITION_DETAILS);
+		return mapping.findForward(forward);
+	}
+	
+	public ActionForward exportHireApplicants(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		String forward = "selectFields";
+		ExportForm exportForm = (ExportForm) actionForm;
+		exportForm.setEntityType(ExportConstants.ENTITY_HIRE_STAGE_APPLICANTS);
+		return mapping.findForward(forward);
+	}
+	
+	public ActionForward exportPositionSummaryApplicants(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		String forward = "selectFields";
+		ExportForm exportForm = (ExportForm) actionForm;
+		exportForm.setEntityType(ExportConstants.ENTITY_POSITION_SUMMARY_APPLICANTS);
+		return mapping.findForward(forward);
+	}
+	
+	public ActionForward exportRejectedApplicants(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		String forward = "selectFields";
+		String positionId=request.getParameter("positionId");
+		String applicantName=request.getParameter("rejectedApplicantName");
+		String stepName=request.getParameter("stepName");
+		String rejectedBy=request.getParameter("rejectedBy");
+		ExportForm exportForm = (ExportForm) actionForm;
+		exportForm.setEntityType(ExportConstants.ENTITY_REJECTED_APPLICANTS);
+		exportForm.setPositionId(positionId);
+		exportForm.setApplicantName(applicantName);
+		exportForm.setStepName(stepName);
+		exportForm.setRejectedBy(rejectedBy);
+		return mapping.findForward(forward);
+	}
+	
+	public ActionForward exportSkills(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response) {
+		
+		return null;
+	}
+	
+	public ActionForward exportMasters(ActionMapping mapping, ActionForm actionForm, HttpServletRequest request, HttpServletResponse response){
+		String forward = "selectFields";
+		ExportForm exportForm = (ExportForm) actionForm;
+		exportForm.setEntityType(request.getParameter("exportEntityType"));
+		return mapping.findForward(forward);
+	}
+	
+}

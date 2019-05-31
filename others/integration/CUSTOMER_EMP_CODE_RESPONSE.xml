@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ns0:EMP_HRMS_RES xmlns:ns0="http://www.tibco.com/schemas/HRMS/BusinessServices/Schemas/Schema.xsd">
+	<ns0:Header>
+		<ns0:datpost>2009-09-18</ns0:datpost> 
+		<ns0:extsystem>HRMS</ns0:extsystem> 
+  		<ns0:message_type_cd>Employee_Query</ns0:message_type_cd>
+  	</ns0:Header>
+	<ns0:Body>
+  		<ns0:application_number>12438</ns0:application_number>
+  		<ns0:business_group_id>41</ns0:business_group_id>
+  		<ns0:employee_number>19812</ns0:employee_number>
+	</ns0:Body>
+</ns0:EMP_HRMS_RES>

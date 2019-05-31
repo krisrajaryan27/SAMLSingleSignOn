@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mapping xmlns="http://castor.exolab.org/" xmlns:cst="http://castor.exolab.org/">
+    <description xmlns="">Castor generated mapping file</description>
+    <class name="com.talentPool.websiteservice.dataobject.WinboxData">
+        <description xmlns="">Default mapping for class com.talentPool.websiteservice.dataobject.WinboxData</description>
+        <map-to xml="winbox-data"/>
+        <field name="inboxSmtpAuthRequired" type="int">
+            <bind-xml name="inbox-smtp-auth-required" node="attribute"/>
+        </field>
+        <field name="inboxOutgoingSSLEnabled" type="int">
+            <bind-xml name="inbox-outgoing-sSLEnabled" node="attribute"/>
+        </field>
+        <field name="inboxOutgoingTLSEnabled" type="int">
+            <bind-xml name="inbox-outgoing-tLSEnabled" node="attribute"/>
+        </field>
+        <field name="inboxSmtpAuthSame" type="int">
+            <bind-xml name="inbox-smtp-auth-same" node="attribute"/>
+        </field>
+        <field name="inboxSmtpUserName" type="java.lang.String">
+            <bind-xml name="inbox-smtp-user-name" node="element"/>
+        </field>
+        <field name="inboxOutgoingPort" type="java.lang.String">
+            <bind-xml name="inbox-outgoing-port" node="element"/>
+        </field>
+        <field name="domainName" type="java.lang.String">
+            <bind-xml name="domain-name" node="element"/>
+        </field>
+        <field name="exchangeServerName" type="java.lang.String">
+            <bind-xml name="exchange-server-name" node="element"/>
+        </field>
+        <field name="inboxServerType" type="java.lang.String">
+            <bind-xml name="inbox-server-type" node="element"/>
+        </field>
+        <field name="exchangeSmtp" type="java.lang.String">
+            <bind-xml name="exchange-smtp" node="element"/>
+        </field>
+        <field name="smtpHost" type="java.lang.String">
+            <bind-xml name="smtp-host" node="element"/>
+        </field>
+        <field name="inboxEmail" type="java.lang.String">
+            <bind-xml name="inbox-email" node="element"/>
+        </field>
+        <field name="userName" type="java.lang.String">
+            <bind-xml name="user-name" node="element"/>
+        </field>
+        <field name="exchangeServerVersion" type="java.lang.String">
+            <bind-xml name="exchange-server-version" node="element"/>
+        </field>
+        <field name="password" type="java.lang.String">
+            <bind-xml name="password" node="element"/>
+        </field>
+        <field name="inboxSmtpPassword" type="java.lang.String">
+            <bind-xml name="inbox-smtp-password" node="element"/>
+        </field>
+    </class>
+</mapping>

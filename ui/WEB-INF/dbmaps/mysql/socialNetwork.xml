@@ -1,0 +1,243 @@
+<?xml version="1.0"?>
+<dbmap> 
+	<dbqueries>
+		<dbquery name="qSocialSettingsManager_GetSocialSettings">
+			SELECT social_id, social_name, url, implementation_id 
+			FROM tp_social_settings	
+		</dbquery>		
+		<dbquery name="qSocialSettingsManager_saveSocialSettings">
+		   INSERT INTO tp_social_settings (social_id,social_name, url, implementation_id) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE  
+			social_name= VALUES(social_name), url= VALUES(url)
+		</dbquery>
+		<dbquery name="qSocialSettingsManager_loadGroupsOnSocialSettings">
+		  SELECT social_id, social_name, url, api_type, tsai.implementation_id
+		  FROM tp_social_settings tss
+			LEFT JOIN tp_social_api_implementation tsai ON tss.implementation_id = tsai.implementation_id
+			LEFT JOIN tp_sources ts ON tsai.source_id = ts.source_id
+		</dbquery>
+		<dbquery name="qSocialSettingsManager_getCompaniesAndGroupBySource">
+		  SELECT ts.source_id,social_id, social_name, url, api_type, tsai.implementation_id
+		  FROM tp_social_settings tss
+			LEFT JOIN tp_social_api_implementation tsai ON tss.implementation_id = tsai.implementation_id
+			LEFT JOIN tp_sources ts ON tsai.source_id = ts.source_id
+			where ts.source_id IN (@@)
+		</dbquery>
+		<dbquery name="qSocialSettingsManager_getSocialSettingsDataBySocialId">
+		  SELECT social_id, social_name, url, api_type, tsai.implementation_id
+		  FROM tp_social_settings tss
+			LEFT JOIN tp_social_api_implementation tsai ON tss.implementation_id = tsai.implementation_id
+			LEFT JOIN tp_sources ts ON tsai.source_id = ts.source_id
+			WHERE tss.socialId = ?
+		</dbquery>
+		<dbquery name="qSocialSettingsManager_saveOAuthToken">
+		  INSERT INTO tp_user_oauthtoken (userid,oauth_token,source_id)
+			VALUES (?,?,?) ON duplicate KEY
+			UPDATE oauth_token= VALUES(oauth_token)
+		</dbquery>
+		<dbquery name="qSocialSettingsManager_getOAuthToken">
+			SELECT source_id,oauth_token FROM tp_user_oauthtoken WHERE userid=? and oauth_token &lt;&gt; ''
+		</dbquery>
+		<dbquery name="qSocialSettingsManager_getAllMediaTypes">
+		    SELECT implementation_id, api_type , source_id FROM tp_social_api_implementation
+		</dbquery>
+		<dbquery name="qSocialSettingsManager_deleteSocialGroup">
+		    DELETE FROM tp_social_settings WHERE social_id = ? AND implementation_id= ?
+		</dbquery>
+		<dbquery name="qSocialSettingsManager_checkOAuthToken">
+		    SELECT cast(group_concat(source_id) as char) as socialWithToken FROM tp_user_oauthtoken WHERE userid=? and oauth_token &lt;&gt; ''
+		</dbquery>
+		<dbquery name="qSocialSettingsManager_checkOAuthTokenAndInformationShared">
+		  SELECT cast(group_concat(user_id) as char) as socialWithToken FROM tp_applicant_user_person_map WHERE user_id=? and graph_status = ?
+		</dbquery>
+		<dbquery name="qAddApplicantForGraphUpload">
+	    	INSERT INTO tp_applicant_user_person_map (applicant_id,user_id,graph_status) VALUES (?,?,?);
+		</dbquery>
+		<dbquery name="qFetchApplicantEduHistoryForUpload">
+			SELECT DISTINCT taupm.person_id AS personId,
+	                   ta.applicant_id AS applicantId,
+	                   ta.applicant_name AS applicantName,
+	                   cast(group_concat(ti.institute_name separator '|') AS char) AS institute ,
+	                   cast(group_concat(CASE WHEN taei.educational_info_year_of_passing IS NOT NULL THEN taei.educational_info_year_of_passing ELSE ' ' END separator '|') AS char) AS year_of_passing,
+	                   cast(group_concat(CASE WHEN tb.branch_name IS NOT NULL THEN tb.branch_name ELSE ' ' END separator '|') AS char) AS specialization,
+	                   cast(group_concat(CASE WHEN td.degree_title IS NOT NULL THEN td.degree_title ELSE ' ' END separator '|') AS char) AS degree,
+	                   ta.applicant_city AS location
+			   FROM tp_applicant_educational_info taei
+			   LEFT JOIN tp_applicants ta ON ta.applicant_id = taei.applicant_id
+			   LEFT JOIN tp_applicant_user_person_map taupm ON taupm.applicant_id = taei.applicant_id
+			   LEFT JOIN tp_institutes ti ON ti.institute_id = taei.institute_id
+			   LEFT JOIN tp_degrees td ON td.degree_id = taei.degree_id
+			   LEFT JOIN tp_branches tb ON tb.branch_id = taei.branch_id
+			   WHERE taupm.graph_status = '0'
+			     AND (taupm.user_id IS NULL
+			     OR taupm.user_id = '')
+			     AND (ti.institute_name &lt;&gt;''
+			     OR ti.institute_name IS NOT NULL)
+			     AND taupm.person_id IS NOT NULL
+			   GROUP BY ta.applicant_id
+		</dbquery>
+		<dbquery name="qFetchApplicantWorkHistoryForUpload">
+			SELECT DISTINCT taupm.person_id AS personId,
+			                   ta.applicant_id AS applicantId,
+			                   ta.applicant_name AS applicantName,
+			                   ta.applicant_city AS location,
+			                   cast(group_concat(te.employer_name separator '|') AS char) AS employer ,
+			                   cast(group_concat(CASE WHEN tds.designation_name IS NOT NULL THEN tds.designation_name ELSE ' ' END separator '|') AS char) AS designation,
+			                   cast(group_concat(CASE WHEN taeh.employmer_from_date IS NOT NULL THEN taeh.employmer_from_date ELSE ' ' END separator '|') AS char) AS employerFromDate,
+			                   cast(group_concat(CASE WHEN taeh.employmer_to_date IS NOT NULL THEN taeh.employmer_to_date ELSE ' ' END separator '|') AS char) AS employerToDate
+			   FROM tp_applicant_employment_history taeh
+			   LEFT JOIN tp_applicants ta ON ta.applicant_id = taeh.applicant_id
+			   LEFT JOIN tp_applicant_user_person_map taupm ON taupm.applicant_id = taeh.applicant_id
+			   LEFT JOIN tp_employers te ON te.employer_id = taeh.employer_id
+			   LEFT JOIN tp_designations tds ON tds.designation_id = taeh.designation_id
+			   WHERE taupm.graph_status = '0'
+			     AND (taupm.user_id IS NULL
+			     OR taupm.user_id = '')
+			     AND (te.employer_name &lt;&gt; ''
+			     OR te.employer_name IS NOT NULL)
+			     AND taupm.person_id IS NOT NULL
+			   GROUP BY ta.applicant_id
+		</dbquery>
+		<dbquery name="qUpdateApplicantStatusAfterGraphUpload">
+		    update tp_applicant_user_person_map set graph_status = ? where person_id in (@@);
+		</dbquery>
+		<dbquery name="qSocialSettingsManager_addUuidOAuth">
+		    INSERT INTO tp_uuid_oauth_map (uuid, oauth_token, source_id, date_created) VALUES (?, ?, ?, now())
+		</dbquery>
+		<dbquery name="qSocialSettingsManager_getApplicantOAuth">
+			SELECT taupm.person_id, tao.oauth_token, ts.source_title FROM tp_applicant_oauthtoken tao, tp_applicant_user_person_map taupm,tp_sources ts 
+			WHERE tao.applicant_id=taupm.applicant_id AND tao.source_id=ts.source_id AND tao.applicant_id IN (@@)		    
+		</dbquery>
+		<dbquery name="qAddUserForGraphUpload">
+	    	INSERT INTO tp_applicant_user_person_map (user_id,graph_status) VALUES (?,?) on duplicate key update user_id = values(user_id), graph_status = values(graph_status);
+		</dbquery>
+		<dbquery name="qGetPersonId">
+	    	SELECT person_id FROM tp_applicant_user_person_map WHERE user_id = ?;
+		</dbquery>
+		<dbquery name="qGetActivePersonId">
+	    	SELECT person_id FROM tp_applicant_user_person_map WHERE user_id = ? AND graph_status = ?;
+		</dbquery>
+		<dbquery name="qSocialSettingsManager_getUserAndJoined">
+			SELECT CAST(group_concat(f) AS char) FROM (
+			SELECT ta.applicant_name AS f FROM tp_applicant_user_person_map taupm 
+			JOIN tp_applicant_joining_history tajh ON taupm.applicant_id = tajh.applicant_id 
+			JOIN tp_applicants ta ON ta.applicant_id=taupm.applicant_id 
+			WHERE taupm.person_id in (@@)
+			UNION
+			SELECT tu.user_name AS f FROM tp_applicant_user_person_map taupm 
+			JOIN tp_users tu ON taupm.user_id=tu.user_id 
+			WHERE taupm.person_id IN (@@)
+			) AS t
+		</dbquery>
+		<dbquery name="qDeleteTokenForUser">
+		    DELETE FROM tp_user_oauthtoken WHERE userid=? AND source_id=?
+		</dbquery>
+		<dbquery name="qSaveSocialCredentials">
+			INSERT INTO tp_social_credentials (client_id,client_secret,source_id,company_id)
+			VALUES (?,?,(SELECT source_id FROM tp_sources WHERE source_title = ?),?) ON duplicate KEY
+			UPDATE client_id= VALUES(client_id),client_secret = VALUES (client_secret),company_id= VALUES (company_id)			    
+		</dbquery>
+		<dbquery name="qLoadSocialCredentials">
+		    SELECT client_id,client_secret,source_title,company_id FROM tp_social_credentials tsc ,tp_sources ts WHERE tsc.source_id = ts.source_id;
+		</dbquery>
+		<dbquery name="qGetPersonIdForActiveApplicants">
+			SELECT taupm.person_id,tao.oauth_token,ts.source_title,taupm.graph_status FROM tp_applicant_user_person_map  taupm
+			LEFT JOIN tp_applicant_oauthtoken tao ON  taupm.applicant_id = tao.applicant_id
+			LEFT JOIN tp_sources ts ON tao.source_id = ts.source_id
+			WHERE taupm.applicant_id = ?;
+		</dbquery>
+	</dbqueries>
+	<dataqueries>
+	    <dataquery name="dSocialSettingsManager_GetSocialSettings" dbquery="qSocialSettingsManager_GetSocialSettings" object="com.talentPool.socialNetwork.dataobject.SocialSettingsData">
+		    <attribute name= "socialId" column="social_id" type ="String" />
+		    <attribute name= "socialName" column="social_name" type ="String" />
+		    <attribute name= "url" column="url" type ="String" />
+		    <attribute name= "socialType" column="implementation_id" type ="int" />
+    	</dataquery>    	
+	    <dataquery name="dSocialSettingsManager_saveSocialSettings" dbquery="qSocialSettingsManager_saveSocialSettings"></dataquery>
+	    <dataquery name="dSocialSettingsManager_loadGroupsOnSocialSettings" dbquery="qSocialSettingsManager_loadGroupsOnSocialSettings" object="com.talentPool.socialNetwork.dataobject.SocialSettingsData">
+	   		<attribute name="socialId" column="social_id" type="String"/>
+	   		<attribute name="socialName" column="social_name" type="String"/>
+	   		<attribute name="url" column="url" type="String"/>
+	   		<attribute name="socialType" column="api_type" type="String"/> 
+	   		<attribute name="implementationId" column="implementation_id" type="String"/>
+	   </dataquery>
+	   <dataquery name="dSocialSettingsManager_getCompaniesAndGroupBySource" dbquery="qSocialSettingsManager_getCompaniesAndGroupBySource" object="com.talentPool.socialNetwork.dataobject.SocialSettingsData">
+	   		<attribute name="sourceId" column="source_id" type="String"/>
+	       	<attribute name="socialId" column="social_id" type="String"/>
+	   		<attribute name="socialName" column="social_name" type="String"/>
+	   		<attribute name="url" column="url" type="String"/>
+	   		<attribute name="socialType" column="api_type" type="String"/> 
+	   		<attribute name="implementationId" column="implementation_id" type="String"/>
+	   </dataquery>
+	    <dataquery name="dSocialSettingsManager_getSocialSettingsDataBySocialId" dbquery="qSocialSettingsManager_getSocialSettingsDataBySocialId" object="com.talentPool.socialNetwork.dataobject.SocialSettingsData">
+	   		<attribute name="socialId" column="social_id" type="String"/>
+	   		<attribute name="socialName" column="social_name" type="String"/>
+	   		<attribute name="url" column="url" type="String"/>
+	   		<attribute name="socialType" column="api_type" type="String"/> 
+	   		<attribute name="implementationId" column="implementation_id" type="String"/>
+	   </dataquery>
+	   <dataquery name="dSocialSettingsManager_saveOAuthToken" dbquery="qSocialSettingsManager_saveOAuthToken"/>
+	   <dataquery name="dSocialSettingsManager_getOAuthToken" dbquery="qSocialSettingsManager_getOAuthToken" object="com.talentPool.socialNetwork.dataobject.SocialSettingsData">
+	       <attribute name="sourceId" column="source_id" type="String"/>
+	       <attribute name="token" column="oauth_token" type="String"/>
+	   </dataquery>
+	   <dataquery name="dSocialSettingsManager_getAllMediaTypes" dbquery="qSocialSettingsManager_getAllMediaTypes" object="com.talentPool.socialNetwork.dataobject.SocialSettingsData">
+	       <attribute name="implementationId" column="implementation_id" type="String"/>
+	       <attribute name="apiType" column="api_type" type="String"/>
+	       <attribute name="sourceId" column="source_id" type="String"/>
+	   </dataquery>
+	   <dataquery name="dSocialSettingsManager_deleteSocialGroup" dbquery="qSocialSettingsManager_deleteSocialGroup"/>
+	   <dataquery name="dSocialSettingsManager_checkOAuthToken" dbquery="qSocialSettingsManager_checkOAuthToken"/>
+	   <dataquery name="dSocialSettingsManager_checkOAuthTokenAndInformationShared" dbquery="qSocialSettingsManager_checkOAuthTokenAndInformationShared"/>
+	   <dataquery name="dAddApplicantForGraphUpload" dbquery="qAddApplicantForGraphUpload"/>
+	   <dataquery name="dFetchApplicantEduHistoryForUpload" dbquery="qFetchApplicantEduHistoryForUpload" object="com.talentPool.common.db.SimpleDataObject">
+		   <attribute name="personId" column="personId" type=""/>
+		   <attribute name="applicantId" column="applicantId" type="String"/>  
+		   <attribute name="applicantName" column="applicantName" type="String"/>   
+		   <attribute name="year_of_passing" column="year_of_passing" type="String"/>
+		   <attribute name="specialization" column="specialization" type="String"/>
+		   <attribute name="location" column="location" type="String"/>
+		   <attribute name="institute" column="institute" type="String"/>    
+		   <attribute name="degree" column="degree" type="String"/>      
+	   </dataquery>
+	   <dataquery name="dFetchApplicantWorkHistoryForUpload" dbquery="qFetchApplicantWorkHistoryForUpload" object="com.talentPool.common.db.SimpleDataObject">
+	   	   <attribute name="personId" column="personId" type=""/>
+		   <attribute name="applicantId" column="applicantId" type="String"/>  
+		   <attribute name="applicantName" column="applicantName" type="String"/>
+		   <attribute name="location" column="location" type="String"/>
+		   <attribute name="employer" column="employer" type="String"/>
+		   <attribute name="designation" column="designation" type="String"/>
+		   <attribute name="employerFromDate" column="employerFromDate" type="String"/>
+		   <attribute name="employerToDate" column="employerToDate" type="String"/>
+	   </dataquery>
+	   <dataquery name="dUpdateApplicantStatusAfterGraphUpload" dbquery="qUpdateApplicantStatusAfterGraphUpload"/>
+	   <dataquery name="dSocialSettingsManager_addUuidOAuth" dbquery="qSocialSettingsManager_addUuidOAuth"/>	
+	   <dataquery name="dSocialSettingsManager_getApplicantOAuth" dbquery="qSocialSettingsManager_getApplicantOAuth" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name="personId" column="person_id" type="String"/>
+			<attribute name="token" column="oauth_token" type="String"/>
+			<attribute name="sourceTitle" column="source_title" type="String"/>	    
+       </dataquery>
+       <dataquery name="dGetPersonId" dbquery="qGetPersonId" object="com.talentPool.common.db.SimpleDataObject">
+	   	   <attribute name="personId" column="person_id" type="String"/>
+	   </dataquery>
+	    <dataquery name="dGetActivePersonId" dbquery="qGetActivePersonId" object="com.talentPool.common.db.SimpleDataObject">
+	   	   <attribute name="personId" column="person_id" type="String"/>
+	   </dataquery>
+	    <dataquery name="dGetPersonIdForActiveApplicants" dbquery="qGetPersonIdForActiveApplicants" object="com.talentPool.common.db.SimpleDataObject">
+	   	   <attribute name="personId" column="person_id" type="String"/>
+		   <attribute name="token" column="oauth_token" type="String"/>
+		   <attribute name="sourceTitle" column="source_title" type="String"/>	
+		   <attribute name="graphStatus" column="graph_status" type="String"/> 
+	   </dataquery>
+	   <dataquery name="dAddUserForGraphUpload" dbquery="qAddUserForGraphUpload"/>	   
+	   <dataquery name="dSocialSettingsManager_getUserAndJoined" dbquery="qSocialSettingsManager_getUserAndJoined"/>
+	   <dataquery name="dDeleteTokenForUser" dbquery="qDeleteTokenForUser"/>
+	   <dataquery name="dSaveSocialCredentials" dbquery="qSaveSocialCredentials"/>
+	   <dataquery name="dLoadSocialCredentials" dbquery="qLoadSocialCredentials" object="com.talentPool.socialNetwork.dataobject.SocialSettingsData">
+		   	<attribute name="clientId" column="client_id" type="String"/>
+		   	<attribute name="clientSecret" column="client_secret" type="String"/>
+		   	<attribute name="socialName" column="source_title" type="String"/>
+		   	<attribute name="companyId" column="company_id" type="String"/>
+	   </dataquery>
+	</dataqueries>   
+</dbmap>

@@ -1,0 +1,63 @@
+/*
+*  education_degree_basedon_prefix.jape
+*  Prefixes are stored in custom_education_degree_prefix.list
+*/
+
+Phase: education_degree_basedon_prefix
+Input: Token AcronymToken Location CustomSpaceToken TempEduWrongToken TempEduToken
+Options: control = appelt
+
+Macro: FromToken
+(
+ {Token.string == "from"}|
+ {Token.string == "From"}|
+ {Token.string == "FROM"}
+)
+Macro: WithToken
+(
+ {Token.string == "with"}|
+ {Token.string == "With"}|
+ {Token.string == "WITH"}
+)
+Macro: InToken
+(
+ {Token.string == "in"}|
+ {Token.string == "In"}|
+ {Token.string == "IN"}
+)
+
+Macro: EDUTokenStart
+(
+ {Token.kind == word, !TempEduWrongToken, Token.orth == upperInitial, Token.string !=~ "[Ff][Rr][Oo][Mm]", Token.string !=~ "[Ii][Nn]", Token.string !=~ "[Ww][Ii][Tt][Hh]", Token.string !=~ "[Tt][Oo]",  Token.string !=~ "[Aa][Tt]"}|
+ {Token.kind == word, !TempEduWrongToken, Token.orth == allCaps, Token.string !=~ "[Ff][Rr][Oo][Mm]", Token.string !=~ "[Ii][Nn]", Token.string !=~ "[Ww][Ii][Tt][Hh]", Token.string !=~ "[Aa][Tt]"}|
+ {Token.kind == word, !TempEduWrongToken, Token.orth == mixedCaps, Token.string !=~ "[Ff][Rr][Oo][Mm]", Token.string !=~ "[Ii][Nn]", Token.string !=~ "[Ww][Ii][Tt][Hh]", Token.string !=~ "[Aa][Tt]"}
+
+)
+Macro: EDUToken
+(
+ {Token.kind == word, !TempEduWrongToken, Token.string !=~ "[Ff][Rr][Oo][Mm]", Token.string !=~ "[Ii][Nn]", Token.string !=~ "[Ww][Ii][Tt][Hh]", Token.string !=~ "[Tt][Oo]", Token.string !=~ "[Aa][Tt]", Token.string !=~ "[Bb][Yy]"}|
+ {Token.string == "."}|{Token.string == "&"}|{Token.kind == symbol}|{Token.string == "’"}|{Token.string == "'"}|
+ {Token.string == "of"}|{Token.string == "and"}|{Token.string == "OF"}|{Token.string == "AND"}|{Token.string == "Of"}|{Token.string == "And"}
+)
+
+Macro: OfToken
+(
+ {Token.string == "of"}|
+ {Token.string == "Of"}|
+ {Token.string == "OF"}
+)
+
+Macro: PassedToken
+(
+ {Token.string == "Passed"}|
+ {Token.string == "PASSED"}|
+ {Token.string == "Completed"}|
+ {Token.string == "COMPLETED"}
+)
+
+Rule: test
+(
+	(EDUToken)[1,20]
+):test1
+-->
+:test1.TestToken = {kind = "test"}

@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>
+  	<!--*************************** All Queries related to employee portal *******************-->
+		<dbquery name="qAdminManager_FetchEmployeePortalSettings">
+	  		SELECT property_name, property_value FROM tp_application_properties_employee_portal
+	  	</dbquery>
+	  	<dbquery name="qAdminManager_UpdateEmployeePortalSettings">
+	  		UPDATE tp_application_properties_employee_portal SET property_value=? , last_updated_by=?, last_updated_on=now() WHERE property_name=?
+	  	</dbquery>
+  	</dbqueries>
+	<dataqueries>
+	<!--*************************** All Queries related to employee portal *******************-->
+	   <dataquery name="dAdminManager_FetchEmployeePortalSettings" dbquery="qAdminManager_FetchEmployeePortalSettings" object="com.talentPool.common.db.SimpleDataObject">
+			<attribute name="propertyName"  column="property_name" type="STRING" />
+       		<attribute name="propertyValue"  column="property_value" type="STRING" />
+	   </dataquery>
+	   <dataquery name="dAdminManager_UpdateEmployeePortalSettings" dbquery="qAdminManager_UpdateEmployeePortalSettings" object="com.talentPool.common.db.SimpleDataObject" />	   
+   </dataqueries>   
+</dbmap>

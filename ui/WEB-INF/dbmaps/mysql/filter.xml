@@ -1,0 +1,133 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>
+		<dbquery name="qFilterManager_GetFilters">
+			SELECT @@
+			FROM
+			(	SELECT 	applicant_id, applicant_name, applicant_city, 
+					position_id, position_code, position_title, 
+					position_step_title, dept_id, dept_name, position_type_ext_int,
+					user_id, user_fname, user_lname, source_id,source_title,
+					CASE WHEN number != feedback THEN 
+					action_type		
+					ELSE 
+					?
+					END AS action_type,
+					CASE WHEN number != feedback THEN 
+						CASE WHEN action_type=? THEN ?
+						WHEN action_type=? THEN ?
+						WHEN action_type=? THEN ?
+						WHEN action_type=? THEN ? 
+						END
+					ELSE ?
+					END AS action_required
+				FROM 
+				(	SELECT *, count(*) AS number, 
+					CONVERT(sum(feedback_present), SIGNED) AS feedback
+					FROM (
+						SELECT 
+							todo.applicant_id, ta.applicant_name, ta.applicant_city,
+							todo.position_id, tpos.position_code, tpos.position_title,
+							todo.feedback_present, tpos.position_type_ext_int,
+							tps.position_step_title, td.dept_id, td.dept_name,
+							tu.user_id, tu.user_fname, tu.user_lname,
+							todo.current_step_id, todo.todo_type,tps.position_step_isscheduled,
+							todo.appointment_time,todo.appointment_status_id,
+							ts.source_id,ts.source_title,
+							CASE WHEN position_step_isscheduled =? THEN
+								CASE WHEN todo.appointment_time is null THEN 
+								      ?
+								ELSE
+									CASE WHEN todo.appointment_time &lt; now() THEN
+										CASE WHEN (todo.appointment_status_id !=? AND todo.appointment_status_id !=?) THEN
+											  ?
+										ELSE
+											  ?
+										END
+									ELSE 
+										?
+									END
+								END
+							ELSE
+							     ?
+							END AS action_type,
+				
+							CASE WHEN todo.step_isscheduled=? THEN 
+								CASE WHEN todo.appointment_time IS NULL THEN
+									IF(todo.user_responsible_for_scheduling=?,1,0)
+								ELSE
+									CASE WHEN todo.appointment_time &lt; now() THEN
+										CASE WHEN (todo.appointment_status_id !=? AND todo.appointment_status_id !=?) THEN
+											CASE WHEN todo.interviewer_can_confirm=? THEN
+												IF(todo.user_is_interviewer=? OR todo.user_responsible_for_scheduling=?,1,0)		
+											ELSE
+												IF(todo.user_responsible_for_scheduling=?,1,0)		
+											END
+										ELSE
+											IF(todo.user_is_interviewer=? OR todo.user_is_decision_maker=?,1,0)		
+										END
+									ELSE
+										IF(todo.user_is_interviewer=?,1,0)
+									END
+								END
+							ELSE 
+								1
+							END AS todoUser
+							
+						FROM 
+							tp_todo todo
+							LEFT JOIN tp_users tu ON (todo.user_id=tu.user_id AND todo.feedback_present=?)
+							,tp_positions tpos LEFT JOIN tp_departments td ON (tpos.dept_id = td.dept_id)
+							,tp_applicants ta 
+							LEFT JOIN tp_sources ts ON (ta.source_id=ts.source_id),
+							tp_position_steps tps 
+						WHERE 
+							todo.position_id=tpos.position_id
+							AND todo.current_step_id = tps.position_step_id
+							AND todo.applicant_id=ta.applicant_id
+							AND todo.todo_type=?
+							AND tpos.position_status = ?
+							@@
+						)AS todo WHERE todoUser=1
+						@@
+				) AS todo 
+			)AS filter
+			WHERE 1
+			 @@
+			 @@	
+		</dbquery>
+		<dbquery name="qFilterManager_GetRejectedCandidatesFilters">
+		SELECT @@ 
+		FROM (SELECT ta.applicant_id, ta.applicant_name, 
+				tp.position_title, tp.position_code, tps.position_step_title AS step_title,
+				tsl.step_level_name AS step_level_name, CONCAT(tu.user_fname,' ',tu.user_lname) AS rejected_by, 
+				tasp.process_moved_date AS rejected_date
+			FROM tp_applicant_selection_process tasp, tp_applicants ta, tp_positions tp, 
+				tp_position_steps tps, tp_step_level tsl, tp_users tu
+			WHERE tasp.position_step_id_to IN (0,-4,-6,-7)
+				AND tasp.applicant_id = ta.applicant_id
+				AND tasp.position_id = tp.position_id
+				AND tasp.position_step_id_from=tps.position_step_id
+				AND tps.position_step_level=tsl.step_level
+				AND tasp.user_id = tu.user_id
+				AND tp.position_id=?
+			@@ ) a
+			@@
+		</dbquery>
+	</dbqueries>
+	<dataqueries>
+	    <dataquery name="dFilterManager_GetFilters" dbquery="qFilterManager_GetFilters" object="com.talentPool.common.db.SimpleDataObject">
+	        <attribute name="filterId" column="filter_id" type ="STRING" />
+	        <attribute name="filterShortName" column="filter_short_name" type ="STRING" />
+	        <attribute name="filterFullName" column="filter_full_name" type ="STRING" />
+		</dataquery>
+		<dataquery name="dFilterManager_GetRejectedCandidatesFilters" dbquery="qFilterManager_GetRejectedCandidatesFilters" object="com.talentPool.common.db.SimpleDataObject">
+	        <attribute name="filterId" column="filter_id" type ="STRING" />
+	        <attribute name="filterShortName" column="filter_short_name" type ="STRING" />
+	        <attribute name="filterFullName" column="filter_full_name" type ="STRING" />
+		</dataquery>
+	</dataqueries>   
+</dbmap>

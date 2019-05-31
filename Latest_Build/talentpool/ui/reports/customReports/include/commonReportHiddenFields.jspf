@@ -1,0 +1,16 @@
+<s:hidden name="reportId" />
+<s:hidden name="columnIds" />
+<s:hidden name="rowIds" />
+<s:hidden name="measureIds" />
+<s:hidden name="filtersJSON" id="filtersJSON" />
+<s:hidden name="showCandidateNames" />
+<s:hidden name="showInactivePositions" />
+<s:hidden name="extraCandidateAttributes" />
+<s:hidden name="stepsToShowNames" />
+<s:hidden name="stepsToShowNamesAndAttributes" />
+<s:hidden name="showRowSubTotalsFor" />
+<s:hidden name="showRowGrandTotal" />
+<s:hidden name="reportTypeId"/>
+<s:hidden name="reportTypeName"/>
+<s:hidden name="reportTypeKindId"/>
+<s:hidden name="addEditMode"/>

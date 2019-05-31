@@ -1,0 +1,42 @@
+/*
+*  education_branch.jape
+*  Prefixes are stored in custom_education_degree_prefix.list
+*/
+
+Phase: education_branch
+Input: Token TempEduToken CustomSpaceToken AcronymToken Percent Date Lookup TempEduWrongToken
+Options: control = appelt
+
+Rule: education_branch_in
+(
+	{TempEduToken.kind == degree}({Token, !TempEduToken, Token.string !=~ "[Ii][Nn]"})[0,8]
+	(InToken)({Token.string ==~ "[Tt][Hh][Ee]"})?({Token.string ==~ "[Yy][Ee][Aa][Rr]"})?{Date}
+)
+--> {}
+
+Rule: education_branch_in
+(
+	{TempEduToken.kind == degree}({Token, !TempEduToken, Token.string !=~ "[Ii][Nn]"})[0,8]
+	(InToken)((EDUToken)[1,10]):branch
+)
+--> 
+:branch.TempEduToken = {kind = "branch", rule = "education_branch_in"}
+
+
+Rule: education_branch_bracket
+(
+	{TempEduToken.kind == degree}{Token.string == "("}((EDUToken)[1,10]):branch{Token.string == ")"}
+)
+--> 
+:branch.TempEduToken = {kind = "branch", rule = "education_branch_bracket"}
+
+Rule: education_acronym_branch_bracket
+(
+	({AcronymToken}):degree{Token.string == "("}((EDUToken)[1,10]):branch{Token.string == ")"}
+	({Token})[0,50]
+	({TempEduToken}|{Percent}|{Lookup.majorType == year})
+	
+)
+--> 
+:degree.TempEduToken = {kind = "degree", rule = "education_acronym_branch_bracket"},
+:branch.TempEduToken = {kind = "branch", rule = "education_acronym_branch_bracket"}

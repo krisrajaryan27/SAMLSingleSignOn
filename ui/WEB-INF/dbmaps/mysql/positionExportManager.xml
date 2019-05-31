@@ -1,0 +1,158 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+   <dbqueries>
+       <dbquery name="qPositionExportManger_GetData">
+			SELECT CASE
+			WHEN tp.position_type_ext_int = ? THEN 'External'
+			WHEN tp.position_type_ext_int = ? THEN 'Internal'
+			END AS fld10,tp.position_id,
+		
+			(SELECT td.dept_name
+			FROM tp_departments td
+			WHERE tp.sub_dept_id=td.dept_id) AS fld8,
+			CONCAT(tu1.user_fname, ' ', tu1.user_lname) AS fld11,
+			CAST((GROUP_CONCAT(DISTINCT tl.location_name SEPARATOR ', ')) as CHAR) AS fld14,
+			band_name as fld13,
+			grade_name as fld12,
+			tp.position_code as fld9,
+			tp.position_title as fld0,
+			date_format(tp.position_date_created,'%d-%b-%y') as fld17,
+			(SELECT CONCAT(tu2.user_fname, ' ', tu2.user_lname)
+			FROM tp_users tu2
+			WHERE tu2.user_id = tp.position_created_by) AS fld16,
+			tp.position_no_of_openings as fld2,
+			tp.position_priority,
+			CASE
+			WHEN tp.position_status = ? THEN 'Deleted'
+			WHEN tp.position_status = ? THEN 'Opened'
+			WHEN tp.position_status = ? THEN 'Closed'
+			WHEN tp.position_status = ? THEN 'In Process'
+			WHEN tp.position_status = ? THEN 'Rejected'
+			WHEN tp.position_status = ? THEN 'Hold'
+			WHEN tp.position_status = ? THEN 'Template'
+			WHEN tp.position_status = ? THEN 'To be Opened'
+			WHEN tp.position_status = ? THEN 'Approval Pending'
+			END as fld15 ,
+			tp.position_type_ext_int,
+		
+			(SELECT count(*)
+			FROM tp_applicants ta ,
+			tp_position_steps tps
+			WHERE ta.applicant_position_id=tp.position_id
+			AND ta.applicant_step_id=tps.position_step_id
+			AND (tps.position_step_level=?
+			OR tps.position_step_level=?)) AS fld3,
+		
+			(SELECT count(*)
+			FROM tp_applicants ta ,
+			tp_position_steps tps
+			WHERE ta.applicant_position_id=tp.position_id
+			AND ta.applicant_step_id=tps.position_step_id
+			AND tps.position_step_level=?) AS fld4,
+		
+			(SELECT count(*)
+			FROM tp_applicant_joining_history ta
+			WHERE ta.position_id=tp.position_id) AS fld5,
+		
+			(SELECT count(*)
+			FROM
+			(SELECT *
+			FROM tp_applicant_selection_process
+			WHERE position_step_id_to IN (?,?,?,?)) AS tasp
+			WHERE tasp.position_id=tp.position_id) AS fld6,
+			td.dept_name as fld1,
+			date_format(tp.position_date_expiry,'%d-%b-%y') as fld7,
+			is_budget_committed,
+			
+			(SELECT td2.dept_name FROM tp_departments td2 WHERE tp.sub_sub_dept_id=td2.dept_id) AS fld16,
+			(SELECT td3.dept_name FROM tp_departments td3 WHERE tp.sub3_dept_id=td3.dept_id) AS fld17,
+			(SELECT td4.dept_name FROM tp_departments td4 WHERE tp.sub4_dept_id=td4.dept_id) AS fld18,
+			(SELECT CONCAT(tu7.user_fname, ' ', tu7.user_lname) FROM tp_users tu7 WHERE tu7.user_id = tp.position_requested_by) AS fld20,
+			date_format(tp.position_date_created,'%d %b %Y') AS fld19,
+			CASE
+			WHEN tp.type_of_vacancy = ? THEN NULL
+			WHEN tp.type_of_vacancy = ? THEN tp.replacement_emp_code
+			END AS fld21,
+			(
+					SELECT GROUP_CONCAT(DISTINCT tsk.skill SEPARATOR ', ') FROM
+					tp_position_skills tpsk LEFT JOIN tp_skills tsk ON (tpsk.skill_id = tsk.skill_id)
+					WHERE tpsk.position_id = tp.position_id
+					AND tpsk.skill_type = ?
+				) AS fld22,
+				(
+					SELECT GROUP_CONCAT(DISTINCT tsk.skill SEPARATOR ', ') FROM
+					tp_position_skills tpsk LEFT JOIN tp_skills tsk ON (tpsk.skill_id = tsk.skill_id)
+					WHERE tpsk.position_id = tp.position_id
+					AND tpsk.skill_type = ?
+				) AS fld23,
+				(SELECT GROUP_CONCAT(DISTINCT tdgr.degree_title SEPARATOR ', ') FROM tp_degrees tdgr,tp_position_degrees tpd 
+				WHERE tpd.degree_id = tdgr.degree_id AND tpd.position_id=tp.position_id) AS fld24,
+				CONCAT(tp.position_min_exp,  CONCAT(CONCAT(' to ',tp.position_max_exp)),' years') AS fld25,
+				date_format(tp.position_date_closed,'%d %b %Y') as fld36, tp.type_of_vacancy as fld26,
+				CASE 
+					WHEN tp.position_closed_by = '-1' THEN tp.position_closed_by
+					ELSE  
+						(SELECT CONCAT(tu8.user_fname, ' ', tu8.user_lname) FROM tp_users tu8 WHERE tu8.user_id = tp.position_closed_by) 
+				END AS fld27,
+				(SELECT GROUP_CONCAT(ta1.applicant_name SEPARATOR ', ')
+				FROM tp_applicant_joining_history ta, tp_applicants ta1
+				WHERE ta.position_id=tp.position_id AND ta1.applicant_id=ta.applicant_id) AS fld28, 
+				(SELECT count(*)
+				FROM tp_position_documents tpd
+				WHERE tpd.position_id=tp.position_id) AS fld29
+			
+			FROM tp_positions tp
+			LEFT JOIN tp_custom_field_values_position tvp ON
+			(tp.position_id=tvp.entity_id)
+			LEFT JOIN tp_position_locations tpl ON (tpl.position_id=tp.position_id)
+			LEFT JOIN tp_location_ap tl ON (tpl.location_id = tl.location_id)
+			LEFT JOIN tp_users tu1 ON (tu1.user_id = tp.position_owner_id)
+			LEFT JOIN tp_budget_bands tbb ON (tp.band_id = tbb.band_id)
+			LEFT JOIN tp_budget_grades tbg ON tp.grade_id = tbg.grade_id
+			LEFT JOIN tp_departments td ON tp.dept_id=td.dept_id
+			WHERE tp.position_id in (@@)
+			GROUP BY tp.position_id
+			ORDER BY tp.position_priority,
+			tp.position_title
+       </dbquery>
+   </dbqueries>
+   <dataqueries>   		   	   
+   	   <dataquery name="dPositionExportManger_GetData" dbquery="qPositionExportManger_GetData" object="com.talentPool.common.db.SimpleDataObject">
+       		<attribute name="fld0" column="fld0" type="STRING"/>
+			<attribute name="fld1" column="fld1" type="STRING"/>
+			<attribute name="fld2" column="fld2" type="STRING"/>
+			<attribute name="fld3" column="fld3" type="INT"/>
+			<attribute name="fld4" column="fld4" type="INT"/>
+			<attribute name="fld5" column="fld5" type="INT"/>
+			<attribute name="fld6" column="fld6" type="INT"/>
+			<attribute name="fld7" column="fld7" type="STRING"/>
+			<attribute name="fld8" column="fld8" type="STRING"/>
+			<attribute name="fld9" column="fld9" type="STRING"/>
+			<attribute name="fld10" column="fld10" type="STRING"/>
+			<attribute name="fld11" column="fld11" type="STRING"/>
+			<attribute name="fld12" column="fld12" type="STRING"/>
+			<attribute name="fld13" column="fld13" type="STRING"/>
+			<attribute name="fld14" column="fld14" type="STRING"/>
+			<attribute name="fld15" column="fld15" type="STRING"/>
+			<attribute name="fld16" column="fld16" type="STRING"/>
+			<attribute name="fld17" column="fld17" type="STRING"/>
+			<attribute name="fld18" column="fld18" type="STRING"/>
+			<attribute name="fld19" column="fld19" type="STRING"/>
+			<attribute name="fld20" column="fld20" type="STRING"/>
+			<attribute name="fld21" column="fld21" type="STRING"/>
+			<attribute name="fld22" column="fld22" type="STRING"/>
+			<attribute name="fld23" column="fld23" type="STRING"/>
+			<attribute name="fld24" column="fld24" type="STRING"/>
+			<attribute name="fld25" column="fld25" type="STRING"/>
+			<attribute name="fld26" column="fld26" type="STRING"/>
+			<attribute name="fld27" column="fld27" type="STRING"/>
+			<attribute name="fld28" column="fld28" type="STRING"/>
+			<attribute name="fld29" column="fld29" type="STRING"/>
+			<attribute name="positionId" column="position_id" type="STRING"/>
+       </dataquery>
+    
+   </dataqueries>   
+</dbmap>

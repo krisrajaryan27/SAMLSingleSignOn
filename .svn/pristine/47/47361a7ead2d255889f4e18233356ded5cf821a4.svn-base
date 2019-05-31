@@ -1,0 +1,15 @@
+.checkboxradiogroupdiv{
+	overflow:visible;
+	/*border:1px solid #9EAC64;*/
+
+}
+.checkboxradiogroupdiv td {
+	padding: 0px 10px 2px 0px;
+	
+}
+.chkboxgroupclass{
+	padding:0px 3px 0px 0px;
+	border:0px;
+	margin:0px;
+	margin-bottom:-2px;
+}

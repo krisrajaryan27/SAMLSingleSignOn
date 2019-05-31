@@ -1,0 +1,65 @@
+<?xml version="1.0"?>
+<dbmap> 
+	<dbqueries>
+		<dbquery name="qAppNotification_InsertNotification">
+			insert into tp_appointments_notifications (
+			appointment_id, appointment_subject, appointment_from_date, appointment_to_date, 
+			appointment_created_by, applicant_id, position_id, 
+			position_step_id, appointment_attendee, appointment_from_date_new, 
+			appointment_to_date_new, appointment_attendee_new, appointment_notify_type, 
+			appointment_processed, appointment_date_created, appointment_date_modified, remind_me, remind_attendee,interview_mode,details_interview_mode) 
+			values ( ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+		</dbquery>
+		<dbquery name="qAppNotification_FetchNotifications">
+			SELECT  
+			notification_id, appointment_id, appointment_subject, appointment_from_date, appointment_to_date, 
+			appointment_created_by, applicant_id, position_id, 
+			position_step_id, appointment_attendee, appointment_from_date_new, 
+			appointment_to_date_new, appointment_attendee_new, appointment_notify_type, 
+			appointment_processed, appointment_date_created, appointment_date_modified, appointment_sequence_no,
+			remind_me, remind_attendee,interview_mode,details_interview_mode
+			FROM tp_appointments_notifications WHERE  
+			appointment_processed=? ORDER BY notification_id
+		</dbquery>
+		<dbquery name="qAppNotification_UpdateStatus">
+			UPDATE tp_appointments_notifications SET appointment_processed=?, appointment_processed_date=now()
+			WHERE notification_id=?
+		</dbquery>
+		<dbquery name="qAppNotification_UpdateSequence">
+			<!--  update the table with same table in subquery is not allowed, this is the workaround for that -->
+			update tp_appointments_notifications t1 
+			inner join (select count(*) as cnt,notification_id from tp_appointments_notifications where appointment_id= ? and notification_id &lt; ?) as t2
+			on (t1.notification_id = t2.notification_id)
+			set appointment_sequence_no = t2.cnt
+			where t1.notification_id = ?
+		</dbquery>
+	</dbqueries>
+	<dataqueries>
+		<dataquery name="dAppNotification_InsertNotification" dbquery="qAppNotification_InsertNotification" />
+	    <dataquery name="dAppNotification_FetchNotifications" dbquery="qAppNotification_FetchNotifications" object="com.talentPool.calendar.dataobject.AppointmentNotificationData">
+			<attribute name= "notificationId" column="notification_id" type ="STRING" />
+			<attribute name= "appointmentId" column="appointment_id" type ="STRING" />
+			<attribute name= "appointmentSubject" column="appointment_subject" type ="STRING" />
+			<attribute name= "appointmentFromDate" column="appointment_from_date" type ="STRING" />
+			<attribute name= "appointmentToDate" column="appointment_to_date" type ="STRING" />
+			<attribute name= "appointmentCreatedBy" column="appointment_created_by" type ="STRING" />
+	    	<attribute name= "applicantId" column="applicant_id" type ="STRING" />			
+			<attribute name= "applicantPositionId" column="position_id" type ="STRING" />
+			<attribute name= "applicantStepId" column="position_step_id" type ="STRING" />
+			<attribute name= "appointmentFromDateNew" column="appointment_from_date_new" type ="STRING" />
+			<attribute name= "appointmentToDateNew" column="appointment_to_date_new" type ="STRING" />
+			<attribute name= "appointmentAttendee" column="appointment_attendee" type ="STRING" />
+			<attribute name= "appointmentAttendeeNew" column="appointment_attendee_new" type ="STRING" />
+			<attribute name= "appointmentNotifyType" column="appointment_notify_type" type ="STRING" />
+			<attribute name= "appointmentDateCreated" column="appointment_date_created" type ="STRING" />
+			<attribute name= "appointmentDateModified" column="appointment_date_modified" type ="STRING" />
+			<attribute name= "appointmentSequenceNo" column="appointment_sequence_no" type ="STRING" />
+			<attribute name= "remindMe" column="remind_me" type ="INT" />
+			<attribute name= "remindInterviewer" column="remind_attendee" type ="INT" />
+			<attribute name= "interviewMode" column="interview_mode" type ="STRING" />
+			<attribute name= "detailsInterviewMode" column="details_interview_mode" type ="STRING" />
+		</dataquery>
+		<dataquery name="dAppNotification_UpdateStatus" dbquery="qAppNotification_UpdateStatus" />
+		<dataquery name="dAppNotification_UpdateSequence" dbquery="qAppNotification_UpdateSequence" />
+	</dataqueries>   
+</dbmap>

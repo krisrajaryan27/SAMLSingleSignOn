@@ -1,0 +1,102 @@
+<?xml version="1.0"?>
+<!--
+<!DOCTYPE dbmap SYSTEM "dbmap.dtd">
+-->
+<dbmap> 
+	<dbqueries>	
+       <!-- Start : Duplicate CHECKER  -->
+       <dbquery name="qDuplicateChecker_GetApproxSimilarNames">
+       		SELECT applicant_id, applicant_name ,1 as priority, resume_updated_date, applicant_original_resume_path, is_confidential, applicant_status FROM tp_applicants @@
+       </dbquery>
+       <dbquery name="qDuplicateChecker_GetDuplicateEmailCandidates">
+			SELECT ta.applicant_id,ta.applicant_name, 1 as priority, ta.resume_updated_date, ta.applicant_original_resume_path, is_confidential, ta.applicant_status FROM tp_applicants AS ta
+			WHERE ta.applicant_email1 = ? OR ta.applicant_email2 = ?
+       </dbquery>
+       <dbquery name="qDuplicateChecker_GetDuplicatePhoneCandidates">
+			SELECT ta.applicant_id,ta.applicant_name, 1 as priority, ta.resume_updated_date, ta.applicant_original_resume_path, is_confidential, ta.applicant_status FROM tp_applicants AS ta
+			WHERE RIGHT(ta.applicant_cell_phone, 10)= RIGHT(?,10)       
+       </dbquery>
+       <dbquery name="qDuplicateChecker_GetDuplicateCustomFieldCandidates">
+			SELECT ta.applicant_id,ta.applicant_name, 1 as priority, ta.resume_updated_date, ta.applicant_original_resume_path, is_confidential, ta.applicant_status FROM tp_applicants AS ta,
+			tp_custom_field_values_applicant tcfv
+			WHERE 
+			ta.applicant_id=tcfv.entity_id 
+			AND tcfv.custom_field_id=?
+			@@
+       </dbquery>
+       <dbquery name="qDuplicateChecker_GetDuplicateApplicantStatusDetails">
+       		SELECT 
+	       		ta.applicant_id, ta.applicant_name ,1 as priority, resume_updated_date, applicant_original_resume_path, is_confidential,applicant_status,
+				CASE WHEN applicant_status=? THEN 'Blacklisted'
+				WHEN position_step_id_to=? THEN ?
+				WHEN position_step_id_to=? THEN ?
+				WHEN position_step_id_to=? THEN ?
+				WHEN position_step_id_to=? THEN ?
+				WHEN position_step_id_to=? THEN ?
+				WHEN position_step_id_to=? THEN ?
+				ELSE tps.position_step_title END AS process_status, tp.position_code,
+				tp.position_title,tasp.process_moved_date
+			FROM tp_applicants ta 
+				LEFT JOIN (SELECT * FROM tp_applicant_selection_process ORDER BY process_id DESC) AS tasp ON (tasp.applicant_id=ta.applicant_id)
+				LEFT JOIN tp_positions tp ON (tp.position_id=tasp.position_id)
+				LEFT JOIN tp_position_steps tps ON (tps.position_step_id= CASE WHEN tasp.position_step_id_to &lt; 0 THEN  tasp.position_step_id_from ELSE tasp.position_step_id_to END)
+			WHERE ta.applicant_id IN (@@)
+			GROUP BY ta.applicant_id
+       </dbquery>
+       
+	   <!-- End : Duplicate CHECKER -->
+	</dbqueries>
+	<dataqueries>
+       <!-- Start : Duplicate Detection Settings -->
+       <dataquery name="dDuplicateChecker_GetApproxSimilarNames" dbquery="qDuplicateChecker_GetApproxSimilarNames" object="com.talentPool.applicant.dataobject.ApplicantDuplicateSearchData">
+       		<attribute name="applicantId"  column="applicant_id" type="STRING" />
+       		<attribute name="applicantName"  column="applicant_name" type="STRING" />
+       		<attribute name="priority"  column="priority" type="INT" />
+       		<attribute name= "resumeDateUpdated" column="resume_updated_date" type ="STRING" />
+       		<attribute name= "originalResumePath" column="applicant_original_resume_path" type ="STRING" />
+       		<attribute name= "isConfidential" column="is_confidential" type ="STRING" />
+       		<attribute name= "applicantStatus" column="applicant_status" type ="STRING" />
+       </dataquery>
+       <dataquery name="dDuplicateChecker_GetDuplicateEmailCandidates" dbquery="qDuplicateChecker_GetDuplicateEmailCandidates" object="com.talentPool.applicant.dataobject.ApplicantDuplicateSearchData">
+       		<attribute name="applicantId"  column="applicant_id" type="STRING" />
+       		<attribute name="applicantName"  column="applicant_name" type="STRING" />
+       		<attribute name="priority"  column="priority" type="INT" />
+       		<attribute name= "resumeDateUpdated" column="resume_updated_date" type ="STRING" />
+       		<attribute name= "originalResumePath" column="applicant_original_resume_path" type ="STRING" />
+       		<attribute name= "isConfidential" column="is_confidential" type ="STRING" />
+       		<attribute name= "applicantStatus" column="applicant_status" type ="STRING" />
+       </dataquery>
+       <dataquery name="dDuplicateChecker_GetDuplicatePhoneCandidates" dbquery="qDuplicateChecker_GetDuplicatePhoneCandidates" object="com.talentPool.applicant.dataobject.ApplicantDuplicateSearchData">
+       		<attribute name="applicantId"  column="applicant_id" type="STRING" />
+       		<attribute name="applicantName"  column="applicant_name" type="STRING" />
+       		<attribute name="priority"  column="priority" type="INT" />
+       		<attribute name= "resumeDateUpdated" column="resume_updated_date" type ="STRING" />
+       		<attribute name= "originalResumePath" column="applicant_original_resume_path" type ="STRING" />
+       		<attribute name= "isConfidential" column="is_confidential" type ="STRING" />
+       		<attribute name= "applicantStatus" column="applicant_status" type ="STRING" />
+       </dataquery>
+       <dataquery name="dDuplicateChecker_GetDuplicateCustomFieldCandidates" dbquery="qDuplicateChecker_GetDuplicateCustomFieldCandidates" object="com.talentPool.applicant.dataobject.ApplicantDuplicateSearchData">
+       		<attribute name="applicantId"  column="applicant_id" type="STRING" />
+       		<attribute name="applicantName"  column="applicant_name" type="STRING" />
+       		<attribute name="priority"  column="priority" type="INT" />
+       		<attribute name= "resumeDateUpdated" column="resume_updated_date" type ="STRING" />
+       		<attribute name= "originalResumePath" column="applicant_original_resume_path" type ="STRING" />
+       		<attribute name= "isConfidential" column="is_confidential" type ="STRING" />
+       		<attribute name= "applicantStatus" column="applicant_status" type ="STRING" />
+       </dataquery>
+       <dataquery name="dDuplicateChecker_GetDuplicateApplicantStatusDetails" dbquery="qDuplicateChecker_GetDuplicateApplicantStatusDetails" object="com.talentPool.applicant.dataobject.ApplicantDuplicateSearchData">
+       		<attribute name="applicantId"  column="applicant_id" type="STRING" />
+       		<attribute name="applicantName"  column="applicant_name" type="STRING" />
+       		<attribute name="priority"  column="priority" type="INT" />
+       		<attribute name= "resumeDateUpdated" column="resume_updated_date" type ="STRING" />
+       		<attribute name= "originalResumePath" column="applicant_original_resume_path" type ="STRING" />
+       		<attribute name= "isConfidential" column="is_confidential" type ="STRING" />
+       		<attribute name= "applicantStatus" column="applicant_status" type ="STRING" />
+       		<attribute name= "processStatus" column="process_status" type ="STRING" />
+       		<attribute name= "positionTitle" column="position_title" type ="STRING" />
+       		<attribute name= "positionCode" column="position_code" type ="STRING" />
+       		<attribute name= "processMovedDate" column="process_moved_date" type ="STRING" />
+       </dataquery>
+       <!-- End : Duplicate Detection Settings -->
+	</dataqueries>   
+</dbmap>

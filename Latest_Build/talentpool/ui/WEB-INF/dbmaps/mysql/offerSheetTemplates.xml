@@ -1,0 +1,86 @@
+<?xml version="1.0"?>
+<dbmap> 
+	<dbqueries>
+		<dbquery name="qOfferSheetManager_CreateOfferSheetTemplate">
+			INSERT INTO tp_offersheet_templates
+			(template_name, template_desc, template_file_path, template_file_name, user_id, date_created)
+			VALUES
+			(?, ?, ?, ?, ?, now())
+		</dbquery>
+		<dbquery name="qOfferSheetManager_GetOfferSheetTemplates">
+			SELECT tsot.template_id, tsot.template_name, tsot.template_desc, 
+			tsot.template_file_path, tsot.template_file_name, tsot.user_id, 
+			concat(tu.user_fname, ' ', tu.user_lname) AS user_name, tsot.date_created
+			FROM tp_offersheet_templates tsot
+			LEFT JOIN tp_users tu ON (tu.user_id = tsot.user_id)
+		</dbquery>
+		<dbquery name="qOfferSheetManager_GetOfferSheetTemplate">
+			SELECT tsot.template_id, tsot.template_name, tsot.template_desc, 
+			tsot.template_file_path, tsot.template_file_name, tsot.user_id, 
+			tsot.date_created
+			FROM tp_offersheet_templates tsot
+			WHERE tsot.template_id = ?
+		</dbquery>
+		<dbquery name="qOfferSheetManager_DeleteOfferSheetTemplate">
+			DELETE FROM tp_offersheet_templates
+			WHERE template_id = ?
+		</dbquery>
+		<dbquery name="qOfferSheetManager_CreateOfferSheetTemplateVariable">
+			INSERT INTO tp_offersheet_template_variables
+			(template_id, template_variable)
+			VALUES
+			(?, ?)
+		</dbquery>
+		<dbquery name="qOfferSheetManager_DeleteOfferSheetTemplateVariables">
+			DELETE FROM tp_offersheet_template_variables
+			WHERE template_id = ?
+		</dbquery>
+		<dbquery name="qOfferSheetManager_GetTemplateWithName">
+			SELECT template_id 
+			FROM tp_offersheet_templates
+			WHERE template_name = ?
+		</dbquery>
+		<dbquery name="qOfferSheetManager_GetTemplateVariables">
+			SELECT template_id, template_variable, attribute
+			FROM tp_offersheet_template_variables
+			WHERE template_id = ?
+		</dbquery>
+		<dbquery name="qOfferSheetManager_UpdateTemplateVariableAttribute">
+			UPDATE tp_offersheet_template_variables
+			SET attribute = ?
+			WHERE template_id = ? AND template_variable = ?
+		</dbquery>
+	</dbqueries>
+	<dataqueries>
+	    <dataquery name="dOfferSheetManager_CreateOfferSheetTemplate" dbquery="qOfferSheetManager_CreateOfferSheetTemplate" />
+	    <dataquery name="dOfferSheetManager_GetOfferSheetTemplates" dbquery="qOfferSheetManager_GetOfferSheetTemplates" object="com.talentPool.offerSheet.dataobject.OfferSheetTemplateData">
+			<attribute name="templateId" column="template_id" type="STRING"/>	        
+			<attribute name="templateName" column="template_name" type="STRING"/>
+			<attribute name="templateDesc" column="template_desc" type="STRING"/>
+			<attribute name="templateFilePath" column="template_file_path" type="STRING"/>
+			<attribute name="templateFileName" column="template_file_name" type="STRING"/>
+			<attribute name="userId" column="user_id" type="STRING"/>
+			<attribute name="userName" column="user_name" type="STRING"/>			
+			<attribute name="dateCreated" column="date_created" type="STRING"/>
+		</dataquery>
+		<dataquery name="dOfferSheetManager_GetOfferSheetTemplate" dbquery="qOfferSheetManager_GetOfferSheetTemplate" object="com.talentPool.offerSheet.dataobject.OfferSheetTemplateData">
+			<attribute name="templateId" column="template_id" type="STRING"/>	        
+			<attribute name="templateName" column="template_name" type="STRING"/>
+			<attribute name="templateDesc" column="template_desc" type="STRING"/>
+			<attribute name="templateFilePath" column="template_file_path" type="STRING"/>
+			<attribute name="templateFileName" column="template_file_name" type="STRING"/>
+			<attribute name="userId" column="user_id" type="STRING"/>		
+			<attribute name="dateCreated" column="date_created" type="STRING"/>
+		</dataquery>	
+		<dataquery name="dOfferSheetManager_DeleteOfferSheetTemplate" dbquery="qOfferSheetManager_DeleteOfferSheetTemplate" />		   
+		<dataquery name="dOfferSheetManager_CreateOfferSheetTemplateVariable" dbquery="qOfferSheetManager_CreateOfferSheetTemplateVariable" />
+		<dataquery name="dOfferSheetManager_DeleteOfferSheetTemplateVariables" dbquery="qOfferSheetManager_DeleteOfferSheetTemplateVariables" />
+		<dataquery name="dOfferSheetManager_GetTemplateWithName" dbquery="qOfferSheetManager_GetTemplateWithName" />
+		<dataquery name="dOfferSheetManager_GetTemplateVariables" dbquery="qOfferSheetManager_GetTemplateVariables" object="com.talentPool.offerSheet.dataobject.OfferSheetTemplateVariable">
+			<attribute name="templateId" column="template_id" type="STRING"/>	        
+			<attribute name="templateVariable" column="template_variable" type="STRING"/>
+			<attribute name="templateVariableAttribute" column="attribute" type="STRING"/>
+		</dataquery>	
+		<dataquery name="dOfferSheetManager_UpdateTemplateVariableAttribute" dbquery="qOfferSheetManager_UpdateTemplateVariableAttribute"/>	
+	</dataqueries>   
+</dbmap>

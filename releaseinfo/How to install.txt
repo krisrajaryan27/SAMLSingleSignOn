@@ -1,0 +1,9 @@
+Follow steps to upgrade to v.2.9.0
+
+- Go to Start->All Programs->TalentPool. and stop talentpool.
+- Take backup of existing data by running talentpool backup job scheduled on talentpool server.
+to take back up, goto scheduled taskes, right click on talentpool backup job and click run.
+- Run talentpool.exe 
+
+
+
